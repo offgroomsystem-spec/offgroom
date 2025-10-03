@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,18 +9,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
+interface Raca {
+  id: string;
+  nome: string;
+  porte: string;
+}
+
 interface Cliente {
   id: string;
   nomeCliente: string;
   nomePet: string;
   porte: string;
   raca: string;
+  whatsapp: string;
   endereco: string;
   observacao: string;
 }
 
 const Clientes = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [racas, setRacas] = useState<Raca[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,12 +38,43 @@ const Clientes = () => {
     nomePet: "",
     porte: "",
     raca: "",
+    whatsapp: "",
     endereco: "",
     observacao: "",
   });
 
+  useEffect(() => {
+    const saved = localStorage.getItem('racas');
+    if (saved) {
+      setRacas(JSON.parse(saved));
+    }
+  }, []);
+
+  const racasFiltradas = racas.filter(raca => raca.porte === formData.porte);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.nomeCliente.trim()) {
+      toast.error("Favor preencher o Nome do Cliente");
+      return;
+    }
+    if (!formData.nomePet.trim()) {
+      toast.error("Favor preencher o Nome do Pet");
+      return;
+    }
+    if (!formData.porte) {
+      toast.error("Favor selecionar o Porte do Pet");
+      return;
+    }
+    if (!formData.raca) {
+      toast.error("Favor preencher a Raça do Pet");
+      return;
+    }
+    if (!formData.whatsapp || formData.whatsapp.length !== 11) {
+      toast.error("Favor preencher o WhatsApp com 11 dígitos (DDD + número)");
+      return;
+    }
     
     if (editingCliente) {
       setClientes(clientes.map(c => 
@@ -60,6 +99,7 @@ const Clientes = () => {
       nomePet: "",
       porte: "",
       raca: "",
+      whatsapp: "",
       endereco: "",
       observacao: "",
     });
@@ -109,30 +149,31 @@ const Clientes = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nomeCliente">Nome do Cliente</Label>
+                  <Label htmlFor="nomeCliente">Nome do Cliente *</Label>
                   <Input
                     id="nomeCliente"
                     value={formData.nomeCliente}
                     onChange={(e) => setFormData({ ...formData, nomeCliente: e.target.value })}
-                    required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="nomePet">Nome do Pet</Label>
+                  <Label htmlFor="nomePet">Nome do Pet *</Label>
                   <Input
                     id="nomePet"
                     value={formData.nomePet}
                     onChange={(e) => setFormData({ ...formData, nomePet: e.target.value })}
-                    required
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="porte">Porte do Pet</Label>
-                  <Select value={formData.porte} onValueChange={(value) => setFormData({ ...formData, porte: value })}>
+                  <Label htmlFor="porte">Porte do Pet *</Label>
+                  <Select 
+                    value={formData.porte} 
+                    onValueChange={(value) => setFormData({ ...formData, porte: value, raca: "" })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o porte" />
                     </SelectTrigger>
@@ -145,14 +186,49 @@ const Clientes = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="raca">Raça</Label>
-                  <Input
-                    id="raca"
-                    value={formData.raca}
-                    onChange={(e) => setFormData({ ...formData, raca: e.target.value })}
-                    required
-                  />
+                  <Label htmlFor="raca">Raça *</Label>
+                  <Select 
+                    value={formData.raca} 
+                    onValueChange={(value) => setFormData({ ...formData, raca: value })}
+                    disabled={!formData.porte}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={!formData.porte ? "Selecione o porte primeiro" : "Selecione a raça"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {racasFiltradas.length === 0 ? (
+                        <SelectItem value="sem-raca" disabled>
+                          Nenhuma raça cadastrada para este porte
+                        </SelectItem>
+                      ) : (
+                        racasFiltradas.map((raca) => (
+                          <SelectItem key={raca.id} value={raca.nome}>
+                            {raca.nome}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp *</Label>
+                <Input
+                  id="whatsapp"
+                  value={formData.whatsapp}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 11) {
+                      setFormData({ ...formData, whatsapp: value });
+                    }
+                  }}
+                  placeholder="DDD + número (11 dígitos)"
+                  maxLength={11}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ex: 11987654321 (DDD + número)
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -213,6 +289,7 @@ const Clientes = () => {
                 <tr className="border-b">
                   <th className="text-left py-3 px-4 font-semibold text-sm">Cliente</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Pet</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm">WhatsApp</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Porte</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Raça</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Endereço</th>
@@ -222,7 +299,7 @@ const Clientes = () => {
               <tbody>
                 {filteredClientes.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={7} className="text-center py-8 text-muted-foreground">
                       Nenhum cliente cadastrado
                     </td>
                   </tr>
@@ -232,12 +309,18 @@ const Clientes = () => {
                       <td className="py-3 px-4">{cliente.nomeCliente}</td>
                       <td className="py-3 px-4">{cliente.nomePet}</td>
                       <td className="py-3 px-4">
+                        {cliente.whatsapp ? 
+                          `(${cliente.whatsapp.slice(0,2)}) ${cliente.whatsapp.slice(2,7)}-${cliente.whatsapp.slice(7)}` 
+                          : '-'
+                        }
+                      </td>
+                      <td className="py-3 px-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                           {cliente.porte}
                         </span>
                       </td>
                       <td className="py-3 px-4">{cliente.raca}</td>
-                      <td className="py-3 px-4">{cliente.endereco}</td>
+                      <td className="py-3 px-4">{cliente.endereco || '-'}</td>
                       <td className="py-3 px-4">
                         <div className="flex justify-end gap-2">
                           <Button size="sm" variant="ghost" onClick={() => handleEdit(cliente)}>

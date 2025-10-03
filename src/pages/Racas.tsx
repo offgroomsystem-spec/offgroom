@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,14 @@ interface Raca {
 }
 
 const Racas = () => {
-  const [racas, setRacas] = useState<Raca[]>([]);
+  const [racas, setRacas] = useState<Raca[]>(() => {
+    const saved = localStorage.getItem('racas');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('racas', JSON.stringify(racas));
+  }, [racas]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRaca, setEditingRaca] = useState<Raca | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
