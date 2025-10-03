@@ -1,0 +1,263 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Pencil, Trash2, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
+
+interface Cliente {
+  id: string;
+  nomeCliente: string;
+  nomePet: string;
+  porte: string;
+  raca: string;
+  endereco: string;
+  observacao: string;
+}
+
+const Clientes = () => {
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [formData, setFormData] = useState({
+    nomeCliente: "",
+    nomePet: "",
+    porte: "",
+    raca: "",
+    endereco: "",
+    observacao: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingCliente) {
+      setClientes(clientes.map(c => 
+        c.id === editingCliente.id ? { ...formData, id: editingCliente.id } : c
+      ));
+      toast.success("Cliente atualizado com sucesso!");
+    } else {
+      const novoCliente: Cliente = {
+        ...formData,
+        id: Date.now().toString(),
+      };
+      setClientes([...clientes, novoCliente]);
+      toast.success("Cliente cadastrado com sucesso!");
+    }
+    
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nomeCliente: "",
+      nomePet: "",
+      porte: "",
+      raca: "",
+      endereco: "",
+      observacao: "",
+    });
+    setEditingCliente(null);
+    setIsDialogOpen(false);
+  };
+
+  const handleEdit = (cliente: Cliente) => {
+    setEditingCliente(cliente);
+    setFormData(cliente);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setClientes(clientes.filter(c => c.id !== id));
+    toast.success("Cliente removido com sucesso!");
+  };
+
+  const filteredClientes = clientes.filter(cliente =>
+    cliente.nomeCliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.nomePet.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Clientes e Pets</h1>
+          <p className="text-muted-foreground mt-1">Gerencie os cadastros de clientes e seus pets</p>
+        </div>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Cliente
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingCliente ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+              <DialogDescription>
+                Preencha os dados do cliente e pet
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nomeCliente">Nome do Cliente</Label>
+                  <Input
+                    id="nomeCliente"
+                    value={formData.nomeCliente}
+                    onChange={(e) => setFormData({ ...formData, nomeCliente: e.target.value })}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="nomePet">Nome do Pet</Label>
+                  <Input
+                    id="nomePet"
+                    value={formData.nomePet}
+                    onChange={(e) => setFormData({ ...formData, nomePet: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="porte">Porte do Pet</Label>
+                  <Select value={formData.porte} onValueChange={(value) => setFormData({ ...formData, porte: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o porte" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pequeno">Pequeno</SelectItem>
+                      <SelectItem value="medio">Médio</SelectItem>
+                      <SelectItem value="grande">Grande</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="raca">Raça</Label>
+                  <Input
+                    id="raca"
+                    value={formData.raca}
+                    onChange={(e) => setFormData({ ...formData, raca: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endereco">Endereço</Label>
+                <Input
+                  id="endereco"
+                  value={formData.endereco}
+                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="observacao">Observação</Label>
+                <Textarea
+                  id="observacao"
+                  value={formData.observacao}
+                  onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {editingCliente ? "Atualizar" : "Salvar"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Lista de Clientes</CardTitle>
+              <CardDescription>Total: {clientes.length} clientes cadastrados</CardDescription>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cliente ou pet..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 font-semibold text-sm">Cliente</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm">Pet</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm">Porte</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm">Raça</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm">Endereço</th>
+                  <th className="text-right py-3 px-4 font-semibold text-sm">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredClientes.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                      Nenhum cliente cadastrado
+                    </td>
+                  </tr>
+                ) : (
+                  filteredClientes.map((cliente) => (
+                    <tr key={cliente.id} className="border-b hover:bg-secondary/50 transition-colors">
+                      <td className="py-3 px-4">{cliente.nomeCliente}</td>
+                      <td className="py-3 px-4">{cliente.nomePet}</td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          {cliente.porte}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">{cliente.raca}</td>
+                      <td className="py-3 px-4">{cliente.endereco}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => handleEdit(cliente)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(cliente.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Clientes;
