@@ -16,6 +16,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { path: "/clientes", label: "Clientes", icon: Users },
     { path: "/servicos", label: "Serviços", icon: Scissors },
     { path: "/racas", label: "Raças", icon: PawPrint },
+    { path: "/pacotes", label: "Pacotes", icon: Scissors },
   ];
 
   const isCadastroActive = cadastroItems.some(item => location.pathname === item.path);
@@ -94,7 +95,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </header>
 
-      <main className="container py-8">
+      <main className="container py-4">
         {children}
       </main>
     </div>

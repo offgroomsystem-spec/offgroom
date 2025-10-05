@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,11 @@ const Servicos = () => {
     nome: "",
     valor: "",
   });
+
+  // Salvar serviços no localStorage sempre que houver alteração
+  useEffect(() => {
+    localStorage.setItem("servicos", JSON.stringify(servicos));
+  }, [servicos]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,42 +79,43 @@ const Servicos = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Serviços</h1>
-          <p className="text-muted-foreground mt-1">Gerencie os serviços oferecidos</p>
+          <h1 className="font-bold text-foreground">Serviços</h1>
+          <p className="text-muted-foreground text-xs">Gerencie os serviços oferecidos</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
+            <Button className="gap-2 h-8 text-xs">
+              <Plus className="h-3 w-3" />
               Novo Serviço
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingServico ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg">{editingServico ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
+              <DialogDescription className="text-xs">
                 Preencha os dados do serviço
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome">Nome do Serviço</Label>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="nome" className="text-xs">Nome do Serviço</Label>
                 <Input
                   id="nome"
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   placeholder="Ex: Banho e Tosa"
+                  className="h-8 text-xs"
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="valor">Valor (R$)</Label>
+              <div className="space-y-1">
+                <Label htmlFor="valor" className="text-xs">Valor (R$)</Label>
                 <Input
                   id="valor"
                   type="number"
@@ -118,15 +124,16 @@ const Servicos = () => {
                   value={formData.valor}
                   onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
                   placeholder="0.00"
+                  className="h-8 text-xs"
                   required
                 />
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} className="h-8 text-xs">
                   Cancelar
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="h-8 text-xs">
                   {editingServico ? "Atualizar" : "Salvar"}
                 </Button>
               </div>
@@ -136,56 +143,56 @@ const Servicos = () => {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="py-3">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Lista de Serviços</CardTitle>
-              <CardDescription>Total: {servicos.length} serviços cadastrados</CardDescription>
+              <CardTitle className="text-base">Lista de Serviços</CardTitle>
+              <CardDescription className="text-xs">Total: {servicos.length} serviços cadastrados</CardDescription>
             </div>
             <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
               <Input
                 placeholder="Buscar serviço..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-7 h-8 text-xs"
               />
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="py-3">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Serviço</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Valor</th>
-                  <th className="text-right py-3 px-4 font-semibold text-sm">Ações</th>
+                  <th className="text-left py-2 px-3 font-semibold text-xs">Serviço</th>
+                  <th className="text-left py-2 px-3 font-semibold text-xs">Valor</th>
+                  <th className="text-right py-2 px-3 font-semibold text-xs">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredServicos.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={3} className="text-center py-8 text-muted-foreground text-xs">
                       Nenhum serviço cadastrado
                     </td>
                   </tr>
                 ) : (
                   filteredServicos.map((servico) => (
                     <tr key={servico.id} className="border-b hover:bg-secondary/50 transition-colors">
-                      <td className="py-3 px-4 font-medium">{servico.nome}</td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold bg-accent/10 text-accent">
+                      <td className="py-2 px-3 font-medium text-xs">{servico.nome}</td>
+                      <td className="py-2 px-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent">
                           {formatCurrency(servico.valor)}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => handleEdit(servico)}>
-                            <Pencil className="h-4 w-4" />
+                      <td className="py-2 px-3">
+                        <div className="flex justify-end gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => handleEdit(servico)} className="h-7 w-7 p-0">
+                            <Pencil className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDelete(servico.id)}>
-                            <Trash2 className="h-4 w-4" />
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(servico.id)} className="h-7 w-7 p-0">
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </td>
