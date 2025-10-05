@@ -264,12 +264,14 @@ const Pacotes = () => {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="validade" className="text-xs">Válidade do Pacote</Label>
+                <Label htmlFor="validade" className="text-xs">Dias de Válidade do Pacote</Label>
                 <Input
                   id="validade"
-                  type="date"
+                  type="number"
+                  min="1"
                   value={formData.validade}
                   onChange={(e) => setFormData({ ...formData, validade: e.target.value })}
+                  placeholder="Ex: 30"
                   className="h-8 text-xs"
                 />
               </div>
@@ -371,7 +373,7 @@ const Pacotes = () => {
                         {pacote.servicos.map(s => s.nome).join(", ")}
                       </td>
                       <td className="py-2 px-3 text-xs">
-                        {new Date(pacote.validade).toLocaleDateString('pt-BR')}
+                        {pacote.validade} dias
                       </td>
                       <td className="py-2 px-3 text-xs">
                         {pacote.descontoPercentual.toFixed(2)}% ({formatCurrency(pacote.descontoValor)})

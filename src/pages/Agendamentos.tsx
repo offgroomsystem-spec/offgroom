@@ -94,94 +94,98 @@ const Agendamentos = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Agenda de Serviços</h1>
-          <p className="text-muted-foreground mt-1">Visualize e gerencie os agendamentos</p>
+          <h1 className="font-bold text-foreground">Agenda de Serviços</h1>
+          <p className="text-muted-foreground text-xs">Visualize e gerencie os agendamentos</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
+            <Button className="gap-2 h-8 text-xs">
+              <Plus className="h-3 w-3" />
               Novo Agendamento
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Novo Agendamento</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg">Novo Agendamento</DialogTitle>
+              <DialogDescription className="text-xs">
                 Preencha os dados do agendamento
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="cliente">Cliente</Label>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="cliente" className="text-xs">Cliente</Label>
                 <Input
                   id="cliente"
                   value={formData.cliente}
                   onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
                   placeholder="Nome do cliente"
+                  className="h-8 text-xs"
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pet">Pet</Label>
+              <div className="space-y-1">
+                <Label htmlFor="pet" className="text-xs">Pet</Label>
                 <Input
                   id="pet"
                   value={formData.pet}
                   onChange={(e) => setFormData({ ...formData, pet: e.target.value })}
                   placeholder="Nome do pet"
+                  className="h-8 text-xs"
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="servico">Serviço</Label>
+              <div className="space-y-1">
+                <Label htmlFor="servico" className="text-xs">Serviço</Label>
                 <Input
                   id="servico"
                   value={formData.servico}
                   onChange={(e) => setFormData({ ...formData, servico: e.target.value })}
                   placeholder="Tipo de serviço"
+                  className="h-8 text-xs"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="data">Data</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="data" className="text-xs">Data</Label>
                   <Input
                     id="data"
                     type="date"
                     value={formData.data}
                     onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                    className="h-8 text-xs"
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="horario">Horário</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="horario" className="text-xs">Horário</Label>
                   <Select value={formData.horario} onValueChange={(value) => setFormData({ ...formData, horario: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {horarios.map(h => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                        <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={resetForm} className="h-8 text-xs">
                   Cancelar
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="h-8 text-xs">
                   Salvar
                 </Button>
               </div>
@@ -191,26 +195,26 @@ const Agendamentos = () => {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="py-3">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Agenda Semanal</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base">Agenda Semanal</CardTitle>
+              <CardDescription className="text-xs">
                 Semana de {weekDates[0].toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })} 
                 {' '}a {weekDates[6].toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigateWeek(-1)}>
+              <Button variant="outline" onClick={() => navigateWeek(-1)} className="h-8 text-xs">
                 ← Semana Anterior
               </Button>
-              <Button variant="outline" onClick={() => navigateWeek(1)}>
+              <Button variant="outline" onClick={() => navigateWeek(1)} className="h-8 text-xs">
                 Próxima Semana →
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="py-3">
           <div className="overflow-x-auto">
             <div className="min-w-[800px]">
               <div className="grid grid-cols-8 gap-2">
