@@ -18,6 +18,15 @@ interface Agendamento {
   status: "confirmado" | "pendente" | "concluido";
 }
 
+interface ServicoAgendamento {
+  numero: string;
+  nomeServico: string;
+  data: string;
+  horarioInicio: string;
+  tempoServico: number;
+  horarioTermino: string;
+}
+
 interface AgendamentoPacote {
   id: string;
   nomeCliente: string;
@@ -25,9 +34,7 @@ interface AgendamentoPacote {
   raca: string;
   whatsapp: string;
   nomePacote: string;
-  data: string;
-  horarioInicio: string;
-  tempoServico: number;
+  servicos: ServicoAgendamento[];
 }
 
 interface Cliente {
@@ -41,10 +48,21 @@ interface Cliente {
   observacao: string;
 }
 
+interface ServicoSelecionado {
+  instanceId: string;
+  id: string;
+  nome: string;
+  valor: number;
+}
+
 interface Pacote {
   id: string;
   nome: string;
-  diasValidade: number;
+  servicos: ServicoSelecionado[];
+  validade: string;
+  descontoPercentual: number;
+  descontoValor: number;
+  valorFinal: number;
 }
 
 const Agendamentos = () => {
@@ -86,10 +104,9 @@ const Agendamentos = () => {
     raca: "",
     whatsapp: "",
     nomePacote: "",
-    data: "",
-    horarioInicio: "",
-    tempoServico: 0,
   });
+
+  const [servicosAgendamento, setServicosAgendamento] = useState<ServicoAgendamento[]>([]);
 
   // Estados para busca inteligente
   const [clienteSearch, setClienteSearch] = useState("");
@@ -241,16 +258,57 @@ const Agendamentos = () => {
       raca: "",
       whatsapp: "",
       nomePacote: "",
-      data: "",
-      horarioInicio: "",
-      tempoServico: 0,
     });
+    setServicosAgendamento([]);
     setClienteSearch("");
     setPetSearch("");
     setFilteredClientes([]);
     setFilteredPets([]);
     setAvailableRacas([]);
     setIsPacoteDialogOpen(false);
+  };
+
+  // Quando seleciona um pacote, carregar seus serviços
+  const handlePacoteSelect = (nomePacote: string) => {
+    setPacoteFormData({ ...pacoteFormData, nomePacote });
+    
+    const pacoteSelecionado = pacotes.find(p => p.nome === nomePacote);
+    if (pacoteSelecionado) {
+      const servicosInit: ServicoAgendamento[] = pacoteSelecionado.servicos.map((servico, index) => {
+        const total = pacoteSelecionado.servicos.length;
+        const numero = `${String(index + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+        
+        return {
+          numero,
+          nomeServico: servico.nome,
+          data: "",
+          horarioInicio: "",
+          tempoServico: 1,
+          horarioTermino: ""
+        };
+      });
+      setServicosAgendamento(servicosInit);
+    }
+  };
+
+  // Atualizar serviço individual
+  const handleServicoAgendamentoChange = (index: number, field: keyof ServicoAgendamento, value: string | number) => {
+    const updated = [...servicosAgendamento];
+    updated[index] = { ...updated[index], [field]: value };
+    
+    // Calcular horário de término se horarioInicio e tempoServico estão preenchidos
+    if (field === 'horarioInicio' || field === 'tempoServico') {
+      const horarioInicio = field === 'horarioInicio' ? value as string : updated[index].horarioInicio;
+      const tempoServico = field === 'tempoServico' ? value as number : updated[index].tempoServico;
+      
+      if (horarioInicio && tempoServico) {
+        const [horas, minutos] = horarioInicio.split(':').map(Number);
+        const horaTermino = horas + tempoServico;
+        updated[index].horarioTermino = `${String(horaTermino).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+      }
+    }
+    
+    setServicosAgendamento(updated);
   };
 
   const handlePacoteSubmit = (e: React.FormEvent) => {
@@ -272,22 +330,32 @@ const Agendamentos = () => {
       toast.error("Favor selecionar o Pacote");
       return;
     }
-    if (!pacoteFormData.data) {
-      toast.error("Favor preencher a Data");
-      return;
-    }
-    if (!pacoteFormData.horarioInicio) {
-      toast.error("Favor selecionar o Horário de Início");
-      return;
-    }
-    if (!pacoteFormData.tempoServico || pacoteFormData.tempoServico <= 0) {
-      toast.error("Favor preencher o Tempo de Serviço");
-      return;
+    
+    // Validar todos os serviços
+    for (let i = 0; i < servicosAgendamento.length; i++) {
+      const servico = servicosAgendamento[i];
+      if (!servico.data) {
+        toast.error(`Favor preencher a Data do serviço ${servico.numero}`);
+        return;
+      }
+      if (!servico.horarioInicio) {
+        toast.error(`Favor preencher o Horário de Início do serviço ${servico.numero}`);
+        return;
+      }
+      if (!servico.tempoServico || servico.tempoServico <= 0) {
+        toast.error(`Favor preencher o Tempo de Serviço do serviço ${servico.numero}`);
+        return;
+      }
     }
     
     const novoAgendamentoPacote: AgendamentoPacote = {
-      ...pacoteFormData,
       id: Date.now().toString(),
+      nomeCliente: pacoteFormData.nomeCliente,
+      nomePet: pacoteFormData.nomePet,
+      raca: pacoteFormData.raca,
+      whatsapp: pacoteFormData.whatsapp,
+      nomePacote: pacoteFormData.nomePacote,
+      servicos: servicosAgendamento,
     };
     
     setAgendamentosPacotes([...agendamentosPacotes, novoAgendamentoPacote]);
@@ -302,7 +370,9 @@ const Agendamentos = () => {
 
   const getPacoteForSlot = (date: Date, horario: string) => {
     const dateStr = date.toISOString().split('T')[0];
-    return agendamentosPacotes.find(a => a.data === dateStr && a.horarioInicio === horario);
+    return agendamentosPacotes.find(a => 
+      a.servicos.some(s => s.data === dateStr && s.horarioInicio === horario)
+    );
   };
 
   const isHorarioOcupado = (date: Date, horario: string) => {
@@ -518,7 +588,7 @@ const Agendamentos = () => {
                 <Label htmlFor="nomePacote" className="text-xs">Nome do Pacote de Serviço *</Label>
                 <Select 
                   value={pacoteFormData.nomePacote} 
-                  onValueChange={(value) => setPacoteFormData({ ...pacoteFormData, nomePacote: value })}
+                  onValueChange={handlePacoteSelect}
                 >
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="Selecione o pacote" />
@@ -539,49 +609,61 @@ const Agendamentos = () => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="data" className="text-xs">Data *</Label>
-                  <Input
-                    id="data"
-                    type="date"
-                    value={pacoteFormData.data}
-                    onChange={(e) => setPacoteFormData({ ...pacoteFormData, data: e.target.value })}
-                    className="h-8 text-xs"
-                  />
+              {servicosAgendamento.length > 0 && (
+                <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                  <Label className="text-xs font-semibold">Agendamentos dos Serviços do Pacote</Label>
+                  <div className="space-y-2">
+                    {servicosAgendamento.map((servico, index) => (
+                      <div key={index} className="grid grid-cols-[60px_1fr_140px_110px_110px] gap-2 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-primary font-semibold">{servico.numero}</Label>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Label className="text-xs">{servico.nomeServico}</Label>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Input
+                            type="date"
+                            value={servico.data}
+                            onChange={(e) => handleServicoAgendamentoChange(index, 'data', e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Select 
+                            value={servico.horarioInicio} 
+                            onValueChange={(value) => handleServicoAgendamentoChange(index, 'horarioInicio', value)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Horário" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {horarios.map(h => (
+                                <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="12"
+                            value={servico.tempoServico || ""}
+                            onChange={(e) => handleServicoAgendamentoChange(index, 'tempoServico', parseInt(e.target.value) || 0)}
+                            placeholder="Horas"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="horarioInicio" className="text-xs">Horário Início *</Label>
-                  <Select 
-                    value={pacoteFormData.horarioInicio} 
-                    onValueChange={(value) => setPacoteFormData({ ...pacoteFormData, horarioInicio: value })}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {horarios.map(h => (
-                        <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="tempoServico" className="text-xs">Tempo de Serviço (horas) *</Label>
-                  <Input
-                    id="tempoServico"
-                    type="number"
-                    min="1"
-                    max="12"
-                    value={pacoteFormData.tempoServico || ""}
-                    onChange={(e) => setPacoteFormData({ ...pacoteFormData, tempoServico: parseInt(e.target.value) || 0 })}
-                    placeholder="Ex: 2"
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={resetPacoteForm} className="h-8 text-xs">
@@ -670,7 +752,9 @@ const Agendamentos = () => {
                             </div>
                             <div className="text-xs opacity-80">{pacote.nomePet}</div>
                             <div className="text-xs opacity-60">{pacote.nomePacote}</div>
-                            <div className="text-xs opacity-60">{pacote.tempoServico}h</div>
+                            {pacote.servicos[0] && (
+                              <div className="text-xs opacity-60">{pacote.servicos[0].nomeServico}</div>
+                            )}
                           </div>
                         )}
                       </div>

@@ -262,42 +262,28 @@ const Pacotes = () => {
                 
                 {servicosSelecionados.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    {(() => {
-                      // Agrupar serviços por ID para mostrar quantidade
-                      const servicosAgrupados = servicosSelecionados.reduce((acc, servico) => {
-                        const existing = acc.find(s => s.id === servico.id);
-                        if (existing) {
-                          existing.quantidade++;
-                          existing.instancias.push(servico.instanceId);
-                        } else {
-                          acc.push({
-                            id: servico.id,
-                            nome: servico.nome,
-                            valor: servico.valor,
-                            quantidade: 1,
-                            instancias: [servico.instanceId]
-                          });
-                        }
-                        return acc;
-                      }, [] as Array<{id: string, nome: string, valor: number, quantidade: number, instancias: string[]}>);
-
-                      return servicosAgrupados.map((servico) => (
-                        <div key={servico.id} className="flex items-center justify-between bg-secondary/50 p-2 rounded text-xs">
+                    {servicosSelecionados.map((servico, index) => {
+                      const total = servicosSelecionados.length;
+                      const numero = String(index + 1).padStart(2, '0');
+                      const totalFormatado = String(total).padStart(2, '0');
+                      
+                      return (
+                        <div key={servico.instanceId} className="flex items-center justify-between bg-secondary/50 p-2 rounded text-xs">
                           <span>
-                            {servico.nome} {servico.quantidade > 1 && `x${servico.quantidade}`} - {formatCurrency(servico.valor * servico.quantidade)}
+                            <span className="font-semibold text-primary">{numero}/{totalFormatado}</span> - {servico.nome} - {formatCurrency(servico.valor)}
                           </span>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRemoveServico(servico.instancias[servico.instancias.length - 1])}
+                            onClick={() => handleRemoveServico(servico.instanceId)}
                             className="h-6 w-6 p-0"
                           >
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
-                      ));
-                    })()}
+                      );
+                    })}
                     <div className="font-semibold text-xs mt-2">
                       Valor Total dos Serviços: {formatCurrency(valorTotalServicos)}
                     </div>
