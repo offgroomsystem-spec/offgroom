@@ -27,7 +27,15 @@ interface Cliente {
 }
 
 const Clientes = () => {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>(() => {
+    const saved = localStorage.getItem('clientes');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('clientes', JSON.stringify(clientes));
+  }, [clientes]);
+  
   const [racas, setRacas] = useState<Raca[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);

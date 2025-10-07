@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock } from "lucide-react";
+import { Plus, Clock, Package } from "lucide-react";
 import { toast } from "sonner";
 
 interface Agendamento {
@@ -18,9 +18,58 @@ interface Agendamento {
   status: "confirmado" | "pendente" | "concluido";
 }
 
+interface AgendamentoPacote {
+  id: string;
+  nomeCliente: string;
+  nomePet: string;
+  raca: string;
+  whatsapp: string;
+  nomePacote: string;
+  data: string;
+  horarioInicio: string;
+  tempoServico: number;
+}
+
+interface Cliente {
+  id: string;
+  nomeCliente: string;
+  nomePet: string;
+  porte: string;
+  raca: string;
+  whatsapp: string;
+  endereco: string;
+  observacao: string;
+}
+
+interface Pacote {
+  id: string;
+  nome: string;
+  diasValidade: number;
+}
+
 const Agendamentos = () => {
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(() => {
+    const saved = localStorage.getItem('agendamentos');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('agendamentos', JSON.stringify(agendamentos));
+  }, [agendamentos]);
+  
+  const [agendamentosPacotes, setAgendamentosPacotes] = useState<AgendamentoPacote[]>(() => {
+    const saved = localStorage.getItem('agendamentosPacotes');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('agendamentosPacotes', JSON.stringify(agendamentosPacotes));
+  }, [agendamentosPacotes]);
+  
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [formData, setFormData] = useState({
@@ -30,6 +79,113 @@ const Agendamentos = () => {
     data: "",
     horario: "",
   });
+
+  const [pacoteFormData, setPacoteFormData] = useState({
+    nomeCliente: "",
+    nomePet: "",
+    raca: "",
+    whatsapp: "",
+    nomePacote: "",
+    data: "",
+    horarioInicio: "",
+    tempoServico: 0,
+  });
+
+  // Estados para busca inteligente
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [petSearch, setPetSearch] = useState("");
+  const [filteredClientes, setFilteredClientes] = useState<string[]>([]);
+  const [filteredPets, setFilteredPets] = useState<string[]>([]);
+  const [availableRacas, setAvailableRacas] = useState<string[]>([]);
+
+  // Carregar dados do localStorage
+  useEffect(() => {
+    const savedClientes = localStorage.getItem('clientes');
+    if (savedClientes) {
+      setClientes(JSON.parse(savedClientes));
+    }
+    
+    const savedPacotes = localStorage.getItem('pacotes');
+    if (savedPacotes) {
+      setPacotes(JSON.parse(savedPacotes));
+    }
+  }, []);
+
+  // Busca inteligente por cliente
+  useEffect(() => {
+    if (clienteSearch.length >= 2) {
+      const matches = Array.from(new Set(
+        clientes
+          .filter(c => c.nomeCliente.toLowerCase().startsWith(clienteSearch.toLowerCase()))
+          .map(c => c.nomeCliente)
+      ));
+      setFilteredClientes(matches);
+    } else {
+      setFilteredClientes([]);
+    }
+  }, [clienteSearch, clientes]);
+
+  // Busca inteligente por pet
+  useEffect(() => {
+    if (petSearch.length >= 2) {
+      const matches = Array.from(new Set(
+        clientes
+          .filter(c => c.nomePet.toLowerCase().startsWith(petSearch.toLowerCase()))
+          .map(c => c.nomePet)
+      ));
+      setFilteredPets(matches);
+    } else {
+      setFilteredPets([]);
+    }
+  }, [petSearch, clientes]);
+
+  // Atualizar pets disponíveis quando cliente é selecionado
+  const handleClienteSelect = (nomeCliente: string) => {
+    setClienteSearch(nomeCliente);
+    setPacoteFormData({ ...pacoteFormData, nomeCliente, nomePet: "", raca: "", whatsapp: "" });
+    
+    // Buscar pets deste cliente
+    const clientesComNome = clientes.filter(c => c.nomeCliente === nomeCliente);
+    const petsUnicos = Array.from(new Set(clientesComNome.map(c => c.nomePet)));
+    setFilteredPets(petsUnicos);
+    setFilteredClientes([]);
+  };
+
+  // Atualizar raças disponíveis quando pet é selecionado
+  const handlePetSelect = (nomePet: string) => {
+    setPetSearch(nomePet);
+    
+    const clientesComPet = clientes.filter(c => 
+      c.nomePet === nomePet && 
+      (pacoteFormData.nomeCliente === "" || c.nomeCliente === pacoteFormData.nomeCliente)
+    );
+    
+    const racasDisponiveis = Array.from(new Set(clientesComPet.map(c => c.raca)));
+    setAvailableRacas(racasDisponiveis);
+    
+    setPacoteFormData({ ...pacoteFormData, nomePet, raca: "", whatsapp: "" });
+    setFilteredPets([]);
+  };
+
+  // Preencher WhatsApp quando raça é selecionada
+  const handleRacaSelect = (raca: string) => {
+    const clienteMatch = clientes.find(c => 
+      (pacoteFormData.nomeCliente === "" || c.nomeCliente === pacoteFormData.nomeCliente) &&
+      c.nomePet === pacoteFormData.nomePet &&
+      c.raca === raca
+    );
+    
+    if (clienteMatch) {
+      setPacoteFormData({
+        ...pacoteFormData,
+        nomeCliente: clienteMatch.nomeCliente,
+        raca,
+        whatsapp: clienteMatch.whatsapp
+      });
+      setClienteSearch(clienteMatch.nomeCliente);
+      setPetSearch(clienteMatch.nomePet);
+    }
+  };
 
   const horarios = [
     "08:00", "09:00", "10:00", "11:00", "12:00",
@@ -78,13 +234,79 @@ const Agendamentos = () => {
     setIsDialogOpen(false);
   };
 
+  const resetPacoteForm = () => {
+    setPacoteFormData({
+      nomeCliente: "",
+      nomePet: "",
+      raca: "",
+      whatsapp: "",
+      nomePacote: "",
+      data: "",
+      horarioInicio: "",
+      tempoServico: 0,
+    });
+    setClienteSearch("");
+    setPetSearch("");
+    setFilteredClientes([]);
+    setFilteredPets([]);
+    setAvailableRacas([]);
+    setIsPacoteDialogOpen(false);
+  };
+
+  const handlePacoteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!pacoteFormData.nomeCliente.trim()) {
+      toast.error("Favor preencher o Nome do Cliente");
+      return;
+    }
+    if (!pacoteFormData.nomePet.trim()) {
+      toast.error("Favor preencher o Nome do Pet");
+      return;
+    }
+    if (!pacoteFormData.raca) {
+      toast.error("Favor selecionar a Raça");
+      return;
+    }
+    if (!pacoteFormData.nomePacote) {
+      toast.error("Favor selecionar o Pacote");
+      return;
+    }
+    if (!pacoteFormData.data) {
+      toast.error("Favor preencher a Data");
+      return;
+    }
+    if (!pacoteFormData.horarioInicio) {
+      toast.error("Favor selecionar o Horário de Início");
+      return;
+    }
+    if (!pacoteFormData.tempoServico || pacoteFormData.tempoServico <= 0) {
+      toast.error("Favor preencher o Tempo de Serviço");
+      return;
+    }
+    
+    const novoAgendamentoPacote: AgendamentoPacote = {
+      ...pacoteFormData,
+      id: Date.now().toString(),
+    };
+    
+    setAgendamentosPacotes([...agendamentosPacotes, novoAgendamentoPacote]);
+    toast.success("Pacote agendado com sucesso!");
+    resetPacoteForm();
+  };
+
   const getAgendamentoForSlot = (date: Date, horario: string) => {
     const dateStr = date.toISOString().split('T')[0];
     return agendamentos.find(a => a.data === dateStr && a.horario === horario);
   };
 
+  const getPacoteForSlot = (date: Date, horario: string) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return agendamentosPacotes.find(a => a.data === dateStr && a.horarioInicio === horario);
+  };
+
   const isHorarioOcupado = (date: Date, horario: string) => {
-    return !!getAgendamentoForSlot(date, horario);
+    return !!getAgendamentoForSlot(date, horario) || !!getPacoteForSlot(date, horario);
   };
 
   const navigateWeek = (direction: number) => {
@@ -101,13 +323,14 @@ const Agendamentos = () => {
           <p className="text-muted-foreground text-xs">Visualize e gerencie os agendamentos</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 h-8 text-xs">
-              <Plus className="h-3 w-3" />
-              Novo Agendamento
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 h-8 text-xs">
+                <Plus className="h-3 w-3" />
+                Novo Agendamento
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="text-lg">Novo Agendamento</DialogTitle>
@@ -192,6 +415,186 @@ const Agendamentos = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isPacoteDialogOpen} onOpenChange={setIsPacoteDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2 h-8 text-xs" variant="outline">
+              <Package className="h-3 w-3" />
+              Novo Pacote
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg">Agendar Pacote de Serviços</DialogTitle>
+              <DialogDescription className="text-xs">
+                Preencha os dados para agendar um pacote de serviços
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handlePacoteSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1 relative">
+                  <Label htmlFor="nomeCliente" className="text-xs">Nome do Cliente *</Label>
+                  <Input
+                    id="nomeCliente"
+                    value={clienteSearch}
+                    onChange={(e) => setClienteSearch(e.target.value)}
+                    placeholder="Digite o nome do cliente..."
+                    className="h-8 text-xs"
+                  />
+                  {filteredClientes.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                      {filteredClientes.map((nome, idx) => (
+                        <div
+                          key={idx}
+                          className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                          onClick={() => handleClienteSelect(nome)}
+                        >
+                          {nome}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1 relative">
+                  <Label htmlFor="nomePet" className="text-xs">Nome do Pet *</Label>
+                  <Input
+                    id="nomePet"
+                    value={petSearch}
+                    onChange={(e) => setPetSearch(e.target.value)}
+                    placeholder="Digite o nome do pet..."
+                    className="h-8 text-xs"
+                  />
+                  {filteredPets.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                      {filteredPets.map((nome, idx) => (
+                        <div
+                          key={idx}
+                          className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                          onClick={() => handlePetSelect(nome)}
+                        >
+                          {nome}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="raca" className="text-xs">Raça *</Label>
+                  <Select 
+                    value={pacoteFormData.raca} 
+                    onValueChange={handleRacaSelect}
+                    disabled={availableRacas.length === 0}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder={availableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRacas.map((raca, idx) => (
+                        <SelectItem key={idx} value={raca} className="text-xs">
+                          {raca}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="whatsapp" className="text-xs">WhatsApp</Label>
+                  <Input
+                    id="whatsapp"
+                    value={pacoteFormData.whatsapp ? `(${pacoteFormData.whatsapp.slice(0,2)}) ${pacoteFormData.whatsapp.slice(2,7)}-${pacoteFormData.whatsapp.slice(7)}` : ""}
+                    readOnly
+                    className="h-8 text-xs bg-secondary"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="nomePacote" className="text-xs">Nome do Pacote de Serviço *</Label>
+                <Select 
+                  value={pacoteFormData.nomePacote} 
+                  onValueChange={(value) => setPacoteFormData({ ...pacoteFormData, nomePacote: value })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Selecione o pacote" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pacotes.length === 0 ? (
+                      <SelectItem value="sem-pacote" disabled className="text-xs">
+                        Nenhum pacote cadastrado
+                      </SelectItem>
+                    ) : (
+                      pacotes.map((pacote) => (
+                        <SelectItem key={pacote.id} value={pacote.nome} className="text-xs">
+                          {pacote.nome}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="data" className="text-xs">Data *</Label>
+                  <Input
+                    id="data"
+                    type="date"
+                    value={pacoteFormData.data}
+                    onChange={(e) => setPacoteFormData({ ...pacoteFormData, data: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="horarioInicio" className="text-xs">Horário Início *</Label>
+                  <Select 
+                    value={pacoteFormData.horarioInicio} 
+                    onValueChange={(value) => setPacoteFormData({ ...pacoteFormData, horarioInicio: value })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {horarios.map(h => (
+                        <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="tempoServico" className="text-xs">Tempo de Serviço (horas) *</Label>
+                  <Input
+                    id="tempoServico"
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={pacoteFormData.tempoServico || ""}
+                    onChange={(e) => setPacoteFormData({ ...pacoteFormData, tempoServico: parseInt(e.target.value) || 0 })}
+                    placeholder="Ex: 2"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={resetPacoteForm} className="h-8 text-xs">
+                  Cancelar
+                </Button>
+                <Button type="submit" className="h-8 text-xs">
+                  Agendar Pacote
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -238,13 +641,16 @@ const Agendamentos = () => {
                   </div>
                   {weekDates.map((date, idx) => {
                     const agendamento = getAgendamentoForSlot(date, horario);
+                    const pacote = getPacoteForSlot(date, horario);
                     const ocupado = isHorarioOcupado(date, horario);
                     
                     return (
                       <div
                         key={idx}
                         className={`p-2 rounded-lg min-h-[60px] transition-colors ${
-                          ocupado
+                          pacote
+                            ? "bg-primary/20 text-primary-foreground border border-primary/40"
+                            : ocupado
                             ? "bg-accent text-accent-foreground"
                             : "bg-secondary/30 hover:bg-secondary/50"
                         }`}
@@ -254,6 +660,17 @@ const Agendamentos = () => {
                             <div className="font-semibold">{agendamento.cliente}</div>
                             <div className="text-xs opacity-80">{agendamento.pet}</div>
                             <div className="text-xs opacity-60">{agendamento.servico}</div>
+                          </div>
+                        )}
+                        {pacote && (
+                          <div className="text-xs">
+                            <div className="flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              <span className="font-semibold">{pacote.nomeCliente}</span>
+                            </div>
+                            <div className="text-xs opacity-80">{pacote.nomePet}</div>
+                            <div className="text-xs opacity-60">{pacote.nomePacote}</div>
+                            <div className="text-xs opacity-60">{pacote.tempoServico}h</div>
                           </div>
                         )}
                       </div>

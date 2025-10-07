@@ -15,7 +15,8 @@ interface Servico {
 }
 
 interface ServicoSelecionado {
-  id: string;
+  instanceId: string; // ID único da instância
+  id: string; // ID do serviço original
   nome: string;
   valor: number;
 }
@@ -31,7 +32,15 @@ interface Pacote {
 }
 
 const Pacotes = () => {
-  const [pacotes, setPacotes] = useState<Pacote[]>([]);
+  const [pacotes, setPacotes] = useState<Pacote[]>(() => {
+    const saved = localStorage.getItem('pacotes');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('pacotes', JSON.stringify(pacotes));
+  }, [pacotes]);
+  
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPacote, setEditingPacote] = useState<Pacote | null>(null);
@@ -86,16 +95,27 @@ const Pacotes = () => {
       return;
     }
 
+    if (servicosSelecionados.length >= 10) {
+      toast.error("Máximo de 10 serviços por pacote");
+      return;
+    }
+
     const servico = servicos.find(s => s.id === servicoAtual);
-    if (servico && !servicosSelecionados.find(s => s.id === servico.id)) {
-      setServicosSelecionados([...servicosSelecionados, servico]);
+    if (servico) {
+      const novoServico: ServicoSelecionado = {
+        instanceId: Date.now().toString() + Math.random(),
+        id: servico.id,
+        nome: servico.nome,
+        valor: servico.valor
+      };
+      setServicosSelecionados([...servicosSelecionados, novoServico]);
       setServicoAtual("");
     }
   };
 
   // Remover serviço do pacote
-  const handleRemoveServico = (id: string) => {
-    setServicosSelecionados(servicosSelecionados.filter(s => s.id !== id));
+  const handleRemoveServico = (instanceId: string) => {
+    setServicosSelecionados(servicosSelecionados.filter(s => s.instanceId !== instanceId));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -242,20 +262,42 @@ const Pacotes = () => {
                 
                 {servicosSelecionados.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    {servicosSelecionados.map((servico) => (
-                      <div key={servico.id} className="flex items-center justify-between bg-secondary/50 p-2 rounded text-xs">
-                        <span>{servico.nome} - {formatCurrency(servico.valor)}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveServico(servico.id)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
+                    {(() => {
+                      // Agrupar serviços por ID para mostrar quantidade
+                      const servicosAgrupados = servicosSelecionados.reduce((acc, servico) => {
+                        const existing = acc.find(s => s.id === servico.id);
+                        if (existing) {
+                          existing.quantidade++;
+                          existing.instancias.push(servico.instanceId);
+                        } else {
+                          acc.push({
+                            id: servico.id,
+                            nome: servico.nome,
+                            valor: servico.valor,
+                            quantidade: 1,
+                            instancias: [servico.instanceId]
+                          });
+                        }
+                        return acc;
+                      }, [] as Array<{id: string, nome: string, valor: number, quantidade: number, instancias: string[]}>);
+
+                      return servicosAgrupados.map((servico) => (
+                        <div key={servico.id} className="flex items-center justify-between bg-secondary/50 p-2 rounded text-xs">
+                          <span>
+                            {servico.nome} {servico.quantidade > 1 && `x${servico.quantidade}`} - {formatCurrency(servico.valor * servico.quantidade)}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveServico(servico.instancias[servico.instancias.length - 1])}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ));
+                    })()}
                     <div className="font-semibold text-xs mt-2">
                       Valor Total dos Serviços: {formatCurrency(valorTotalServicos)}
                     </div>
@@ -370,7 +412,21 @@ const Pacotes = () => {
                     <tr key={pacote.id} className="border-b hover:bg-secondary/50 transition-colors">
                       <td className="py-2 px-3 font-medium text-xs">{pacote.nome}</td>
                       <td className="py-2 px-3 text-xs">
-                        {pacote.servicos.map(s => s.nome).join(", ")}
+                        {(() => {
+                          const servicosAgrupados = pacote.servicos.reduce((acc, servico) => {
+                            const existing = acc.find(s => s.id === servico.id);
+                            if (existing) {
+                              existing.quantidade++;
+                            } else {
+                              acc.push({ id: servico.id, nome: servico.nome, quantidade: 1 });
+                            }
+                            return acc;
+                          }, [] as Array<{id: string, nome: string, quantidade: number}>);
+                          
+                          return servicosAgrupados.map(s => 
+                            s.quantidade > 1 ? `${s.nome} x${s.quantidade}` : s.nome
+                          ).join(", ");
+                        })()}
                       </td>
                       <td className="py-2 px-3 text-xs">
                         {pacote.validade} dias
