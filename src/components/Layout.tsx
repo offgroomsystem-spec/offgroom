@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText } from "lucide-react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2 } from "lucide-react";
 import logoOffgroom from "@/assets/logo-offgroom.png";
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { path: "/servicos", label: "Serviços", icon: Scissors },
     { path: "/racas", label: "Raças", icon: PawPrint },
     { path: "/pacotes", label: "Pacotes", icon: Scissors },
+    { path: "/empresa", label: "Empresa", icon: Building2 },
   ];
 
   const isCadastroActive = cadastroItems.some(item => location.pathname === item.path);

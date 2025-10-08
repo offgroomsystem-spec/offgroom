@@ -83,6 +83,7 @@ const Clientes = () => {
       toast.error("Favor preencher o WhatsApp com 11 dígitos (DDD + número)");
       return;
     }
+    // Endereço não é mais obrigatório
     
     if (editingCliente) {
       setClientes(clientes.map(c => 

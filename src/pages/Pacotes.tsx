@@ -175,6 +175,15 @@ const Pacotes = () => {
     setIsDialogOpen(false);
   };
 
+  const handleOpenDialog = () => {
+    // Limpar campos de desconto ao abrir dialog para novo pacote
+    setFormData({ nome: "", validade: "", descontoPercentual: "", descontoValor: "" });
+    setServicosSelecionados([]);
+    setServicoAtual("");
+    setEditingPacote(null);
+    setIsDialogOpen(true);
+  };
+
   const handleEdit = (pacote: Pacote) => {
     setEditingPacote(pacote);
     setFormData({
@@ -213,7 +222,13 @@ const Pacotes = () => {
           <p className="text-muted-foreground text-xs">Gerencie os pacotes de serviços</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          if (open) {
+            handleOpenDialog();
+          } else {
+            setIsDialogOpen(false);
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="gap-2 h-8 text-xs">
               <Plus className="h-3 w-3" />
