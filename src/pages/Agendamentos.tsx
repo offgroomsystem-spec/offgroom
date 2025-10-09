@@ -107,6 +107,13 @@ const Agendamentos = () => {
   const [viewMode, setViewMode] = useState<"semana" | "dia">("semana");
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [editingAgendamento, setEditingAgendamento] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    data: "",
+    horarioInicio: "",
+    tempoServico: ""
+  });
 
   const [formData, setFormData] = useState({
     cliente: "",
@@ -896,38 +903,45 @@ const Agendamentos = () => {
                   Semana
                 </Button>
                 <Button
-                  variant={viewMode === "dia" ? "default" : "outline"}
+                  variant={selectedDate === new Date().toISOString().split('T')[0] && viewMode === "dia" ? "default" : "outline"}
                   onClick={() => {
                     setViewMode("dia");
-                    setSelectedDate(new Date().toISOString().split('T')[0]);
+                    const today = new Date().toISOString().split('T')[0];
+                    setSelectedDate(today);
+                    setCalendarDate(new Date());
                   }}
                   className="h-7 text-xs"
                 >
                   Hoje
                 </Button>
-                <Popover open={showCalendar} onOpenChange={setShowCalendar}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-7 text-xs gap-2">
-                      <CalendarIcon className="h-3 w-3" />
-                      {format(new Date(selectedDate), "dd/MM/yyyy", { locale: ptBR })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={calendarDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          setCalendarDate(date);
-                          setSelectedDate(date.toISOString().split('T')[0]);
-                          setShowCalendar(false);
-                        }
-                      }}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                {viewMode === "dia" && (
+                  <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant={selectedDate !== new Date().toISOString().split('T')[0] ? "default" : "outline"} 
+                        className="h-7 text-xs gap-2"
+                      >
+                        <CalendarIcon className="h-3 w-3" />
+                        {format(new Date(selectedDate), "dd/MM/yyyy", { locale: ptBR })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={calendarDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setCalendarDate(date);
+                            setSelectedDate(date.toISOString().split('T')[0]);
+                            setShowCalendar(false);
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
               
               {viewMode === "semana" ? (
@@ -1032,14 +1046,14 @@ const Agendamentos = () => {
               </div>
             </div>
           ) : (
-            <div className="flex gap-4">
+            <div className="flex gap-2">
               {/* Gantt Chart */}
               <div className="flex-1 overflow-x-auto">
-                <div className="min-w-[600px]">
+                <div className="min-w-[400px]">
                   {/* Header com horários */}
                   <div className="flex border-b pb-2 mb-4">
                     {horariosGantt.map(h => (
-                      <div key={h} className="flex-1 text-center text-xs font-semibold text-muted-foreground">
+                      <div key={h} className="flex-1 text-center text-[10px] font-semibold text-muted-foreground">
                         {h}
                       </div>
                     ))}
@@ -1064,7 +1078,7 @@ const Agendamentos = () => {
                       return (
                         <div
                           key={index}
-                          className="absolute h-8 bg-orange-500 rounded flex items-center justify-center text-xs font-semibold text-black"
+                          className="absolute h-8 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black"
                           style={{
                             left: `${left}%`,
                             width: `${Math.max(width, 5)}%`,
@@ -1080,41 +1094,56 @@ const Agendamentos = () => {
               </div>
               
               {/* Tabela de informações */}
-              <div className="w-[400px] overflow-auto max-h-[600px]">
-                <table className="w-full text-xs border">
+              <div className="flex-1 overflow-auto max-h-[600px]">
+                <table className="w-full text-[10px] border">
                   <thead className="bg-secondary sticky top-0">
                     <tr>
-                      <th className="p-2 border text-left">Início</th>
-                      <th className="p-2 border text-left">Fim</th>
-                      <th className="p-2 border text-left">Tutor</th>
-                      <th className="p-2 border text-left">Pet</th>
-                      <th className="p-2 border text-left">Raça</th>
-                      <th className="p-2 border text-left">Serviço</th>
-                      <th className="p-2 border text-left">Pacote</th>
-                      <th className="p-2 border text-left">N° PCT</th>
-                      <th className="p-2 border text-left">Taxi Dog</th>
-                      <th className="p-2 border text-left">Ação</th>
+                      <th className="p-1.5 border text-left">Início</th>
+                      <th className="p-1.5 border text-left">Fim</th>
+                      <th className="p-1.5 border text-left">Tutor</th>
+                      <th className="p-1.5 border text-left">Pet</th>
+                      <th className="p-1.5 border text-left">Raça</th>
+                      <th className="p-1.5 border text-left">Serviço</th>
+                      <th className="p-1.5 border text-left">N° PCT</th>
+                      <th className="p-1.5 border text-left">Taxi Dog</th>
+                      <th className="p-1.5 border text-left">Whatsapp</th>
                     </tr>
                   </thead>
                   <tbody>
                     {agendamentosDia.map((agendamento, index) => (
-                      <tr key={index} className="hover:bg-accent/50">
-                        <td className="p-2 border">{agendamento.horarioInicio}</td>
-                        <td className="p-2 border">{agendamento.horarioFim || '-'}</td>
-                        <td className="p-2 border">{agendamento.cliente}</td>
-                        <td className="p-2 border">{agendamento.pet}</td>
-                        <td className="p-2 border">{agendamento.tipo === 'pacote' ? agendamento.raca : '-'}</td>
-                        <td className="p-2 border">{agendamento.servico}</td>
-                        <td className="p-2 border">{agendamento.pacote || '-'}</td>
-                        <td className="p-2 border">{agendamento.numeroPacote || ''}</td>
-                        <td className="p-2 border">{agendamento.taxiDog || ''}</td>
-                        <td className="p-2 border">
+                      <tr 
+                        key={index} 
+                        className="hover:bg-cyan-500/20 cursor-pointer transition-colors"
+                        onClick={() => {
+                          if (agendamento.tipo === 'pacote') {
+                            setEditingAgendamento(agendamento);
+                            setEditFormData({
+                              data: agendamento.servicoAgendamento.data,
+                              horarioInicio: agendamento.servicoAgendamento.horarioInicio,
+                              tempoServico: agendamento.servicoAgendamento.tempoServico
+                            });
+                            setEditDialogOpen(true);
+                          }
+                        }}
+                      >
+                        <td className="p-1.5 border">{agendamento.horarioInicio}</td>
+                        <td className="p-1.5 border">{agendamento.horarioFim || '-'}</td>
+                        <td className="p-1.5 border">{agendamento.cliente}</td>
+                        <td className="p-1.5 border">{agendamento.pet}</td>
+                        <td className="p-1.5 border">{agendamento.tipo === 'pacote' ? agendamento.raca : '-'}</td>
+                        <td className="p-1.5 border">{agendamento.servico}</td>
+                        <td className="p-1.5 border">{agendamento.numeroPacote || ''}</td>
+                        <td className="p-1.5 border">{agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ''}</td>
+                        <td className="p-1.5 border">
                           {agendamento.tipo === 'pacote' && agendamento.agendamentoPacote && agendamento.servicoAgendamento && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => gerarMensagemWhatsApp(agendamento.agendamentoPacote, agendamento.servicoAgendamento)}
-                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                gerarMensagemWhatsApp(agendamento.agendamentoPacote, agendamento.servicoAgendamento);
+                              }}
+                              className="h-5 w-5 p-0"
                             >
                               <Send className="h-3 w-3" />
                             </Button>
@@ -1127,6 +1156,144 @@ const Agendamentos = () => {
               </div>
             </div>
           )}
+          
+          {/* Dialog de edição */}
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-lg">Editar Agendamento</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Altere as informações do agendamento
+                </DialogDescription>
+              </DialogHeader>
+              
+              {editingAgendamento && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Cliente</Label>
+                    <Input
+                      value={editingAgendamento.cliente}
+                      disabled
+                      className="h-8 text-xs bg-secondary"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Pet</Label>
+                    <Input
+                      value={editingAgendamento.pet}
+                      disabled
+                      className="h-8 text-xs bg-secondary"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Serviço</Label>
+                    <Input
+                      value={editingAgendamento.servico}
+                      disabled
+                      className="h-8 text-xs bg-secondary"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Data</Label>
+                    <Input
+                      type="date"
+                      value={editFormData.data}
+                      onChange={(e) => setEditFormData({ ...editFormData, data: e.target.value })}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Horário de Início</Label>
+                    <TimeInput
+                      value={editFormData.horarioInicio}
+                      onChange={(value) => setEditFormData({ ...editFormData, horarioInicio: value })}
+                      placeholder="00:00"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tempo de Serviço (horas)</Label>
+                    <TimeInput
+                      value={editFormData.tempoServico}
+                      onChange={(value) => setEditFormData({ ...editFormData, tempoServico: value })}
+                      placeholder="00:00"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={() => {
+                        if (editingAgendamento.tipo === 'pacote') {
+                          const updated = agendamentosPacotes.map(p => {
+                            if (p.id === editingAgendamento.agendamentoPacote.id) {
+                              return {
+                                ...p,
+                                servicos: p.servicos.filter(s => 
+                                  s.numero !== editingAgendamento.servicoAgendamento.numero
+                                )
+                              };
+                            }
+                            return p;
+                          }).filter(p => p.servicos.length > 0);
+                          
+                          setAgendamentosPacotes(updated);
+                          toast.success("Agendamento excluído!");
+                          setEditDialogOpen(false);
+                        }
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      Excluir Agendamento
+                    </Button>
+                    <Button 
+                      type="button" 
+                      onClick={() => {
+                        if (editingAgendamento.tipo === 'pacote') {
+                          const horarioTermino = calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
+                          
+                          const updated = agendamentosPacotes.map(p => {
+                            if (p.id === editingAgendamento.agendamentoPacote.id) {
+                              return {
+                                ...p,
+                                servicos: p.servicos.map(s => {
+                                  if (s.numero === editingAgendamento.servicoAgendamento.numero) {
+                                    return {
+                                      ...s,
+                                      data: editFormData.data,
+                                      horarioInicio: editFormData.horarioInicio,
+                                      tempoServico: editFormData.tempoServico,
+                                      horarioTermino
+                                    };
+                                  }
+                                  return s;
+                                })
+                              };
+                            }
+                            return p;
+                          });
+                          
+                          setAgendamentosPacotes(updated);
+                          toast.success("Agendamento atualizado!");
+                          setEditDialogOpen(false);
+                        }
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      Atualizar Agendamento
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>
