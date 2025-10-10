@@ -80,6 +80,14 @@ interface EmpresaConfig {
 }
 
 const Agendamentos = () => {
+  // Função para formatar data sem problemas de timezone
+  const formatDateForInput = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>(() => {
     const saved = localStorage.getItem('agendamentos');
     return saved ? JSON.parse(saved) : [];
@@ -103,7 +111,7 @@ const Agendamentos = () => {
   const [empresaConfig, setEmpresaConfig] = useState<EmpresaConfig>({ bordao: "", horarioInicio: "08:00", horarioFim: "18:00" });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
   const [viewMode, setViewMode] = useState<"semana" | "dia">("semana");
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
@@ -431,12 +439,12 @@ const Agendamentos = () => {
   };
 
   const getAgendamentoForSlot = (date: Date, horario: string) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateForInput(date);
     return agendamentos.find(a => a.data === dateStr && a.horario === horario);
   };
 
   const getPacoteForSlot = (date: Date, horario: string) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateForInput(date);
     return agendamentosPacotes.find(a => 
       a.servicos.some(s => s.data === dateStr && s.horarioInicio === horario)
     );
@@ -449,7 +457,7 @@ const Agendamentos = () => {
   const navigateWeek = (direction: number) => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + (direction * 7));
-    setSelectedDate(newDate.toISOString().split('T')[0]);
+    setSelectedDate(formatDateForInput(newDate));
   };
 
   // Contar agendamentos
@@ -457,7 +465,7 @@ const Agendamentos = () => {
     if (viewMode === "semana") {
       let count = 0;
       weekDates.forEach(date => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatDateForInput(date);
         count += agendamentos.filter(a => a.data === dateStr).length;
         agendamentosPacotes.forEach(p => {
           count += p.servicos.filter(s => s.data === dateStr).length;
@@ -465,7 +473,7 @@ const Agendamentos = () => {
       });
       return count;
     } else {
-      const dateStr = new Date(selectedDate).toISOString().split('T')[0];
+      const dateStr = selectedDate;
       let count = agendamentos.filter(a => a.data === dateStr).length;
       agendamentosPacotes.forEach(p => {
         count += p.servicos.filter(s => s.data === dateStr).length;
@@ -524,7 +532,7 @@ const Agendamentos = () => {
 
   // Obter agendamentos do dia para Gantt
   const getAgendamentosDia = () => {
-    const dateStr = new Date(selectedDate).toISOString().split('T')[0];
+    const dateStr = selectedDate;
     
     const agendamentosSimples = agendamentos
       .filter(a => a.data === dateStr)
@@ -810,6 +818,23 @@ const Agendamentos = () => {
                 {servicosAgendamento.length > 0 && (
                   <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
                     <Label className="text-xs font-semibold">Agendamentos dos Serviços do Pacote</Label>
+                    
+                    {/* Header com títulos das colunas */}
+                    <div className="flex gap-2 items-center pb-1">
+                      <div className="w-12"></div>
+                      <div className="w-14"></div>
+                      <div className="flex-1 min-w-[100px]"></div>
+                      <div className="w-32">
+                        <Label className="text-[10px] text-muted-foreground font-normal">Dia Agendamento</Label>
+                      </div>
+                      <div className="w-20">
+                        <Label className="text-[10px] text-muted-foreground font-normal">Hora Início</Label>
+                      </div>
+                      <div className="w-20">
+                        <Label className="text-[10px] text-muted-foreground font-normal">Tempo Serviço</Label>
+                      </div>
+                    </div>
+                    
                     <div className="space-y-2">
                       {servicosAgendamento.map((servico, index) => (
                         <div key={index} className="flex gap-2 items-end">
@@ -903,10 +928,10 @@ const Agendamentos = () => {
                   Semana
                 </Button>
                 <Button
-                  variant={selectedDate === new Date().toISOString().split('T')[0] && viewMode === "dia" ? "default" : "outline"}
+                  variant={selectedDate === formatDateForInput(new Date()) && viewMode === "dia" ? "default" : "outline"}
                   onClick={() => {
                     setViewMode("dia");
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = formatDateForInput(new Date());
                     setSelectedDate(today);
                     setCalendarDate(new Date());
                   }}
@@ -918,11 +943,11 @@ const Agendamentos = () => {
                   <Popover open={showCalendar} onOpenChange={setShowCalendar}>
                     <PopoverTrigger asChild>
                       <Button 
-                        variant={selectedDate !== new Date().toISOString().split('T')[0] ? "default" : "outline"} 
+                        variant={selectedDate !== formatDateForInput(new Date()) ? "default" : "outline"} 
                         className="h-7 text-xs gap-2"
                       >
                         <CalendarIcon className="h-3 w-3" />
-                        {format(new Date(selectedDate), "dd/MM/yyyy", { locale: ptBR })}
+                        {format(calendarDate, "dd/MM/yyyy", { locale: ptBR })}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -932,7 +957,7 @@ const Agendamentos = () => {
                         onSelect={(date) => {
                           if (date) {
                             setCalendarDate(date);
-                            setSelectedDate(date.toISOString().split('T')[0]);
+                            setSelectedDate(formatDateForInput(date));
                             setShowCalendar(false);
                           }
                         }}
@@ -1049,11 +1074,21 @@ const Agendamentos = () => {
             <div className="flex gap-2">
               {/* Gantt Chart */}
               <div className="flex-1 overflow-x-auto">
-                <div className="min-w-[400px]">
+                <div className="min-w-[400px] relative">
                   {/* Header com horários */}
-                  <div className="flex border-b pb-2 mb-4">
+                  <div className="flex border-b pb-2 mb-4 relative">
+                    {/* Linhas verticais de fundo */}
+                    <div className="absolute inset-0 flex pointer-events-none">
+                      {Array.from({ length: (horariosGantt.length - 1) * 2 + 1 }).map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="flex-1 border-r border-gray-300/15"
+                        />
+                      ))}
+                    </div>
+                    
                     {horariosGantt.map(h => (
-                      <div key={h} className="flex-1 text-center text-[10px] font-semibold text-muted-foreground">
+                      <div key={h} className="flex-1 text-center text-[10px] font-semibold text-muted-foreground relative z-10">
                         {h}
                       </div>
                     ))}
@@ -1061,6 +1096,16 @@ const Agendamentos = () => {
                   
                   {/* Barras de agendamentos */}
                   <div className="space-y-2 relative" style={{ minHeight: `${agendamentosDia.length * 40}px` }}>
+                    {/* Linhas verticais estendidas para a área de barras */}
+                    <div className="absolute inset-0 flex pointer-events-none">
+                      {Array.from({ length: (horariosGantt.length - 1) * 2 + 1 }).map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="flex-1 border-r border-gray-300/15"
+                        />
+                      ))}
+                    </div>
+                    
                     {agendamentosDia.map((agendamento, index) => {
                       const [inicioH, inicioM] = agendamento.horarioInicio.split(':').map(Number);
                       const [fimH, fimM] = agendamento.horarioFim ? agendamento.horarioFim.split(':').map(Number) : [inicioH + 1, inicioM];
@@ -1078,7 +1123,7 @@ const Agendamentos = () => {
                       return (
                         <div
                           key={index}
-                          className="absolute h-8 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black"
+                          className="absolute h-8 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black relative z-10"
                           style={{
                             left: `${left}%`,
                             width: `${Math.max(width, 5)}%`,
