@@ -19,6 +19,8 @@ interface Agendamento {
   id: string;
   cliente: string;
   pet: string;
+  raca: string;
+  whatsapp: string;
   servico: string;
   data: string;
   horario: string;
@@ -126,6 +128,8 @@ const Agendamentos = () => {
   const [formData, setFormData] = useState({
     cliente: "",
     pet: "",
+    raca: "",
+    whatsapp: "",
     servico: "",
     data: "",
     horario: "",
@@ -142,12 +146,21 @@ const Agendamentos = () => {
 
   const [servicosAgendamento, setServicosAgendamento] = useState<ServicoAgendamento[]>([]);
 
-  // Estados para busca inteligente
+  // Estados para busca inteligente (Pacotes)
   const [clienteSearch, setClienteSearch] = useState("");
   const [petSearch, setPetSearch] = useState("");
   const [filteredClientes, setFilteredClientes] = useState<string[]>([]);
   const [filteredPets, setFilteredPets] = useState<string[]>([]);
   const [availableRacas, setAvailableRacas] = useState<string[]>([]);
+  const [searchStartedWith, setSearchStartedWith] = useState<"cliente" | "pet" | null>(null);
+  
+  // Estados para busca inteligente (Agendamento Simples)
+  const [simpleClienteSearch, setSimpleClienteSearch] = useState("");
+  const [simplePetSearch, setSimplePetSearch] = useState("");
+  const [simpleFilteredClientes, setSimpleFilteredClientes] = useState<string[]>([]);
+  const [simpleFilteredPets, setSimpleFilteredPets] = useState<string[]>([]);
+  const [simpleAvailableRacas, setSimpleAvailableRacas] = useState<string[]>([]);
+  const [simpleSearchStartedWith, setSimpleSearchStartedWith] = useState<"cliente" | "pet" | null>(null);
 
   // Carregar dados do localStorage
   useEffect(() => {
@@ -167,7 +180,7 @@ const Agendamentos = () => {
     }
   }, []);
 
-  // Busca inteligente por cliente
+  // Busca inteligente por cliente (Pacotes)
   useEffect(() => {
     if (clienteSearch.length >= 2) {
       const matches = Array.from(new Set(
@@ -181,7 +194,7 @@ const Agendamentos = () => {
     }
   }, [clienteSearch, clientes]);
 
-  // Busca inteligente por pet
+  // Busca inteligente por pet (Pacotes)
   useEffect(() => {
     if (petSearch.length >= 2) {
       const matches = Array.from(new Set(
@@ -194,35 +207,75 @@ const Agendamentos = () => {
       setFilteredPets([]);
     }
   }, [petSearch, clientes]);
+  
+  // Busca inteligente por cliente (Agendamento Simples)
+  useEffect(() => {
+    if (simpleClienteSearch.length >= 2) {
+      const matches = Array.from(new Set(
+        clientes
+          .filter(c => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase()))
+          .map(c => c.nomeCliente)
+      ));
+      setSimpleFilteredClientes(matches);
+    } else {
+      setSimpleFilteredClientes([]);
+    }
+  }, [simpleClienteSearch, clientes]);
 
-  // Atualizar pets disponíveis quando cliente é selecionado
+  // Busca inteligente por pet (Agendamento Simples)
+  useEffect(() => {
+    if (simplePetSearch.length >= 2) {
+      const matches = Array.from(new Set(
+        clientes
+          .filter(c => c.nomePet.toLowerCase().startsWith(simplePetSearch.toLowerCase()))
+          .map(c => c.nomePet)
+      ));
+      setSimpleFilteredPets(matches);
+    } else {
+      setSimpleFilteredPets([]);
+    }
+  }, [simplePetSearch, clientes]);
+
+  // Atualizar pets disponíveis quando cliente é selecionado (Pacotes)
   const handleClienteSelect = (nomeCliente: string) => {
     setClienteSearch(nomeCliente);
+    setSearchStartedWith("cliente");
     setPacoteFormData({ ...pacoteFormData, nomeCliente, nomePet: "", raca: "", whatsapp: "" });
     
     const clientesComNome = clientes.filter(c => c.nomeCliente === nomeCliente);
     const petsUnicos = Array.from(new Set(clientesComNome.map(c => c.nomePet)));
     setFilteredPets(petsUnicos);
     setFilteredClientes([]);
+    setAvailableRacas([]);
   };
 
-  // Atualizar raças disponíveis quando pet é selecionado
+  // Atualizar raças disponíveis quando pet é selecionado (Pacotes)
   const handlePetSelect = (nomePet: string) => {
     setPetSearch(nomePet);
     
-    const clientesComPet = clientes.filter(c => 
-      c.nomePet === nomePet && 
-      (pacoteFormData.nomeCliente === "" || c.nomeCliente === pacoteFormData.nomeCliente)
-    );
+    if (searchStartedWith === "cliente" || pacoteFormData.nomeCliente) {
+      // Se começou pelo cliente, filtrar apenas pets desse cliente
+      const clientesComPet = clientes.filter(c => 
+        c.nomePet === nomePet && 
+        c.nomeCliente === pacoteFormData.nomeCliente
+      );
+      
+      const racasDisponiveis = Array.from(new Set(clientesComPet.map(c => c.raca)));
+      setAvailableRacas(racasDisponiveis);
+      setPacoteFormData({ ...pacoteFormData, nomePet, raca: "", whatsapp: "" });
+    } else {
+      // Se começou pelo pet, mostrar clientes que têm esse pet
+      setSearchStartedWith("pet");
+      const clientesComPet = clientes.filter(c => c.nomePet === nomePet);
+      const clientesUnicos = Array.from(new Set(clientesComPet.map(c => c.nomeCliente)));
+      setFilteredClientes(clientesUnicos);
+      setPacoteFormData({ ...pacoteFormData, nomePet, nomeCliente: "", raca: "", whatsapp: "" });
+    }
     
-    const racasDisponiveis = Array.from(new Set(clientesComPet.map(c => c.raca)));
-    setAvailableRacas(racasDisponiveis);
-    
-    setPacoteFormData({ ...pacoteFormData, nomePet, raca: "", whatsapp: "" });
     setFilteredPets([]);
   };
 
-  // Preencher WhatsApp quando raça é selecionada
+  // Preencher WhatsApp quando raça é selecionada (Pacotes)
   const handleRacaSelect = (raca: string) => {
     const clienteMatch = clientes.find(c => 
       (pacoteFormData.nomeCliente === "" || c.nomeCliente === pacoteFormData.nomeCliente) &&
@@ -239,6 +292,67 @@ const Agendamentos = () => {
       });
       setClienteSearch(clienteMatch.nomeCliente);
       setPetSearch(clienteMatch.nomePet);
+      setFilteredClientes([]);
+    }
+  };
+  
+  // Atualizar pets disponíveis quando cliente é selecionado (Agendamento Simples)
+  const handleSimpleClienteSelect = (nomeCliente: string) => {
+    setSimpleClienteSearch(nomeCliente);
+    setSimpleSearchStartedWith("cliente");
+    setFormData({ ...formData, cliente: nomeCliente, pet: "", raca: "", whatsapp: "" });
+    
+    const clientesComNome = clientes.filter(c => c.nomeCliente === nomeCliente);
+    const petsUnicos = Array.from(new Set(clientesComNome.map(c => c.nomePet)));
+    setSimpleFilteredPets(petsUnicos);
+    setSimpleFilteredClientes([]);
+    setSimpleAvailableRacas([]);
+  };
+
+  // Atualizar raças disponíveis quando pet é selecionado (Agendamento Simples)
+  const handleSimplePetSelect = (nomePet: string) => {
+    setSimplePetSearch(nomePet);
+    
+    if (simpleSearchStartedWith === "cliente" || formData.cliente) {
+      // Se começou pelo cliente, filtrar apenas pets desse cliente
+      const clientesComPet = clientes.filter(c => 
+        c.nomePet === nomePet && 
+        c.nomeCliente === formData.cliente
+      );
+      
+      const racasDisponiveis = Array.from(new Set(clientesComPet.map(c => c.raca)));
+      setSimpleAvailableRacas(racasDisponiveis);
+      setFormData({ ...formData, pet: nomePet, raca: "", whatsapp: "" });
+    } else {
+      // Se começou pelo pet, mostrar clientes que têm esse pet
+      setSimpleSearchStartedWith("pet");
+      const clientesComPet = clientes.filter(c => c.nomePet === nomePet);
+      const clientesUnicos = Array.from(new Set(clientesComPet.map(c => c.nomeCliente)));
+      setSimpleFilteredClientes(clientesUnicos);
+      setFormData({ ...formData, pet: nomePet, cliente: "", raca: "", whatsapp: "" });
+    }
+    
+    setSimpleFilteredPets([]);
+  };
+
+  // Preencher WhatsApp quando raça é selecionada (Agendamento Simples)
+  const handleSimpleRacaSelect = (raca: string) => {
+    const clienteMatch = clientes.find(c => 
+      (formData.cliente === "" || c.nomeCliente === formData.cliente) &&
+      c.nomePet === formData.pet &&
+      c.raca === raca
+    );
+    
+    if (clienteMatch) {
+      setFormData({
+        ...formData,
+        cliente: clienteMatch.nomeCliente,
+        raca,
+        whatsapp: clienteMatch.whatsapp
+      });
+      setSimpleClienteSearch(clienteMatch.nomeCliente);
+      setSimplePetSearch(clienteMatch.nomePet);
+      setSimpleFilteredClientes([]);
     }
   };
 
@@ -282,10 +396,18 @@ const Agendamentos = () => {
     setFormData({
       cliente: "",
       pet: "",
+      raca: "",
+      whatsapp: "",
       servico: "",
       data: "",
       horario: "",
     });
+    setSimpleClienteSearch("");
+    setSimplePetSearch("");
+    setSimpleFilteredClientes([]);
+    setSimpleFilteredPets([]);
+    setSimpleAvailableRacas([]);
+    setSimpleSearchStartedWith(null);
     setIsDialogOpen(false);
   };
 
@@ -304,6 +426,7 @@ const Agendamentos = () => {
     setFilteredClientes([]);
     setFilteredPets([]);
     setAvailableRacas([]);
+    setSearchStartedWith(null);
     setIsPacoteDialogOpen(false);
   };
 
@@ -600,32 +723,90 @@ const Agendamentos = () => {
               </DialogHeader>
               
               <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="cliente" className="text-xs">Cliente</Label>
-                  <Input
-                    id="cliente"
-                    value={formData.cliente}
-                    onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-                    placeholder="Nome do cliente"
-                    className="h-8 text-xs"
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1 relative">
+                    <Label htmlFor="cliente" className="text-xs">Cliente *</Label>
+                    <Input
+                      id="cliente"
+                      value={simpleClienteSearch}
+                      onChange={(e) => setSimpleClienteSearch(e.target.value)}
+                      placeholder="Digite o nome do cliente..."
+                      className="h-8 text-xs"
+                    />
+                    {simpleFilteredClientes.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {simpleFilteredClientes.map((nome, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                            onClick={() => handleSimpleClienteSelect(nome)}
+                          >
+                            {nome}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 relative">
+                    <Label htmlFor="pet" className="text-xs">Pet *</Label>
+                    <Input
+                      id="pet"
+                      value={simplePetSearch}
+                      onChange={(e) => setSimplePetSearch(e.target.value)}
+                      placeholder="Digite o nome do pet..."
+                      className="h-8 text-xs"
+                    />
+                    {simpleFilteredPets.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {simpleFilteredPets.map((nome, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                            onClick={() => handleSimplePetSelect(nome)}
+                          >
+                            {nome}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="raca" className="text-xs">Raça *</Label>
+                    <Select 
+                      value={formData.raca} 
+                      onValueChange={handleSimpleRacaSelect}
+                      disabled={simpleAvailableRacas.length === 0}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder={simpleAvailableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {simpleAvailableRacas.map((raca, idx) => (
+                          <SelectItem key={idx} value={raca} className="text-xs">
+                            {raca}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="whatsapp" className="text-xs">WhatsApp</Label>
+                    <Input
+                      id="whatsapp"
+                      value={formData.whatsapp ? `(${formData.whatsapp.slice(0,2)}) ${formData.whatsapp.slice(2,7)}-${formData.whatsapp.slice(7)}` : ""}
+                      readOnly
+                      className="h-8 text-xs bg-secondary"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="pet" className="text-xs">Pet</Label>
-                  <Input
-                    id="pet"
-                    value={formData.pet}
-                    onChange={(e) => setFormData({ ...formData, pet: e.target.value })}
-                    placeholder="Nome do pet"
-                    className="h-8 text-xs"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="servico" className="text-xs">Serviço</Label>
+                  <Label htmlFor="servico" className="text-xs">Serviço *</Label>
                   <Input
                     id="servico"
                     value={formData.servico}
