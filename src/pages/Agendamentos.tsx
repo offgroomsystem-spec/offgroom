@@ -1195,23 +1195,23 @@ const Agendamentos = () => {
             <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>Gerenciamento de Agendamento</DialogTitle>
-                <p className="text-[10px] text-muted-foreground mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1 my-0">
                   Houve {totalAgendamentos} agendamentos realizados.
                 </p>
               </DialogHeader>
 
               {/* Filtros */}
-              <div className="space-y-3 border-b py-0 my-0">
-                <div className="grid grid-cols-5 gap-2 py-0 mx-0 my-0">
+              <div className="space-y-3 border-b my-[2px] py-0">
+                <div className="grid grid-cols-5 gap-2 mx-0 my-[9px] py-[5px]">
                   <Input placeholder="Buscar por Nome do Pet" value={filtros.nomePet} onChange={e => setFiltros({
                   ...filtros,
                   nomePet: e.target.value
-                })} className="h-8 text-xs my-[24px]" />
+                })} className="h-8 text-xs my-[28px]" />
                   <Input placeholder="Buscar por Nome do Cliente" value={filtros.nomeCliente} onChange={e => setFiltros({
                   ...filtros,
                   nomeCliente: e.target.value
-                })} className="h-8 text-xs my-[24px]" />
-                  <div className="space-y-1">
+                })} className="h-8 text-xs py-0 my-[28px]" />
+                  <div className="space-y-1 py-0">
                     <Label htmlFor="dataAgendada" className="text-[10px] font-medium">
                       Buscar por Data Agendada
                     </Label>
@@ -1220,7 +1220,7 @@ const Agendamentos = () => {
                     dataAgendada: e.target.value
                   })} className="h-8 text-xs" />
                   </div>
-                  <div className="space-y-1 my-0 px-0 py-[5px]">
+                  <div className="space-y-1 my-0 px-0 py-0">
                     <Label htmlFor="dataVenda" className="text-[10px] font-medium">
                       Buscar por Data da Venda do Serviço
                     </Label>
@@ -1232,9 +1232,9 @@ const Agendamentos = () => {
                   <Input placeholder="Nome do Pacote" value={filtros.nomePacote} onChange={e => setFiltros({
                   ...filtros,
                   nomePacote: e.target.value
-                })} className="h-8 text-xs my-[24px]" />
+                })} className="h-8 text-xs my-[28px]" />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 py-0 my-0">
                   <Button onClick={handleBuscar} className="h-8 text-xs">
                     Buscar
                   </Button>
