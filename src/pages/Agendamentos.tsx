@@ -881,23 +881,23 @@ const Agendamentos = () => {
                             </Button>
                           </div>
                           
-                          <div className="w-14">
+                          <div className="w-14 py-[16px]">
                             <Label className="text-xs text-primary font-semibold">{servico.numero}</Label>
                           </div>
                           
-                          <div className="flex-1 min-w-[100px]">
-                            <Label className="text-xs">{servico.nomeServico}</Label>
+                          <div className="flex-1 min-w-[100px] py-[16px] px-0 mx-0 my-0">
+                            <Label className="text-xs text-left py-0 my-px mx-[3px] px-0">{servico.nomeServico}</Label>
                           </div>
                           
                           <div className="w-32">
-                            <Input type="date" value={servico.data} onChange={e => handleServicoAgendamentoChange(index, 'data', e.target.value)} className="h-8 text-xs" />
+                            <Input type="date" value={servico.data} onChange={e => handleServicoAgendamentoChange(index, 'data', e.target.value)} className="h-8 text-xs py-0 px-[11px] my-[9px]" />
                           </div>
                           
-                          <div className="w-20">
+                          <div className="w-20 my-[9px]">
                             <TimeInput value={servico.horarioInicio} onChange={value => handleServicoAgendamentoChange(index, 'horarioInicio', value)} placeholder="00:00" className="h-8 text-xs" />
                           </div>
                           
-                          <div className="w-20">
+                          <div className="w-20 my-[9px]">
                             <TimeInput value={servico.tempoServico} onChange={value => handleServicoAgendamentoChange(index, 'tempoServico', value)} placeholder="00:00" className="h-8 text-xs" />
                           </div>
                         </div>)}
