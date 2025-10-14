@@ -1,17 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, Package, Calendar as CalendarIcon, ChevronUp, ChevronDown, Send } from "lucide-react";
+import { Plus, Clock, Package, Calendar as CalendarIcon, ChevronUp, ChevronDown, Send, Settings, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { TimeInput } from "@/components/TimeInput";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 // Interfaces
 
@@ -75,6 +77,27 @@ interface EmpresaConfig {
   bordao: string;
   horarioInicio: string;
   horarioFim: string;
+}
+
+interface AgendamentoUnificado {
+  id: string;
+  tipo: 'simples' | 'pacote';
+  data: string;
+  horarioInicio: string;
+  horarioTermino: string;
+  cliente: string;
+  pet: string;
+  raca: string;
+  servico: string;
+  nomePacote: string;
+  numeroPacote: string;
+  taxiDog: string;
+  dataVenda: string;
+  whatsapp: string;
+  tempoServico: string;
+  agendamentoOriginal?: Agendamento;
+  pacoteOriginal?: AgendamentoPacote;
+  servicoOriginal?: ServicoAgendamento;
 }
 const Agendamentos = () => {
   // Função para formatar data sem problemas de timezone
@@ -180,6 +203,27 @@ const Agendamentos = () => {
   const [simpleFilteredPets, setSimpleFilteredPets] = useState<string[]>([]);
   const [simpleAvailableRacas, setSimpleAvailableRacas] = useState<string[]>([]);
   const [simpleSearchStartedWith, setSimpleSearchStartedWith] = useState<"cliente" | "pet" | null>(null);
+
+  // Estados para Gerenciamento de Agendamentos
+  const [gerenciamentoOpen, setGerenciamentoOpen] = useState(false);
+  const [filtros, setFiltros] = useState({
+    nomePet: "",
+    nomeCliente: "",
+    dataAgendada: "",
+    dataVenda: "",
+    nomePacote: ""
+  });
+  const [filtrosAplicados, setFiltrosAplicados] = useState({
+    nomePet: "",
+    nomeCliente: "",
+    dataAgendada: "",
+    dataVenda: "",
+    nomePacote: ""
+  });
+  const [editandoAgendamento, setEditandoAgendamento] = useState<AgendamentoUnificado | null>(null);
+  const [editDialogGerenciamento, setEditDialogGerenciamento] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [agendamentoParaDeletar, setAgendamentoParaDeletar] = useState<AgendamentoUnificado | null>(null);
 
   // Carregar dados do localStorage
   useEffect(() => {
@@ -677,6 +721,207 @@ const Agendamentos = () => {
     });
   };
   const agendamentosDia = getAgendamentosDia();
+
+  // Unificar todos os agendamentos (simples + pacotes)
+  const unificarAgendamentos = (): AgendamentoUnificado[] => {
+    const agendamentosSimples: AgendamentoUnificado[] = agendamentos.map(a => ({
+      id: a.id,
+      tipo: 'simples' as const,
+      data: a.data,
+      horarioInicio: a.horario,
+      horarioTermino: a.horario,
+      cliente: a.cliente,
+      pet: a.pet,
+      raca: a.raca,
+      servico: a.servico,
+      nomePacote: "",
+      numeroPacote: "",
+      taxiDog: "",
+      dataVenda: a.dataVenda,
+      whatsapp: a.whatsapp,
+      tempoServico: "",
+      agendamentoOriginal: a
+    }));
+
+    const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap(p => 
+      p.servicos.map(s => ({
+        id: `${p.id}-${s.numero}`,
+        tipo: 'pacote' as const,
+        data: s.data,
+        horarioInicio: s.horarioInicio,
+        horarioTermino: s.horarioTermino,
+        cliente: p.nomeCliente,
+        pet: p.nomePet,
+        raca: p.raca,
+        servico: s.nomeServico,
+        nomePacote: p.nomePacote,
+        numeroPacote: s.numero,
+        taxiDog: p.taxiDog,
+        dataVenda: p.dataVenda,
+        whatsapp: p.whatsapp,
+        tempoServico: s.tempoServico,
+        pacoteOriginal: p,
+        servicoOriginal: s
+      }))
+    );
+
+    return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
+      const dataCompare = a.data.localeCompare(b.data);
+      if (dataCompare !== 0) return dataCompare;
+      return a.horarioInicio.localeCompare(b.horarioInicio);
+    });
+  };
+
+  // Aplicar filtros
+  const aplicarFiltros = (agendamentos: AgendamentoUnificado[]): AgendamentoUnificado[] => {
+    return agendamentos.filter(a => {
+      if (filtrosAplicados.nomePet && !a.pet.toLowerCase().includes(filtrosAplicados.nomePet.toLowerCase())) {
+        return false;
+      }
+      if (filtrosAplicados.nomeCliente && !a.cliente.toLowerCase().includes(filtrosAplicados.nomeCliente.toLowerCase())) {
+        return false;
+      }
+      if (filtrosAplicados.dataAgendada && a.data !== filtrosAplicados.dataAgendada) {
+        return false;
+      }
+      if (filtrosAplicados.dataVenda && a.dataVenda !== filtrosAplicados.dataVenda) {
+        return false;
+      }
+      if (filtrosAplicados.nomePacote && !a.nomePacote.toLowerCase().includes(filtrosAplicados.nomePacote.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  // Agendamentos filtrados
+  const agendamentosUnificados = useMemo(() => unificarAgendamentos(), [agendamentos, agendamentosPacotes]);
+  const agendamentosFiltrados = useMemo(() => aplicarFiltros(agendamentosUnificados), [agendamentosUnificados, filtrosAplicados]);
+
+  // Contador total
+  const totalAgendamentos = agendamentosUnificados.length;
+
+  // Buscar
+  const handleBuscar = () => {
+    setFiltrosAplicados({ ...filtros });
+  };
+
+  // Limpar filtros
+  const limparFiltros = () => {
+    setFiltros({
+      nomePet: "",
+      nomeCliente: "",
+      dataAgendada: "",
+      dataVenda: "",
+      nomePacote: ""
+    });
+    setFiltrosAplicados({
+      nomePet: "",
+      nomeCliente: "",
+      dataAgendada: "",
+      dataVenda: "",
+      nomePacote: ""
+    });
+  };
+
+  // Abrir edição
+  const handleEditarClick = (agendamento: AgendamentoUnificado) => {
+    setEditandoAgendamento(agendamento);
+    setEditDialogGerenciamento(true);
+  };
+
+  // Atualizar agendamento
+  const handleAtualizarAgendamento = () => {
+    if (!editandoAgendamento) return;
+
+    if (editandoAgendamento.tipo === 'simples' && editandoAgendamento.agendamentoOriginal) {
+      const updatedAgendamentos = agendamentos.map(a => 
+        a.id === editandoAgendamento.agendamentoOriginal!.id 
+          ? {
+              ...a,
+              cliente: editandoAgendamento.cliente,
+              pet: editandoAgendamento.pet,
+              raca: editandoAgendamento.raca,
+              whatsapp: editandoAgendamento.whatsapp,
+              servico: editandoAgendamento.servico,
+              data: editandoAgendamento.data,
+              horario: editandoAgendamento.horarioInicio,
+              dataVenda: editandoAgendamento.dataVenda
+            }
+          : a
+      );
+      setAgendamentos(updatedAgendamentos);
+      toast.success("Agendamento atualizado com sucesso!");
+    } else if (editandoAgendamento.tipo === 'pacote' && editandoAgendamento.pacoteOriginal && editandoAgendamento.servicoOriginal) {
+      const updatedPacotes = agendamentosPacotes.map(p => {
+        if (p.id === editandoAgendamento.pacoteOriginal!.id) {
+          return {
+            ...p,
+            nomeCliente: editandoAgendamento.cliente,
+            nomePet: editandoAgendamento.pet,
+            raca: editandoAgendamento.raca,
+            whatsapp: editandoAgendamento.whatsapp,
+            nomePacote: editandoAgendamento.nomePacote,
+            taxiDog: editandoAgendamento.taxiDog,
+            dataVenda: editandoAgendamento.dataVenda,
+            servicos: p.servicos.map(s => 
+              s.numero === editandoAgendamento.servicoOriginal!.numero
+                ? {
+                    ...s,
+                    nomeServico: editandoAgendamento.servico,
+                    data: editandoAgendamento.data,
+                    horarioInicio: editandoAgendamento.horarioInicio,
+                    tempoServico: editandoAgendamento.tempoServico,
+                    horarioTermino: calcularHorarioTermino(editandoAgendamento.horarioInicio, editandoAgendamento.tempoServico)
+                  }
+                : s
+            )
+          };
+        }
+        return p;
+      });
+      setAgendamentosPacotes(updatedPacotes);
+      toast.success("Agendamento atualizado com sucesso!");
+    }
+
+    setEditDialogGerenciamento(false);
+    setEditandoAgendamento(null);
+  };
+
+  // Excluir agendamento
+  const handleExcluirAgendamento = (agendamento: AgendamentoUnificado) => {
+    setAgendamentoParaDeletar(agendamento);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmarExclusao = () => {
+    if (!agendamentoParaDeletar) return;
+
+    if (agendamentoParaDeletar.tipo === 'simples' && agendamentoParaDeletar.agendamentoOriginal) {
+      const updatedAgendamentos = agendamentos.filter(a => a.id !== agendamentoParaDeletar.agendamentoOriginal!.id);
+      setAgendamentos(updatedAgendamentos);
+      toast.success("Agendamento excluído com sucesso!");
+    } else if (agendamentoParaDeletar.tipo === 'pacote' && agendamentoParaDeletar.pacoteOriginal && agendamentoParaDeletar.servicoOriginal) {
+      const updatedPacotes = agendamentosPacotes.map(p => {
+        if (p.id === agendamentoParaDeletar.pacoteOriginal!.id) {
+          const servicosAtualizados = p.servicos.filter(s => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero);
+          if (servicosAtualizados.length === 0) {
+            return null;
+          }
+          return { ...p, servicos: servicosAtualizados };
+        }
+        return p;
+      }).filter(p => p !== null) as AgendamentoPacote[];
+      setAgendamentosPacotes(updatedPacotes);
+      toast.success("Agendamento excluído com sucesso!");
+    }
+
+    setDeleteDialogOpen(false);
+    setAgendamentoParaDeletar(null);
+    setEditDialogGerenciamento(false);
+    setEditandoAgendamento(null);
+  };
+
   return <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
@@ -960,6 +1205,328 @@ const Agendamentos = () => {
               </form>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={gerenciamentoOpen} onOpenChange={setGerenciamentoOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 h-8 text-xs" variant="secondary">
+                <Settings className="h-3 w-3" />
+                Gerenciamento de Agendamentos
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Gerenciamento de Agendamento</DialogTitle>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Houve {totalAgendamentos} agendamentos realizados.
+                </p>
+              </DialogHeader>
+
+              {/* Filtros */}
+              <div className="space-y-3 py-3 border-b">
+                <div className="grid grid-cols-5 gap-2">
+                  <Input
+                    placeholder="Buscar por Nome do Pet"
+                    value={filtros.nomePet}
+                    onChange={e => setFiltros({ ...filtros, nomePet: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    placeholder="Buscar por Nome do Cliente"
+                    value={filtros.nomeCliente}
+                    onChange={e => setFiltros({ ...filtros, nomeCliente: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    type="date"
+                    placeholder="Data Agendada"
+                    value={filtros.dataAgendada}
+                    onChange={e => setFiltros({ ...filtros, dataAgendada: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    type="date"
+                    placeholder="Data da Venda"
+                    value={filtros.dataVenda}
+                    onChange={e => setFiltros({ ...filtros, dataVenda: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    placeholder="Nome do Pacote"
+                    value={filtros.nomePacote}
+                    onChange={e => setFiltros({ ...filtros, nomePacote: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleBuscar} className="h-8 text-xs">
+                    Buscar
+                  </Button>
+                  <Button onClick={limparFiltros} variant="outline" className="h-8 text-xs">
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tabela */}
+              <div className="flex-1 overflow-auto border rounded-md">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                      <TableHead className="text-[10px] p-1.5 h-8">Agendamento</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Horário</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Término</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Tutor</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Nome Pet</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Raça</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Serviço</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Pacote</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">N° Pacote</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Taxi Dog</TableHead>
+                      <TableHead className="text-[10px] p-1.5 h-8">Data da Venda</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {agendamentosFiltrados.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={11} className="text-center text-xs text-muted-foreground py-8">
+                          Nenhum agendamento encontrado
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      agendamentosFiltrados.map((agendamento) => (
+                        <TableRow
+                          key={agendamento.id}
+                          className="cursor-pointer hover:bg-cyan-500/20"
+                          onClick={() => handleEditarClick(agendamento)}
+                        >
+                          <TableCell className="text-[10px] p-1.5">
+                            {agendamento.data ? new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}
+                          </TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioInicio || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioTermino || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.cliente || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.pet || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.raca || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.servico || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.nomePacote || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.numeroPacote || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.taxiDog || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">
+                            {agendamento.dataVenda ? new Date(agendamento.dataVenda + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog de Edição */}
+          <Dialog open={editDialogGerenciamento} onOpenChange={setEditDialogGerenciamento}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Editar Agendamento</DialogTitle>
+                <DialogDescription className="text-xs">
+                  {editandoAgendamento?.tipo === 'simples' ? 'Agendamento Simples' : 'Agendamento de Pacote'}
+                </DialogDescription>
+              </DialogHeader>
+
+              {editandoAgendamento && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Data do Agendamento</Label>
+                      <Input
+                        type="date"
+                        value={editandoAgendamento.data}
+                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, data: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Horário do Agendamento</Label>
+                      <TimeInput
+                        value={editandoAgendamento.horarioInicio}
+                        onChange={value => setEditandoAgendamento({ ...editandoAgendamento, horarioInicio: value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {editandoAgendamento.tipo === 'pacote' && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tempo de Serviço (hh:mm)</Label>
+                      <TimeInput
+                        value={editandoAgendamento.tempoServico}
+                        onChange={value => {
+                          const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
+                          setEditandoAgendamento({ 
+                            ...editandoAgendamento, 
+                            tempoServico: value,
+                            horarioTermino 
+                          });
+                        }}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nome do Cliente</Label>
+                      <Input
+                        value={editandoAgendamento.cliente}
+                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, cliente: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nome do Pet</Label>
+                      <Input
+                        value={editandoAgendamento.pet}
+                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, pet: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Raça</Label>
+                      <Input
+                        value={editandoAgendamento.raca}
+                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, raca: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">WhatsApp</Label>
+                      <Input
+                        value={editandoAgendamento.whatsapp}
+                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, whatsapp: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Serviço</Label>
+                    <Input
+                      value={editandoAgendamento.servico}
+                      onChange={e => setEditandoAgendamento({ ...editandoAgendamento, servico: e.target.value })}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+
+                  {editandoAgendamento.tipo === 'pacote' && (
+                    <>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nome do Pacote</Label>
+                        <Input
+                          value={editandoAgendamento.nomePacote}
+                          onChange={e => setEditandoAgendamento({ ...editandoAgendamento, nomePacote: e.target.value })}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">N° do Serviço do Pacote</Label>
+                          <Input
+                            value={editandoAgendamento.numeroPacote}
+                            readOnly
+                            className="h-8 text-xs bg-secondary"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Taxi Dog</Label>
+                          <Select
+                            value={editandoAgendamento.taxiDog}
+                            onValueChange={value => setEditandoAgendamento({ ...editandoAgendamento, taxiDog: value })}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
+                              <SelectItem value="Não" className="text-xs">Não</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Data da Venda</Label>
+                    <Input
+                      type="date"
+                      value={editandoAgendamento.dataVenda}
+                      onChange={e => setEditandoAgendamento({ ...editandoAgendamento, dataVenda: e.target.value })}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+
+                  <div className="flex justify-between gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => handleExcluirAgendamento(editandoAgendamento)}
+                      className="h-8 text-xs gap-2"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Excluir Agendamento
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditDialogGerenciamento(false);
+                          setEditandoAgendamento(null);
+                        }}
+                        className="h-8 text-xs"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleAtualizarAgendamento}
+                        className="h-8 text-xs"
+                      >
+                        Atualizar Agendamento
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog de Confirmação de Exclusão */}
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setAgendamentoParaDeletar(null);
+                }}>
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={confirmarExclusao} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
