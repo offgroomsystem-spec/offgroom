@@ -122,7 +122,8 @@ const Agendamentos = () => {
   const [editFormData, setEditFormData] = useState({
     data: "",
     horarioInicio: "",
-    tempoServico: ""
+    tempoServico: "",
+    servico: ""
   });
 
   const [formData, setFormData] = useState({
@@ -1346,7 +1347,8 @@ const Agendamentos = () => {
                             setEditFormData({
                               data: agendamento.servicoAgendamento.data,
                               horarioInicio: agendamento.servicoAgendamento.horarioInicio,
-                              tempoServico: agendamento.servicoAgendamento.tempoServico
+                              tempoServico: agendamento.servicoAgendamento.tempoServico,
+                              servico: agendamento.servicoAgendamento.nomeServico
                             });
                             setEditDialogOpen(true);
                           }
@@ -1416,9 +1418,9 @@ const Agendamentos = () => {
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço</Label>
                     <Input
-                      value={editingAgendamento.servico}
-                      disabled
-                      className="h-8 text-xs bg-secondary"
+                      value={editFormData.servico}
+                      onChange={(e) => setEditFormData({ ...editFormData, servico: e.target.value })}
+                      className="h-8 text-xs"
                     />
                   </div>
                   
@@ -1493,6 +1495,7 @@ const Agendamentos = () => {
                                   if (s.numero === editingAgendamento.servicoAgendamento.numero) {
                                     return {
                                       ...s,
+                                      nomeServico: editFormData.servico,
                                       data: editFormData.data,
                                       horarioInicio: editFormData.horarioInicio,
                                       tempoServico: editFormData.tempoServico,
