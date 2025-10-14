@@ -1195,14 +1195,14 @@ const Agendamentos = () => {
             <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>Gerenciamento de Agendamento</DialogTitle>
-                <p className="text-[10px] text-muted-foreground mt-1 my-0">
+                <p className="text-[10px] text-muted-foreground mt-1 my-0 px-0 py-[2px] mx-0">
                   Houve {totalAgendamentos} agendamentos realizados.
                 </p>
               </DialogHeader>
 
               {/* Filtros */}
-              <div className="space-y-3 border-b my-[2px] py-0">
-                <div className="grid grid-cols-5 gap-2 mx-0 my-[9px] py-[5px]">
+              <div className="space-y-3 border-b py-0 my-0">
+                <div className="grid grid-cols-5 gap-2 mx-0 my-0 py-0">
                   <Input placeholder="Buscar por Nome do Pet" value={filtros.nomePet} onChange={e => setFiltros({
                   ...filtros,
                   nomePet: e.target.value
