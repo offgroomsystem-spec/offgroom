@@ -78,7 +78,6 @@ interface EmpresaConfig {
   horarioInicio: string;
   horarioFim: string;
 }
-
 interface AgendamentoUnificado {
   id: string;
   tipo: 'simples' | 'pacote';
@@ -742,29 +741,25 @@ const Agendamentos = () => {
       tempoServico: "",
       agendamentoOriginal: a
     }));
-
-    const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap(p => 
-      p.servicos.map(s => ({
-        id: `${p.id}-${s.numero}`,
-        tipo: 'pacote' as const,
-        data: s.data,
-        horarioInicio: s.horarioInicio,
-        horarioTermino: s.horarioTermino,
-        cliente: p.nomeCliente,
-        pet: p.nomePet,
-        raca: p.raca,
-        servico: s.nomeServico,
-        nomePacote: p.nomePacote,
-        numeroPacote: s.numero,
-        taxiDog: p.taxiDog,
-        dataVenda: p.dataVenda,
-        whatsapp: p.whatsapp,
-        tempoServico: s.tempoServico,
-        pacoteOriginal: p,
-        servicoOriginal: s
-      }))
-    );
-
+    const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap(p => p.servicos.map(s => ({
+      id: `${p.id}-${s.numero}`,
+      tipo: 'pacote' as const,
+      data: s.data,
+      horarioInicio: s.horarioInicio,
+      horarioTermino: s.horarioTermino,
+      cliente: p.nomeCliente,
+      pet: p.nomePet,
+      raca: p.raca,
+      servico: s.nomeServico,
+      nomePacote: p.nomePacote,
+      numeroPacote: s.numero,
+      taxiDog: p.taxiDog,
+      dataVenda: p.dataVenda,
+      whatsapp: p.whatsapp,
+      tempoServico: s.tempoServico,
+      pacoteOriginal: p,
+      servicoOriginal: s
+    })));
     return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
       const dataCompare = a.data.localeCompare(b.data);
       if (dataCompare !== 0) return dataCompare;
@@ -803,7 +798,9 @@ const Agendamentos = () => {
 
   // Buscar
   const handleBuscar = () => {
-    setFiltrosAplicados({ ...filtros });
+    setFiltrosAplicados({
+      ...filtros
+    });
   };
 
   // Limpar filtros
@@ -833,23 +830,18 @@ const Agendamentos = () => {
   // Atualizar agendamento
   const handleAtualizarAgendamento = () => {
     if (!editandoAgendamento) return;
-
     if (editandoAgendamento.tipo === 'simples' && editandoAgendamento.agendamentoOriginal) {
-      const updatedAgendamentos = agendamentos.map(a => 
-        a.id === editandoAgendamento.agendamentoOriginal!.id 
-          ? {
-              ...a,
-              cliente: editandoAgendamento.cliente,
-              pet: editandoAgendamento.pet,
-              raca: editandoAgendamento.raca,
-              whatsapp: editandoAgendamento.whatsapp,
-              servico: editandoAgendamento.servico,
-              data: editandoAgendamento.data,
-              horario: editandoAgendamento.horarioInicio,
-              dataVenda: editandoAgendamento.dataVenda
-            }
-          : a
-      );
+      const updatedAgendamentos = agendamentos.map(a => a.id === editandoAgendamento.agendamentoOriginal!.id ? {
+        ...a,
+        cliente: editandoAgendamento.cliente,
+        pet: editandoAgendamento.pet,
+        raca: editandoAgendamento.raca,
+        whatsapp: editandoAgendamento.whatsapp,
+        servico: editandoAgendamento.servico,
+        data: editandoAgendamento.data,
+        horario: editandoAgendamento.horarioInicio,
+        dataVenda: editandoAgendamento.dataVenda
+      } : a);
       setAgendamentos(updatedAgendamentos);
       toast.success("Agendamento atualizado com sucesso!");
     } else if (editandoAgendamento.tipo === 'pacote' && editandoAgendamento.pacoteOriginal && editandoAgendamento.servicoOriginal) {
@@ -857,18 +849,14 @@ const Agendamentos = () => {
         if (p.id === editandoAgendamento.pacoteOriginal!.id) {
           return {
             ...p,
-            servicos: p.servicos.map(s => 
-              s.numero === editandoAgendamento.servicoOriginal!.numero
-                ? {
-                    ...s,
-                    nomeServico: editandoAgendamento.servico,
-                    data: editandoAgendamento.data,
-                    horarioInicio: editandoAgendamento.horarioInicio,
-                    tempoServico: editandoAgendamento.tempoServico,
-                    horarioTermino: calcularHorarioTermino(editandoAgendamento.horarioInicio, editandoAgendamento.tempoServico)
-                  }
-                : s
-            )
+            servicos: p.servicos.map(s => s.numero === editandoAgendamento.servicoOriginal!.numero ? {
+              ...s,
+              nomeServico: editandoAgendamento.servico,
+              data: editandoAgendamento.data,
+              horarioInicio: editandoAgendamento.horarioInicio,
+              tempoServico: editandoAgendamento.tempoServico,
+              horarioTermino: calcularHorarioTermino(editandoAgendamento.horarioInicio, editandoAgendamento.tempoServico)
+            } : s)
           };
         }
         return p;
@@ -876,7 +864,6 @@ const Agendamentos = () => {
       setAgendamentosPacotes(updatedPacotes);
       toast.success("Agendamento atualizado com sucesso!");
     }
-
     setEditDialogGerenciamento(false);
     setEditandoAgendamento(null);
   };
@@ -886,10 +873,8 @@ const Agendamentos = () => {
     setAgendamentoParaDeletar(agendamento);
     setDeleteDialogOpen(true);
   };
-
   const confirmarExclusao = () => {
     if (!agendamentoParaDeletar) return;
-
     if (agendamentoParaDeletar.tipo === 'simples' && agendamentoParaDeletar.agendamentoOriginal) {
       const updatedAgendamentos = agendamentos.filter(a => a.id !== agendamentoParaDeletar.agendamentoOriginal!.id);
       setAgendamentos(updatedAgendamentos);
@@ -901,20 +886,21 @@ const Agendamentos = () => {
           if (servicosAtualizados.length === 0) {
             return null;
           }
-          return { ...p, servicos: servicosAtualizados };
+          return {
+            ...p,
+            servicos: servicosAtualizados
+          };
         }
         return p;
       }).filter(p => p !== null) as AgendamentoPacote[];
       setAgendamentosPacotes(updatedPacotes);
       toast.success("Agendamento excluído com sucesso!");
     }
-
     setDeleteDialogOpen(false);
     setAgendamentoParaDeletar(null);
     setEditDialogGerenciamento(false);
     setEditandoAgendamento(null);
   };
-
   return <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
@@ -1215,50 +1201,38 @@ const Agendamentos = () => {
               </DialogHeader>
 
               {/* Filtros */}
-              <div className="space-y-3 py-3 border-b">
-                <div className="grid grid-cols-5 gap-2">
-                  <Input
-                    placeholder="Buscar por Nome do Pet"
-                    value={filtros.nomePet}
-                    onChange={e => setFiltros({ ...filtros, nomePet: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                  <Input
-                    placeholder="Buscar por Nome do Cliente"
-                    value={filtros.nomeCliente}
-                    onChange={e => setFiltros({ ...filtros, nomeCliente: e.target.value })}
-                    className="h-8 text-xs"
-                  />
+              <div className="space-y-3 border-b py-0 my-0">
+                <div className="grid grid-cols-5 gap-2 py-0 mx-0 my-0">
+                  <Input placeholder="Buscar por Nome do Pet" value={filtros.nomePet} onChange={e => setFiltros({
+                  ...filtros,
+                  nomePet: e.target.value
+                })} className="h-8 text-xs my-[24px]" />
+                  <Input placeholder="Buscar por Nome do Cliente" value={filtros.nomeCliente} onChange={e => setFiltros({
+                  ...filtros,
+                  nomeCliente: e.target.value
+                })} className="h-8 text-xs my-[24px]" />
                   <div className="space-y-1">
                     <Label htmlFor="dataAgendada" className="text-[10px] font-medium">
                       Buscar por Data Agendada
                     </Label>
-                    <Input
-                      id="dataAgendada"
-                      type="date"
-                      value={filtros.dataAgendada}
-                      onChange={e => setFiltros({ ...filtros, dataAgendada: e.target.value })}
-                      className="h-8 text-xs"
-                    />
+                    <Input id="dataAgendada" type="date" value={filtros.dataAgendada} onChange={e => setFiltros({
+                    ...filtros,
+                    dataAgendada: e.target.value
+                  })} className="h-8 text-xs" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 my-0 px-0 py-[5px]">
                     <Label htmlFor="dataVenda" className="text-[10px] font-medium">
                       Buscar por Data da Venda do Serviço
                     </Label>
-                    <Input
-                      id="dataVenda"
-                      type="date"
-                      value={filtros.dataVenda}
-                      onChange={e => setFiltros({ ...filtros, dataVenda: e.target.value })}
-                      className="h-8 text-xs"
-                    />
+                    <Input id="dataVenda" type="date" value={filtros.dataVenda} onChange={e => setFiltros({
+                    ...filtros,
+                    dataVenda: e.target.value
+                  })} className="h-8 text-xs" />
                   </div>
-                  <Input
-                    placeholder="Nome do Pacote"
-                    value={filtros.nomePacote}
-                    onChange={e => setFiltros({ ...filtros, nomePacote: e.target.value })}
-                    className="h-8 text-xs"
-                  />
+                  <Input placeholder="Nome do Pacote" value={filtros.nomePacote} onChange={e => setFiltros({
+                  ...filtros,
+                  nomePacote: e.target.value
+                })} className="h-8 text-xs my-[24px]" />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleBuscar} className="h-8 text-xs">
@@ -1289,19 +1263,11 @@ const Agendamentos = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {agendamentosFiltrados.length === 0 ? (
-                      <TableRow>
+                    {agendamentosFiltrados.length === 0 ? <TableRow>
                         <TableCell colSpan={11} className="text-center text-xs text-muted-foreground py-8">
                           Nenhum agendamento encontrado
                         </TableCell>
-                      </TableRow>
-                    ) : (
-                      agendamentosFiltrados.map((agendamento) => (
-                        <TableRow
-                          key={agendamento.id}
-                          className="cursor-pointer hover:bg-cyan-500/20"
-                          onClick={() => handleEditarClick(agendamento)}
-                        >
+                      </TableRow> : agendamentosFiltrados.map(agendamento => <TableRow key={agendamento.id} className="cursor-pointer hover:bg-cyan-500/20" onClick={() => handleEditarClick(agendamento)}>
                           <TableCell className="text-[10px] p-1.5">
                             {agendamento.data ? new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}
                           </TableCell>
@@ -1317,9 +1283,7 @@ const Agendamentos = () => {
                           <TableCell className="text-[10px] p-1.5">
                             {agendamento.dataVenda ? new Date(agendamento.dataVenda + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}
                           </TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                        </TableRow>)}
                   </TableBody>
                 </Table>
               </div>
@@ -1336,119 +1300,98 @@ const Agendamentos = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              {editandoAgendamento && (
-                <div className="space-y-3">
+              {editandoAgendamento && <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Data do Agendamento</Label>
-                      <Input
-                        type="date"
-                        value={editandoAgendamento.data}
-                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, data: e.target.value })}
-                        className="h-8 text-xs"
-                      />
+                      <Input type="date" value={editandoAgendamento.data} onChange={e => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    data: e.target.value
+                  })} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Horário do Agendamento</Label>
-                      <TimeInput
-                        value={editandoAgendamento.horarioInicio}
-                        onChange={value => setEditandoAgendamento({ ...editandoAgendamento, horarioInicio: value })}
-                        className="h-8 text-xs"
-                      />
+                      <TimeInput value={editandoAgendamento.horarioInicio} onChange={value => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    horarioInicio: value
+                  })} className="h-8 text-xs" />
                     </div>
                   </div>
 
-                  {editandoAgendamento.tipo === 'pacote' && (
-                    <div className="space-y-1">
+                  {editandoAgendamento.tipo === 'pacote' && <div className="space-y-1">
                       <Label className="text-xs">Tempo de Serviço (hh:mm)</Label>
-                      <TimeInput
-                        value={editandoAgendamento.tempoServico}
-                        onChange={value => {
-                          const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
-                          setEditandoAgendamento({ 
-                            ...editandoAgendamento, 
-                            tempoServico: value,
-                            horarioTermino 
-                          });
-                        }}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  )}
+                      <TimeInput value={editandoAgendamento.tempoServico} onChange={value => {
+                  const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
+                  setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    tempoServico: value,
+                    horarioTermino
+                  });
+                }} className="h-8 text-xs" />
+                    </div>}
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Nome do Cliente</Label>
-                      <Input
-                        value={editandoAgendamento.cliente}
-                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, cliente: e.target.value })}
-                        className="h-8 text-xs"
-                      />
+                      <Input value={editandoAgendamento.cliente} onChange={e => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    cliente: e.target.value
+                  })} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Nome do Pet</Label>
-                      <Input
-                        value={editandoAgendamento.pet}
-                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, pet: e.target.value })}
-                        className="h-8 text-xs"
-                      />
+                      <Input value={editandoAgendamento.pet} onChange={e => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    pet: e.target.value
+                  })} className="h-8 text-xs" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Raça</Label>
-                      <Input
-                        value={editandoAgendamento.raca}
-                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, raca: e.target.value })}
-                        className="h-8 text-xs"
-                      />
+                      <Input value={editandoAgendamento.raca} onChange={e => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    raca: e.target.value
+                  })} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">WhatsApp</Label>
-                      <Input
-                        value={editandoAgendamento.whatsapp}
-                        onChange={e => setEditandoAgendamento({ ...editandoAgendamento, whatsapp: e.target.value })}
-                        className="h-8 text-xs"
-                      />
+                      <Input value={editandoAgendamento.whatsapp} onChange={e => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    whatsapp: e.target.value
+                  })} className="h-8 text-xs" />
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço</Label>
-                    <Input
-                      value={editandoAgendamento.servico}
-                      onChange={e => setEditandoAgendamento({ ...editandoAgendamento, servico: e.target.value })}
-                      className="h-8 text-xs"
-                    />
+                    <Input value={editandoAgendamento.servico} onChange={e => setEditandoAgendamento({
+                  ...editandoAgendamento,
+                  servico: e.target.value
+                })} className="h-8 text-xs" />
                   </div>
 
-                  {editandoAgendamento.tipo === 'pacote' && (
-                    <>
+                  {editandoAgendamento.tipo === 'pacote' && <>
                       <div className="space-y-1">
                         <Label className="text-xs">Nome do Pacote</Label>
-                        <Input
-                          value={editandoAgendamento.nomePacote}
-                          onChange={e => setEditandoAgendamento({ ...editandoAgendamento, nomePacote: e.target.value })}
-                          className="h-8 text-xs"
-                        />
+                        <Input value={editandoAgendamento.nomePacote} onChange={e => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    nomePacote: e.target.value
+                  })} className="h-8 text-xs" />
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">N° do Serviço do Pacote</Label>
-                          <Input
-                            value={editandoAgendamento.numeroPacote}
-                            readOnly
-                            className="h-8 text-xs bg-secondary"
-                          />
+                          <Input value={editandoAgendamento.numeroPacote} readOnly className="h-8 text-xs bg-secondary" />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Taxi Dog</Label>
-                          <Select
-                            value={editandoAgendamento.taxiDog}
-                            onValueChange={value => setEditandoAgendamento({ ...editandoAgendamento, taxiDog: value })}
-                          >
+                          <Select value={editandoAgendamento.taxiDog} onValueChange={value => setEditandoAgendamento({
+                      ...editandoAgendamento,
+                      taxiDog: value
+                    })}>
                             <SelectTrigger className="h-8 text-xs">
                               <SelectValue />
                             </SelectTrigger>
@@ -1459,52 +1402,34 @@ const Agendamentos = () => {
                           </Select>
                         </div>
                       </div>
-                    </>
-                  )}
+                    </>}
 
                   <div className="space-y-1">
                     <Label className="text-xs">Data da Venda</Label>
-                    <Input
-                      type="date"
-                      value={editandoAgendamento.dataVenda}
-                      onChange={e => setEditandoAgendamento({ ...editandoAgendamento, dataVenda: e.target.value })}
-                      className="h-8 text-xs"
-                    />
+                    <Input type="date" value={editandoAgendamento.dataVenda} onChange={e => setEditandoAgendamento({
+                  ...editandoAgendamento,
+                  dataVenda: e.target.value
+                })} className="h-8 text-xs" />
                   </div>
 
                   <div className="flex justify-between gap-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => handleExcluirAgendamento(editandoAgendamento)}
-                      className="h-8 text-xs gap-2"
-                    >
+                    <Button type="button" variant="destructive" onClick={() => handleExcluirAgendamento(editandoAgendamento)} className="h-8 text-xs gap-2">
                       <Trash2 className="h-3 w-3" />
                       Excluir Agendamento
                     </Button>
                     <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setEditDialogGerenciamento(false);
-                          setEditandoAgendamento(null);
-                        }}
-                        className="h-8 text-xs"
-                      >
+                      <Button type="button" variant="outline" onClick={() => {
+                    setEditDialogGerenciamento(false);
+                    setEditandoAgendamento(null);
+                  }} className="h-8 text-xs">
                         Cancelar
                       </Button>
-                      <Button
-                        type="button"
-                        onClick={handleAtualizarAgendamento}
-                        className="h-8 text-xs"
-                      >
+                      <Button type="button" onClick={handleAtualizarAgendamento} className="h-8 text-xs">
                         Atualizar Agendamento
                       </Button>
                     </div>
                   </div>
-                </div>
-              )}
+                </div>}
             </DialogContent>
           </Dialog>
 
@@ -1519,9 +1444,9 @@ const Agendamentos = () => {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => {
-                  setDeleteDialogOpen(false);
-                  setAgendamentoParaDeletar(null);
-                }}>
+                setDeleteDialogOpen(false);
+                setAgendamentoParaDeletar(null);
+              }}>
                   Cancelar
                 </AlertDialogCancel>
                 <AlertDialogAction onClick={confirmarExclusao} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
