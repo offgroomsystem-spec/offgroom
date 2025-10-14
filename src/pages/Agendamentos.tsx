@@ -24,6 +24,7 @@ interface Agendamento {
   servico: string;
   data: string;
   horario: string;
+  dataVenda: string;
   status: "confirmado" | "pendente" | "concluido";
 }
 interface ServicoAgendamento {
@@ -42,6 +43,7 @@ interface AgendamentoPacote {
   whatsapp: string;
   nomePacote: string;
   taxiDog: string; // "Sim" ou "Não"
+  dataVenda: string;
   servicos: ServicoAgendamento[];
 }
 interface Cliente {
@@ -95,14 +97,28 @@ const Agendamentos = () => {
   };
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>(() => {
     const saved = localStorage.getItem('agendamentos');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.map((ag: any) => ({
+        ...ag,
+        dataVenda: ag.dataVenda || ""
+      }));
+    }
+    return [];
   });
   useEffect(() => {
     localStorage.setItem('agendamentos', JSON.stringify(agendamentos));
   }, [agendamentos]);
   const [agendamentosPacotes, setAgendamentosPacotes] = useState<AgendamentoPacote[]>(() => {
     const saved = localStorage.getItem('agendamentosPacotes');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.map((pac: any) => ({
+        ...pac,
+        dataVenda: pac.dataVenda || ""
+      }));
+    }
+    return [];
   });
   useEffect(() => {
     localStorage.setItem('agendamentosPacotes', JSON.stringify(agendamentosPacotes));
@@ -135,7 +151,8 @@ const Agendamentos = () => {
     whatsapp: "",
     servico: "",
     data: "",
-    horario: ""
+    horario: "",
+    dataVenda: ""
   });
   const [pacoteFormData, setPacoteFormData] = useState({
     nomeCliente: "",
@@ -143,7 +160,8 @@ const Agendamentos = () => {
     raca: "",
     whatsapp: "",
     nomePacote: "",
-    taxiDog: ""
+    taxiDog: "",
+    dataVenda: ""
   });
   const [servicosAgendamento, setServicosAgendamento] = useState<ServicoAgendamento[]>([]);
 
@@ -366,6 +384,10 @@ const Agendamentos = () => {
   const weekDates = getWeekDates();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.dataVenda) {
+      toast.error("Favor preencher a Data da Venda");
+      return;
+    }
     const novoAgendamento: Agendamento = {
       ...formData,
       id: Date.now().toString(),
@@ -383,7 +405,8 @@ const Agendamentos = () => {
       whatsapp: "",
       servico: "",
       data: "",
-      horario: ""
+      horario: "",
+      dataVenda: ""
     });
     setSimpleClienteSearch("");
     setSimplePetSearch("");
@@ -400,7 +423,8 @@ const Agendamentos = () => {
       raca: "",
       whatsapp: "",
       nomePacote: "",
-      taxiDog: ""
+      taxiDog: "",
+      dataVenda: ""
     });
     setServicosAgendamento([]);
     setClienteSearch("");
@@ -504,6 +528,10 @@ const Agendamentos = () => {
       toast.error("Favor responder se necessita Taxi Dog");
       return;
     }
+    if (!pacoteFormData.dataVenda) {
+      toast.error("Favor preencher a Data da Venda");
+      return;
+    }
 
     // Validar todos os serviços
     for (let i = 0; i < servicosAgendamento.length; i++) {
@@ -529,6 +557,7 @@ const Agendamentos = () => {
       whatsapp: pacoteFormData.whatsapp,
       nomePacote: pacoteFormData.nomePacote,
       taxiDog: pacoteFormData.taxiDog,
+      dataVenda: pacoteFormData.dataVenda,
       servicos: servicosAgendamento
     };
     setAgendamentosPacotes([...agendamentosPacotes, novoAgendamentoPacote]);
@@ -716,6 +745,14 @@ const Agendamentos = () => {
                 </div>
 
                 <div className="space-y-1">
+                  <Label htmlFor="dataVenda" className="text-xs">Data da Venda *</Label>
+                  <Input id="dataVenda" type="date" value={formData.dataVenda} onChange={e => setFormData({
+                  ...formData,
+                  dataVenda: e.target.value
+                })} className="h-8 text-xs" required />
+                </div>
+
+                <div className="space-y-1">
                   <Label htmlFor="servico" className="text-xs">Serviço *</Label>
                   <Input id="servico" value={formData.servico} onChange={e => setFormData({
                   ...formData,
@@ -849,6 +886,14 @@ const Agendamentos = () => {
                           </SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="dataVendaPacote" className="text-xs">Data da Venda *</Label>
+                  <Input id="dataVendaPacote" type="date" value={pacoteFormData.dataVenda} onChange={e => setPacoteFormData({
+                  ...pacoteFormData,
+                  dataVenda: e.target.value
+                })} className="h-8 text-xs" required />
                 </div>
 
                 {servicosAgendamento.length > 0 && <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
