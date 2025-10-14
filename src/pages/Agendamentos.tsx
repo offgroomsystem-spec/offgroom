@@ -863,10 +863,10 @@ const Agendamentos = () => {
                         <Label className="text-muted-foreground text-[[10px]] font-bold px-px mx-0 my-px py-0">Dia Agendamento</Label>
                       </div>
                       <div className="w-20">
-                        <Label className="text-[10px] text-muted-foreground font-bold">Hora Início</Label>
+                        <Label className="text-muted-foreground font-bold text-xs">Hora Início</Label>
                       </div>
-                      <div className="w-20">
-                        <Label className="text-[10px] text-muted-foreground font-bold">Tempo Serviço</Label>
+                      <div className="w-20 px-[13px]">
+                        <Label className="text-muted-foreground font-bold text-xs text-right my-0 mx-0 px-0">Tempo Serviço</Label>
                       </div>
                     </div>
                     
