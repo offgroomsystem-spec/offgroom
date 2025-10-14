@@ -857,13 +857,6 @@ const Agendamentos = () => {
         if (p.id === editandoAgendamento.pacoteOriginal!.id) {
           return {
             ...p,
-            nomeCliente: editandoAgendamento.cliente,
-            nomePet: editandoAgendamento.pet,
-            raca: editandoAgendamento.raca,
-            whatsapp: editandoAgendamento.whatsapp,
-            nomePacote: editandoAgendamento.nomePacote,
-            taxiDog: editandoAgendamento.taxiDog,
-            dataVenda: editandoAgendamento.dataVenda,
             servicos: p.servicos.map(s => 
               s.numero === editandoAgendamento.servicoOriginal!.numero
                 ? {
@@ -1236,20 +1229,30 @@ const Agendamentos = () => {
                     onChange={e => setFiltros({ ...filtros, nomeCliente: e.target.value })}
                     className="h-8 text-xs"
                   />
-                  <Input
-                    type="date"
-                    placeholder="Data Agendada"
-                    value={filtros.dataAgendada}
-                    onChange={e => setFiltros({ ...filtros, dataAgendada: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                  <Input
-                    type="date"
-                    placeholder="Data da Venda"
-                    value={filtros.dataVenda}
-                    onChange={e => setFiltros({ ...filtros, dataVenda: e.target.value })}
-                    className="h-8 text-xs"
-                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="dataAgendada" className="text-[10px] font-medium">
+                      Buscar por Data Agendada
+                    </Label>
+                    <Input
+                      id="dataAgendada"
+                      type="date"
+                      value={filtros.dataAgendada}
+                      onChange={e => setFiltros({ ...filtros, dataAgendada: e.target.value })}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="dataVenda" className="text-[10px] font-medium">
+                      Buscar por Data da Venda do Serviço
+                    </Label>
+                    <Input
+                      id="dataVenda"
+                      type="date"
+                      value={filtros.dataVenda}
+                      onChange={e => setFiltros({ ...filtros, dataVenda: e.target.value })}
+                      className="h-8 text-xs"
+                    />
+                  </div>
                   <Input
                     placeholder="Nome do Pacote"
                     value={filtros.nomePacote}
