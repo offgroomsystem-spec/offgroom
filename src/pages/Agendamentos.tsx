@@ -90,6 +90,13 @@ const Agendamentos = () => {
     return `${year}-${month}-${day}`;
   };
 
+  // Função para formatar data de exibição sem problemas de timezone
+  const formatDateForDisplay = (dateStr: string): string => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // Cria data no timezone local
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  };
+
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>(() => {
     const saved = localStorage.getItem('agendamentos');
     return saved ? JSON.parse(saved) : [];
@@ -1166,7 +1173,7 @@ const Agendamentos = () => {
                 <>
                   <CardTitle className="text-base">Agenda do Dia</CardTitle>
                   <CardDescription className="text-xs">
-                    {new Date(selectedDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    {formatDateForDisplay(selectedDate)}
                   </CardDescription>
                   <p className="text-xs text-muted-foreground mt-1">
                     Houve {contarAgendamentos()} agendamentos realizados neste dia.
