@@ -5,16 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 interface ContaBancaria {
   id: string;
   nomeBanco: string;
-  tipoConta: "Conta Corrente" | "Conta Poupança";
-  agencia: string;
-  numeroConta: string;
   saldo: number;
 }
 
@@ -31,15 +28,9 @@ const ContasBancarias = () => {
 
   const [formData, setFormData] = useState<{
     nomeBanco: string;
-    tipoConta: "Conta Corrente" | "Conta Poupança" | "";
-    agencia: string;
-    numeroConta: string;
     saldo: number;
   }>({
     nomeBanco: "",
-    tipoConta: "",
-    agencia: "",
-    numeroConta: "",
     saldo: 0,
   });
 
@@ -61,25 +52,10 @@ const ContasBancarias = () => {
       toast.error("Favor preencher o nome do banco");
       return;
     }
-    if (!formData.tipoConta) {
-      toast.error("Favor selecionar o tipo de conta");
-      return;
-    }
-    if (!formData.agencia.trim()) {
-      toast.error("Favor preencher a agência");
-      return;
-    }
-    if (!formData.numeroConta.trim()) {
-      toast.error("Favor preencher o número da conta");
-      return;
-    }
     
     const novaConta: ContaBancaria = {
       id: Date.now().toString(),
       nomeBanco: formData.nomeBanco,
-      tipoConta: formData.tipoConta,
-      agencia: formData.agencia,
-      numeroConta: formData.numeroConta,
       saldo: formData.saldo,
     };
     
@@ -95,27 +71,12 @@ const ContasBancarias = () => {
       toast.error("Favor preencher o nome do banco");
       return;
     }
-    if (!formData.tipoConta) {
-      toast.error("Favor selecionar o tipo de conta");
-      return;
-    }
-    if (!formData.agencia.trim()) {
-      toast.error("Favor preencher a agência");
-      return;
-    }
-    if (!formData.numeroConta.trim()) {
-      toast.error("Favor preencher o número da conta");
-      return;
-    }
     
     setContas(contas.map(c => 
       c.id === contaSelecionada.id 
         ? { 
             ...contaSelecionada, 
             nomeBanco: formData.nomeBanco,
-            tipoConta: formData.tipoConta as "Conta Corrente" | "Conta Poupança",
-            agencia: formData.agencia,
-            numeroConta: formData.numeroConta,
             saldo: formData.saldo,
           }
         : c
@@ -143,9 +104,6 @@ const ContasBancarias = () => {
   const resetForm = () => {
     setFormData({ 
       nomeBanco: "", 
-      tipoConta: "", 
-      agencia: "", 
-      numeroConta: "", 
       saldo: 0 
     });
     setIsDialogOpen(false);
@@ -155,9 +113,6 @@ const ContasBancarias = () => {
     if (!contaSelecionada) return;
     setFormData({
       nomeBanco: contaSelecionada.nomeBanco,
-      tipoConta: contaSelecionada.tipoConta,
-      agencia: contaSelecionada.agencia,
-      numeroConta: contaSelecionada.numeroConta,
       saldo: contaSelecionada.saldo,
     });
     setIsEditDialogOpen(true);
@@ -192,48 +147,6 @@ const ContasBancarias = () => {
                     onChange={(e) => setFormData({ ...formData, nomeBanco: e.target.value })}
                     className="h-8 text-xs"
                     placeholder="Ex: Banco do Brasil"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="tipoConta" className="text-xs">Tipo de Conta *</Label>
-                  <Select 
-                    value={formData.tipoConta} 
-                    onValueChange={(value) => setFormData({ ...formData, tipoConta: value as any })}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Conta Corrente" className="text-xs">
-                        Conta Corrente
-                      </SelectItem>
-                      <SelectItem value="Conta Poupança" className="text-xs">
-                        Conta Poupança
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="agencia" className="text-xs">Agência *</Label>
-                  <Input
-                    id="agencia"
-                    value={formData.agencia}
-                    onChange={(e) => setFormData({ ...formData, agencia: e.target.value })}
-                    className="h-8 text-xs"
-                    placeholder="Ex: 1234-5"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="numeroConta" className="text-xs">Número da Conta *</Label>
-                  <Input
-                    id="numeroConta"
-                    value={formData.numeroConta}
-                    onChange={(e) => setFormData({ ...formData, numeroConta: e.target.value })}
-                    className="h-8 text-xs"
-                    placeholder="Ex: 12345-6"
                   />
                 </div>
                 
@@ -304,17 +217,8 @@ const ContasBancarias = () => {
               <CardHeader className="py-3">
                 <CardTitle className="text-sm">{conta.nomeBanco}</CardTitle>
                 <CardDescription className="text-xs space-y-1">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    conta.tipoConta === "Conta Corrente" 
-                      ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" 
-                      : "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-                  }`}>
-                    {conta.tipoConta}
-                  </span>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <div>Agência: {conta.agencia}</div>
-                    <div>Conta: {conta.numeroConta}</div>
-                    <div className="font-semibold mt-1">Saldo: {formatCurrency(conta.saldo)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    <div className="font-semibold">Saldo: {formatCurrency(conta.saldo)}</div>
                   </div>
                 </CardDescription>
               </CardHeader>
@@ -360,48 +264,6 @@ const ContasBancarias = () => {
                 onChange={(e) => setFormData({ ...formData, nomeBanco: e.target.value })}
                 className="h-8 text-xs"
                 placeholder="Ex: Banco do Brasil"
-              />
-            </div>
-            
-            <div className="space-y-1">
-              <Label htmlFor="tipoConta-edit" className="text-xs">Tipo de Conta *</Label>
-              <Select 
-                value={formData.tipoConta} 
-                onValueChange={(value) => setFormData({ ...formData, tipoConta: value as any })}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Conta Corrente" className="text-xs">
-                    Conta Corrente
-                  </SelectItem>
-                  <SelectItem value="Conta Poupança" className="text-xs">
-                    Conta Poupança
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-1">
-              <Label htmlFor="agencia-edit" className="text-xs">Agência *</Label>
-              <Input
-                id="agencia-edit"
-                value={formData.agencia}
-                onChange={(e) => setFormData({ ...formData, agencia: e.target.value })}
-                className="h-8 text-xs"
-                placeholder="Ex: 1234-5"
-              />
-            </div>
-            
-            <div className="space-y-1">
-              <Label htmlFor="numeroConta-edit" className="text-xs">Número da Conta *</Label>
-              <Input
-                id="numeroConta-edit"
-                value={formData.numeroConta}
-                onChange={(e) => setFormData({ ...formData, numeroConta: e.target.value })}
-                className="h-8 text-xs"
-                placeholder="Ex: 12345-6"
               />
             </div>
             
