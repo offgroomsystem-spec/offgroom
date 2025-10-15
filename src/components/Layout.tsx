@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign } from "lucide-react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp } from "lucide-react";
 import logoOffgroom from "@/assets/logo-offgroom.png";
 import {
   DropdownMenu,
@@ -127,6 +127,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Link
+              to="/controle-financeiro"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                location.pathname === "/controle-financeiro"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span className="font-medium">Controle Financeiro</span>
+            </Link>
 
             <Link
               to="/relatorios"
