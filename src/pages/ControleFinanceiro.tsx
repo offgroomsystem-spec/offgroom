@@ -164,12 +164,15 @@ const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos
   
     const opcoesProdutoServico = useMemo(() => {
       if (isServicos) {
-        return servicos.map(s => ({ nome: s.nome, valor: s.valor }));
+        return [
+          ...servicos.map(s => ({ nome: s.nome, valor: s.valor })),
+          ...pacotes.map(p => ({ nome: p.nome, valor: p.valorFinal }))
+        ];
       } else if (isVenda) {
         return produtos.map(p => ({ nome: p.descricao, valor: p.valorVenda }));
       }
       return [];
-    }, [isServicos, isVenda, servicos, produtos]);
+    }, [isServicos, isVenda, servicos, pacotes, produtos]);
   
   const handleProdutoServicoChange = (nomeSelecionado: string) => {
     const itemSelecionado = opcoesProdutoServico.find(o => o.nome === nomeSelecionado);
