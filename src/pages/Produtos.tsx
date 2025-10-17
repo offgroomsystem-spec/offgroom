@@ -184,20 +184,6 @@ const Produtos = () => {
       return;
     }
 
-    if (!formData.margemLucro || parseFloat(formData.margemLucro) <= 0) {
-      toast.error("Favor preencher a margem de lucro!");
-      return;
-    }
-
-    if (!formData.imposto || parseFloat(formData.imposto) < 0) {
-      toast.error("Favor preencher o imposto!");
-      return;
-    }
-
-    if (!formData.taxaCartao || parseFloat(formData.taxaCartao) < 0) {
-      toast.error("Favor preencher a taxa de cartão!");
-      return;
-    }
 
     if (!formData.codigo || formData.codigo.length !== 13) {
       toast.error("O código deve ter exatamente 13 dígitos!");
@@ -223,9 +209,9 @@ const Produtos = () => {
       id: produtoSelecionado?.id || Date.now().toString(),
       descricao: formData.descricao.trim(),
       precoCusto: parseFloat(formData.precoCusto),
-      margemLucro: parseFloat(formData.margemLucro),
-      imposto: parseFloat(formData.imposto),
-      taxaCartao: parseFloat(formData.taxaCartao),
+      margemLucro: parseFloat(formData.margemLucro) || 0,
+      imposto: parseFloat(formData.imposto) || 0,
+      taxaCartao: parseFloat(formData.taxaCartao) || 0,
       codigo: formData.codigo,
       valorVenda: parseFloat(formData.valorVenda),
       lucroUnitario: calcularValores.lucroUnitario,
@@ -347,7 +333,7 @@ const Produtos = () => {
                 {/* Linha 3: Margem de Lucro, Imposto, Taxa de Cartão */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">Margem de Lucro (%) *</Label>
+                    <Label className="text-[10px] font-semibold">Margem de Lucro (%)</Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -366,7 +352,7 @@ const Produtos = () => {
                   </div>
                   
                   <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">Imposto (%) *</Label>
+                    <Label className="text-[10px] font-semibold">Imposto (%)</Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -380,7 +366,7 @@ const Produtos = () => {
                   </div>
                   
                   <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">Taxa de Cartão (%) *</Label>
+                    <Label className="text-[10px] font-semibold">Taxa de Cartão (%)</Label>
                     <Input
                       type="number"
                       step="0.01"
