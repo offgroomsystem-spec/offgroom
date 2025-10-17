@@ -162,14 +162,14 @@ const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos
   const isVenda = item.descricao2 === "Venda";
   const isObrigatorio = isServicos || isVenda;
   
-  const opcoesProdutoServico = useMemo(() => {
-    if (isServicos) {
-      return servicos.map(s => ({ nome: s.nome, valor: s.valor }));
-    } else if (isVenda) {
-      return [...pacotes.map(p => ({ nome: p.nome, valor: p.valorFinal })), ...produtos.map(p => ({ nome: p.descricao, valor: p.valorVenda }))];
-    }
-    return [];
-  }, [isServicos, isVenda, servicos, pacotes, produtos]);
+    const opcoesProdutoServico = useMemo(() => {
+      if (isServicos) {
+        return servicos.map(s => ({ nome: s.nome, valor: s.valor }));
+      } else if (isVenda) {
+        return produtos.map(p => ({ nome: p.descricao, valor: p.valorVenda }));
+      }
+      return [];
+    }, [isServicos, isVenda, servicos, produtos]);
   
   const handleProdutoServicoChange = (nomeSelecionado: string) => {
     const itemSelecionado = opcoesProdutoServico.find(o => o.nome === nomeSelecionado);
