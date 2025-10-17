@@ -7,6 +7,7 @@ import Layout from "./components/Layout";
 import Clientes from "./pages/Clientes";
 import Racas from "./pages/Racas";
 import Servicos from "./pages/Servicos";
+import Produtos from "./pages/Produtos";
 import Pacotes from "./pages/Pacotes";
 import Agendamentos from "./pages/Agendamentos";
 import Relatorios from "./pages/Relatorios";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/agendamentos" element={<Agendamentos />} />
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/servicos" element={<Servicos />} />
+            <Route path="/produtos" element={<Produtos />} />
             <Route path="/racas" element={<Racas />} />
             <Route path="/pacotes" element={<Pacotes />} />
             <Route path="/empresa" element={<Empresa />} />

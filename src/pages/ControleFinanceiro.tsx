@@ -60,6 +60,12 @@ interface Pacote {
   valorFinal: number;
 }
 
+interface Produto {
+  id: string;
+  descricao: string;
+  valorVenda: number;
+}
+
 // Categorias
 const categoriasDescricao1 = {
   "Receita": ["Receita Operacional", "Receita Não Operacional"],
@@ -143,12 +149,13 @@ interface ItemLancamentoFormProps {
   formData: any;
   servicos: Servico[];
   pacotes: Pacote[];
+  produtos: Produto[];
   onChange: (item: ItemLancamento) => void;
   onRemove: () => void;
   canRemove: boolean;
 }
 
-const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, onChange, onRemove, canRemove }: ItemLancamentoFormProps) => {
+const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos, onChange, onRemove, canRemove }: ItemLancamentoFormProps) => {
   const opcoesDescricao2 = formData.descricao1 ? categoriasDescricao2[formData.descricao1] || [] : [];
   
   const isServicos = item.descricao2 === "Serviços";
@@ -159,10 +166,10 @@ const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, onChange
     if (isServicos) {
       return servicos.map(s => ({ nome: s.nome, valor: s.valor }));
     } else if (isVenda) {
-      return pacotes.map(p => ({ nome: p.nome, valor: p.valorFinal }));
+      return [...pacotes.map(p => ({ nome: p.nome, valor: p.valorFinal })), ...produtos.map(p => ({ nome: p.descricao, valor: p.valorVenda }))];
     }
     return [];
-  }, [isServicos, isVenda, servicos, pacotes]);
+  }, [isServicos, isVenda, servicos, pacotes, produtos]);
   
   const handleProdutoServicoChange = (nomeSelecionado: string) => {
     const itemSelecionado = opcoesProdutoServico.find(o => o.nome === nomeSelecionado);
@@ -256,6 +263,7 @@ const ControleFinanceiro = () => {
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
 
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -302,11 +310,13 @@ const ControleFinanceiro = () => {
     const savedContas = localStorage.getItem('contas_bancarias');
     const savedServicos = localStorage.getItem('servicos');
     const savedPacotes = localStorage.getItem('pacotes');
+    const savedProdutos = localStorage.getItem('produtos');
     
     if (savedClientes) setClientes(JSON.parse(savedClientes));
     if (savedContas) setContas(JSON.parse(savedContas));
     if (savedServicos) setServicos(JSON.parse(savedServicos));
     if (savedPacotes) setPacotes(JSON.parse(savedPacotes));
+    if (savedProdutos) setProdutos(JSON.parse(savedProdutos));
   }, []);
 
   // Salvar lançamentos
@@ -832,6 +842,7 @@ const ControleFinanceiro = () => {
                       formData={formData}
                       servicos={servicos}
                       pacotes={pacotes}
+                      produtos={produtos}
                       onChange={(novoItem) => {
                         setItensLancamento(itensLancamento.map(i => 
                           i.id === item.id ? novoItem : i
@@ -1446,6 +1457,7 @@ const ControleFinanceiro = () => {
                   formData={formData}
                   servicos={servicos}
                   pacotes={pacotes}
+                  produtos={produtos}
                   onChange={(novoItem) => {
                     setItensLancamento(itensLancamento.map(i => 
                       i.id === item.id ? novoItem : i

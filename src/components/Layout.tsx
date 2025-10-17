@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp } from "lucide-react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package } from "lucide-react";
 import logoOffgroom from "@/assets/logo-offgroom.png";
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const cadastroItems = [
     { path: "/clientes", label: "Clientes", icon: Users },
     { path: "/servicos", label: "Serviços", icon: Scissors },
+    { path: "/produtos", label: "Produtos", icon: Package },
     { path: "/racas", label: "Raças", icon: PawPrint },
     { path: "/pacotes", label: "Pacotes", icon: Scissors },
     { path: "/empresa", label: "Empresa", icon: Building2 },
