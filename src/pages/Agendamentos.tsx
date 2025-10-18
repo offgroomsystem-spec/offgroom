@@ -17,6 +17,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 // Interfaces
 
+interface Groomer {
+  id: string;
+  nome: string;
+}
+
 interface Agendamento {
   id: string;
   cliente: string;
@@ -27,6 +32,8 @@ interface Agendamento {
   data: string;
   horario: string;
   dataVenda: string;
+  groomer: string;
+  taxiDog: string;
   status: "confirmado" | "pendente" | "concluido";
 }
 interface ServicoAgendamento {
@@ -99,6 +106,7 @@ interface AgendamentoUnificado {
   dataVenda: string;
   whatsapp: string;
   tempoServico: string;
+  groomer: string;
   agendamentoOriginal?: Agendamento;
   pacoteOriginal?: AgendamentoPacote;
   servicoOriginal?: ServicoAgendamento;
@@ -128,11 +136,15 @@ const Agendamentos = () => {
       const parsed = JSON.parse(saved);
       return parsed.map((ag: any) => ({
         ...ag,
-        dataVenda: ag.dataVenda || ""
+        dataVenda: ag.dataVenda || "",
+        groomer: ag.groomer || "",
+        taxiDog: ag.taxiDog || ""
       }));
     }
     return [];
   });
+
+  const [groomers, setGroomers] = useState<Groomer[]>([]);
   useEffect(() => {
     localStorage.setItem('agendamentos', JSON.stringify(agendamentos));
   }, [agendamentos]);
@@ -181,7 +193,9 @@ const Agendamentos = () => {
     data: "",
     horario: "",
     dataVenda: "",
-    numeroServicoPacote: ""
+    numeroServicoPacote: "",
+    groomer: "",
+    taxiDog: ""
   });
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
   const [pacoteFormData, setPacoteFormData] = useState({
@@ -249,6 +263,10 @@ const Agendamentos = () => {
     const savedEmpresa = localStorage.getItem('empresaConfig');
     if (savedEmpresa) {
       setEmpresaConfig(JSON.parse(savedEmpresa));
+    }
+    const savedGroomers = localStorage.getItem('groomers');
+    if (savedGroomers) {
+      setGroomers(JSON.parse(savedGroomers));
     }
   }, []);
 
@@ -451,6 +469,10 @@ const Agendamentos = () => {
       toast.error("Favor preencher a Data da Venda do Serviço");
       return;
     }
+    if (!formData.taxiDog) {
+      toast.error("Favor selecionar a opção se será necessário o uso de Taxi Dog!");
+      return;
+    }
     if (isPacoteSelecionado && !formData.numeroServicoPacote) {
       toast.error("Favor selecionar o número do serviço!");
       return;
@@ -474,7 +496,9 @@ const Agendamentos = () => {
       data: "",
       horario: "",
       dataVenda: "",
-      numeroServicoPacote: ""
+      numeroServicoPacote: "",
+      groomer: "",
+      taxiDog: ""
     });
     setIsPacoteSelecionado(false);
     setSimpleClienteSearch("");
@@ -761,10 +785,11 @@ const Agendamentos = () => {
       servico: a.servico,
       nomePacote: "",
       numeroPacote: "",
-      taxiDog: "",
+      taxiDog: a.taxiDog || "",
       dataVenda: a.dataVenda,
       whatsapp: a.whatsapp,
       tempoServico: "",
+      groomer: a.groomer || "",
       agendamentoOriginal: a
     }));
     const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap(p => p.servicos.map(s => ({
@@ -783,6 +808,7 @@ const Agendamentos = () => {
       dataVenda: p.dataVenda,
       whatsapp: p.whatsapp,
       tempoServico: s.tempoServico,
+      groomer: "",
       pacoteOriginal: p,
       servicoOriginal: s
     })));
@@ -1081,11 +1107,54 @@ const Agendamentos = () => {
                 )}
 
                 <div className="space-y-1">
-                  <Label htmlFor="dataVenda" className="text-xs">Data da Venda do Serviço *</Label>
-                  <Input id="dataVenda" type="date" value={formData.dataVenda} onChange={e => setFormData({
-                  ...formData,
-                  dataVenda: e.target.value
-                })} className="h-8 text-xs" required />
+                  <Label htmlFor="groomer" className="text-xs">Groomer</Label>
+                  <Select value={formData.groomer} onValueChange={value => setFormData({
+                    ...formData,
+                    groomer: value
+                  })}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Selecione o groomer" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      {groomers.length === 0 ? (
+                        <SelectItem value="none" disabled className="text-xs">
+                          Nenhum groomer cadastrado
+                        </SelectItem>
+                      ) : (
+                        groomers.map(g => (
+                          <SelectItem key={g.id} value={g.nome} className="text-xs">
+                            {g.nome}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="dataVenda" className="text-xs">Data da Venda do Serviço *</Label>
+                    <Input id="dataVenda" type="date" value={formData.dataVenda} onChange={e => setFormData({
+                    ...formData,
+                    dataVenda: e.target.value
+                  })} className="h-8 text-xs" required />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="taxiDog" className="text-xs">Taxi Dog *</Label>
+                    <Select value={formData.taxiDog} onValueChange={value => setFormData({
+                      ...formData,
+                      taxiDog: value
+                    })} required>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
+                        <SelectItem value="Não" className="text-xs">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
@@ -1192,7 +1261,7 @@ const Agendamentos = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="dataVendaPacote" className="text-xs">Data da Venda *</Label>
+                  <Label htmlFor="dataVendaPacote" className="text-xs">Data da Venda do Serviço *</Label>
                   <Input id="dataVendaPacote" type="date" value={pacoteFormData.dataVenda} onChange={e => setPacoteFormData({
                   ...pacoteFormData,
                   dataVenda: e.target.value
@@ -1451,6 +1520,33 @@ const Agendamentos = () => {
                 })} className="h-8 text-xs" />
                   </div>
 
+                  {editandoAgendamento.tipo === 'simples' && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Groomer</Label>
+                      <Select value={editandoAgendamento.groomer} onValueChange={value => setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        groomer: value
+                      })}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Selecione o groomer" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {groomers.length === 0 ? (
+                            <SelectItem value="none" disabled className="text-xs">
+                              Nenhum groomer cadastrado
+                            </SelectItem>
+                          ) : (
+                            groomers.map(g => (
+                              <SelectItem key={g.id} value={g.nome} className="text-xs">
+                                {g.nome}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   {editandoAgendamento.tipo === 'pacote' && <>
                       <div className="space-y-1">
                         <Label className="text-xs">Nome do Pacote</Label>
@@ -1474,7 +1570,7 @@ const Agendamentos = () => {
                             <SelectTrigger className="h-8 text-xs">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-background z-50">
                               <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
                               <SelectItem value="Não" className="text-xs">Não</SelectItem>
                             </SelectContent>
@@ -1483,13 +1579,43 @@ const Agendamentos = () => {
                       </div>
                     </>}
 
-                  <div className="space-y-1">
-                    <Label className="text-xs">Data da Venda</Label>
-                    <Input type="date" value={editandoAgendamento.dataVenda} onChange={e => setEditandoAgendamento({
-                  ...editandoAgendamento,
-                  dataVenda: e.target.value
-                })} className="h-8 text-xs" />
-                  </div>
+                  {editandoAgendamento.tipo === 'simples' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Data da Venda</Label>
+                        <Input type="date" value={editandoAgendamento.dataVenda} onChange={e => setEditandoAgendamento({
+                      ...editandoAgendamento,
+                      dataVenda: e.target.value
+                    })} className="h-8 text-xs" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">Taxi Dog *</Label>
+                        <Select value={editandoAgendamento.taxiDog} onValueChange={value => setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          taxiDog: value
+                        })}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
+                            <SelectItem value="Não" className="text-xs">Não</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  {editandoAgendamento.tipo === 'pacote' && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Data da Venda</Label>
+                      <Input type="date" value={editandoAgendamento.dataVenda} onChange={e => setEditandoAgendamento({
+                    ...editandoAgendamento,
+                    dataVenda: e.target.value
+                  })} className="h-8 text-xs" />
+                    </div>
+                  )}
 
                   <div className="flex justify-between gap-2 pt-4">
                     <Button type="button" variant="destructive" onClick={() => handleExcluirAgendamento(editandoAgendamento)} className="h-8 text-xs gap-2">
