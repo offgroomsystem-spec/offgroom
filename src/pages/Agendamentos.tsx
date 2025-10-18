@@ -439,8 +439,16 @@ const Agendamentos = () => {
   const weekDates = getWeekDates();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.data) {
+      toast.error("Favor preencher a Data do Agendamento");
+      return;
+    }
+    if (!formData.horario) {
+      toast.error("Favor preencher o Horário de Início do Serviço");
+      return;
+    }
     if (!formData.dataVenda) {
-      toast.error("Favor preencher a Data da Venda");
+      toast.error("Favor preencher a Data da Venda do Serviço");
       return;
     }
     if (isPacoteSelecionado && !formData.numeroServicoPacote) {
@@ -986,12 +994,30 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="dataVenda" className="text-xs">Data da Venda *</Label>
-                  <Input id="dataVenda" type="date" value={formData.dataVenda} onChange={e => setFormData({
-                  ...formData,
-                  dataVenda: e.target.value
-                })} className="h-8 text-xs" required />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="data" className="text-xs">Data do Agendamento *</Label>
+                    <Input id="data" type="date" value={formData.data} onChange={e => setFormData({
+                    ...formData,
+                    data: e.target.value
+                  })} className="h-8 text-xs" required />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="horario" className="text-xs">Horário de Início do Serviço *</Label>
+                    <Select value={formData.horario} onValueChange={value => setFormData({
+                    ...formData,
+                    horario: value
+                  })} required>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {horarios.map(h => <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -1054,29 +1080,12 @@ const Agendamentos = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="data" className="text-xs">Data</Label>
-                    <Input id="data" type="date" value={formData.data} onChange={e => setFormData({
-                    ...formData,
-                    data: e.target.value
-                  })} className="h-8 text-xs" required />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="horario" className="text-xs">Horário</Label>
-                    <Select value={formData.horario} onValueChange={value => setFormData({
-                    ...formData,
-                    horario: value
-                  })}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {horarios.map(h => <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-1">
+                  <Label htmlFor="dataVenda" className="text-xs">Data da Venda do Serviço *</Label>
+                  <Input id="dataVenda" type="date" value={formData.dataVenda} onChange={e => setFormData({
+                  ...formData,
+                  dataVenda: e.target.value
+                })} className="h-8 text-xs" required />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
