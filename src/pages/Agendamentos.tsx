@@ -180,8 +180,10 @@ const Agendamentos = () => {
     servico: "",
     data: "",
     horario: "",
-    dataVenda: ""
+    dataVenda: "",
+    numeroServicoPacote: ""
   });
+  const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
   const [pacoteFormData, setPacoteFormData] = useState({
     nomeCliente: "",
     nomePet: "",
@@ -441,6 +443,10 @@ const Agendamentos = () => {
       toast.error("Favor preencher a Data da Venda");
       return;
     }
+    if (isPacoteSelecionado && !formData.numeroServicoPacote) {
+      toast.error("Favor selecionar o número do serviço!");
+      return;
+    }
     const novoAgendamento: Agendamento = {
       ...formData,
       id: Date.now().toString(),
@@ -459,8 +465,10 @@ const Agendamentos = () => {
       servico: "",
       data: "",
       horario: "",
-      dataVenda: ""
+      dataVenda: "",
+      numeroServicoPacote: ""
     });
+    setIsPacoteSelecionado(false);
     setSimpleClienteSearch("");
     setSimplePetSearch("");
     setSimpleFilteredClientes([]);
@@ -988,11 +996,63 @@ const Agendamentos = () => {
 
                 <div className="space-y-1">
                   <Label htmlFor="servico" className="text-xs">Serviço *</Label>
-                  <Input id="servico" value={formData.servico} onChange={e => setFormData({
-                  ...formData,
-                  servico: e.target.value
-                })} placeholder="Tipo de serviço" className="h-8 text-xs" required />
+                  <Select value={formData.servico} onValueChange={value => {
+                    const isPacote = pacotes.some(p => p.nome === value);
+                    setIsPacoteSelecionado(isPacote);
+                    setFormData({
+                      ...formData,
+                      servico: value,
+                      numeroServicoPacote: isPacote ? formData.numeroServicoPacote : ""
+                    });
+                  }}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Selecione um serviço" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      {servicos.length > 0 && (
+                        <>
+                          <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
+                            Serviços Individuais
+                          </SelectItem>
+                          {servicos.map(servico => (
+                            <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
+                              {servico.nome}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {pacotes.length > 0 && (
+                        <>
+                          <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
+                            Pacotes de Serviços
+                          </SelectItem>
+                          {pacotes.map(pacote => (
+                            <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
+                              {pacote.nome}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {isPacoteSelecionado && (
+                  <div className="space-y-1">
+                    <Label htmlFor="numeroServicoPacote" className="text-xs">Número do Serviço do Pacote *</Label>
+                    <Input 
+                      id="numeroServicoPacote" 
+                      value={formData.numeroServicoPacote} 
+                      onChange={e => setFormData({
+                        ...formData,
+                        numeroServicoPacote: e.target.value
+                      })} 
+                      placeholder="Ex: 01/02, 01/04" 
+                      className="h-8 text-xs" 
+                      required 
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
