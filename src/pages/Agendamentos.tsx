@@ -73,6 +73,11 @@ interface Pacote {
   descontoValor: number;
   valorFinal: number;
 }
+interface Servico {
+  id: string;
+  nome: string;
+  valor: number;
+}
 interface EmpresaConfig {
   bordao: string;
   horarioInicio: string;
@@ -147,6 +152,7 @@ const Agendamentos = () => {
   }, [agendamentosPacotes]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
   const [empresaConfig, setEmpresaConfig] = useState<EmpresaConfig>({
     bordao: "",
     horarioInicio: "08:00",
@@ -233,6 +239,10 @@ const Agendamentos = () => {
     const savedPacotes = localStorage.getItem('pacotes');
     if (savedPacotes) {
       setPacotes(JSON.parse(savedPacotes));
+    }
+    const savedServicos = localStorage.getItem('servicos');
+    if (savedServicos) {
+      setServicos(JSON.parse(savedServicos));
     }
     const savedEmpresa = localStorage.getItem('empresaConfig');
     if (savedEmpresa) {
@@ -1700,10 +1710,41 @@ const Agendamentos = () => {
                   
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço</Label>
-                    <Input value={editFormData.servico} onChange={e => setEditFormData({
-                  ...editFormData,
-                  servico: e.target.value
-                })} className="h-8 text-xs" />
+                    <Select value={editFormData.servico} onValueChange={value => setEditFormData({
+                      ...editFormData,
+                      servico: value
+                    })}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione um serviço" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="__none__" className="text-xs">Selecione um serviço</SelectItem>
+                        {servicos.length > 0 && (
+                          <>
+                            <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
+                              Serviços Individuais
+                            </SelectItem>
+                            {servicos.map(servico => (
+                              <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
+                                {servico.nome}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                        {pacotes.length > 0 && (
+                          <>
+                            <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
+                              Pacotes de Serviços
+                            </SelectItem>
+                            {pacotes.map(pacote => (
+                              <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
+                                {pacote.nome}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-1">
