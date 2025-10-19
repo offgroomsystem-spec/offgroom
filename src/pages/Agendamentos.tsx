@@ -742,7 +742,15 @@ const Agendamentos = () => {
       mensagem += `*${empresaConfig.bordao}*`;
     }
     const whatsappUrl = `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
-    window.open(whatsappUrl, '_blank');
+    
+    // Criar link dinâmico para evitar bloqueio
+    const link = document.createElement('a');
+    link.href = whatsappUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Gerar mensagem WhatsApp para agendamento simples
@@ -768,7 +776,15 @@ const Agendamentos = () => {
     
     const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, '');
     const urlWhatsApp = `https://wa.me/55${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
-    window.open(urlWhatsApp, '_blank');
+    
+    // Criar link dinâmico para evitar bloqueio
+    const link = document.createElement('a');
+    link.href = urlWhatsApp;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Obter horários do Gantt baseado na config da empresa
