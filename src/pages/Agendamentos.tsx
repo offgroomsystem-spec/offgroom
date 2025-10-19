@@ -730,6 +730,32 @@ const Agendamentos = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  // Gerar mensagem WhatsApp para agendamento simples
+  const gerarMensagemWhatsAppSimples = (agendamento: Agendamento) => {
+    const primeiroNomeCliente = agendamento.cliente.split(' ')[0];
+    const nomeClienteFormatado = primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
+    const primeiroNomePet = agendamento.pet.split(' ')[0];
+    const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
+    const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR');
+    
+    let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
+    mensagem += `*Dia:* ${dataFormatada}\n`;
+    mensagem += `*Horario:* ${agendamento.horario}\n`;
+    mensagem += `*Serviço:* ${agendamento.servico}\n`;
+    
+    if (agendamento.taxiDog === "Sim") {
+      mensagem += `\n⚠️ *Lembrete:* Você optou pelo Taxi Dog.\n`;
+    }
+    
+    if (empresaConfig.bordao) {
+      mensagem += `\n*${empresaConfig.bordao}*`;
+    }
+    
+    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, '');
+    const urlWhatsApp = `https://wa.me/55${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+    window.open(urlWhatsApp, '_blank');
+  };
+
   // Obter horários do Gantt baseado na config da empresa
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
@@ -755,11 +781,13 @@ const Agendamentos = () => {
       // Agendamento simples não tem duração
       cliente: a.cliente,
       pet: a.pet,
+      raca: a.raca,
       servico: a.servico,
       pacote: null,
       numeroPacote: null,
-      taxiDog: null,
-      agendamento: a
+      taxiDog: a.taxiDog,
+      agendamento: a,
+      agendamentoOriginal: a
     }));
     const agendamentosPacote = agendamentosPacotes.flatMap(p => p.servicos.filter(s => s.data === dateStr).map(s => ({
       tipo: 'pacote' as const,
@@ -1798,7 +1826,7 @@ const Agendamentos = () => {
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
                     length: (horariosGantt.length - 1) * 2 + 1
-                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/15" />)}
+                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/30" />)}
                     </div>
                     
                     {horariosGantt.map(h => <div key={h} className="flex-1 text-center text-[10px] font-semibold text-muted-foreground relative z-10">
@@ -1808,13 +1836,13 @@ const Agendamentos = () => {
                   
                   {/* Barras de agendamentos */}
                   <div className="space-y-2 relative" style={{
-                minHeight: `${agendamentosDia.length * 40}px`
+                minHeight: `${agendamentosDia.length * 24}px`
               }}>
                     {/* Linhas verticais estendidas para a área de barras */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
                     length: (horariosGantt.length - 1) * 2 + 1
-                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/15" />)}
+                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/30" />)}
                     </div>
                     
                     {agendamentosDia.map((agendamento, index) => {
@@ -1827,10 +1855,10 @@ const Agendamentos = () => {
                   const duracaoMinutos = (fimH - inicioH) * 60 + (fimM - inicioM);
                   const left = inicioMinutos / totalMinutos * 100;
                   const width = duracaoMinutos / totalMinutos * 100;
-                  return <div key={index} className="absolute h-8 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black relative z-10" style={{
+                  return <div key={index} className="absolute h-5 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black relative z-10" style={{
                     left: `${left}%`,
                     width: `${Math.max(width, 5)}%`,
-                    top: `${index * 40}px`
+                    top: `${index * 24}px`
                   }}>
                           {agendamento.horarioInicio} - {agendamento.horarioFim || agendamento.horarioInicio}
                         </div>;
@@ -1872,17 +1900,26 @@ const Agendamentos = () => {
                         <td className="p-1.5 border">{agendamento.horarioFim || '-'}</td>
                         <td className="p-1.5 border">{agendamento.cliente}</td>
                         <td className="p-1.5 border">{agendamento.pet}</td>
-                        <td className="p-1.5 border">{agendamento.tipo === 'pacote' ? agendamento.raca : '-'}</td>
+                        <td className="p-1.5 border">{agendamento.raca || '-'}</td>
                         <td className="p-1.5 border">{agendamento.servico}</td>
                         <td className="p-1.5 border">{agendamento.numeroPacote || ''}</td>
                         <td className="p-1.5 border">{agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ''}</td>
                         <td className="p-1.5 border">
-                          {agendamento.tipo === 'pacote' && agendamento.agendamentoPacote && agendamento.servicoAgendamento && <Button variant="ghost" size="sm" onClick={e => {
-                      e.stopPropagation();
-                      gerarMensagemWhatsApp(agendamento.agendamentoPacote, agendamento.servicoAgendamento);
-                    }} className="h-5 w-5 p-0">
+                          {agendamento.tipo === 'pacote' && agendamento.agendamentoPacote && agendamento.servicoAgendamento ? (
+                            <Button variant="ghost" size="sm" onClick={e => {
+                              e.stopPropagation();
+                              gerarMensagemWhatsApp(agendamento.agendamentoPacote, agendamento.servicoAgendamento);
+                            }} className="h-5 w-5 p-0">
                               <Send className="h-3 w-3" />
-                            </Button>}
+                            </Button>
+                          ) : agendamento.tipo === 'simples' && agendamento.agendamentoOriginal ? (
+                            <Button variant="ghost" size="sm" onClick={e => {
+                              e.stopPropagation();
+                              gerarMensagemWhatsAppSimples(agendamento.agendamentoOriginal);
+                            }} className="h-5 w-5 p-0">
+                              <Send className="h-3 w-3" />
+                            </Button>
+                          ) : null}
                         </td>
                       </tr>)}
                   </tbody>
