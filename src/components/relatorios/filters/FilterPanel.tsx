@@ -1,20 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Filter, ChevronUp, ChevronDown, Check, X } from "lucide-react";
+
 interface FilterPanelProps {
   filtros: {
     periodo: string;
     dataInicio: string;
     dataFim: string;
+    bancosSelecionados: string[];
   };
   setFiltros: (filtros: any) => void;
   onAplicar: () => void;
   onLimpar: () => void;
 }
+
 export const FilterPanel = ({
   filtros,
   setFiltros,
@@ -22,6 +25,14 @@ export const FilterPanel = ({
   onLimpar
 }: FilterPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [contas, setContas] = useState<{id: string; nomeBanco: string}[]>([]);
+
+  useEffect(() => {
+    const savedContas = localStorage.getItem('contas_bancarias');
+    if (savedContas) {
+      setContas(JSON.parse(savedContas));
+    }
+  }, []);
   return <Card className="mb-3">
       <CardHeader onClick={() => setIsOpen(!isOpen)} className="cursor-pointer my-0 px-[18px] py-0">
         <div className="flex items-center justify-between">
@@ -74,6 +85,38 @@ export const FilterPanel = ({
                 </div>
               </>}
           </div>
+          
+          {/* Filtro por Banco */}
+          {contas.length > 0 && (
+            <div className="space-y-2 mt-3">
+              <Label>Filtrar por Banco</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto p-2 border rounded">
+                {contas.map((conta) => (
+                  <div key={conta.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`filtro-banco-${conta.id}`}
+                      checked={filtros.bancosSelecionados?.includes(conta.nomeBanco)}
+                      onChange={(e) => {
+                        const novosBancos = e.target.checked
+                          ? [...(filtros.bancosSelecionados || []), conta.nomeBanco]
+                          : filtros.bancosSelecionados.filter(b => b !== conta.nomeBanco);
+                        
+                        setFiltros({ ...filtros, bancosSelecionados: novosBancos });
+                      }}
+                      className="h-4 w-4"
+                    />
+                    <Label 
+                      htmlFor={`filtro-banco-${conta.id}`} 
+                      className="text-xs cursor-pointer font-normal"
+                    >
+                      {conta.nomeBanco}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="flex gap-2 mt-3">
             <Button onClick={() => {

@@ -4,10 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { KPICard } from "../shared/KPICard";
 import { ExportButton } from "../shared/ExportButton";
 import { format } from "date-fns";
-import { TrendingUp, TrendingDown, DollarSign, Filter } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +21,6 @@ interface Filtros {
 
 interface FluxoDeCaixaProps {
   filtros: Filtros;
-  onFiltrosChange?: (filtros: Filtros) => void;
 }
 
 const formatCurrency = (value: number): string => {
@@ -79,9 +76,8 @@ const aplicarFiltros = (item: any, filtros: Filtros): boolean => {
   }
 };
 
-export const FluxoDeCaixa = ({ filtros, onFiltrosChange }: FluxoDeCaixaProps) => {
+export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
   const [contas, setContas] = useState<{id: string; nomeBanco: string; saldo: number}[]>([]);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isAtualizarSaldoOpen, setIsAtualizarSaldoOpen] = useState(false);
   const [saldosEditados, setSaldosEditados] = useState<{[nomeBanco: string]: number}>({});
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -194,6 +190,19 @@ export const FluxoDeCaixa = ({ filtros, onFiltrosChange }: FluxoDeCaixaProps) =>
     const novoSaldo = saldosEditados[bancoParaAtualizar];
     if (novoSaldo === undefined) return;
     
+    const saldoAtual = saldosPorBanco[bancoParaAtualizar] || 0;
+    const diferenca = novoSaldo - saldoAtual;
+    
+    // Se não houve diferença, apenas fechar
+    if (diferenca === 0) {
+      toast.info('Nenhuma alteração de saldo detectada.');
+      setIsConfirmDialogOpen(false);
+      setIsAtualizarSaldoOpen(false);
+      setBancoParaAtualizar(null);
+      setSaldosEditados({});
+      return;
+    }
+    
     // Atualizar conta no localStorage
     const contasAtualizadas = contas.map(c => 
       c.nomeBanco === bancoParaAtualizar 
@@ -204,13 +213,56 @@ export const FluxoDeCaixa = ({ filtros, onFiltrosChange }: FluxoDeCaixaProps) =>
     localStorage.setItem('contas_bancarias', JSON.stringify(contasAtualizadas));
     setContas(contasAtualizadas);
     
-    toast.success(`Saldo do ${bancoParaAtualizar} atualizado com sucesso!`);
+    // Criar lançamento financeiro
+    const hoje = new Date();
+    const ano = hoje.getFullYear().toString();
+    const mesCompetencia = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dataPagamento = hoje.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const novoLancamento: any = {
+      id: `ajuste-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ano: ano,
+      mesCompetencia: mesCompetencia,
+      tipo: diferenca > 0 ? "Receita" : "Despesa",
+      descricao1: diferenca > 0 ? "Receita Não Operacional" : "Despesa Variável",
+      nomeCliente: "",
+      nomePet: "",
+      itens: [
+        {
+          id: `item-${Date.now()}`,
+          descricao2: diferenca > 0 ? "Outras Receitas Não Operacionais" : "Outras Despesas Variáveis",
+          produtoServico: "",
+          valor: Math.abs(diferenca)
+        }
+      ],
+      observacao: "Atualização de Saldo Bancário",
+      valorTotal: Math.abs(diferenca),
+      dataPagamento: dataPagamento,
+      nomeBanco: bancoParaAtualizar,
+      pago: true,
+      dataCadastro: hoje.toISOString()
+    };
+    
+    // Salvar no localStorage
+    const lancamentosAtuais = localStorage.getItem('lancamentos_financeiros');
+    const lancamentos = lancamentosAtuais ? JSON.parse(lancamentosAtuais) : [];
+    lancamentos.push(novoLancamento);
+    localStorage.setItem('lancamentos_financeiros', JSON.stringify(lancamentos));
+    
+    const tipoLancamento = diferenca > 0 ? "Receita" : "Despesa";
+    toast.success(
+      `Saldo do ${bancoParaAtualizar} atualizado com sucesso! ` +
+      `Lançamento de ${tipoLancamento} de ${formatCurrency(Math.abs(diferenca))} criado.`
+    );
     
     // Resetar estados
     setIsConfirmDialogOpen(false);
     setIsAtualizarSaldoOpen(false);
     setBancoParaAtualizar(null);
     setSaldosEditados({});
+    
+    // Forçar atualização da página para refletir o novo lançamento
+    window.location.reload();
   };
 
   const handleCancelarAtualizacao = () => {
@@ -230,74 +282,6 @@ export const FluxoDeCaixa = ({ filtros, onFiltrosChange }: FluxoDeCaixaProps) =>
           <h2 className="text-2xl font-bold">Fluxo de Caixa</h2>
           
           <div className="flex items-center gap-2">
-            {/* Botão Filtrar por Banco */}
-            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-8 text-xs gap-2">
-                  <Filter className="h-3 w-3" />
-                  Filtros
-                  {filtros.bancosSelecionados && filtros.bancosSelecionados.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-4 text-[10px] px-1">
-                      {filtros.bancosSelecionados.length}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-3" align="end">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Filtrar por Banco</h4>
-                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                    {contas.map((conta) => (
-                      <div key={conta.id} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`banco-${conta.id}`}
-                          checked={filtros.bancosSelecionados?.includes(conta.nomeBanco)}
-                          onChange={(e) => {
-                            const novosBancos = e.target.checked
-                              ? [...(filtros.bancosSelecionados || []), conta.nomeBanco]
-                              : filtros.bancosSelecionados.filter(b => b !== conta.nomeBanco);
-                            
-                            onFiltrosChange?.({ ...filtros, bancosSelecionados: novosBancos });
-                          }}
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor={`banco-${conta.id}`} className="text-xs cursor-pointer">
-                          {conta.nomeBanco}
-                        </Label>
-                      </div>
-                    ))}
-                    
-                    {contas.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Nenhuma conta bancária cadastrada
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2 pt-2 border-t">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1 h-7 text-xs"
-                      onClick={() => {
-                        onFiltrosChange?.({ ...filtros, bancosSelecionados: [] });
-                      }}
-                    >
-                      Limpar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="flex-1 h-7 text-xs"
-                      onClick={() => setIsFilterOpen(false)}
-                    >
-                      Aplicar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            
             {/* Botão Atualizar Saldo */}
             <Dialog open={isAtualizarSaldoOpen} onOpenChange={setIsAtualizarSaldoOpen}>
               <DialogTrigger asChild>

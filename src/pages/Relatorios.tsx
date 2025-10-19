@@ -36,11 +36,6 @@ const Relatorios = () => {
     setFiltros({ periodo: "mes", dataInicio: "", dataFim: "", bancosSelecionados: [] });
   };
 
-  const handleFiltrosChange = (novosFiltros: typeof filtros) => {
-    setFiltros(novosFiltros);
-    setVersaoFiltro(v => v + 1);
-  };
-
   if (relatorioAtivo) {
     return (
       <div className="space-y-4">
@@ -57,7 +52,7 @@ const Relatorios = () => {
         />
         
         {relatorioAtivo === "dashboard" && <DashboardExecutivo key={versaoFiltro} filtros={filtros} />}
-        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} onFiltrosChange={handleFiltrosChange} />}
+        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
         
