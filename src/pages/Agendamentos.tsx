@@ -32,10 +32,12 @@ interface Agendamento {
   data: string;
   horario: string;
   tempoServico: string;
+  horarioTermino: string;
   dataVenda: string;
   groomer: string;
   taxiDog: string;
   status: "confirmado" | "pendente" | "concluido";
+  numeroServicoPacote?: string;
 }
 interface ServicoAgendamento {
   numero: string;
@@ -140,7 +142,8 @@ const Agendamentos = () => {
         dataVenda: ag.dataVenda || "",
         groomer: ag.groomer || "",
         taxiDog: ag.taxiDog || "",
-        tempoServico: ag.tempoServico || ""
+        tempoServico: ag.tempoServico || "",
+        horarioTermino: ag.horarioTermino || ""
       }));
     }
     return [];
@@ -195,6 +198,7 @@ const Agendamentos = () => {
     data: "",
     horario: "",
     tempoServico: "",
+    horarioTermino: "",
     dataVenda: "",
     numeroServicoPacote: "",
     groomer: "",
@@ -494,10 +498,12 @@ const Agendamentos = () => {
       toast.error("Favor selecionar o número do serviço!");
       return;
     }
+    const horarioTermino = calcularHorarioTermino(formData.horario, formData.tempoServico);
     const novoAgendamento: Agendamento = {
       ...formData,
       id: Date.now().toString(),
-      status: "confirmado"
+      status: "confirmado",
+      horarioTermino
     };
     setAgendamentos([...agendamentos, novoAgendamento]);
     toast.success("Agendamento criado com sucesso!");
@@ -513,6 +519,7 @@ const Agendamentos = () => {
       data: "",
       horario: "",
       tempoServico: "",
+      horarioTermino: "",
       dataVenda: "",
       numeroServicoPacote: "",
       groomer: "",
@@ -1080,29 +1087,48 @@ const Agendamentos = () => {
                     <Label htmlFor="horario" className="text-xs">Horário de Início do Serviço *</Label>
                     <TimeInput
                       value={formData.horario}
-                      onChange={(value) => setFormData({
-                        ...formData,
-                        horario: value
-                      })}
+                      onChange={(value) => {
+                        const horarioTermino = calcularHorarioTermino(value, formData.tempoServico);
+                        setFormData({
+                          ...formData,
+                          horario: value,
+                          horarioTermino
+                        });
+                      }}
                       placeholder="00:00"
                       className="h-8 text-xs"
                     />
                   </div>
                 </div>
 
-                {/* Tempo Serviço e Serviço na mesma linha */}
-                <div className="grid grid-cols-[25%_75%] gap-2">
+                {/* Tempo Serviço, Horário Término e Serviço */}
+                <div className="grid grid-cols-[20%_20%_60%] gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="tempoServico" className="text-xs">Tempo de Serviço (h:mm) *</Label>
+                    <Label htmlFor="tempoServico" className="text-xs">Tempo de Serviço *</Label>
                     <TimeInput
                       value={formData.tempoServico}
-                      onChange={(value) => setFormData({
-                        ...formData,
-                        tempoServico: value
-                      })}
+                      onChange={(value) => {
+                        const horarioTermino = calcularHorarioTermino(formData.horario, value);
+                        setFormData({
+                          ...formData,
+                          tempoServico: value,
+                          horarioTermino
+                        });
+                      }}
                       placeholder="0:00"
                       className="h-8 text-xs"
                       allowSingleDigitHour={true}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="horarioTermino" className="text-xs">Horário Término</Label>
+                    <Input
+                      id="horarioTermino"
+                      value={formData.horarioTermino}
+                      readOnly
+                      className="h-8 text-xs bg-secondary cursor-not-allowed"
+                      placeholder="--:--"
                     />
                   </div>
 
@@ -1344,7 +1370,7 @@ const Agendamentos = () => {
                         <Label className="text-muted-foreground font-bold text-xs">Hora Início</Label>
                       </div>
                       <div className="w-20 px-[13px]">
-                        <Label className="text-muted-foreground font-bold text-xs text-right my-0 mx-0 px-0">Tempo Serviço</Label>
+                        <Label className="text-muted-foreground font-bold text-xs text-right my-0 mx-0 px-0">Tempo de Serviço *</Label>
                       </div>
                     </div>
                     
@@ -1520,15 +1546,24 @@ const Agendamentos = () => {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Horário do Agendamento</Label>
-                      <TimeInput value={editandoAgendamento.horarioInicio} onChange={value => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    horarioInicio: value
-                  })} className="h-8 text-xs" />
+                      <TimeInput 
+                        value={editandoAgendamento.horarioInicio} 
+                        onChange={value => {
+                          const horarioTermino = calcularHorarioTermino(value, editandoAgendamento.tempoServico);
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            horarioInicio: value,
+                            horarioTermino
+                          });
+                        }} 
+                        className="h-8 text-xs" 
+                      />
                     </div>
                   </div>
 
-                  {editandoAgendamento.tipo === 'pacote' && <div className="space-y-1">
-                      <Label className="text-xs">Tempo de Serviço (h:mm)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tempo de Serviço *</Label>
                       <TimeInput 
                         value={editandoAgendamento.tempoServico} 
                         onChange={value => {
@@ -1543,7 +1578,17 @@ const Agendamentos = () => {
                         className="h-8 text-xs"
                         allowSingleDigitHour={true}
                       />
-                    </div>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Horário de Término</Label>
+                      <Input
+                        value={editandoAgendamento.horarioTermino || '--:--'}
+                        readOnly
+                        className="h-8 text-xs bg-secondary cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
