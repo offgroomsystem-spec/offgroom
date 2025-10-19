@@ -13,7 +13,8 @@ const Relatorios = () => {
   const [filtros, setFiltros] = useState({
     periodo: "mes",
     dataInicio: "",
-    dataFim: ""
+    dataFim: "",
+    bancosSelecionados: []
   });
 
   const [relatorioAtivo, setRelatorioAtivo] = useState<string | null>(null);
@@ -32,7 +33,12 @@ const Relatorios = () => {
   };
 
   const handleLimparFiltros = () => {
-    setFiltros({ periodo: "mes", dataInicio: "", dataFim: "" });
+    setFiltros({ periodo: "mes", dataInicio: "", dataFim: "", bancosSelecionados: [] });
+  };
+
+  const handleFiltrosChange = (novosFiltros: typeof filtros) => {
+    setFiltros(novosFiltros);
+    setVersaoFiltro(v => v + 1);
   };
 
   if (relatorioAtivo) {
@@ -51,7 +57,7 @@ const Relatorios = () => {
         />
         
         {relatorioAtivo === "dashboard" && <DashboardExecutivo key={versaoFiltro} filtros={filtros} />}
-        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} />}
+        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} onFiltrosChange={handleFiltrosChange} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
         
