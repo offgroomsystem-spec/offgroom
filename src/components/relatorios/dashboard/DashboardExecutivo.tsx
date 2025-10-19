@@ -35,7 +35,9 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
         dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
         break;
       case "trimestre":
-        dataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1);
+        const mesAtual = hoje.getMonth();
+        const inicioTrimestre = Math.floor(mesAtual / 3) * 3;
+        dataInicio = new Date(hoje.getFullYear(), inicioTrimestre, 1);
         break;
       case "ano":
         dataInicio = new Date(hoje.getFullYear(), 0, 1);
@@ -207,30 +209,86 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
   // Dados do Gráfico de Tendência
   const dadosGrafico = useMemo(() => {
     const { dataInicio, dataFim } = calcularIntervaloFiltro;
-    const diasNoIntervalo = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    
     const dados = [];
     
-    for (let i = 0; i < Math.min(diasNoIntervalo, 31); i++) {
-      const dataAtual = new Date(dataInicio);
-      dataAtual.setDate(dataAtual.getDate() + i);
+    // Detectar se deve agrupar por mês (trimestre/ano) ou por dia
+    const agruparPorMes = filtros.periodo === "trimestre" || filtros.periodo === "ano";
+    
+    if (agruparPorMes) {
+      // AGRUPAMENTO POR MÊS
+      const meses: { [key: string]: { receita: number; despesa: number } } = {};
       
-      const receitaDia = lancamentos
-        .filter((l: any) => {
-          if (l.tipo !== "Receita" || !l.pago) return false;
-          const dataLanc = new Date(l.dataPagamento);
-          return dataLanc.toDateString() === dataAtual.toDateString();
-        })
-        .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
-      
-      dados.push({
-        dia: format(dataAtual, 'dd/MM'),
-        receita: receitaDia
+      // Iterar por todos os lançamentos e agrupar por mês
+      lancamentos.forEach((l: any) => {
+        if (!l.pago) return;
+        const dataLanc = new Date(l.dataPagamento);
+        if (dataLanc < dataInicio || dataLanc > dataFim) return;
+        
+        const chaveMs = format(dataLanc, 'MM/yyyy');
+        
+        if (!meses[chaveMs]) {
+          meses[chaveMs] = { receita: 0, despesa: 0 };
+        }
+        
+        if (l.tipo === "Receita") {
+          meses[chaveMs].receita += l.valorTotal || 0;
+        } else if (l.tipo === "Despesa") {
+          meses[chaveMs].despesa += l.valorTotal || 0;
+        }
       });
+      
+      // Criar array ordenado de meses no intervalo
+      const dataAtual = new Date(dataInicio);
+      while (dataAtual <= dataFim) {
+        const chaveMs = format(dataAtual, 'MM/yyyy');
+        const dadosMes = meses[chaveMs] || { receita: 0, despesa: 0 };
+        
+        dados.push({
+          periodo: chaveMs,
+          receita: dadosMes.receita,
+          despesa: dadosMes.despesa,
+          meta: 10000
+        });
+        
+        // Avançar para o próximo mês
+        dataAtual.setMonth(dataAtual.getMonth() + 1);
+      }
+      
+    } else {
+      // AGRUPAMENTO POR DIA
+      const diasNoIntervalo = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      for (let i = 0; i < Math.min(diasNoIntervalo, 31); i++) {
+        const dataAtual = new Date(dataInicio);
+        dataAtual.setDate(dataAtual.getDate() + i);
+        
+        const receitaDia = lancamentos
+          .filter((l: any) => {
+            if (l.tipo !== "Receita" || !l.pago) return false;
+            const dataLanc = new Date(l.dataPagamento);
+            return dataLanc.toDateString() === dataAtual.toDateString();
+          })
+          .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
+        
+        const despesaDia = lancamentos
+          .filter((l: any) => {
+            if (l.tipo !== "Despesa" || !l.pago) return false;
+            const dataLanc = new Date(l.dataPagamento);
+            return dataLanc.toDateString() === dataAtual.toDateString();
+          })
+          .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
+        
+        dados.push({
+          periodo: format(dataAtual, 'dd/MM'),
+          receita: receitaDia,
+          despesa: despesaDia,
+          meta: 333
+        });
+      }
     }
     
     return dados;
-  }, [lancamentos, calcularIntervaloFiltro]);
+  }, [lancamentos, calcularIntervaloFiltro, filtros.periodo]);
 
   return (
     <div className="space-y-3">
@@ -240,7 +298,14 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
           titulo="Lucro Líquido" 
           valor={kpis.lucroLiquido} 
           icon={<DollarSign className="h-4 w-4" />}
-          periodo="Mês Atual"
+          periodo={
+            filtros.periodo === "hoje" ? "Hoje" :
+            filtros.periodo === "semana" ? "Esta Semana" :
+            filtros.periodo === "mes" ? "Este Mês" :
+            filtros.periodo === "trimestre" ? "Este Trimestre" :
+            filtros.periodo === "ano" ? "Este Ano" :
+            "Período Customizado"
+          }
           cor={kpis.lucroLiquido >= 0 ? 'green' : 'red'}
           destaque
         />
@@ -296,13 +361,17 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
       {/* Gráfico de Tendência */}
       <Card>
         <CardHeader>
-          <CardTitle>Receita no Período Filtrado</CardTitle>
+          <CardTitle>
+            {filtros.periodo === "trimestre" && "Receitas e Despesas por Mês (Trimestre Atual)"}
+            {filtros.periodo === "ano" && "Receitas e Despesas por Mês (Ano Atual)"}
+            {!["trimestre", "ano"].includes(filtros.periodo) && "Receitas e Despesas no Período Filtrado"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={dadosGrafico}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="dia" />
+              <XAxis dataKey="periodo" />
               <YAxis />
               <Tooltip 
                 formatter={(value: number) => new Intl.NumberFormat('pt-BR', {
@@ -311,7 +380,9 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
                 }).format(value)}
               />
               <Legend />
-              <Line type="monotone" dataKey="receita" stroke="#8884d8" name="Receita" />
+              <Line type="monotone" dataKey="receita" stroke="#22c55e" name="Receita" strokeWidth={2} />
+              <Line type="monotone" dataKey="despesa" stroke="#ef4444" name="Despesa" strokeWidth={2} />
+              <Line type="monotone" dataKey="meta" stroke="#6b7280" name="Meta de Faturamento" strokeWidth={2} strokeDasharray="5 5" />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
