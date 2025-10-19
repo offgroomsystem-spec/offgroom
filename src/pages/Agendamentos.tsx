@@ -1093,7 +1093,7 @@ const Agendamentos = () => {
                 {/* Tempo Serviço e Serviço na mesma linha */}
                 <div className="grid grid-cols-[25%_75%] gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="tempoServico" className="text-xs">Tempo Serviço *</Label>
+                    <Label htmlFor="tempoServico" className="text-xs">Tempo de Serviço (h:mm) *</Label>
                     <TimeInput
                       value={formData.tempoServico}
                       onChange={(value) => setFormData({
