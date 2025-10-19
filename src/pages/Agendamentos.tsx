@@ -787,6 +787,38 @@ const Agendamentos = () => {
     document.body.removeChild(link);
   };
 
+  // Gerar URL do WhatsApp sem abrir (para uso em links nativos)
+  const gerarUrlWhatsAppSimples = (agendamento: Agendamento): string => {
+    let mensagem = `Olá ${agendamento.cliente}! 👋\n\n`;
+    mensagem += `Confirmamos seu agendamento:\n\n`;
+    mensagem += `📅 Data: ${format(new Date(`${agendamento.data}T${agendamento.horario}`), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\n`;
+    mensagem += `🐕 Pet: ${agendamento.pet}\n`;
+    mensagem += `✂️ Serviço: ${agendamento.servico}\n\n`;
+    
+    if (empresaConfig.bordao) {
+      mensagem += `*${empresaConfig.bordao}*`;
+    }
+    
+    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, '');
+    return `https://wa.me/55${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+  };
+
+  // Gerar URL do WhatsApp para pacote sem abrir (para uso em links nativos)
+  const gerarUrlWhatsAppPacote = (pacote: AgendamentoPacote, servico: ServicoAgendamento): string => {
+    let mensagem = `Olá ${pacote.nomeCliente}! 👋\n\n`;
+    mensagem += `Confirmamos seu agendamento do pacote:\n\n`;
+    mensagem += `📦 Pacote: ${pacote.nomePacote}\n`;
+    mensagem += `📅 Data: ${format(new Date(`${servico.data}T${servico.horarioInicio}`), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\n`;
+    mensagem += `🐕 Pet: ${pacote.nomePet}\n`;
+    mensagem += `✂️ Serviço: ${servico.nomeServico}\n\n`;
+    
+    if (empresaConfig.bordao) {
+      mensagem += `*${empresaConfig.bordao}*`;
+    }
+    
+    return `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
+  };
+
   // Obter horários do Gantt baseado na config da empresa
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
@@ -1983,19 +2015,25 @@ const Agendamentos = () => {
                         <td className="p-1.5 border">{agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ''}</td>
                         <td className="p-1.5 border">
                           {agendamento.tipo === 'pacote' && agendamento.agendamentoPacote && agendamento.servicoAgendamento ? (
-                            <Button variant="ghost" size="sm" onClick={e => {
-                              e.stopPropagation();
-                              gerarMensagemWhatsApp(agendamento.agendamentoPacote, agendamento.servicoAgendamento);
-                            }} className="h-5 w-5 p-0">
+                            <a 
+                              href={gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="inline-flex items-center justify-center h-5 w-5 p-0 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                            >
                               <Send className="h-3 w-3" />
-                            </Button>
+                            </a>
                           ) : agendamento.tipo === 'simples' && agendamento.agendamentoOriginal ? (
-                            <Button variant="ghost" size="sm" onClick={e => {
-                              e.stopPropagation();
-                              gerarMensagemWhatsAppSimples(agendamento.agendamentoOriginal);
-                            }} className="h-5 w-5 p-0">
+                            <a 
+                              href={gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="inline-flex items-center justify-center h-5 w-5 p-0 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                            >
                               <Send className="h-3 w-3" />
-                            </Button>
+                            </a>
                           ) : null}
                         </td>
                       </tr>)}
