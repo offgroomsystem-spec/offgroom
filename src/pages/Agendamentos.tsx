@@ -1528,15 +1528,21 @@ const Agendamentos = () => {
                   </div>
 
                   {editandoAgendamento.tipo === 'pacote' && <div className="space-y-1">
-                      <Label className="text-xs">Tempo de Serviço (hh:mm)</Label>
-                      <TimeInput value={editandoAgendamento.tempoServico} onChange={value => {
-                  const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
-                  setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    tempoServico: value,
-                    horarioTermino
-                  });
-                }} className="h-8 text-xs" />
+                      <Label className="text-xs">Tempo de Serviço (h:mm)</Label>
+                      <TimeInput 
+                        value={editandoAgendamento.tempoServico} 
+                        onChange={value => {
+                          const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            tempoServico: value,
+                            horarioTermino
+                          });
+                        }} 
+                        placeholder="0:00"
+                        className="h-8 text-xs"
+                        allowSingleDigitHour={true}
+                      />
                     </div>}
 
                   <div className="grid grid-cols-2 gap-2">
@@ -1909,18 +1915,7 @@ const Agendamentos = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {agendamentosDia.map((agendamento, index) => <tr key={index} className="hover:bg-cyan-500/20 cursor-pointer transition-colors" onClick={() => {
-                  if (agendamento.tipo === 'pacote') {
-                    setEditingAgendamento(agendamento);
-                    setEditFormData({
-                      data: agendamento.servicoAgendamento.data,
-                      horarioInicio: agendamento.servicoAgendamento.horarioInicio,
-                      tempoServico: agendamento.servicoAgendamento.tempoServico,
-                      servico: agendamento.servicoAgendamento.nomeServico
-                    });
-                    setEditDialogOpen(true);
-                  }
-                }}>
+                    {agendamentosDia.map((agendamento, index) => <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
                         <td className="p-1.5 border">{agendamento.horarioInicio}</td>
                         <td className="p-1.5 border">{agendamento.horarioFim || '-'}</td>
                         <td className="p-1.5 border">{agendamento.cliente}</td>
