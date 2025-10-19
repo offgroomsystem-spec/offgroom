@@ -1,5 +1,6 @@
-import { Link, useLocation } from "react-router-dom";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package } from "lucide-react";
+import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import logoOffgroom from "@/assets/logo-offgroom.png";
 import {
   DropdownMenu,
@@ -12,8 +13,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+const Layout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   const financeiroItems = [
     { path: "/receitas", label: "Receitas", icon: DollarSign },
@@ -153,11 +161,32 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <span className="font-medium">Relatórios</span>
             </Link>
           </nav>
+
+          <div className="ml-auto flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 px-3 py-1.5 h-auto text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="font-medium">{profile?.nome_completo?.split(' ')[0] || 'Usuário'}</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span>Sair</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
       <main className="container py-1 px-2">
-        {children}
+        <Outlet />
       </main>
     </div>
   );
