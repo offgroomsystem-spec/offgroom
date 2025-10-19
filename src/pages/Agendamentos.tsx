@@ -819,6 +819,25 @@ const Agendamentos = () => {
     return `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
   };
 
+  // Copiar link do WhatsApp para clipboard e mostrar notificação
+  const copiarLinkWhatsApp = async (url: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("✅ Link copiado!", {
+        description: "Cole no navegador (Ctrl+V) para abrir o WhatsApp",
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error('Erro ao copiar link:', error);
+      toast.error("⚠️ Não foi possível copiar", {
+        description: "Tente novamente ou copie manualmente",
+        duration: 4000,
+      });
+    }
+  };
+
   // Obter horários do Gantt baseado na config da empresa
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
@@ -2015,25 +2034,29 @@ const Agendamentos = () => {
                         <td className="p-1.5 border">{agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ''}</td>
                         <td className="p-1.5 border">
                           {agendamento.tipo === 'pacote' && agendamento.agendamentoPacote && agendamento.servicoAgendamento ? (
-                            <a 
-                              href={gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              className="inline-flex items-center justify-center h-5 w-5 p-0 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={(e) => copiarLinkWhatsApp(
+                                gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
+                                e
+                              )} 
+                              className="h-5 w-5 p-0"
                             >
                               <Send className="h-3 w-3" />
-                            </a>
+                            </Button>
                           ) : agendamento.tipo === 'simples' && agendamento.agendamentoOriginal ? (
-                            <a 
-                              href={gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              className="inline-flex items-center justify-center h-5 w-5 p-0 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={(e) => copiarLinkWhatsApp(
+                                gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal),
+                                e
+                              )} 
+                              className="h-5 w-5 p-0"
                             >
                               <Send className="h-3 w-3" />
-                            </a>
+                            </Button>
                           ) : null}
                         </td>
                       </tr>)}
