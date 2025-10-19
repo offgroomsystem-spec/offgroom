@@ -31,6 +31,7 @@ interface Agendamento {
   servico: string;
   data: string;
   horario: string;
+  tempoServico: string;
   dataVenda: string;
   groomer: string;
   taxiDog: string;
@@ -138,7 +139,8 @@ const Agendamentos = () => {
         ...ag,
         dataVenda: ag.dataVenda || "",
         groomer: ag.groomer || "",
-        taxiDog: ag.taxiDog || ""
+        taxiDog: ag.taxiDog || "",
+        tempoServico: ag.tempoServico || ""
       }));
     }
     return [];
@@ -192,6 +194,7 @@ const Agendamentos = () => {
     servico: "",
     data: "",
     horario: "",
+    tempoServico: "",
     dataVenda: "",
     numeroServicoPacote: "",
     groomer: "",
@@ -475,6 +478,10 @@ const Agendamentos = () => {
       toast.error("Favor preencher o Horário de Início do Serviço");
       return;
     }
+    if (!formData.tempoServico) {
+      toast.error("Favor preencher o Tempo do Serviço");
+      return;
+    }
     if (!formData.dataVenda) {
       toast.error("Favor preencher a Data da Venda do Serviço");
       return;
@@ -505,6 +512,7 @@ const Agendamentos = () => {
       servico: "",
       data: "",
       horario: "",
+      tempoServico: "",
       dataVenda: "",
       numeroServicoPacote: "",
       groomer: "",
@@ -1082,47 +1090,64 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="servico" className="text-xs">Serviço *</Label>
-                  <Select value={formData.servico} onValueChange={value => {
-                    const isPacote = pacotes.some(p => p.nome === value);
-                    setIsPacoteSelecionado(isPacote);
-                    setFormData({
-                      ...formData,
-                      servico: value,
-                      numeroServicoPacote: isPacote ? formData.numeroServicoPacote : ""
-                    });
-                  }}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Selecione um serviço" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      {servicos.length > 0 && (
-                        <>
-                          <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
-                            Serviços Individuais
-                          </SelectItem>
-                          {servicos.map(servico => (
-                            <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
-                              {servico.nome}
+                {/* Tempo Serviço e Serviço na mesma linha */}
+                <div className="grid grid-cols-[25%_75%] gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="tempoServico" className="text-xs">Tempo Serviço *</Label>
+                    <TimeInput
+                      value={formData.tempoServico}
+                      onChange={(value) => setFormData({
+                        ...formData,
+                        tempoServico: value
+                      })}
+                      placeholder="0:00"
+                      className="h-8 text-xs"
+                      allowSingleDigitHour={true}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="servico" className="text-xs">Serviço *</Label>
+                    <Select value={formData.servico} onValueChange={value => {
+                      const isPacote = pacotes.some(p => p.nome === value);
+                      setIsPacoteSelecionado(isPacote);
+                      setFormData({
+                        ...formData,
+                        servico: value,
+                        numeroServicoPacote: isPacote ? formData.numeroServicoPacote : ""
+                      });
+                    }}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione um serviço" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {servicos.length > 0 && (
+                          <>
+                            <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
+                              Serviços Individuais
                             </SelectItem>
-                          ))}
-                        </>
-                      )}
-                      {pacotes.length > 0 && (
-                        <>
-                          <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
-                            Pacotes de Serviços
-                          </SelectItem>
-                          {pacotes.map(pacote => (
-                            <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
-                              {pacote.nome}
+                            {servicos.map(servico => (
+                              <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
+                                {servico.nome}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                        {pacotes.length > 0 && (
+                          <>
+                            <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
+                              Pacotes de Serviços
                             </SelectItem>
-                          ))}
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
+                            {pacotes.map(pacote => (
+                              <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
+                                {pacote.nome}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {isPacoteSelecionado && (
@@ -1351,7 +1376,7 @@ const Agendamentos = () => {
                           </div>
                           
                           <div className="w-20 my-[9px]">
-                            <TimeInput value={servico.tempoServico} onChange={value => handleServicoAgendamentoChange(index, 'tempoServico', value)} placeholder="00:00" className="h-8 text-xs" />
+                            <TimeInput value={servico.tempoServico} onChange={value => handleServicoAgendamentoChange(index, 'tempoServico', value)} placeholder="0:00" className="h-8 text-xs" allowSingleDigitHour={true} />
                           </div>
                         </div>)}
                     </div>
