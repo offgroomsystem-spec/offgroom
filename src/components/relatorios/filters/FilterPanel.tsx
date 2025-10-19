@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Filter, ChevronUp, ChevronDown, Check, X } from "lucide-react";
-
 interface FilterPanelProps {
   filtros: {
     periodo: string;
@@ -16,13 +15,15 @@ interface FilterPanelProps {
   onAplicar: () => void;
   onLimpar: () => void;
 }
-
-export const FilterPanel = ({ filtros, setFiltros, onAplicar, onLimpar }: FilterPanelProps) => {
+export const FilterPanel = ({
+  filtros,
+  setFiltros,
+  onAplicar,
+  onLimpar
+}: FilterPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <Card className="mb-4">
-      <CardHeader className="cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+  return <Card className="mb-4">
+      <CardHeader onClick={() => setIsOpen(!isOpen)} className="cursor-pointer my-0 px-[18px] py-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -32,13 +33,15 @@ export const FilterPanel = ({ filtros, setFiltros, onAplicar, onLimpar }: Filter
         </div>
       </CardHeader>
       
-      {isOpen && (
-        <CardContent>
+      {isOpen && <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Filtro de Período */}
             <div className="space-y-2">
               <Label>Período</Label>
-              <Select value={filtros.periodo} onValueChange={(value) => setFiltros({ ...filtros, periodo: value })}>
+              <Select value={filtros.periodo} onValueChange={value => setFiltros({
+            ...filtros,
+            periodo: value
+          })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -54,26 +57,22 @@ export const FilterPanel = ({ filtros, setFiltros, onAplicar, onLimpar }: Filter
             </div>
             
             {/* Se customizado, mostrar seletores de data */}
-            {filtros.periodo === "customizado" && (
-              <>
+            {filtros.periodo === "customizado" && <>
                 <div className="space-y-2">
                   <Label>Data Início</Label>
-                  <Input 
-                    type="date" 
-                    value={filtros.dataInicio}
-                    onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
-                  />
+                  <Input type="date" value={filtros.dataInicio} onChange={e => setFiltros({
+              ...filtros,
+              dataInicio: e.target.value
+            })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Data Fim</Label>
-                  <Input 
-                    type="date" 
-                    value={filtros.dataFim}
-                    onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
-                  />
+                  <Input type="date" value={filtros.dataFim} onChange={e => setFiltros({
+              ...filtros,
+              dataFim: e.target.value
+            })} />
                 </div>
-              </>
-            )}
+              </>}
           </div>
           
           <div className="flex gap-2 mt-4">
@@ -86,8 +85,6 @@ export const FilterPanel = ({ filtros, setFiltros, onAplicar, onLimpar }: Filter
               Limpar
             </Button>
           </div>
-        </CardContent>
-      )}
-    </Card>
-  );
+        </CardContent>}
+    </Card>;
 };
