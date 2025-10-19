@@ -156,7 +156,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </header>
 
-      <main className="container py-4">
+      <main className="container py-1 px-2">
         {children}
       </main>
     </div>

@@ -1908,13 +1908,13 @@ const Agendamentos = () => {
                   
                   {/* Barras de agendamentos */}
                   <div className="space-y-0 relative" style={{
-                minHeight: `${agendamentosDia.length * 8}px`
+                minHeight: `${Math.max(agendamentosDia.length * 8 + 16, 200)}px`
               }}>
                     {/* Linhas verticais estendidas para a área de barras */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
                     length: (horariosGantt.length - 1) * 2 + 1
-                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/30" />)}
+                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/30 h-full" />)}
                     </div>
                     
                     {agendamentosDia.map((agendamento, index) => {
@@ -1927,7 +1927,7 @@ const Agendamentos = () => {
                   const duracaoMinutos = (fimH - inicioH) * 60 + (fimM - inicioM);
                   const left = inicioMinutos / totalMinutos * 100;
                   const width = duracaoMinutos / totalMinutos * 100;
-                  return <div key={index} className="absolute h-4 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black relative z-10" style={{
+                  return <div key={index} className="absolute h-4 bg-orange-500 rounded flex items-center justify-center text-[8px] font-semibold text-black relative z-10" style={{
                     left: `${left}%`,
                     width: `${Math.max(width, 5)}%`,
                     top: `${index * 8}px`
