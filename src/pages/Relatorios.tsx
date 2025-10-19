@@ -17,6 +17,7 @@ const Relatorios = () => {
   });
 
   const [relatorioAtivo, setRelatorioAtivo] = useState<string | null>(null);
+  const [versaoFiltro, setVersaoFiltro] = useState(0);
 
   const handleCardClick = (nomeRelatorio: string) => {
     setRelatorioAtivo(nomeRelatorio);
@@ -27,7 +28,7 @@ const Relatorios = () => {
   };
 
   const handleAplicarFiltros = () => {
-    // Os filtros já estão sendo aplicados via state
+    setVersaoFiltro(v => v + 1);
   };
 
   const handleLimparFiltros = () => {
@@ -49,7 +50,7 @@ const Relatorios = () => {
           onLimpar={handleLimparFiltros}
         />
         
-        {relatorioAtivo === "dashboard" && <DashboardExecutivo filtros={filtros} />}
+        {relatorioAtivo === "dashboard" && <DashboardExecutivo key={versaoFiltro} filtros={filtros} />}
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}

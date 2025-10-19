@@ -17,63 +17,98 @@ interface DashboardExecutivoProps {
 }
 
 export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
+  // Calcular intervalo de datas baseado nos filtros
+  const calcularIntervaloFiltro = useMemo(() => {
+    const hoje = new Date();
+    let dataInicio: Date;
+    let dataFim: Date = hoje;
+
+    switch (filtros.periodo) {
+      case "hoje":
+        dataInicio = hoje;
+        break;
+      case "semana":
+        dataInicio = new Date();
+        dataInicio.setDate(hoje.getDate() - 7);
+        break;
+      case "mes":
+        dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        break;
+      case "trimestre":
+        dataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1);
+        break;
+      case "ano":
+        dataInicio = new Date(hoje.getFullYear(), 0, 1);
+        break;
+      case "customizado":
+        dataInicio = filtros.dataInicio ? new Date(filtros.dataInicio) : new Date(hoje.getFullYear(), 0, 1);
+        dataFim = filtros.dataFim ? new Date(filtros.dataFim) : hoje;
+        break;
+      default:
+        dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    }
+
+    return { dataInicio, dataFim };
+  }, [filtros]);
+
   const lancamentos = useMemo(() => {
     const data = localStorage.getItem('lancamentos_financeiros');
     return data ? JSON.parse(data) : [];
-  }, []);
+  }, [filtros]);
 
   const agendamentos = useMemo(() => {
     const data = localStorage.getItem('agendamentos');
     return data ? JSON.parse(data) : [];
-  }, []);
+  }, [filtros]);
 
   const pacotes = useMemo(() => {
     const data = localStorage.getItem('pacotes');
     return data ? JSON.parse(data) : [];
-  }, []);
+  }, [filtros]);
 
   const produtos = useMemo(() => {
     const data = localStorage.getItem('produtos');
     return data ? JSON.parse(data) : [];
-  }, []);
+  }, [filtros]);
 
   const clientes = useMemo(() => {
     const data = localStorage.getItem('clientes');
     return data ? JSON.parse(data) : [];
-  }, []);
+  }, [filtros]);
 
   // Cálculos dos KPIs
   const kpis = useMemo(() => {
     const hoje = new Date();
-    const mesAtual = hoje.getMonth() + 1;
-    const anoAtual = hoje.getFullYear();
+    const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-    // Lucro Líquido do Mês
+    // Lucro Líquido do Período
     const receitasMes = lancamentos
-      .filter((l: any) => 
-        l.tipo === "Receita" && 
-        l.mesCompetencia === String(mesAtual).padStart(2, '0') && 
-        l.ano === String(anoAtual) &&
-        l.pago === true
-      )
+      .filter((l: any) => {
+        if (l.tipo !== "Receita" || !l.pago) return false;
+        const dataPag = new Date(l.dataPagamento);
+        return dataPag >= dataInicio && dataPag <= dataFim;
+      })
       .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
     const despesasMes = lancamentos
-      .filter((l: any) => 
-        l.tipo === "Despesa" && 
-        l.mesCompetencia === String(mesAtual).padStart(2, '0') && 
-        l.ano === String(anoAtual) &&
-        l.pago === true
-      )
+      .filter((l: any) => {
+        if (l.tipo !== "Despesa" || !l.pago) return false;
+        const dataPag = new Date(l.dataPagamento);
+        return dataPag >= dataInicio && dataPag <= dataFim;
+      })
       .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
     const lucroLiquido = receitasMes - despesasMes;
 
     // Ticket Médio
-    const atendimentosConcluidos = agendamentos.filter((a: any) => a.status === "concluido").length;
+    const atendimentosConcluidos = agendamentos.filter((a: any) => {
+      if (a.status !== "concluido") return false;
+      const dataAgend = new Date(a.data);
+      return dataAgend >= dataInicio && dataAgend <= dataFim;
+    }).length;
     const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0;
 
-    // Agenda do Dia
+    // Agenda do Dia (sempre hoje)
     const hojeStr = format(hoje, 'yyyy-MM-dd');
     const agendaDia = agendamentos.filter((a: any) => 
       a.data === hojeStr && (a.status === "confirmado" || a.status === "pendente")
@@ -84,19 +119,21 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
       agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
-          return dataAgend.getMonth() === mesAtual - 1 && dataAgend.getFullYear() === anoAtual;
+          return dataAgend >= dataInicio && dataAgend <= dataFim;
         })
         .map((a: any) => a.cliente)
     );
 
-    const mesAnterior = mesAtual === 1 ? 12 : mesAtual - 1;
-    const anoAnterior = mesAtual === 1 ? anoAtual - 1 : anoAtual;
+    // Calcular período anterior com mesmo tamanho
+    const diasNoFiltro = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
+    const dataInicioAnterior = new Date(dataInicio);
+    dataInicioAnterior.setDate(dataInicioAnterior.getDate() - diasNoFiltro);
 
     const clientesMesAnterior = new Set(
       agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
-          return dataAgend.getMonth() === mesAnterior - 1 && dataAgend.getFullYear() === anoAnterior;
+          return dataAgend >= dataInicioAnterior && dataAgend < dataInicio;
         })
         .map((a: any) => a.cliente)
     );
@@ -112,47 +149,45 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
       agendaDia,
       taxaRetencao
     };
-  }, [lancamentos, agendamentos]);
+  }, [lancamentos, agendamentos, calcularIntervaloFiltro]);
 
   // Alertas
   const alertas = useMemo(() => {
-    const hoje = new Date();
+    const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-    // Pacotes a Expirar (próximos 7 dias)
-    const seteDiasFrente = new Date();
-    seteDiasFrente.setDate(hoje.getDate() + 7);
-
+    // Pacotes a Expirar no período filtrado
     const pacotesExpirando = pacotes.filter((p: any) => {
-      if (!p.validade) return false;
+      if (!p.validade || !p.dataVenda) return false;
       const dataExpiracao = new Date(p.dataVenda);
       dataExpiracao.setDate(dataExpiracao.getDate() + parseInt(p.validade));
-      return dataExpiracao >= hoje && dataExpiracao <= seteDiasFrente;
+      return dataExpiracao >= dataInicio && dataExpiracao <= dataFim;
     }).map((p: any) => `${p.nomeCliente} - ${p.nomePacote}`);
 
-    // Inadimplência
+    // Inadimplência no período
     const valorInadimplencia = lancamentos
-      .filter((l: any) => l.tipo === "Receita" && !l.pago && new Date(l.dataPagamento) < hoje)
+      .filter((l: any) => {
+        if (l.tipo !== "Receita" || l.pago) return false;
+        const dataPag = new Date(l.dataPagamento);
+        return dataPag >= dataInicio && dataPag <= dataFim;
+      })
       .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
-    // Produtos próximos ao vencimento (30 dias)
-    const trintaDiasFrente = new Date();
-    trintaDiasFrente.setDate(hoje.getDate() + 30);
-
+    // Produtos vencendo no período
     const produtosVencendo = produtos
       .filter((p: any) => {
         if (!p.dataValidade) return false;
         const dataVal = new Date(p.dataValidade);
-        return dataVal >= hoje && dataVal <= trintaDiasFrente;
+        return dataVal >= dataInicio && dataVal <= dataFim;
       })
       .map((p: any) => `${p.descricao} - ${format(new Date(p.dataValidade), 'dd/MM/yyyy')}`);
 
-    // Clientes em Risco (sem agendamento há mais de 30 dias)
-    const trintaDiasAtras = new Date();
-    trintaDiasAtras.setDate(hoje.getDate() - 30);
-
+    // Clientes em Risco
     const clientesComAgendamentoRecente = new Set(
       agendamentos
-        .filter((a: any) => new Date(a.data) >= trintaDiasAtras)
+        .filter((a: any) => {
+          const dataAgend = new Date(a.data);
+          return dataAgend >= dataInicio;
+        })
         .map((a: any) => a.cliente)
     );
 
@@ -167,55 +202,40 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
       produtosVencendo,
       clientesEmRisco
     };
-  }, [lancamentos, pacotes, produtos, clientes, agendamentos]);
+  }, [lancamentos, pacotes, produtos, clientes, agendamentos, calcularIntervaloFiltro]);
 
   // Dados do Gráfico de Tendência
   const dadosGrafico = useMemo(() => {
-    const hoje = new Date();
-    const mesAtual = hoje.getMonth() + 1;
-    const anoAtual = hoje.getFullYear();
-    const mesAnterior = mesAtual === 1 ? 12 : mesAtual - 1;
-    const anoAnterior = mesAtual === 1 ? anoAtual - 1 : anoAtual;
-
-    const diasNoMes = new Date(anoAtual, mesAtual, 0).getDate();
+    const { dataInicio, dataFim } = calcularIntervaloFiltro;
+    const diasNoIntervalo = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
     const dados = [];
-
-    for (let dia = 1; dia <= diasNoMes; dia++) {
-      const receitaMesAtual = lancamentos
+    
+    for (let i = 0; i < Math.min(diasNoIntervalo, 31); i++) {
+      const dataAtual = new Date(dataInicio);
+      dataAtual.setDate(dataAtual.getDate() + i);
+      
+      const receitaDia = lancamentos
         .filter((l: any) => {
           if (l.tipo !== "Receita" || !l.pago) return false;
           const dataLanc = new Date(l.dataPagamento);
-          return dataLanc.getDate() <= dia &&
-                 dataLanc.getMonth() === mesAtual - 1 &&
-                 dataLanc.getFullYear() === anoAtual;
+          return dataLanc.toDateString() === dataAtual.toDateString();
         })
         .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
-
-      const receitaMesAnterior = lancamentos
-        .filter((l: any) => {
-          if (l.tipo !== "Receita" || !l.pago) return false;
-          const dataLanc = new Date(l.dataPagamento);
-          return dataLanc.getDate() <= dia &&
-                 dataLanc.getMonth() === mesAnterior - 1 &&
-                 dataLanc.getFullYear() === anoAnterior;
-        })
-        .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
-
+      
       dados.push({
-        dia: dia.toString(),
-        mesAtual: receitaMesAtual,
-        mesAnterior: receitaMesAnterior,
-        meta: (diasNoMes * 1000) * (dia / diasNoMes) // Meta fictícia
+        dia: format(dataAtual, 'dd/MM'),
+        receita: receitaDia
       });
     }
-
+    
     return dados;
-  }, [lancamentos]);
+  }, [lancamentos, calcularIntervaloFiltro]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* KPIs no Topo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard 
           titulo="Lucro Líquido" 
           valor={kpis.lucroLiquido} 
@@ -244,8 +264,8 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
 
       {/* Seção de Alertas */}
       <div>
-        <h2 className="text-xl font-bold mb-4">Alertas Importantes</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h2 className="text-xl font-bold mb-3">Alertas Importantes</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <AlertCard 
             tipo="warning"
             titulo="Pacotes a Expirar (7 dias)"
@@ -276,7 +296,7 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
       {/* Gráfico de Tendência */}
       <Card>
         <CardHeader>
-          <CardTitle>Receita: Mês Atual vs Mês Anterior</CardTitle>
+          <CardTitle>Receita no Período Filtrado</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -291,9 +311,7 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
                 }).format(value)}
               />
               <Legend />
-              <Line type="monotone" dataKey="mesAtual" stroke="#8884d8" name="Mês Atual" />
-              <Line type="monotone" dataKey="mesAnterior" stroke="#82ca9d" name="Mês Anterior" />
-              <Line type="monotone" dataKey="meta" stroke="#ff7300" strokeDasharray="5 5" name="Meta" />
+              <Line type="monotone" dataKey="receita" stroke="#8884d8" name="Receita" />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

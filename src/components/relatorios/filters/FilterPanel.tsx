@@ -22,7 +22,7 @@ export const FilterPanel = ({
   onLimpar
 }: FilterPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  return <Card className="mb-4">
+  return <Card className="mb-3">
       <CardHeader onClick={() => setIsOpen(!isOpen)} className="cursor-pointer my-0 px-[18px] py-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -34,7 +34,7 @@ export const FilterPanel = ({
       </CardHeader>
       
       {isOpen && <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Filtro de Período */}
             <div className="space-y-2">
               <Label>Período</Label>
@@ -75,8 +75,11 @@ export const FilterPanel = ({
               </>}
           </div>
           
-          <div className="flex gap-2 mt-4">
-            <Button onClick={onAplicar}>
+          <div className="flex gap-2 mt-3">
+            <Button onClick={() => {
+              onAplicar();
+              setIsOpen(false);
+            }}>
               <Check className="h-4 w-4 mr-2" />
               Aplicar Filtros
             </Button>
