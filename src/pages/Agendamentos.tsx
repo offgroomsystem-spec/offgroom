@@ -1775,7 +1775,7 @@ const Agendamentos = () => {
       </div>
 
       <Card>
-        <CardHeader className="py-3">
+        <CardHeader className="py-2">
           <div className="flex justify-between items-center">
             <div>
               <div className="flex gap-2 items-center mb-2">
@@ -1828,10 +1828,7 @@ const Agendamentos = () => {
                   </p>
                 </> : <>
                   <CardTitle className="text-base">Agenda do Dia</CardTitle>
-                  <CardDescription className="text-xs">
-                    {formatDateForDisplay(selectedDate)}
-                  </CardDescription>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Houve {contarAgendamentos()} agendamentos realizados neste dia.
                   </p>
                 </>}
@@ -1846,7 +1843,7 @@ const Agendamentos = () => {
               </div>}
           </div>
         </CardHeader>
-        <CardContent className="py-3">
+        <CardContent className="py-2">
           {viewMode === "semana" ? <div className="overflow-x-auto">
               <div className="min-w-[800px]">
                 <div className="grid grid-cols-8 gap-2">
@@ -1896,7 +1893,7 @@ const Agendamentos = () => {
               <div className="flex-1 overflow-x-auto">
                 <div className="min-w-[400px] relative">
                   {/* Header com horários */}
-                  <div className="flex border-b pb-2 mb-4 relative">
+                  <div className="flex border-b pb-1 mb-2 relative">
                     {/* Linhas verticais de fundo */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
@@ -1910,8 +1907,8 @@ const Agendamentos = () => {
                   </div>
                   
                   {/* Barras de agendamentos */}
-                  <div className="space-y-2 relative" style={{
-                minHeight: `${agendamentosDia.length * 24}px`
+                  <div className="space-y-0 relative" style={{
+                minHeight: `${agendamentosDia.length * 8}px`
               }}>
                     {/* Linhas verticais estendidas para a área de barras */}
                     <div className="absolute inset-0 flex pointer-events-none">
@@ -1930,10 +1927,10 @@ const Agendamentos = () => {
                   const duracaoMinutos = (fimH - inicioH) * 60 + (fimM - inicioM);
                   const left = inicioMinutos / totalMinutos * 100;
                   const width = duracaoMinutos / totalMinutos * 100;
-                  return <div key={index} className="absolute h-5 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black relative z-10" style={{
+                  return <div key={index} className="absolute h-4 bg-orange-500 rounded flex items-center justify-center text-[9px] font-semibold text-black relative z-10" style={{
                     left: `${left}%`,
                     width: `${Math.max(width, 5)}%`,
-                    top: `${index * 24}px`
+                    top: `${index * 8}px`
                   }}>
                           {agendamento.horarioInicio} - {agendamento.horarioFim || agendamento.horarioInicio}
                         </div>;
@@ -1943,7 +1940,7 @@ const Agendamentos = () => {
               </div>
               
               {/* Tabela de informações */}
-              <div className="flex-1 overflow-auto max-h-[600px]">
+              <div className="flex-1 overflow-visible">
                 <table className="w-full text-[10px] border">
                   <thead className="bg-secondary sticky top-0">
                     <tr>
