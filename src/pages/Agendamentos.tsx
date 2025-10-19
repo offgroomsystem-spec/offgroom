@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, Package, Calendar as CalendarIcon, ChevronUp, ChevronDown, Send, Settings, Trash2 } from "lucide-react";
+import { Plus, Clock, Package, Calendar as CalendarIcon, ChevronUp, ChevronDown, Copy, Settings, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { TimeInput } from "@/components/TimeInput";
 import { Calendar } from "@/components/ui/calendar";
@@ -787,16 +787,60 @@ const Agendamentos = () => {
     document.body.removeChild(link);
   };
 
+  // ========== FUNÇÕES AUXILIARES PARA FORMATAÇÃO ==========
+  
+  // Capitalizar primeira letra de cada palavra
+  const capitalizarPrimeiraLetra = (texto: string): string => {
+    if (!texto) return '';
+    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+  };
+
+  // Obter apenas o primeiro nome
+  const obterPrimeiroNome = (nomeCompleto: string): string => {
+    if (!nomeCompleto) return '';
+    const primeiroNome = nomeCompleto.trim().split(' ')[0];
+    return capitalizarPrimeiraLetra(primeiroNome);
+  };
+
+  // Verificar se é o último serviço do pacote
+  const ehUltimoServicoPacote = (numeroServico: string): boolean => {
+    if (!numeroServico || !numeroServico.includes('/')) return false;
+    const [atual, total] = numeroServico.split('/').map(n => parseInt(n.trim()));
+    return atual === total;
+  };
+
+  // Formatar número do pacote
+  const formatarNumeroPacote = (numeroServico?: string): string => {
+    if (!numeroServico || numeroServico.trim() === '') {
+      return 'Sem pacote.';
+    }
+    return numeroServico;
+  };
+
   // Gerar URL do WhatsApp sem abrir (para uso em links nativos)
   const gerarUrlWhatsAppSimples = (agendamento: Agendamento): string => {
-    let mensagem = `Olá ${agendamento.cliente}! 👋\n\n`;
-    mensagem += `Confirmamos seu agendamento:\n\n`;
-    mensagem += `📅 Data: ${format(new Date(`${agendamento.data}T${agendamento.horario}`), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\n`;
-    mensagem += `🐕 Pet: ${agendamento.pet}\n`;
-    mensagem += `✂️ Serviço: ${agendamento.servico}\n\n`;
+    const primeiroNome = obterPrimeiroNome(agendamento.cliente);
+    const nomePet = capitalizarPrimeiraLetra(agendamento.pet);
+    const nomeServico = capitalizarPrimeiraLetra(agendamento.servico);
+    const dataFormatada = format(new Date(agendamento.data), "dd/MM/yyyy");
+    const horarioFormatado = agendamento.horario.substring(0, 5); // HH:MM
+    const numeroPacote = formatarNumeroPacote(agendamento.numeroServicoPacote);
+    const taxiDog = agendamento.taxiDog === "Sim" ? "Sim" : "Não";
+    
+    let mensagem = `Oii, ${primeiroNome}! Passando apenas para confirmar o agendamento de ${nomePet} com a gente.\n\n`;
+    mensagem += `*Dia:* ${dataFormatada}\n`;
+    mensagem += `*Horario:* ${horarioFormatado}\n`;
+    mensagem += `*Serviço:* ${nomeServico}\n`;
+    mensagem += `*N° do Pacote:* ${numeroPacote}\n`;
+    mensagem += `*Taxi Dog:* ${taxiDog}\n`;
+    
+    // Se for último serviço do pacote, adicionar mensagem especial
+    if (agendamento.numeroServicoPacote && ehUltimoServicoPacote(agendamento.numeroServicoPacote)) {
+      mensagem += `\nPercebi que este será o último banho do seu pacote. Que tal já garantirmos a renovação no próximo agendamento e mantermos os banhos sequenciais?\n`;
+    }
     
     if (empresaConfig.bordao) {
-      mensagem += `*${empresaConfig.bordao}*`;
+      mensagem += `\n*${empresaConfig.bordao}*`;
     }
     
     const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, '');
@@ -805,15 +849,28 @@ const Agendamentos = () => {
 
   // Gerar URL do WhatsApp para pacote sem abrir (para uso em links nativos)
   const gerarUrlWhatsAppPacote = (pacote: AgendamentoPacote, servico: ServicoAgendamento): string => {
-    let mensagem = `Olá ${pacote.nomeCliente}! 👋\n\n`;
-    mensagem += `Confirmamos seu agendamento do pacote:\n\n`;
-    mensagem += `📦 Pacote: ${pacote.nomePacote}\n`;
-    mensagem += `📅 Data: ${format(new Date(`${servico.data}T${servico.horarioInicio}`), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\n`;
-    mensagem += `🐕 Pet: ${pacote.nomePet}\n`;
-    mensagem += `✂️ Serviço: ${servico.nomeServico}\n\n`;
+    const primeiroNome = obterPrimeiroNome(pacote.nomeCliente);
+    const nomePet = capitalizarPrimeiraLetra(pacote.nomePet);
+    const nomePacote = capitalizarPrimeiraLetra(pacote.nomePacote);
+    const dataFormatada = format(new Date(servico.data), "dd/MM/yyyy");
+    const horarioFormatado = servico.horarioInicio.substring(0, 5); // HH:MM
+    const numeroPacote = servico.numero; // Ex: "03/04"
+    const taxiDog = pacote.taxiDog === "Sim" ? "Sim" : "Não";
+    
+    let mensagem = `Oii, ${primeiroNome}! Passando apenas para confirmar o agendamento de ${nomePet} com a gente.\n\n`;
+    mensagem += `*Dia:* ${dataFormatada}\n`;
+    mensagem += `*Horario:* ${horarioFormatado}\n`;
+    mensagem += `*Serviço:* ${nomePacote}\n`;
+    mensagem += `*N° do Pacote:* ${numeroPacote}\n`;
+    mensagem += `*Taxi Dog:* ${taxiDog}\n`;
+    
+    // Se for último serviço do pacote, adicionar mensagem especial
+    if (ehUltimoServicoPacote(numeroPacote)) {
+      mensagem += `\nPercebi que este será o último banho do seu pacote. Que tal já garantirmos a renovação no próximo agendamento e mantermos os banhos sequenciais?\n`;
+    }
     
     if (empresaConfig.bordao) {
-      mensagem += `*${empresaConfig.bordao}*`;
+      mensagem += `\n*${empresaConfig.bordao}*`;
     }
     
     return `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
@@ -2043,7 +2100,7 @@ const Agendamentos = () => {
                               )} 
                               className="h-5 w-5 p-0"
                             >
-                              <Send className="h-3 w-3" />
+                              <Copy className="h-3 w-3" />
                             </Button>
                           ) : agendamento.tipo === 'simples' && agendamento.agendamentoOriginal ? (
                             <Button 
@@ -2055,7 +2112,7 @@ const Agendamentos = () => {
                               )} 
                               className="h-5 w-5 p-0"
                             >
-                              <Send className="h-3 w-3" />
+                              <Copy className="h-3 w-3" />
                             </Button>
                           ) : null}
                         </td>
