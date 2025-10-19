@@ -792,8 +792,7 @@ const Agendamentos = () => {
     const agendamentosSimples = agendamentos.filter(a => a.data === dateStr).map(a => ({
       tipo: 'simples' as const,
       horarioInicio: a.horario,
-      horarioFim: a.horario,
-      // Agendamento simples não tem duração
+      horarioFim: a.horarioTermino || a.horario,
       cliente: a.cliente,
       pet: a.pet,
       raca: a.raca,
