@@ -441,6 +441,16 @@ const Agendamentos = () => {
   };
   const horarios = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
   const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+  // Sincronizar Data da Venda com Data do Agendamento
+  useEffect(() => {
+    if (formData.data && !formData.dataVenda) {
+      setFormData(prev => ({
+        ...prev,
+        dataVenda: formData.data
+      }));
+    }
+  }, [formData.data]);
   const getWeekDates = () => {
     const today = new Date(selectedDate);
     const currentDay = today.getDay();
@@ -1032,17 +1042,15 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label htmlFor="horario" className="text-xs">Horário de Início do Serviço *</Label>
-                    <Select value={formData.horario} onValueChange={value => setFormData({
-                    ...formData,
-                    horario: value
-                  })} required>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {horarios.map(h => <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <TimeInput
+                      value={formData.horario}
+                      onChange={(value) => setFormData({
+                        ...formData,
+                        horario: value
+                      })}
+                      placeholder="00:00"
+                      className="h-8 text-xs"
+                    />
                   </div>
                 </div>
 
