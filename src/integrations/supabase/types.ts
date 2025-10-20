@@ -311,18 +311,21 @@ export type Database = {
           created_at: string | null
           id: string
           nome: string
+          porte: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           nome: string
+          porte?: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           nome?: string
+          porte?: string
           user_id?: string
         }
         Relationships: []
