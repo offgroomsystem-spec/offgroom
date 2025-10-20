@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Despesa {
   id: string;
@@ -16,11 +18,9 @@ interface Despesa {
 }
 
 const Despesas = () => {
-  const [despesas, setDespesas] = useState<Despesa[]>(() => {
-    const saved = localStorage.getItem('despesas');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const { user } = useAuth();
+  const [despesas, setDespesas] = useState<Despesa[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [despesaSelecionada, setDespesaSelecionada] = useState<Despesa | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -35,12 +35,46 @@ const Despesas = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem('despesas', JSON.stringify(despesas));
-  }, [despesas]);
+    if (user) {
+      loadDespesas();
+    }
+  }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loadDespesas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('despesas')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('valor', 0)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      if (data) {
+        const despesasFormatadas = data.map((d: any) => ({
+          id: d.id,
+          tipo: d.categoria as "Despesa Operacional" | "Despesa Não Operacional",
+          descricao: d.descricao
+        }));
+        setDespesas(despesasFormatadas);
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar despesas:', error);
+      toast.error("Erro ao carregar despesas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
+
     if (!formData.tipo) {
       toast.error("Favor selecionar o tipo de despesa");
       return;
@@ -50,19 +84,32 @@ const Despesas = () => {
       return;
     }
     
-    const novaDespesa: Despesa = {
-      id: Date.now().toString(),
-      tipo: formData.tipo,
-      descricao: formData.descricao,
-    };
-    
-    setDespesas([...despesas, novaDespesa]);
-    toast.success("Despesa cadastrada com sucesso!");
-    resetForm();
+    try {
+      const despesaData = {
+        categoria: formData.tipo,
+        descricao: formData.descricao.trim(),
+        valor: 0,
+        data: new Date().toISOString().split('T')[0],
+        user_id: user.id
+      };
+
+      const { error } = await supabase
+        .from('despesas')
+        .insert([despesaData]);
+
+      if (error) throw error;
+
+      toast.success("Despesa cadastrada com sucesso!");
+      await loadDespesas();
+      resetForm();
+    } catch (error: any) {
+      console.error('Erro ao salvar despesa:', error);
+      toast.error("Erro ao salvar despesa");
+    }
   };
 
-  const handleEditar = () => {
-    if (!despesaSelecionada) return;
+  const handleEditar = async () => {
+    if (!despesaSelecionada || !user) return;
     
     if (!formData.tipo) {
       toast.error("Favor selecionar o tipo de despesa");
@@ -73,25 +120,49 @@ const Despesas = () => {
       return;
     }
     
-    setDespesas(despesas.map(d => 
-      d.id === despesaSelecionada.id 
-        ? { ...despesaSelecionada, tipo: formData.tipo as "Despesa Operacional" | "Despesa Não Operacional", descricao: formData.descricao }
-        : d
-    ));
-    
-    toast.success("Despesa atualizada com sucesso!");
-    resetForm();
-    setDespesaSelecionada(null);
-    setIsEditDialogOpen(false);
+    try {
+      const { error } = await supabase
+        .from('despesas')
+        .update({
+          categoria: formData.tipo,
+          descricao: formData.descricao.trim()
+        })
+        .eq('id', despesaSelecionada.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success("Despesa atualizada com sucesso!");
+      await loadDespesas();
+      resetForm();
+      setDespesaSelecionada(null);
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      console.error('Erro ao atualizar despesa:', error);
+      toast.error("Erro ao atualizar despesa");
+    }
   };
 
-  const handleExcluir = () => {
-    if (!despesaSelecionada) return;
+  const handleExcluir = async () => {
+    if (!despesaSelecionada || !user) return;
     
-    setDespesas(despesas.filter(d => d.id !== despesaSelecionada.id));
-    toast.success("Despesa excluída com sucesso!");
-    setDespesaSelecionada(null);
-    setIsDeleteDialogOpen(false);
+    try {
+      const { error } = await supabase
+        .from('despesas')
+        .delete()
+        .eq('id', despesaSelecionada.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success("Despesa excluída com sucesso!");
+      await loadDespesas();
+      setDespesaSelecionada(null);
+      setIsDeleteDialogOpen(false);
+    } catch (error: any) {
+      console.error('Erro ao excluir despesa:', error);
+      toast.error("Erro ao excluir despesa");
+    }
   };
 
   const handleSelecionarDespesa = (despesa: Despesa) => {
@@ -111,6 +182,10 @@ const Despesas = () => {
     });
     setIsEditDialogOpen(true);
   };
+
+  if (loading) {
+    return <div className="p-8 text-center">Carregando...</div>;
+  }
 
   return (
     <div className="space-y-4">

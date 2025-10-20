@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Receita {
   id: string;
@@ -16,11 +18,9 @@ interface Receita {
 }
 
 const Receitas = () => {
-  const [receitas, setReceitas] = useState<Receita[]>(() => {
-    const saved = localStorage.getItem('receitas');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const { user } = useAuth();
+  const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [receitaSelecionada, setReceitaSelecionada] = useState<Receita | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -35,12 +35,46 @@ const Receitas = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem('receitas', JSON.stringify(receitas));
-  }, [receitas]);
+    if (user) {
+      loadReceitas();
+    }
+  }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loadReceitas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('receitas')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('valor', 0)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      if (data) {
+        const receitasFormatadas = data.map((r: any) => ({
+          id: r.id,
+          tipo: r.categoria as "Receita Operacional" | "Receita Não Operacional",
+          descricao: r.descricao
+        }));
+        setReceitas(receitasFormatadas);
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar receitas:', error);
+      toast.error("Erro ao carregar receitas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
+
     if (!formData.tipo) {
       toast.error("Favor selecionar o tipo de receita");
       return;
@@ -50,19 +84,32 @@ const Receitas = () => {
       return;
     }
     
-    const novaReceita: Receita = {
-      id: Date.now().toString(),
-      tipo: formData.tipo,
-      descricao: formData.descricao,
-    };
-    
-    setReceitas([...receitas, novaReceita]);
-    toast.success("Receita cadastrada com sucesso!");
-    resetForm();
+    try {
+      const receitaData = {
+        categoria: formData.tipo,
+        descricao: formData.descricao.trim(),
+        valor: 0,
+        data: new Date().toISOString().split('T')[0],
+        user_id: user.id
+      };
+
+      const { error } = await supabase
+        .from('receitas')
+        .insert([receitaData]);
+
+      if (error) throw error;
+
+      toast.success("Receita cadastrada com sucesso!");
+      await loadReceitas();
+      resetForm();
+    } catch (error: any) {
+      console.error('Erro ao salvar receita:', error);
+      toast.error("Erro ao salvar receita");
+    }
   };
 
-  const handleEditar = () => {
-    if (!receitaSelecionada) return;
+  const handleEditar = async () => {
+    if (!receitaSelecionada || !user) return;
     
     if (!formData.tipo) {
       toast.error("Favor selecionar o tipo de receita");
@@ -73,25 +120,49 @@ const Receitas = () => {
       return;
     }
     
-    setReceitas(receitas.map(r => 
-      r.id === receitaSelecionada.id 
-        ? { ...receitaSelecionada, tipo: formData.tipo as "Receita Operacional" | "Receita Não Operacional", descricao: formData.descricao }
-        : r
-    ));
-    
-    toast.success("Receita atualizada com sucesso!");
-    resetForm();
-    setReceitaSelecionada(null);
-    setIsEditDialogOpen(false);
+    try {
+      const { error } = await supabase
+        .from('receitas')
+        .update({
+          categoria: formData.tipo,
+          descricao: formData.descricao.trim()
+        })
+        .eq('id', receitaSelecionada.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success("Receita atualizada com sucesso!");
+      await loadReceitas();
+      resetForm();
+      setReceitaSelecionada(null);
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      console.error('Erro ao atualizar receita:', error);
+      toast.error("Erro ao atualizar receita");
+    }
   };
 
-  const handleExcluir = () => {
-    if (!receitaSelecionada) return;
+  const handleExcluir = async () => {
+    if (!receitaSelecionada || !user) return;
     
-    setReceitas(receitas.filter(r => r.id !== receitaSelecionada.id));
-    toast.success("Receita excluída com sucesso!");
-    setReceitaSelecionada(null);
-    setIsDeleteDialogOpen(false);
+    try {
+      const { error } = await supabase
+        .from('receitas')
+        .delete()
+        .eq('id', receitaSelecionada.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success("Receita excluída com sucesso!");
+      await loadReceitas();
+      setReceitaSelecionada(null);
+      setIsDeleteDialogOpen(false);
+    } catch (error: any) {
+      console.error('Erro ao excluir receita:', error);
+      toast.error("Erro ao excluir receita");
+    }
   };
 
   const handleSelecionarReceita = (receita: Receita) => {
@@ -111,6 +182,10 @@ const Receitas = () => {
     });
     setIsEditDialogOpen(true);
   };
+
+  if (loading) {
+    return <div className="p-8 text-center">Carregando...</div>;
+  }
 
   return (
     <div className="space-y-4">
