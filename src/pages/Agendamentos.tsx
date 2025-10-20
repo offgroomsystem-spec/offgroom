@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Interfaces
 
@@ -115,6 +117,9 @@ interface AgendamentoUnificado {
   servicoOriginal?: ServicoAgendamento;
 }
 const Agendamentos = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+
   // Função para formatar data sem problemas de timezone
   const formatDateForInput = (date: Date): string => {
     const year = date.getFullYear();
@@ -133,40 +138,10 @@ const Agendamentos = () => {
       year: 'numeric'
     });
   };
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(() => {
-    const saved = localStorage.getItem('agendamentos');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.map((ag: any) => ({
-        ...ag,
-        dataVenda: ag.dataVenda || "",
-        groomer: ag.groomer || "",
-        taxiDog: ag.taxiDog || "",
-        tempoServico: ag.tempoServico || "",
-        horarioTermino: ag.horarioTermino || ""
-      }));
-    }
-    return [];
-  });
 
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [groomers, setGroomers] = useState<Groomer[]>([]);
-  useEffect(() => {
-    localStorage.setItem('agendamentos', JSON.stringify(agendamentos));
-  }, [agendamentos]);
-  const [agendamentosPacotes, setAgendamentosPacotes] = useState<AgendamentoPacote[]>(() => {
-    const saved = localStorage.getItem('agendamentosPacotes');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.map((pac: any) => ({
-        ...pac,
-        dataVenda: pac.dataVenda || ""
-      }));
-    }
-    return [];
-  });
-  useEffect(() => {
-    localStorage.setItem('agendamentosPacotes', JSON.stringify(agendamentosPacotes));
-  }, [agendamentosPacotes]);
+  const [agendamentosPacotes, setAgendamentosPacotes] = useState<AgendamentoPacote[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
@@ -175,6 +150,140 @@ const Agendamentos = () => {
     horarioInicio: "08:00",
     horarioFim: "18:00"
   });
+
+  // Load agendamentos from Supabase
+  const loadAgendamentos = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('data', { ascending: true })
+        .order('horario', { ascending: true });
+
+      if (error) throw error;
+
+      const agendamentosFormatados = (data || []).map((ag: any) => ({
+        id: ag.id,
+        cliente: ag.cliente,
+        pet: ag.pet,
+        raca: ag.raca,
+        whatsapp: ag.whatsapp,
+        servico: ag.servico,
+        data: ag.data,
+        horario: ag.horario,
+        tempoServico: ag.tempo_servico,
+        horarioTermino: ag.horario_termino,
+        dataVenda: ag.data_venda,
+        groomer: ag.groomer,
+        taxiDog: ag.taxi_dog,
+        status: ag.status as "confirmado" | "pendente" | "concluido",
+        numeroServicoPacote: ag.numero_servico_pacote || undefined
+      }));
+
+      setAgendamentos(agendamentosFormatados);
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos:', error);
+      toast.error('Erro ao carregar agendamentos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load groomers, clientes, pacotes, servicos from Supabase
+  const loadRelatedData = async () => {
+    if (!user) return;
+
+    try {
+      // Load groomers
+      const { data: groomersData } = await (supabase as any)
+        .from('groomers')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (groomersData) {
+        setGroomers(groomersData.map((g: any) => ({ id: g.id, nome: g.nome })));
+      }
+
+      // Load clientes
+      const { data: clientesData } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (clientesData) {
+        setClientes(clientesData.map((c: any) => ({
+          id: c.id,
+          nomeCliente: c.nome_cliente,
+          nomePet: c.nome_pet,
+          porte: c.porte,
+          raca: c.raca,
+          whatsapp: c.whatsapp,
+          endereco: c.endereco || '',
+          observacao: c.observacao || ''
+        })));
+      }
+
+      // Load pacotes
+      const { data: pacotesData } = await supabase
+        .from('pacotes')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (pacotesData) {
+        setPacotes(pacotesData.map((p: any) => ({
+          id: p.id,
+          nome: p.nome,
+          servicos: p.servicos || [],
+          validade: p.validade,
+          descontoPercentual: Number(p.desconto_percentual),
+          descontoValor: Number(p.desconto_valor),
+          valorFinal: Number(p.valor_final)
+        })));
+      }
+
+      // Load servicos
+      const { data: servicosData } = await supabase
+        .from('servicos')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (servicosData) {
+        setServicos(servicosData.map((s: any) => ({
+          id: s.id,
+          nome: s.nome,
+          valor: Number(s.valor)
+        })));
+      }
+
+      // Load empresa config
+      const { data: empresaData } = await (supabase as any)
+        .from('empresa_config')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (empresaData) {
+        const empresa = empresaData as any;
+        setEmpresaConfig({
+          bordao: empresa.bordao || '',
+          horarioInicio: empresa.horario_inicio || '08:00',
+          horarioFim: empresa.horario_fim || '18:00'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados relacionados:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadAgendamentos();
+      loadRelatedData();
+    }
+  }, [user]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
