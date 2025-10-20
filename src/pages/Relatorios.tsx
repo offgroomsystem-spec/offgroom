@@ -7,7 +7,7 @@ import { FilterPanel } from "@/components/relatorios/filters/FilterPanel";
 import { DashboardExecutivo } from "@/components/relatorios/dashboard/DashboardExecutivo";
 import { FluxoDeCaixa } from "@/components/relatorios/financeiros/FluxoDeCaixa";
 import { DRE } from "@/components/relatorios/financeiros/DRE";
-import { Inadimplencia } from "@/components/relatorios/financeiros/Inadimplencia";
+import { Inadimplencia } from "@/components/relatorios/financeiros/InadimplenciaDisabled";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({

@@ -88,6 +88,51 @@ export type Database = {
           },
         ]
       }
+      agendamentos_pacotes: {
+        Row: {
+          created_at: string | null
+          data_venda: string
+          id: string
+          nome_cliente: string
+          nome_pacote: string
+          nome_pet: string
+          raca: string
+          servicos: Json
+          taxi_dog: string
+          updated_at: string | null
+          user_id: string
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_venda: string
+          id?: string
+          nome_cliente: string
+          nome_pacote: string
+          nome_pet: string
+          raca: string
+          servicos: Json
+          taxi_dog: string
+          updated_at?: string | null
+          user_id: string
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string | null
+          data_venda?: string
+          id?: string
+          nome_cliente?: string
+          nome_pacote?: string
+          nome_pet?: string
+          raca?: string
+          servicos?: Json
+          taxi_dog?: string
+          updated_at?: string | null
+          user_id?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           created_at: string | null
@@ -200,6 +245,8 @@ export type Database = {
           bordao: string | null
           created_at: string | null
           endereco: string | null
+          horario_fim: string | null
+          horario_inicio: string | null
           id: string
           nome_empresa: string | null
           telefone: string | null
@@ -210,6 +257,8 @@ export type Database = {
           bordao?: string | null
           created_at?: string | null
           endereco?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
           id?: string
           nome_empresa?: string | null
           telefone?: string | null
@@ -220,6 +269,8 @@ export type Database = {
           bordao?: string | null
           created_at?: string | null
           endereco?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
           id?: string
           nome_empresa?: string | null
           telefone?: string | null
@@ -228,52 +279,210 @@ export type Database = {
         }
         Relationships: []
       }
-      pacotes: {
+      groomers: {
         Row: {
           created_at: string | null
           id: string
           nome: string
-          quantidade_servicos: number
           user_id: string
-          valor: number
         }
         Insert: {
           created_at?: string | null
           id?: string
           nome: string
-          quantidade_servicos: number
           user_id: string
-          valor: number
         }
         Update: {
           created_at?: string | null
           id?: string
           nome?: string
-          quantidade_servicos?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      lancamentos_financeiros: {
+        Row: {
+          ano: string
+          cliente_id: string | null
+          conta_id: string | null
+          created_at: string | null
+          data_cadastro: string
+          data_pagamento: string
+          descricao1: string
+          id: string
+          mes_competencia: string
+          observacao: string | null
+          pago: boolean
+          tipo: string
+          updated_at: string | null
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          ano: string
+          cliente_id?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          data_cadastro?: string
+          data_pagamento: string
+          descricao1: string
+          id?: string
+          mes_competencia: string
+          observacao?: string | null
+          pago?: boolean
+          tipo: string
+          updated_at?: string | null
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          ano?: string
+          cliente_id?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          data_cadastro?: string
+          data_pagamento?: string
+          descricao1?: string
+          id?: string
+          mes_competencia?: string
+          observacao?: string | null
+          pago?: boolean
+          tipo?: string
+          updated_at?: string | null
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_financeiros_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lancamentos_financeiros_itens: {
+        Row: {
+          created_at: string | null
+          descricao2: string
+          id: string
+          lancamento_id: string
+          produto_servico: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          descricao2: string
+          id?: string
+          lancamento_id: string
+          produto_servico?: string | null
           valor?: number
+        }
+        Update: {
+          created_at?: string | null
+          descricao2?: string
+          id?: string
+          lancamento_id?: string
+          produto_servico?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_financeiros_itens_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pacotes: {
+        Row: {
+          created_at: string | null
+          desconto_percentual: number
+          desconto_valor: number
+          id: string
+          nome: string
+          servicos: Json
+          user_id: string
+          validade: string
+          valor: number
+          valor_final: number
+        }
+        Insert: {
+          created_at?: string | null
+          desconto_percentual?: number
+          desconto_valor?: number
+          id?: string
+          nome: string
+          servicos?: Json
+          user_id: string
+          validade?: string
+          valor: number
+          valor_final?: number
+        }
+        Update: {
+          created_at?: string | null
+          desconto_percentual?: number
+          desconto_valor?: number
+          id?: string
+          nome?: string
+          servicos?: Json
+          user_id?: string
+          validade?: string
+          valor?: number
+          valor_final?: number
         }
         Relationships: []
       }
       produtos: {
         Row: {
+          codigo: string
           created_at: string | null
+          descricao: string | null
           id: string
+          imposto: number
+          lucro_unitario: number
+          margem_lucro: number
           nome: string
+          preco_custo: number
+          taxa_cartao: number
           user_id: string
           valor: number
         }
         Insert: {
+          codigo?: string
           created_at?: string | null
+          descricao?: string | null
           id?: string
+          imposto?: number
+          lucro_unitario?: number
+          margem_lucro?: number
           nome: string
+          preco_custo?: number
+          taxa_cartao?: number
           user_id: string
           valor: number
         }
         Update: {
+          codigo?: string
           created_at?: string | null
+          descricao?: string | null
           id?: string
+          imposto?: number
+          lucro_unitario?: number
+          margem_lucro?: number
           nome?: string
+          preco_custo?: number
+          taxa_cartao?: number
           user_id?: string
           valor?: number
         }

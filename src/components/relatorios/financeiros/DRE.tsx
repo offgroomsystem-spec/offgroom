@@ -1,6 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Filtros {
   periodo: string;
@@ -59,10 +62,76 @@ const DRERow = ({ titulo, valor, nivel, destaque, cor = 'default' }: DRERowProps
 };
 
 export const DRE = ({ filtros }: DREProps) => {
-  const lancamentos = useMemo(() => {
-    const data = localStorage.getItem('lancamentos_financeiros');
-    return data ? JSON.parse(data) : [];
-  }, []);
+  const { user } = useAuth();
+  const [lancamentos, setLancamentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFinancialData = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        let dataInicio = new Date();
+        let dataFim = new Date();
+        
+        if (filtros.periodo === 'mes') {
+          dataInicio = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
+          dataFim = new Date(dataInicio.getFullYear(), dataInicio.getMonth() + 1, 0);
+        } else if (filtros.periodo === 'ano') {
+          dataInicio = new Date(dataInicio.getFullYear(), 0, 1);
+          dataFim = new Date(dataInicio.getFullYear(), 11, 31);
+        } else if (filtros.dataInicio && filtros.dataFim) {
+          dataInicio = new Date(filtros.dataInicio);
+          dataFim = new Date(filtros.dataFim);
+        }
+        
+        const { data: receitasData } = await supabase
+          .from('receitas')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('data', dataInicio.toISOString().split('T')[0])
+          .lte('data', dataFim.toISOString().split('T')[0]);
+        
+        const { data: despesasData } = await supabase
+          .from('despesas')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('data', dataInicio.toISOString().split('T')[0])
+          .lte('data', dataFim.toISOString().split('T')[0]);
+        
+        const lancamentosCombinados = [
+          ...(receitasData || []).map(r => ({
+            tipo: 'Receita',
+            descricao1: r.categoria || 'Receita Operacional',
+            descricao: r.descricao,
+            valorTotal: Number(r.valor),
+            pago: true,
+            dataPagamento: r.data
+          })),
+          ...(despesasData || []).map(d => ({
+            tipo: 'Despesa',
+            descricao1: d.categoria || 'Despesa Variável',
+            descricao: d.descricao,
+            valorTotal: Number(d.valor),
+            pago: true,
+            dataPagamento: d.data
+          }))
+        ];
+        
+        setLancamentos(lancamentosCombinados);
+        
+      } catch (error) {
+        console.error('Erro ao carregar dados financeiros:', error);
+        toast.error('Erro ao carregar dados financeiros');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadFinancialData();
+  }, [user, filtros]);
 
   const dre = useMemo(() => {
     const receitaBruta = lancamentos
@@ -121,6 +190,14 @@ export const DRE = ({ filtros }: DREProps) => {
         return "Período selecionado";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p>Carregando DRE...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

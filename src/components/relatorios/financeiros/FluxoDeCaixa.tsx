@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Filtros {
   periodo: string;
@@ -77,23 +79,91 @@ const aplicarFiltros = (item: any, filtros: Filtros): boolean => {
 };
 
 export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
+  const { user } = useAuth();
   const [contas, setContas] = useState<{id: string; nomeBanco: string; saldo: number}[]>([]);
+  const [lancamentos, setLancamentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isAtualizarSaldoOpen, setIsAtualizarSaldoOpen] = useState(false);
   const [saldosEditados, setSaldosEditados] = useState<{[nomeBanco: string]: number}>({});
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [bancoParaAtualizar, setBancoParaAtualizar] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedContas = localStorage.getItem('contas_bancarias');
-    if (savedContas) {
-      setContas(JSON.parse(savedContas));
-    }
-  }, []);
+    const loadContas = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('contas_bancarias')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        
+        const contasFormatadas = (data || []).map(c => ({
+          id: c.id,
+          nomeBanco: c.nome,
+          saldo: Number(c.saldo) || 0
+        }));
+        
+        setContas(contasFormatadas);
+      } catch (error) {
+        console.error('Erro ao carregar contas:', error);
+        toast.error('Erro ao carregar contas bancárias');
+      }
+    };
+    
+    loadContas();
+  }, [user]);
 
-  const lancamentos = useMemo(() => {
-    const data = localStorage.getItem('lancamentos_financeiros');
-    return data ? JSON.parse(data) : [];
-  }, []);
+  useEffect(() => {
+    const loadLancamentos = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        const { data: receitasData } = await supabase
+          .from('receitas')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        const { data: despesasData } = await supabase
+          .from('despesas')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        const lancamentosCombinados = [
+          ...(receitasData || []).map(r => ({
+            tipo: 'Receita',
+            descricao: r.descricao,
+            valorTotal: Number(r.valor),
+            dataPagamento: r.data,
+            pago: true,
+            nomeBanco: '' // TODO: Adicionar quando tiver relação
+          })),
+          ...(despesasData || []).map(d => ({
+            tipo: 'Despesa',
+            descricao: d.descricao,
+            valorTotal: Number(d.valor),
+            dataPagamento: d.data,
+            pago: true,
+            nomeBanco: ''
+          }))
+        ];
+        
+        setLancamentos(lancamentosCombinados);
+        
+      } catch (error) {
+        console.error('Erro ao carregar lançamentos:', error);
+        toast.error('Erro ao carregar lançamentos financeiros');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadLancamentos();
+  }, [user]);
 
   const linhasFluxo = useMemo(() => {
     const lancamentosFiltrados = lancamentos
@@ -184,18 +254,19 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
     return total;
   };
 
-  const handleConfirmarAtualizacao = () => {
-    if (!bancoParaAtualizar) return;
+  const handleConfirmarAtualizacao = async () => {
+    if (!user || !bancoParaAtualizar) return;
     
+    const contaSelecionada = contas.find(c => c.nomeBanco === bancoParaAtualizar);
+    if (!contaSelecionada) {
+      toast.error('Conta bancária não encontrada');
+      return;
+    }
+    
+    const saldoAtual = contaSelecionada.saldo;
     const novoSaldo = saldosEditados[bancoParaAtualizar];
-    if (novoSaldo === undefined) return;
     
-    const saldoAtual = saldosPorBanco[bancoParaAtualizar] || 0;
-    const diferenca = novoSaldo - saldoAtual;
-    
-    // Se não houve diferença, apenas fechar
-    if (diferenca === 0) {
-      toast.info('Nenhuma alteração de saldo detectada.');
+    if (novoSaldo === undefined || novoSaldo === saldoAtual) {
       setIsConfirmDialogOpen(false);
       setIsAtualizarSaldoOpen(false);
       setBancoParaAtualizar(null);
@@ -203,66 +274,63 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
       return;
     }
     
-    // Atualizar conta no localStorage
-    const contasAtualizadas = contas.map(c => 
-      c.nomeBanco === bancoParaAtualizar 
-        ? { ...c, saldo: novoSaldo }
-        : c
-    );
+    const diferenca = novoSaldo - saldoAtual;
     
-    localStorage.setItem('contas_bancarias', JSON.stringify(contasAtualizadas));
-    setContas(contasAtualizadas);
-    
-    // Criar lançamento financeiro
-    const hoje = new Date();
-    const ano = hoje.getFullYear().toString();
-    const mesCompetencia = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dataPagamento = hoje.toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    const novoLancamento: any = {
-      id: `ajuste-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      ano: ano,
-      mesCompetencia: mesCompetencia,
-      tipo: diferenca > 0 ? "Receita" : "Despesa",
-      descricao1: diferenca > 0 ? "Receita Não Operacional" : "Despesa Variável",
-      nomeCliente: "",
-      nomePet: "",
-      itens: [
-        {
-          id: `item-${Date.now()}`,
-          descricao2: diferenca > 0 ? "Outras Receitas Não Operacionais" : "Outras Despesas Variáveis",
-          produtoServico: "",
-          valor: Math.abs(diferenca)
-        }
-      ],
-      observacao: "Atualização de Saldo Bancário",
-      valorTotal: Math.abs(diferenca),
-      dataPagamento: dataPagamento,
-      nomeBanco: bancoParaAtualizar,
-      pago: true,
-      dataCadastro: hoje.toISOString()
-    };
-    
-    // Salvar no localStorage
-    const lancamentosAtuais = localStorage.getItem('lancamentos_financeiros');
-    const lancamentos = lancamentosAtuais ? JSON.parse(lancamentosAtuais) : [];
-    lancamentos.push(novoLancamento);
-    localStorage.setItem('lancamentos_financeiros', JSON.stringify(lancamentos));
-    
-    const tipoLancamento = diferenca > 0 ? "Receita" : "Despesa";
-    toast.success(
-      `Saldo do ${bancoParaAtualizar} atualizado com sucesso! ` +
-      `Lançamento de ${tipoLancamento} de ${formatCurrency(Math.abs(diferenca))} criado.`
-    );
-    
-    // Resetar estados
-    setIsConfirmDialogOpen(false);
-    setIsAtualizarSaldoOpen(false);
-    setBancoParaAtualizar(null);
-    setSaldosEditados({});
-    
-    // Forçar atualização da página para refletir o novo lançamento
-    window.location.reload();
+    try {
+      // 1. Atualizar saldo da conta no Supabase
+      const { error: updateError } = await supabase
+        .from('contas_bancarias')
+        .update({ saldo: novoSaldo })
+        .eq('id', contaSelecionada.id)
+        .eq('user_id', user.id);
+      
+      if (updateError) throw updateError;
+      
+      // 2. Criar lançamento de ajuste no Supabase
+      const hoje = new Date();
+      const tipoLancamento = diferenca > 0 ? 'receitas' : 'despesas';
+      const descricao = diferenca > 0 
+        ? 'Atualização de Saldo Bancário - Receita Não Operacional'
+        : 'Atualização de Saldo Bancário - Despesa Variável';
+      
+      const { error: insertError } = await supabase
+        .from(tipoLancamento)
+        .insert({
+          user_id: user.id,
+          descricao: descricao,
+          valor: Math.abs(diferenca),
+          data: hoje.toISOString().split('T')[0],
+          categoria: diferenca > 0 ? 'Outras Receitas Não Operacionais' : 'Outras Despesas Variáveis',
+          conta_id: contaSelecionada.id
+        });
+      
+      if (insertError) throw insertError;
+      
+      // 3. Atualizar estado local
+      setContas(contas.map(c => 
+        c.id === contaSelecionada.id 
+          ? { ...c, saldo: novoSaldo }
+          : c
+      ));
+      
+      const tipoMensagem = diferenca > 0 ? "Receita" : "Despesa";
+      toast.success(
+        `Saldo do ${bancoParaAtualizar} atualizado com sucesso! ` +
+        `Lançamento de ${tipoMensagem} de ${formatCurrency(Math.abs(diferenca))} criado.`
+      );
+      
+      // Recarregar página para atualizar todos os dados
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Erro ao atualizar saldo:', error);
+      toast.error('Erro ao atualizar saldo bancário');
+    } finally {
+      setIsConfirmDialogOpen(false);
+      setIsAtualizarSaldoOpen(false);
+      setBancoParaAtualizar(null);
+      setSaldosEditados({});
+    }
   };
 
   const handleCancelarAtualizacao = () => {

@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Filter, ChevronUp, ChevronDown, Check, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FilterPanelProps {
   filtros: {
@@ -24,15 +26,29 @@ export const FilterPanel = ({
   onAplicar,
   onLimpar
 }: FilterPanelProps) => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [contas, setContas] = useState<{id: string; nomeBanco: string}[]>([]);
 
   useEffect(() => {
-    const savedContas = localStorage.getItem('contas_bancarias');
-    if (savedContas) {
-      setContas(JSON.parse(savedContas));
-    }
-  }, []);
+    const loadContas = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('contas_bancarias')
+        .select('id, nome')
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Erro ao carregar contas:', error);
+        return;
+      }
+      
+      setContas((data || []).map(c => ({ id: c.id, nomeBanco: c.nome })));
+    };
+    
+    loadContas();
+  }, [user]);
   return <Card className="mb-3">
       <CardHeader onClick={() => setIsOpen(!isOpen)} className="cursor-pointer my-0 px-[18px] py-0">
         <div className="flex items-center justify-between">

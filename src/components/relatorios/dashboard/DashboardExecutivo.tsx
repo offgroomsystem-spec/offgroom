@@ -1,10 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KPICard } from "../shared/KPICard";
 import { AlertCard } from "../shared/AlertCard";
 import { DollarSign, TrendingUp, Calendar, Users, Clock, AlertCircle, Package, UserX } from "lucide-react";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Filtros {
   periodo: string;
@@ -17,6 +20,14 @@ interface DashboardExecutivoProps {
 }
 
 export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
+  const { user } = useAuth();
+  const [lancamentos, setLancamentos] = useState<any[]>([]);
+  const [agendamentos, setAgendamentos] = useState<any[]>([]);
+  const [pacotes, setPacotes] = useState<any[]>([]);
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Calcular intervalo de datas baseado nos filtros
   const calcularIntervaloFiltro = useMemo(() => {
     const hoje = new Date();
@@ -53,30 +64,94 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
     return { dataInicio, dataFim };
   }, [filtros]);
 
-  const lancamentos = useMemo(() => {
-    const data = localStorage.getItem('lancamentos_financeiros');
-    return data ? JSON.parse(data) : [];
-  }, [filtros]);
-
-  const agendamentos = useMemo(() => {
-    const data = localStorage.getItem('agendamentos');
-    return data ? JSON.parse(data) : [];
-  }, [filtros]);
-
-  const pacotes = useMemo(() => {
-    const data = localStorage.getItem('pacotes');
-    return data ? JSON.parse(data) : [];
-  }, [filtros]);
-
-  const produtos = useMemo(() => {
-    const data = localStorage.getItem('produtos');
-    return data ? JSON.parse(data) : [];
-  }, [filtros]);
-
-  const clientes = useMemo(() => {
-    const data = localStorage.getItem('clientes');
-    return data ? JSON.parse(data) : [];
-  }, [filtros]);
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        const { dataInicio, dataFim } = calcularIntervaloFiltro;
+        
+        // Carregar Clientes
+        const { data: clientesData } = await supabase
+          .from('clientes')
+          .select('*')
+          .eq('user_id', user.id);
+        setClientes(clientesData || []);
+        
+        // Carregar Produtos
+        const { data: produtosData } = await supabase
+          .from('produtos')
+          .select('*')
+          .eq('user_id', user.id);
+        setProdutos(produtosData || []);
+        
+        // Carregar Pacotes
+        const { data: pacotesData } = await supabase
+          .from('pacotes')
+          .select('*')
+          .eq('user_id', user.id);
+        setPacotes(pacotesData || []);
+        
+        // Carregar Agendamentos
+        const { data: agendamentosData } = await supabase
+          .from('agendamentos')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('data', dataInicio.toISOString().split('T')[0])
+          .lte('data', dataFim.toISOString().split('T')[0]);
+        setAgendamentos(agendamentosData || []);
+        
+        // Carregar Receitas e Despesas
+        const { data: receitasData } = await supabase
+          .from('receitas')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('data', dataInicio.toISOString().split('T')[0])
+          .lte('data', dataFim.toISOString().split('T')[0]);
+        
+        const { data: despesasData } = await supabase
+          .from('despesas')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('data', dataInicio.toISOString().split('T')[0])
+          .lte('data', dataFim.toISOString().split('T')[0]);
+        
+        // Combinar em formato de lançamentos
+        const lancamentosCombinados = [
+          ...(receitasData || []).map(r => ({
+            id: r.id,
+            tipo: 'Receita',
+            descricao: r.descricao,
+            valorTotal: Number(r.valor),
+            dataPagamento: r.data,
+            pago: true,
+            categoria: r.categoria
+          })),
+          ...(despesasData || []).map(d => ({
+            id: d.id,
+            tipo: 'Despesa',
+            descricao: d.descricao,
+            valorTotal: Number(d.valor),
+            dataPagamento: d.data,
+            pago: true,
+            categoria: d.categoria
+          }))
+        ];
+        
+        setLancamentos(lancamentosCombinados);
+        
+      } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
+        toast.error('Erro ao carregar dados do dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadDashboardData();
+  }, [user, filtros, calcularIntervaloFiltro]);
 
   // Cálculos dos KPIs
   const kpis = useMemo(() => {
@@ -289,6 +364,14 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
     
     return dados;
   }, [lancamentos, calcularIntervaloFiltro, filtros.periodo]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p>Carregando dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
