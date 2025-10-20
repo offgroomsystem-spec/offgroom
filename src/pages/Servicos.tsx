@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Servico {
   id: string;
@@ -14,7 +16,9 @@ interface Servico {
 }
 
 const Servicos = () => {
+  const { user } = useAuth();
   const [servicos, setServicos] = useState<Servico[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingServico, setEditingServico] = useState<Servico | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,26 +28,76 @@ const Servicos = () => {
     valor: "",
   });
 
-  // Salvar serviços no localStorage sempre que houver alteração
+  // Fetch servicos from Supabase
   useEffect(() => {
-    localStorage.setItem("servicos", JSON.stringify(servicos));
-  }, [servicos]);
+    if (!user) return;
+    
+    const fetchServicos = async () => {
+      const { data, error } = await supabase
+        .from('servicos')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching services:', error);
+        toast.error('Erro ao carregar serviços');
+      } else {
+        setServicos(data || []);
+      }
+      setLoading(false);
+    };
+    
+    fetchServicos();
+  }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+    
     if (editingServico) {
+      const { error } = await supabase
+        .from('servicos')
+        .update({
+          nome: formData.nome,
+          valor: parseFloat(formData.valor)
+        })
+        .eq('id', editingServico.id)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        toast.error("Erro ao atualizar serviço");
+        console.error(error);
+        return;
+      }
+      
       setServicos(servicos.map(s => 
         s.id === editingServico.id ? { nome: formData.nome, valor: parseFloat(formData.valor), id: editingServico.id } : s
       ));
       toast.success("Serviço atualizado com sucesso!");
     } else {
-      const novoServico: Servico = {
-        nome: formData.nome,
-        valor: parseFloat(formData.valor),
-        id: Date.now().toString(),
-      };
-      setServicos([...servicos, novoServico]);
+      const { data, error } = await supabase
+        .from('servicos')
+        .insert([{
+          user_id: user.id,
+          nome: formData.nome,
+          valor: parseFloat(formData.valor)
+        }])
+        .select()
+        .single();
+        
+      if (error) {
+        toast.error("Erro ao cadastrar serviço");
+        console.error(error);
+        return;
+      }
+      
+      if (data) {
+        setServicos([...servicos, data]);
+      }
       toast.success("Serviço cadastrado com sucesso!");
     }
     
@@ -62,7 +116,21 @@ const Servicos = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    
+    const { error } = await supabase
+      .from('servicos')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+      
+    if (error) {
+      toast.error("Erro ao remover serviço");
+      console.error(error);
+      return;
+    }
+    
     setServicos(servicos.filter(s => s.id !== id));
     toast.success("Serviço removido com sucesso!");
   };

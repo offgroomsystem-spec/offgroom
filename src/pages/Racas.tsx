@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Raca {
   id: string;
@@ -15,14 +17,36 @@ interface Raca {
 }
 
 const Racas = () => {
-  const [racas, setRacas] = useState<Raca[]>(() => {
-    const saved = localStorage.getItem('racas');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user } = useAuth();
+  const [racas, setRacas] = useState<Raca[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch racas from Supabase
   useEffect(() => {
-    localStorage.setItem('racas', JSON.stringify(racas));
-  }, [racas]);
+    if (!user) return;
+    
+    const fetchRacas = async () => {
+      const { data, error } = await supabase
+        .from('racas')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching breeds:', error);
+        toast.error('Erro ao carregar raças');
+      } else {
+        const mappedRacas = (data || []).map(r => ({
+          id: r.id,
+          nome: r.nome,
+          porte: '' // Will update database schema later
+        }));
+        setRacas(mappedRacas);
+      }
+      setLoading(false);
+    };
+    
+    fetchRacas();
+  }, [user]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRaca, setEditingRaca] = useState<Raca | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,20 +57,54 @@ const Racas = () => {
     porte: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+    
     if (editingRaca) {
+      const { error } = await supabase
+        .from('racas')
+        .update({
+          nome: formData.nome,
+          porte: formData.porte
+        })
+        .eq('id', editingRaca.id)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        toast.error("Erro ao atualizar raça");
+        console.error(error);
+        return;
+      }
+      
       setRacas(racas.map(r => 
         r.id === editingRaca.id ? { ...formData, id: editingRaca.id } : r
       ));
       toast.success("Raça atualizada com sucesso!");
     } else {
-      const novaRaca: Raca = {
-        ...formData,
-        id: Date.now().toString(),
-      };
-      setRacas([...racas, novaRaca]);
+      const { data, error } = await supabase
+        .from('racas')
+        .insert([{
+          user_id: user.id,
+          nome: formData.nome,
+          porte: formData.porte
+        }])
+        .select()
+        .single();
+        
+      if (error) {
+        toast.error("Erro ao cadastrar raça");
+        console.error(error);
+        return;
+      }
+      
+      if (data) {
+        setRacas([...racas, { id: data.id, nome: data.nome, porte: formData.porte }]);
+      }
       toast.success("Raça cadastrada com sucesso!");
     }
     
@@ -65,7 +123,21 @@ const Racas = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    
+    const { error } = await supabase
+      .from('racas')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+      
+    if (error) {
+      toast.error("Erro ao remover raça");
+      console.error(error);
+      return;
+    }
+    
     setRacas(racas.filter(r => r.id !== id));
     toast.success("Raça removida com sucesso!");
   };

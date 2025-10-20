@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Raca {
   id: string;
@@ -27,15 +29,9 @@ interface Cliente {
 }
 
 const Clientes = () => {
-  const [clientes, setClientes] = useState<Cliente[]>(() => {
-    const saved = localStorage.getItem('clientes');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  useEffect(() => {
-    localStorage.setItem('clientes', JSON.stringify(clientes));
-  }, [clientes]);
-  
+  const { user } = useAuth();
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loading, setLoading] = useState(true);
   const [racas, setRacas] = useState<Raca[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -51,17 +47,70 @@ const Clientes = () => {
     observacao: "",
   });
 
+  // Fetch clientes from Supabase
   useEffect(() => {
-    const saved = localStorage.getItem('racas');
-    if (saved) {
-      setRacas(JSON.parse(saved));
-    }
-  }, []);
+    if (!user) return;
+    
+    const fetchClientes = async () => {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching clients:', error);
+        toast.error('Erro ao carregar clientes');
+      } else {
+        const mappedClientes = (data || []).map(c => ({
+          id: c.id,
+          nomeCliente: c.nome_cliente,
+          nomePet: c.nome_pet,
+          porte: c.porte,
+          raca: c.raca,
+          whatsapp: c.whatsapp,
+          endereco: c.endereco || '',
+          observacao: c.observacao || ''
+        }));
+        setClientes(mappedClientes);
+      }
+      setLoading(false);
+    };
+    
+    fetchClientes();
+  }, [user]);
+
+  // Fetch racas from Supabase
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchRacas = async () => {
+      const { data, error } = await supabase
+        .from('racas')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (!error && data) {
+        const mappedRacas = data.map(r => ({
+          id: r.id,
+          nome: r.nome,
+          porte: '' // Racas table doesn't have porte field in database
+        }));
+        setRacas(mappedRacas);
+      }
+    };
+    
+    fetchRacas();
+  }, [user]);
 
   const racasFiltradas = racas.filter(raca => raca.porte === formData.porte);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
     
     if (!formData.nomeCliente.trim()) {
       toast.error("Favor preencher o Nome do Cliente");
@@ -83,19 +132,66 @@ const Clientes = () => {
       toast.error("Favor preencher o WhatsApp com 11 dígitos (DDD + número)");
       return;
     }
-    // Endereço não é mais obrigatório
     
     if (editingCliente) {
+      const { error } = await supabase
+        .from('clientes')
+        .update({
+          nome_cliente: formData.nomeCliente,
+          nome_pet: formData.nomePet,
+          porte: formData.porte,
+          raca: formData.raca,
+          whatsapp: formData.whatsapp,
+          endereco: formData.endereco,
+          observacao: formData.observacao
+        })
+        .eq('id', editingCliente.id)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        toast.error("Erro ao atualizar cliente");
+        console.error(error);
+        return;
+      }
+      
       setClientes(clientes.map(c => 
         c.id === editingCliente.id ? { ...formData, id: editingCliente.id } : c
       ));
       toast.success("Cliente atualizado com sucesso!");
     } else {
-      const novoCliente: Cliente = {
-        ...formData,
-        id: Date.now().toString(),
-      };
-      setClientes([...clientes, novoCliente]);
+      const { data, error } = await supabase
+        .from('clientes')
+        .insert([{
+          user_id: user.id,
+          nome_cliente: formData.nomeCliente,
+          nome_pet: formData.nomePet,
+          porte: formData.porte,
+          raca: formData.raca,
+          whatsapp: formData.whatsapp,
+          endereco: formData.endereco,
+          observacao: formData.observacao
+        }])
+        .select()
+        .single();
+        
+      if (error) {
+        toast.error("Erro ao cadastrar cliente");
+        console.error(error);
+        return;
+      }
+      
+      if (data) {
+        setClientes([...clientes, {
+          id: data.id,
+          nomeCliente: data.nome_cliente,
+          nomePet: data.nome_pet,
+          porte: data.porte,
+          raca: data.raca,
+          whatsapp: data.whatsapp,
+          endereco: data.endereco || '',
+          observacao: data.observacao || ''
+        }]);
+      }
       toast.success("Cliente cadastrado com sucesso!");
     }
     
@@ -122,7 +218,21 @@ const Clientes = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    
+    const { error } = await supabase
+      .from('clientes')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+      
+    if (error) {
+      toast.error("Erro ao remover cliente");
+      console.error(error);
+      return;
+    }
+    
     setClientes(clientes.filter(c => c.id !== id));
     toast.success("Cliente removido com sucesso!");
   };
