@@ -7,8 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface Servico {
   id: string;
@@ -34,10 +32,14 @@ interface Pacote {
 }
 
 const Pacotes = () => {
-  const { user } = useAuth();
-  const [pacotes, setPacotes] = useState<Pacote[]>([]);
-  const [servicos, setServicos] = useState<Servico[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pacotes, setPacotes] = useState<Pacote[]>(() => {
+    const saved = localStorage.getItem("pacotes");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [servicos, setServicos] = useState<Servico[]>(() => {
+    const saved = localStorage.getItem("servicos");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPacote, setEditingPacote] = useState<Pacote | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,57 +53,14 @@ const Pacotes = () => {
     descontoValor: "",
   });
 
-  // Carregar dados do Supabase
+  // Salvar no localStorage
   useEffect(() => {
-    if (user) {
-      loadServicos();
-      loadPacotes();
-    }
-  }, [user]);
+    localStorage.setItem("pacotes", JSON.stringify(pacotes));
+  }, [pacotes]);
 
-  const loadServicos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('servicos')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('nome');
-      
-      if (error) throw error;
-      setServicos(data || []);
-    } catch (error: any) {
-      toast.error("Erro ao carregar serviços: " + error.message);
-    }
-  };
-
-  const loadPacotes = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('pacotes')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      const pacotesFormatados = data?.map(p => ({
-        id: p.id,
-        nome: p.nome,
-        servicos: p.servicos as ServicoSelecionado[],
-        validade: p.validade,
-        descontoPercentual: p.desconto_percentual,
-        descontoValor: p.desconto_valor,
-        valorFinal: p.valor_final
-      })) || [];
-      
-      setPacotes(pacotesFormatados);
-    } catch (error: any) {
-      toast.error("Erro ao carregar pacotes: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    localStorage.setItem("servicos", JSON.stringify(servicos));
+  }, [servicos]);
 
   // Calcular valor total dos serviços
   const valorTotalServicos = servicosSelecionados.reduce((acc, s) => acc + s.valor, 0);
@@ -160,64 +119,43 @@ const Pacotes = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user) {
-      toast.error("Usuário não autenticado");
-      return;
-    }
 
     if (!formData.nome) {
       toast.error("Favor preencher o Nome do Pacote");
       return;
     }
+
     if (servicosSelecionados.length === 0) {
-      toast.error("Favor adicionar ao menos um serviço ao pacote");
-      return;
-    }
-    if (!formData.validade) {
-      toast.error("Favor preencher a Válidade do Pacote");
+      toast.error("Favor adicionar pelo menos um serviço!");
       return;
     }
 
-    const descontoValor = parseFloat(formData.descontoValor) || 0;
-    const valorFinal = valorTotalServicos - descontoValor;
+    // Calcular valores
     const valorTotalSemDesconto = servicosSelecionados.reduce((acc, s) => acc + s.valor, 0);
+    const descontoValor = parseFloat(formData.descontoValor) || 0;
+    const descontoPercentual = parseFloat(formData.descontoPercentual) || 0;
+    const descontoTotal = descontoValor + (valorTotalSemDesconto * descontoPercentual / 100);
+    const valorFinal = valorTotalSemDesconto - descontoTotal;
 
-    try {
-      const pacoteData = {
-        user_id: user.id,
-        nome: formData.nome,
-        servicos: servicosSelecionados,
-        validade: formData.validade,
-        desconto_percentual: parseFloat(formData.descontoPercentual) || 0,
-        desconto_valor: descontoValor,
-        valor_final: valorFinal,
-        valor: valorTotalSemDesconto
-      };
+    const novoPacote: Pacote = {
+      id: editingPacote?.id || Date.now().toString(),
+      nome: formData.nome,
+      servicos: servicosSelecionados,
+      validade: formData.validade,
+      descontoPercentual: parseFloat(formData.descontoPercentual) || 0,
+      descontoValor: descontoValor,
+      valorFinal: valorFinal
+    };
 
-      if (editingPacote) {
-        const { error } = await supabase
-          .from('pacotes')
-          .update(pacoteData)
-          .eq('id', editingPacote.id)
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        toast.success("Pacote atualizado com sucesso!");
-      } else {
-        const { error } = await supabase
-          .from('pacotes')
-          .insert([pacoteData]);
-        
-        if (error) throw error;
-        toast.success("Pacote cadastrado com sucesso!");
-      }
-
-      await loadPacotes();
-      resetForm();
-    } catch (error: any) {
-      toast.error("Erro ao salvar pacote: " + error.message);
+    if (editingPacote) {
+      setPacotes(pacotes.map(p => p.id === editingPacote.id ? novoPacote : p));
+      toast.success("Pacote atualizado com sucesso!");
+    } else {
+      setPacotes([novoPacote, ...pacotes]);
+      toast.success("Pacote cadastrado com sucesso!");
     }
+
+    resetForm();
   };
 
   const resetForm = () => {
@@ -250,22 +188,8 @@ const Pacotes = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('pacotes')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      toast.success("Pacote removido com sucesso!");
-      await loadPacotes();
-    } catch (error: any) {
-      toast.error("Erro ao excluir pacote: " + error.message);
-    }
+    setPacotes(pacotes.filter(p => p.id !== id));
+    toast.success("Pacote removido com sucesso!");
   };
 
   const filteredPacotes = pacotes.filter(pacote =>
