@@ -74,6 +74,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    
+    // Clear all sensitive data from localStorage
+    const keysToRemove = [
+      'agendamentos',
+      'agendamentosPacotes',
+      'lancamentos_financeiros',
+      'contas_bancarias',
+      'empresaConfig',
+      'groomers',
+      'pacotes',
+      'produtos',
+      'receitas',
+      'despesas',
+      'servicos',
+      'clientes',
+      'racas'
+    ];
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    setUser(null);
+    setSession(null);
     setProfile(null);
   };
 

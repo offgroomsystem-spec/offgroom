@@ -5,38 +5,55 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ContaBancaria {
   id: string;
-  nomeBanco: string;
+  nome: string;
   saldo: number;
 }
 
 const ContasBancarias = () => {
-  const [contas, setContas] = useState<ContaBancaria[]>(() => {
-    const saved = localStorage.getItem('contas_bancarias');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const { user } = useAuth();
+  const [contas, setContas] = useState<ContaBancaria[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [contaSelecionada, setContaSelecionada] = useState<ContaBancaria | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState<{
-    nomeBanco: string;
+    nome: string;
     saldo: number;
   }>({
-    nomeBanco: "",
+    nome: "",
     saldo: 0,
   });
 
+  // Fetch contas from Supabase
   useEffect(() => {
-    localStorage.setItem('contas_bancarias', JSON.stringify(contas));
-  }, [contas]);
+    if (!user) return;
+    
+    const fetchContas = async () => {
+      const { data, error } = await supabase
+        .from('contas_bancarias')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching contas:', error);
+        toast.error('Erro ao carregar contas bancárias');
+      } else {
+        setContas(data || []);
+      }
+      setLoading(false);
+    };
+    
+    fetchContas();
+  }, [user]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -45,56 +62,90 @@ const ContasBancarias = () => {
     }).format(value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.nomeBanco.trim()) {
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+    
+    if (!formData.nome.trim()) {
       toast.error("Favor preencher o nome do banco");
       return;
     }
     
-    const novaConta: ContaBancaria = {
-      id: Date.now().toString(),
-      nomeBanco: formData.nomeBanco,
-      saldo: formData.saldo,
-    };
-    
-    setContas([...contas, novaConta]);
-    toast.success("Conta bancária cadastrada com sucesso!");
-    resetForm();
+    const { data, error } = await supabase
+      .from('contas_bancarias')
+      .insert({
+        user_id: user.id,
+        nome: formData.nome,
+        saldo: formData.saldo
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error inserting conta:', error);
+      toast.error('Erro ao cadastrar conta bancária');
+    } else {
+      setContas([...contas, data]);
+      toast.success("Conta bancária cadastrada com sucesso!");
+      resetForm();
+    }
   };
 
-  const handleEditar = () => {
-    if (!contaSelecionada) return;
+  const handleEditar = async () => {
+    if (!contaSelecionada || !user) return;
     
-    if (!formData.nomeBanco.trim()) {
+    if (!formData.nome.trim()) {
       toast.error("Favor preencher o nome do banco");
       return;
     }
     
-    setContas(contas.map(c => 
-      c.id === contaSelecionada.id 
-        ? { 
-            ...contaSelecionada, 
-            nomeBanco: formData.nomeBanco,
-            saldo: formData.saldo,
-          }
-        : c
-    ));
-    
-    toast.success("Conta bancária atualizada com sucesso!");
-    resetForm();
-    setContaSelecionada(null);
-    setIsEditDialogOpen(false);
+    const { error } = await supabase
+      .from('contas_bancarias')
+      .update({
+        nome: formData.nome,
+        saldo: formData.saldo
+      })
+      .eq('id', contaSelecionada.id)
+      .eq('user_id', user.id);
+      
+    if (error) {
+      console.error('Error updating conta:', error);
+      toast.error('Erro ao atualizar conta bancária');
+    } else {
+      setContas(contas.map(c => 
+        c.id === contaSelecionada.id 
+          ? { ...c, nome: formData.nome, saldo: formData.saldo }
+          : c
+      ));
+      toast.success("Conta bancária atualizada com sucesso!");
+      resetForm();
+      setContaSelecionada(null);
+      setIsEditDialogOpen(false);
+    }
   };
 
-  const handleExcluir = () => {
-    if (!contaSelecionada) return;
+  const handleExcluir = async () => {
+    if (!contaSelecionada || !user) return;
     
-    setContas(contas.filter(c => c.id !== contaSelecionada.id));
-    toast.success("Conta bancária excluída com sucesso!");
-    setContaSelecionada(null);
-    setIsDeleteDialogOpen(false);
+    const { error } = await supabase
+      .from('contas_bancarias')
+      .delete()
+      .eq('id', contaSelecionada.id)
+      .eq('user_id', user.id);
+      
+    if (error) {
+      console.error('Error deleting conta:', error);
+      toast.error('Erro ao excluir conta bancária');
+    } else {
+      setContas(contas.filter(c => c.id !== contaSelecionada.id));
+      toast.success("Conta bancária excluída com sucesso!");
+      setContaSelecionada(null);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const handleSelecionarConta = (conta: ContaBancaria) => {
@@ -103,7 +154,7 @@ const ContasBancarias = () => {
 
   const resetForm = () => {
     setFormData({ 
-      nomeBanco: "", 
+      nome: "", 
       saldo: 0 
     });
     setIsDialogOpen(false);
@@ -112,11 +163,15 @@ const ContasBancarias = () => {
   const abrirEdicao = () => {
     if (!contaSelecionada) return;
     setFormData({
-      nomeBanco: contaSelecionada.nomeBanco,
+      nome: contaSelecionada.nome,
       saldo: contaSelecionada.saldo,
     });
     setIsEditDialogOpen(true);
   };
+
+  if (loading) {
+    return <div className="p-4">Carregando...</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -140,11 +195,11 @@ const ContasBancarias = () => {
               
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="space-y-1">
-                  <Label htmlFor="nomeBanco" className="text-xs">Nome do Banco *</Label>
+                  <Label htmlFor="nome" className="text-xs">Nome do Banco *</Label>
                   <Input
-                    id="nomeBanco"
-                    value={formData.nomeBanco}
-                    onChange={(e) => setFormData({ ...formData, nomeBanco: e.target.value })}
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                     className="h-8 text-xs"
                     placeholder="Ex: Banco do Brasil"
                   />
@@ -215,7 +270,7 @@ const ContasBancarias = () => {
               onClick={() => handleSelecionarConta(conta)}
             >
               <CardHeader className="py-3">
-                <CardTitle className="text-sm">{conta.nomeBanco}</CardTitle>
+                <CardTitle className="text-sm">{conta.nome}</CardTitle>
                 <CardDescription className="text-xs space-y-1">
                   <div className="text-xs text-muted-foreground">
                     <div className="font-semibold">Saldo: {formatCurrency(conta.saldo)}</div>
@@ -232,7 +287,7 @@ const ContasBancarias = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que gostaria de excluir a Conta "{contaSelecionada?.nomeBanco}"?
+              Tem certeza que gostaria de excluir a Conta "{contaSelecionada?.nome}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -251,17 +306,17 @@ const ContasBancarias = () => {
           <DialogHeader>
             <DialogTitle>Editar Conta Bancária</DialogTitle>
             <DialogDescription className="text-xs">
-              Tem certeza que gostaria de editar a Conta "{contaSelecionada?.nomeBanco}"?
+              Tem certeza que gostaria de editar a Conta "{contaSelecionada?.nome}"?
             </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={(e) => { e.preventDefault(); handleEditar(); }} className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="nomeBanco-edit" className="text-xs">Nome do Banco *</Label>
+              <Label htmlFor="nome-edit" className="text-xs">Nome do Banco *</Label>
               <Input
-                id="nomeBanco-edit"
-                value={formData.nomeBanco}
-                onChange={(e) => setFormData({ ...formData, nomeBanco: e.target.value })}
+                id="nome-edit"
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                 className="h-8 text-xs"
                 placeholder="Ex: Banco do Brasil"
               />

@@ -4,8 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EmpresaConfig {
+  id?: string;
   bordao: string;
   horarioInicio: string;
   horarioFim: string;
@@ -17,25 +20,76 @@ interface Groomer {
 }
 
 const Empresa = () => {
-  const [formData, setFormData] = useState<EmpresaConfig>(() => {
-    const saved = localStorage.getItem('empresaConfig');
-    return saved ? JSON.parse(saved) : {
-      bordao: "",
-      horarioInicio: "",
-      horarioFim: "",
-    };
+  const { user } = useAuth();
+  const [formData, setFormData] = useState<EmpresaConfig>({
+    bordao: "",
+    horarioInicio: "",
+    horarioFim: "",
   });
-
-  const [groomers, setGroomers] = useState<Groomer[]>(() => {
-    const saved = localStorage.getItem('groomers');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [groomers, setGroomers] = useState<Groomer[]>([]);
   const [novoGroomer, setNovoGroomer] = useState("");
   const [editandoGroomer, setEditandoGroomer] = useState<Groomer | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch empresa config from Supabase
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchEmpresa = async () => {
+      const { data, error } = await supabase
+        .from('empresa_config')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching empresa:', error);
+      } else if (data) {
+        const empresaData = data as any;
+        setFormData({
+          id: empresaData.id,
+          bordao: empresaData.bordao || '',
+          horarioInicio: empresaData.horario_inicio || '',
+          horarioFim: empresaData.horario_fim || ''
+        });
+      }
+      setLoading(false);
+    };
+    
+    fetchEmpresa();
+  }, [user]);
+
+  // Fetch groomers from Supabase
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchGroomers = async () => {
+      const { data, error } = await (supabase as any)
+        .from('groomers')
+        .select('id, nome')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching groomers:', error);
+      } else if (data) {
+        const groomersData: Groomer[] = data.map((g: any) => ({
+          id: g.id,
+          nome: g.nome
+        }));
+        setGroomers(groomersData);
+      }
+    };
+    
+    fetchGroomers();
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
     
     // Validar bordão (máximo 50 caracteres)
     if (formData.bordao.length > 50) {
@@ -43,11 +97,53 @@ const Empresa = () => {
       return;
     }
 
-    localStorage.setItem('empresaConfig', JSON.stringify(formData));
-    toast.success("Dados da empresa salvos com sucesso!");
+    if (formData.id) {
+      // Update existing
+      const { error } = await supabase
+        .from('empresa_config')
+        .update({
+          bordao: formData.bordao,
+          horario_inicio: formData.horarioInicio,
+          horario_fim: formData.horarioFim
+        })
+        .eq('id', formData.id)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error updating empresa:', error);
+        toast.error('Erro ao atualizar dados da empresa');
+      } else {
+        toast.success("Dados da empresa salvos com sucesso!");
+      }
+    } else {
+      // Insert new
+      const { data, error } = await supabase
+        .from('empresa_config')
+        .insert({
+          user_id: user.id,
+          bordao: formData.bordao,
+          horario_inicio: formData.horarioInicio,
+          horario_fim: formData.horarioFim
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error inserting empresa:', error);
+        toast.error('Erro ao salvar dados da empresa');
+      } else {
+        setFormData({ ...formData, id: data.id });
+        toast.success("Dados da empresa salvos com sucesso!");
+      }
+    }
   };
 
-  const handleAdicionarGroomer = () => {
+  const handleAdicionarGroomer = async () => {
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+    
     if (!novoGroomer.trim()) {
       toast.error("Nome do groomer não pode estar vazio");
       return;
@@ -58,16 +154,27 @@ const Empresa = () => {
       return;
     }
 
-    const novoGroomerObj: Groomer = {
-      id: Date.now().toString(),
-      nome: novoGroomer.trim()
-    };
-
-    const updatedGroomers = [...groomers, novoGroomerObj];
-    setGroomers(updatedGroomers);
-    localStorage.setItem('groomers', JSON.stringify(updatedGroomers));
-    setNovoGroomer("");
-    toast.success("Groomer adicionado com sucesso!");
+    const { data, error } = await (supabase as any)
+      .from('groomers')
+      .insert({
+        user_id: user.id,
+        nome: novoGroomer.trim()
+      })
+      .select('id, nome')
+      .single();
+      
+    if (error) {
+      console.error('Error adding groomer:', error);
+      toast.error('Erro ao adicionar groomer');
+    } else if (data) {
+      const newGroomer: Groomer = {
+        id: (data as any).id,
+        nome: (data as any).nome
+      };
+      setGroomers([...groomers, newGroomer]);
+      setNovoGroomer("");
+      toast.success("Groomer adicionado com sucesso!");
+    }
   };
 
   const handleEditarGroomer = (groomer: Groomer) => {
@@ -75,29 +182,56 @@ const Empresa = () => {
     setNovoGroomer(groomer.nome);
   };
 
-  const handleSalvarEdicaoGroomer = () => {
-    if (!editandoGroomer) return;
+  const handleSalvarEdicaoGroomer = async () => {
+    if (!editandoGroomer || !user) return;
+    
     if (!novoGroomer.trim()) {
       toast.error("Nome do groomer não pode estar vazio");
       return;
     }
 
-    const updatedGroomers = groomers.map(g => 
-      g.id === editandoGroomer.id ? { ...g, nome: novoGroomer.trim() } : g
-    );
-    setGroomers(updatedGroomers);
-    localStorage.setItem('groomers', JSON.stringify(updatedGroomers));
-    setEditandoGroomer(null);
-    setNovoGroomer("");
-    toast.success("Groomer atualizado com sucesso!");
+    const { error } = await (supabase as any)
+      .from('groomers')
+      .update({ nome: novoGroomer.trim() })
+      .eq('id', editandoGroomer.id)
+      .eq('user_id', user.id);
+      
+    if (error) {
+      console.error('Error updating groomer:', error);
+      toast.error('Erro ao atualizar groomer');
+    } else {
+      const updatedGroomers = groomers.map(g => 
+        g.id === editandoGroomer.id ? { id: g.id, nome: novoGroomer.trim() } : g
+      );
+      setGroomers(updatedGroomers);
+      setEditandoGroomer(null);
+      setNovoGroomer("");
+      toast.success("Groomer atualizado com sucesso!");
+    }
   };
 
-  const handleExcluirGroomer = (id: string) => {
-    const updatedGroomers = groomers.filter(g => g.id !== id);
-    setGroomers(updatedGroomers);
-    localStorage.setItem('groomers', JSON.stringify(updatedGroomers));
-    toast.success("Groomer excluído com sucesso!");
+  const handleExcluirGroomer = async (id: string) => {
+    if (!user) return;
+    
+    const { error } = await (supabase as any)
+      .from('groomers')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+      
+    if (error) {
+      console.error('Error deleting groomer:', error);
+      toast.error('Erro ao excluir groomer');
+    } else {
+      const updatedGroomers = groomers.filter(g => g.id !== id);
+      setGroomers(updatedGroomers);
+      toast.success("Groomer excluído com sucesso!");
+    }
   };
+
+  if (loading) {
+    return <div className="p-4">Carregando...</div>;
+  }
 
   return (
     <div className="space-y-6">
