@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Pencil, Trash2, Plus, Filter, X } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Produto {
   id: string;
@@ -22,10 +24,9 @@ interface Produto {
 }
 
 const Produtos = () => {
-  const [produtos, setProdutos] = useState<Produto[]>(() => {
-    const saved = localStorage.getItem('produtos');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user } = useAuth();
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -47,10 +48,44 @@ const Produtos = () => {
     valorVenda: ""
   });
 
-  // Persistir no localStorage
+  // Carregar produtos do Supabase
   useEffect(() => {
-    localStorage.setItem('produtos', JSON.stringify(produtos));
-  }, [produtos]);
+    if (user) {
+      loadProdutos();
+    }
+  }, [user]);
+
+  const loadProdutos = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('produtos')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const produtosFormatados = data?.map(p => ({
+        id: p.id,
+        descricao: p.descricao || p.nome,
+        precoCusto: p.preco_custo,
+        margemLucro: p.margem_lucro,
+        imposto: p.imposto,
+        taxaCartao: p.taxa_cartao,
+        codigo: p.codigo,
+        valorVenda: p.valor,
+        lucroUnitario: p.lucro_unitario,
+        dataCadastro: p.created_at
+      })) || [];
+      
+      setProdutos(produtosFormatados);
+    } catch (error: any) {
+      toast.error("Erro ao carregar produtos: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Gerar próximo código automático
   const gerarProximoCodigo = (): string => {
@@ -170,8 +205,13 @@ const Produtos = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
 
     // Validações
     if (!formData.descricao.trim()) {
@@ -183,7 +223,6 @@ const Produtos = () => {
       toast.error("Favor preencher o preço de custo do produto!");
       return;
     }
-
 
     if (!formData.codigo || formData.codigo.length !== 13) {
       toast.error("O código deve ter exatamente 13 dígitos!");
@@ -205,37 +244,64 @@ const Produtos = () => {
       return;
     }
 
-    const novoProduto: Produto = {
-      id: produtoSelecionado?.id || Date.now().toString(),
-      descricao: formData.descricao.trim(),
-      precoCusto: parseFloat(formData.precoCusto),
-      margemLucro: parseFloat(formData.margemLucro) || 0,
-      imposto: parseFloat(formData.imposto) || 0,
-      taxaCartao: parseFloat(formData.taxaCartao) || 0,
-      codigo: formData.codigo,
-      valorVenda: parseFloat(formData.valorVenda),
-      lucroUnitario: calcularValores.lucroUnitario,
-      dataCadastro: produtoSelecionado?.dataCadastro || new Date().toISOString()
-    };
+    try {
+      const produtoData = {
+        user_id: user.id,
+        nome: formData.descricao.trim(),
+        descricao: formData.descricao.trim(),
+        preco_custo: parseFloat(formData.precoCusto),
+        margem_lucro: parseFloat(formData.margemLucro) || 0,
+        imposto: parseFloat(formData.imposto) || 0,
+        taxa_cartao: parseFloat(formData.taxaCartao) || 0,
+        codigo: formData.codigo,
+        valor: parseFloat(formData.valorVenda),
+        lucro_unitario: calcularValores.lucroUnitario
+      };
 
-    if (produtoSelecionado) {
-      setProdutos(produtos.map(p => p.id === produtoSelecionado.id ? novoProduto : p));
-      toast.success("Produto atualizado com sucesso!");
-    } else {
-      setProdutos([...produtos, novoProduto]);
-      toast.success("Produto cadastrado com sucesso!");
+      if (produtoSelecionado) {
+        const { error } = await supabase
+          .from('produtos')
+          .update(produtoData)
+          .eq('id', produtoSelecionado.id)
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        toast.success("Produto atualizado com sucesso!");
+      } else {
+        const { error } = await supabase
+          .from('produtos')
+          .insert([produtoData]);
+        
+        if (error) throw error;
+        toast.success("Produto cadastrado com sucesso!");
+      }
+
+      await loadProdutos();
+      resetForm();
+    } catch (error: any) {
+      toast.error("Erro ao salvar produto: " + error.message);
     }
-
-    resetForm();
   };
 
-  const handleExcluir = () => {
-    if (!produtoSelecionado) return;
+  const handleExcluir = async () => {
+    if (!produtoSelecionado || !user) return;
     
-    setProdutos(produtos.filter(p => p.id !== produtoSelecionado.id));
-    toast.success(`Produto "${produtoSelecionado.descricao}" excluído com sucesso!`);
-    setIsDeleteDialogOpen(false);
-    setProdutoSelecionado(null);
+    try {
+      const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', produtoSelecionado.id)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      toast.success(`Produto "${produtoSelecionado.descricao}" excluído com sucesso!`);
+      await loadProdutos();
+      setIsDeleteDialogOpen(false);
+      setProdutoSelecionado(null);
+    } catch (error: any) {
+      toast.error("Erro ao excluir produto: " + error.message);
+    }
   };
 
   // Lógica de Filtragem
