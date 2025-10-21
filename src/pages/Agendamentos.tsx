@@ -362,29 +362,43 @@ const Agendamentos = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [agendamentoParaDeletar, setAgendamentoParaDeletar] = useState<AgendamentoUnificado | null>(null);
 
-  // Carregar dados do localStorage
+  // Load agendamentos pacotes from Supabase
+  const loadAgendamentosPacotes = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('agendamentos_pacotes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('data_venda', { ascending: false });
+
+      if (error) throw error;
+
+      const pacotesFormatados = (data || []).map((ap: any) => ({
+        id: ap.id,
+        nomeCliente: ap.nome_cliente,
+        nomePet: ap.nome_pet,
+        raca: ap.raca,
+        whatsapp: ap.whatsapp,
+        nomePacote: ap.nome_pacote,
+        taxiDog: ap.taxi_dog,
+        dataVenda: ap.data_venda,
+        servicos: ap.servicos || []
+      }));
+
+      setAgendamentosPacotes(pacotesFormatados);
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos de pacotes:', error);
+      toast.error('Erro ao carregar agendamentos de pacotes');
+    }
+  };
+
   useEffect(() => {
-    const savedClientes = localStorage.getItem('clientes');
-    if (savedClientes) {
-      setClientes(JSON.parse(savedClientes));
+    if (user) {
+      loadAgendamentosPacotes();
     }
-    const savedPacotes = localStorage.getItem('pacotes');
-    if (savedPacotes) {
-      setPacotes(JSON.parse(savedPacotes));
-    }
-    const savedServicos = localStorage.getItem('servicos');
-    if (savedServicos) {
-      setServicos(JSON.parse(savedServicos));
-    }
-    const savedEmpresa = localStorage.getItem('empresaConfig');
-    if (savedEmpresa) {
-      setEmpresaConfig(JSON.parse(savedEmpresa));
-    }
-    const savedGroomers = localStorage.getItem('groomers');
-    if (savedGroomers) {
-      setGroomers(JSON.parse(savedGroomers));
-    }
-  }, []);
+  }, [user]);
 
   // Busca inteligente por cliente (Pacotes)
   useEffect(() => {
@@ -581,8 +595,10 @@ const Agendamentos = () => {
     });
   };
   const weekDates = getWeekDates();
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     if (!formData.data) {
       toast.error("Favor preencher a Data do Agendamento");
       return;
@@ -607,16 +623,39 @@ const Agendamentos = () => {
       toast.error("Favor selecionar o número do serviço!");
       return;
     }
+
     const horarioTermino = calcularHorarioTermino(formData.horario, formData.tempoServico);
-    const novoAgendamento: Agendamento = {
-      ...formData,
-      id: Date.now().toString(),
-      status: "confirmado",
-      horarioTermino
-    };
-    setAgendamentos([...agendamentos, novoAgendamento]);
-    toast.success("Agendamento criado com sucesso!");
-    resetForm();
+
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .insert([{
+          user_id: user.id,
+          cliente: formData.cliente,
+          pet: formData.pet,
+          raca: formData.raca,
+          whatsapp: formData.whatsapp,
+          servico: formData.servico,
+          data: formData.data,
+          horario: formData.horario,
+          tempo_servico: formData.tempoServico,
+          horario_termino: horarioTermino,
+          data_venda: formData.dataVenda,
+          numero_servico_pacote: formData.numeroServicoPacote || null,
+          groomer: formData.groomer,
+          taxi_dog: formData.taxiDog,
+          status: "confirmado"
+        }]);
+
+      if (error) throw error;
+
+      toast.success("Agendamento criado com sucesso!");
+      await loadAgendamentos();
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao criar agendamento:', error);
+      toast.error('Erro ao criar agendamento');
+    }
   };
   const resetForm = () => {
     setFormData({
@@ -733,8 +772,10 @@ const Agendamentos = () => {
     });
     setServicosAgendamento(updated);
   };
-  const handlePacoteSubmit = (e: React.FormEvent) => {
+  const handlePacoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     if (!pacoteFormData.nomeCliente.trim()) {
       toast.error("Favor preencher o Nome do Cliente");
       return;
@@ -776,20 +817,31 @@ const Agendamentos = () => {
         return;
       }
     }
-    const novoAgendamentoPacote: AgendamentoPacote = {
-      id: Date.now().toString(),
-      nomeCliente: pacoteFormData.nomeCliente,
-      nomePet: pacoteFormData.nomePet,
-      raca: pacoteFormData.raca,
-      whatsapp: pacoteFormData.whatsapp,
-      nomePacote: pacoteFormData.nomePacote,
-      taxiDog: pacoteFormData.taxiDog,
-      dataVenda: pacoteFormData.dataVenda,
-      servicos: servicosAgendamento
-    };
-    setAgendamentosPacotes([...agendamentosPacotes, novoAgendamentoPacote]);
-    toast.success("Pacote agendado com sucesso!");
-    resetPacoteForm();
+
+    try {
+      const { error } = await supabase
+        .from('agendamentos_pacotes')
+        .insert([{
+          user_id: user.id,
+          nome_cliente: pacoteFormData.nomeCliente,
+          nome_pet: pacoteFormData.nomePet,
+          raca: pacoteFormData.raca,
+          whatsapp: pacoteFormData.whatsapp,
+          nome_pacote: pacoteFormData.nomePacote,
+          taxi_dog: pacoteFormData.taxiDog,
+          data_venda: pacoteFormData.dataVenda,
+          servicos: servicosAgendamento as any
+        }]);
+
+      if (error) throw error;
+
+      toast.success("Pacote agendado com sucesso!");
+      await loadAgendamentosPacotes();
+      resetPacoteForm();
+    } catch (error) {
+      console.error('Erro ao agendar pacote:', error);
+      toast.error('Erro ao agendar pacote');
+    }
   };
   const getAgendamentoForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
@@ -1165,44 +1217,62 @@ const Agendamentos = () => {
   };
 
   // Atualizar agendamento
-  const handleAtualizarAgendamento = () => {
-    if (!editandoAgendamento) return;
-    if (editandoAgendamento.tipo === 'simples' && editandoAgendamento.agendamentoOriginal) {
-      const updatedAgendamentos = agendamentos.map(a => a.id === editandoAgendamento.agendamentoOriginal!.id ? {
-        ...a,
-        cliente: editandoAgendamento.cliente,
-        pet: editandoAgendamento.pet,
-        raca: editandoAgendamento.raca,
-        whatsapp: editandoAgendamento.whatsapp,
-        servico: editandoAgendamento.servico,
-        data: editandoAgendamento.data,
-        horario: editandoAgendamento.horarioInicio,
-        dataVenda: editandoAgendamento.dataVenda
-      } : a);
-      setAgendamentos(updatedAgendamentos);
-      toast.success("Agendamento atualizado com sucesso!");
-    } else if (editandoAgendamento.tipo === 'pacote' && editandoAgendamento.pacoteOriginal && editandoAgendamento.servicoOriginal) {
-      const updatedPacotes = agendamentosPacotes.map(p => {
-        if (p.id === editandoAgendamento.pacoteOriginal!.id) {
-          return {
-            ...p,
-            servicos: p.servicos.map(s => s.numero === editandoAgendamento.servicoOriginal!.numero ? {
-              ...s,
-              nomeServico: editandoAgendamento.servico,
-              data: editandoAgendamento.data,
-              horarioInicio: editandoAgendamento.horarioInicio,
-              tempoServico: editandoAgendamento.tempoServico,
-              horarioTermino: calcularHorarioTermino(editandoAgendamento.horarioInicio, editandoAgendamento.tempoServico)
-            } : s)
-          };
-        }
-        return p;
-      });
-      setAgendamentosPacotes(updatedPacotes);
-      toast.success("Agendamento atualizado com sucesso!");
+  const handleAtualizarAgendamento = async () => {
+    if (!editandoAgendamento || !user) return;
+
+    try {
+      if (editandoAgendamento.tipo === 'simples' && editandoAgendamento.agendamentoOriginal) {
+        const { error } = await supabase
+          .from('agendamentos')
+          .update({
+            cliente: editandoAgendamento.cliente,
+            pet: editandoAgendamento.pet,
+            raca: editandoAgendamento.raca,
+            whatsapp: editandoAgendamento.whatsapp,
+            servico: editandoAgendamento.servico,
+            data: editandoAgendamento.data,
+            horario: editandoAgendamento.horarioInicio,
+            data_venda: editandoAgendamento.dataVenda,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editandoAgendamento.agendamentoOriginal.id);
+
+        if (error) throw error;
+
+        toast.success("Agendamento atualizado com sucesso!");
+        await loadAgendamentos();
+      } else if (editandoAgendamento.tipo === 'pacote' && editandoAgendamento.pacoteOriginal && editandoAgendamento.servicoOriginal) {
+        const updatedServicos = editandoAgendamento.pacoteOriginal.servicos.map(s => 
+          s.numero === editandoAgendamento.servicoOriginal!.numero ? {
+            ...s,
+            nomeServico: editandoAgendamento.servico,
+            data: editandoAgendamento.data,
+            horarioInicio: editandoAgendamento.horarioInicio,
+            tempoServico: editandoAgendamento.tempoServico,
+            horarioTermino: calcularHorarioTermino(editandoAgendamento.horarioInicio, editandoAgendamento.tempoServico)
+          } : s
+        );
+
+        const { error } = await supabase
+          .from('agendamentos_pacotes')
+          .update({
+            servicos: updatedServicos as any,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editandoAgendamento.pacoteOriginal.id);
+
+        if (error) throw error;
+
+        toast.success("Agendamento atualizado com sucesso!");
+        await loadAgendamentosPacotes();
+      }
+
+      setEditDialogGerenciamento(false);
+      setEditandoAgendamento(null);
+    } catch (error) {
+      console.error('Erro ao atualizar agendamento:', error);
+      toast.error('Erro ao atualizar agendamento');
     }
-    setEditDialogGerenciamento(false);
-    setEditandoAgendamento(null);
   };
 
   // Excluir agendamento
@@ -1210,33 +1280,59 @@ const Agendamentos = () => {
     setAgendamentoParaDeletar(agendamento);
     setDeleteDialogOpen(true);
   };
-  const confirmarExclusao = () => {
-    if (!agendamentoParaDeletar) return;
-    if (agendamentoParaDeletar.tipo === 'simples' && agendamentoParaDeletar.agendamentoOriginal) {
-      const updatedAgendamentos = agendamentos.filter(a => a.id !== agendamentoParaDeletar.agendamentoOriginal!.id);
-      setAgendamentos(updatedAgendamentos);
-      toast.success("Agendamento excluído com sucesso!");
-    } else if (agendamentoParaDeletar.tipo === 'pacote' && agendamentoParaDeletar.pacoteOriginal && agendamentoParaDeletar.servicoOriginal) {
-      const updatedPacotes = agendamentosPacotes.map(p => {
-        if (p.id === agendamentoParaDeletar.pacoteOriginal!.id) {
-          const servicosAtualizados = p.servicos.filter(s => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero);
-          if (servicosAtualizados.length === 0) {
-            return null;
-          }
-          return {
-            ...p,
-            servicos: servicosAtualizados
-          };
+  const confirmarExclusao = async () => {
+    if (!agendamentoParaDeletar || !user) return;
+
+    try {
+      if (agendamentoParaDeletar.tipo === 'simples' && agendamentoParaDeletar.agendamentoOriginal) {
+        const { error } = await supabase
+          .from('agendamentos')
+          .delete()
+          .eq('id', agendamentoParaDeletar.agendamentoOriginal.id);
+
+        if (error) throw error;
+
+        toast.success("Agendamento excluído com sucesso!");
+        await loadAgendamentos();
+      } else if (agendamentoParaDeletar.tipo === 'pacote' && agendamentoParaDeletar.pacoteOriginal && agendamentoParaDeletar.servicoOriginal) {
+        // Remove specific service from package or delete entire package if it's the last service
+        const servicosAtualizados = agendamentoParaDeletar.pacoteOriginal.servicos.filter(
+          s => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero
+        );
+
+        if (servicosAtualizados.length === 0) {
+          // Delete entire package if no services left
+          const { error } = await supabase
+            .from('agendamentos_pacotes')
+            .delete()
+            .eq('id', agendamentoParaDeletar.pacoteOriginal.id);
+
+          if (error) throw error;
+        } else {
+          // Update package with remaining services
+          const { error } = await supabase
+            .from('agendamentos_pacotes')
+            .update({
+              servicos: servicosAtualizados as any,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', agendamentoParaDeletar.pacoteOriginal.id);
+
+          if (error) throw error;
         }
-        return p;
-      }).filter(p => p !== null) as AgendamentoPacote[];
-      setAgendamentosPacotes(updatedPacotes);
-      toast.success("Agendamento excluído com sucesso!");
+
+        toast.success("Agendamento excluído com sucesso!");
+        await loadAgendamentosPacotes();
+      }
+
+      setDeleteDialogOpen(false);
+      setAgendamentoParaDeletar(null);
+      setEditDialogGerenciamento(false);
+      setEditandoAgendamento(null);
+    } catch (error) {
+      console.error('Erro ao excluir agendamento:', error);
+      toast.error('Erro ao excluir agendamento');
     }
-    setDeleteDialogOpen(false);
-    setAgendamentoParaDeletar(null);
-    setEditDialogGerenciamento(false);
-    setEditandoAgendamento(null);
   };
   return <div className="space-y-4">
       <div className="flex justify-between items-center">

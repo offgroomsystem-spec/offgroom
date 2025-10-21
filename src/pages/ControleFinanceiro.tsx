@@ -12,6 +12,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TrendingUp, TrendingDown, DollarSign, Filter, Plus, Edit2, Trash2, X, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Interfaces
 interface ItemLancamento {
@@ -257,16 +259,152 @@ const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos
 };
 
 const ControleFinanceiro = () => {
-  const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>(() => {
-    const saved = localStorage.getItem('lancamentos_financeiros');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
+
+  // Load financial data from Supabase
+  const loadLancamentos = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('lancamentos_financeiros')
+        .select(`
+          *,
+          lancamentos_financeiros_itens (*)
+        `)
+        .eq('user_id', user.id)
+        .order('data_cadastro', { ascending: false });
+
+      if (error) throw error;
+
+      const lancamentosFormatados = (data || []).map((l: any) => ({
+        id: l.id,
+        ano: l.ano,
+        mesCompetencia: l.mes_competencia,
+        tipo: l.tipo as "Receita" | "Despesa",
+        descricao1: l.descricao1,
+        nomeCliente: l.cliente_id ? '' : '', // Will be handled via lookup
+        nomePet: '', // Will be handled via lookup
+        itens: (l.lancamentos_financeiros_itens || []).map((i: any) => ({
+          id: i.id,
+          descricao2: i.descricao2,
+          produtoServico: i.produto_servico || '',
+          valor: Number(i.valor)
+        })),
+        valorTotal: Number(l.valor_total),
+        dataPagamento: l.data_pagamento,
+        nomeBanco: '', // Will be handled via lookup
+        pago: l.pago,
+        dataCadastro: l.data_cadastro || l.created_at
+      }));
+
+      // Map cliente_id and conta_id to names
+      const clientesData = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('user_id', user.id);
+
+      const contasData = await supabase
+        .from('contas_bancarias')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (clientesData.data && contasData.data) {
+        const clientesMap = new Map(clientesData.data.map((c: any) => [c.id, { nome: c.nome_cliente, pet: c.nome_pet }]));
+        const contasMap = new Map(contasData.data.map((c: any) => [c.id, c.nome]));
+
+        lancamentosFormatados.forEach((l: any) => {
+          const lancOriginal = data?.find((lo: any) => lo.id === l.id);
+          if (lancOriginal) {
+            const cliente = clientesMap.get(lancOriginal.cliente_id);
+            if (cliente) {
+              l.nomeCliente = cliente.nome;
+              l.nomePet = cliente.pet;
+            }
+            l.nomeBanco = contasMap.get(lancOriginal.conta_id) || '';
+          }
+        });
+      }
+
+      setLancamentos(lancamentosFormatados);
+    } catch (error) {
+      console.error('Erro ao carregar lançamentos:', error);
+      toast.error('Erro ao carregar lançamentos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load related data from Supabase
+  const loadRelatedData = async () => {
+    if (!user) return;
+
+    try {
+      const [clientesRes, contasRes, servicosRes, pacotesRes, produtosRes] = await Promise.all([
+        supabase.from('clientes').select('*').eq('user_id', user.id),
+        supabase.from('contas_bancarias').select('*').eq('user_id', user.id),
+        supabase.from('servicos').select('*').eq('user_id', user.id),
+        supabase.from('pacotes').select('*').eq('user_id', user.id),
+        supabase.from('produtos').select('*').eq('user_id', user.id)
+      ]);
+
+      if (clientesRes.data) {
+        setClientes(clientesRes.data.map((c: any) => ({
+          id: c.id,
+          nomeCliente: c.nome_cliente,
+          nomePet: c.nome_pet
+        })));
+      }
+
+      if (contasRes.data) {
+        setContas(contasRes.data.map((c: any) => ({
+          id: c.id,
+          nomeBanco: c.nome
+        })));
+      }
+
+      if (servicosRes.data) {
+        setServicos(servicosRes.data.map((s: any) => ({
+          id: s.id,
+          nome: s.nome,
+          valor: Number(s.valor)
+        })));
+      }
+
+      if (pacotesRes.data) {
+        setPacotes(pacotesRes.data.map((p: any) => ({
+          id: p.id,
+          nome: p.nome,
+          valorFinal: Number(p.valor_final)
+        })));
+      }
+
+      if (produtosRes.data) {
+        setProdutos(produtosRes.data.map((p: any) => ({
+          id: p.id,
+          descricao: p.nome,
+          valorVenda: Number(p.valor)
+        })));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados relacionados:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadLancamentos();
+      loadRelatedData();
+    }
+  }, [user]);
 
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -304,28 +442,9 @@ const ControleFinanceiro = () => {
     pago: null as boolean | null,
   });
 
+
   const [filtroDataAtivo, setFiltroDataAtivo] = useState<'periodo' | 'mesano' | null>(null);
   const [filtrosAplicados, setFiltrosAplicados] = useState(false);
-
-  // Carregar dados do localStorage
-  useEffect(() => {
-    const savedClientes = localStorage.getItem('clientes');
-    const savedContas = localStorage.getItem('contas_bancarias');
-    const savedServicos = localStorage.getItem('servicos');
-    const savedPacotes = localStorage.getItem('pacotes');
-    const savedProdutos = localStorage.getItem('produtos');
-    
-    if (savedClientes) setClientes(JSON.parse(savedClientes));
-    if (savedContas) setContas(JSON.parse(savedContas));
-    if (savedServicos) setServicos(JSON.parse(savedServicos));
-    if (savedPacotes) setPacotes(JSON.parse(savedPacotes));
-    if (savedProdutos) setProdutos(JSON.parse(savedProdutos));
-  }, []);
-
-  // Salvar lançamentos
-  useEffect(() => {
-    localStorage.setItem('lancamentos_financeiros', JSON.stringify(lancamentos));
-  }, [lancamentos]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -354,8 +473,9 @@ const ControleFinanceiro = () => {
       .map(c => c.nomeCliente))];
   }, [formData.nomePet, clientes]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
 
     if (!formData.ano) {
       toast.error("Favor selecionar o Ano de competência!");
@@ -410,33 +530,65 @@ const ControleFinanceiro = () => {
       toast.error("Favor selecionar o Banco!");
       return;
     }
-    
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
-    
-    const novoLancamento: LancamentoFinanceiro = {
-      id: Date.now().toString(),
-      ano: formData.ano,
-      mesCompetencia: formData.mesCompetencia,
-      tipo: formData.tipo as "Receita" | "Despesa",
-      descricao1: formData.descricao1,
-      nomeCliente: formData.nomeCliente,
-      nomePet: formData.nomePet,
-      itens: itensLancamento.map(item => ({
-        id: item.id,
-        descricao2: item.descricao2,
-        produtoServico: item.produtoServico,
-        valor: item.valor
-      })),
-      valorTotal: valorTotal,
-      dataPagamento: formData.dataPagamento,
-      nomeBanco: formData.nomeBanco,
-      pago: formData.pago,
-      dataCadastro: new Date().toISOString(),
-    };
 
-    setLancamentos([...lancamentos, novoLancamento]);
-    toast.success("Lançamento cadastrado com sucesso!");
-    resetForm();
+    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
+
+    try {
+      // Find cliente_id and conta_id
+      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente && c.nomePet === formData.nomePet);
+      const conta = contas.find(c => c.nomeBanco === formData.nomeBanco);
+
+      if (!cliente) {
+        toast.error("Cliente/Pet não encontrado!");
+        return;
+      }
+      if (!conta) {
+        toast.error("Conta bancária não encontrada!");
+        return;
+      }
+
+      // Insert main record
+      const { data: lancamentoData, error: lancamentoError } = await supabase
+        .from('lancamentos_financeiros')
+        .insert([{
+          user_id: user.id,
+          ano: formData.ano,
+          mes_competencia: formData.mesCompetencia,
+          tipo: formData.tipo,
+          descricao1: formData.descricao1,
+          cliente_id: cliente.id,
+          valor_total: valorTotal,
+          data_pagamento: formData.dataPagamento,
+          conta_id: conta.id,
+          pago: formData.pago,
+          observacao: null
+        }])
+        .select()
+        .single();
+
+      if (lancamentoError) throw lancamentoError;
+
+      // Insert items
+      const { error: itensError } = await supabase
+        .from('lancamentos_financeiros_itens')
+        .insert(
+          itensLancamento.map(item => ({
+            lancamento_id: lancamentoData.id,
+            descricao2: item.descricao2,
+            produto_servico: item.produtoServico,
+            valor: item.valor
+          }))
+        );
+
+      if (itensError) throw itensError;
+
+      toast.success("Lançamento cadastrado com sucesso!");
+      await loadLancamentos();
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao criar lançamento:', error);
+      toast.error('Erro ao criar lançamento');
+    }
   };
 
   const resetForm = () => {
@@ -475,10 +627,78 @@ const ControleFinanceiro = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleEditar = (e: React.FormEvent) => {
+  const handleEditar = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!lancamentoSelecionado || !user) return;
 
-    if (!lancamentoSelecionado) return;
+    // Validations...
+    if (!formData.ano || !formData.mesCompetencia || !formData.tipo || !formData.descricao1 || !formData.nomePet || !formData.nomeCliente) {
+      toast.error("Favor preencher todos os campos obrigatórios!");
+      return;
+    }
+
+    for (let i = 0; i < itensLancamento.length; i++) {
+      const item = itensLancamento[i];
+      if (!item.descricao2 || item.valor <= 0) {
+        toast.error(`Item ${i + 1}: Favor preencher todos os campos!`);
+        return;
+      }
+    }
+
+    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
+
+    try {
+      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente && c.nomePet === formData.nomePet);
+      const conta = contas.find(c => c.nomeBanco === formData.nomeBanco);
+
+      if (!cliente || !conta) {
+        toast.error("Cliente/Pet ou Conta bancária não encontrados!");
+        return;
+      }
+
+      await supabase.from('lancamentos_financeiros').update({
+        ano: formData.ano,
+        mes_competencia: formData.mesCompetencia,
+        tipo: formData.tipo,
+        descricao1: formData.descricao1,
+        cliente_id: cliente.id,
+        valor_total: valorTotal,
+        data_pagamento: formData.dataPagamento,
+        conta_id: conta.id,
+        pago: formData.pago
+      }).eq('id', lancamentoSelecionado.id);
+
+      await supabase.from('lancamentos_financeiros_itens').delete().eq('lancamento_id', lancamentoSelecionado.id);
+      await supabase.from('lancamentos_financeiros_itens').insert(itensLancamento.map(item => ({
+        lancamento_id: lancamentoSelecionado.id,
+        descricao2: item.descricao2,
+        produto_servico: item.produtoServico,
+        valor: item.valor
+      })));
+
+      toast.success("Lançamento atualizado com sucesso!");
+      await loadLancamentos();
+      resetForm();
+      setLancamentoSelecionado(null);
+    } catch (error) {
+      console.error('Erro ao atualizar:', error);
+      toast.error('Erro ao atualizar lançamento');
+    }
+  };
+
+  const handleExcluir = async () => {
+    if (!lancamentoSelecionado || !user) return;
+    try {
+      await supabase.from('lancamentos_financeiros').delete().eq('id', lancamentoSelecionado.id);
+      toast.success("Lançamento excluído com sucesso!");
+      await loadLancamentos();
+      setIsDeleteDialogOpen(false);
+      setLancamentoSelecionado(null);
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      toast.error('Erro ao excluir lançamento');
+    }
+  };
 
     if (!formData.ano) {
       toast.error("Favor selecionar o Ano de competência!");

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,6 +6,8 @@ import { KPICard } from "../shared/KPICard";
 import { ExportButton } from "../shared/ExportButton";
 import { format } from "date-fns";
 import { Clock, AlertCircle, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Filtros {
   periodo: string;
@@ -25,10 +27,20 @@ const formatCurrency = (value: number): string => {
 };
 
 export const Inadimplencia = ({ filtros }: InadimplenciaProps) => {
-  const lancamentos = useMemo(() => {
-    const data = localStorage.getItem('lancamentos_financeiros');
-    return data ? JSON.parse(data) : [];
-  }, []);
+  const { user } = useAuth();
+  const [lancamentos, setLancamentos] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadLancamentos = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('lancamentos_financeiros')
+        .select('*')
+        .eq('user_id', user.id);
+      setLancamentos(data || []);
+    };
+    loadLancamentos();
+  }, [user]);
 
   const contas = useMemo(() => {
     const hoje = new Date();
