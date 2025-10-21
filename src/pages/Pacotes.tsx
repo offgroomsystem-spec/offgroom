@@ -194,13 +194,12 @@ const Pacotes = () => {
 
       const pacoteData = {
         nome: formData.nome,
-        servicos: servicosSelecionados,
+        servicos: servicosSelecionados as any,
         validade: formData.validade,
         desconto_percentual: descontoPercentual,
         desconto_valor: descontoValor,
         valor_final: valorFinal,
         valor: valorTotalSemDesconto,
-        quantidade_servicos: servicosSelecionados.length,
         user_id: user.id
       };
 
