@@ -15,6 +15,7 @@ interface Raca {
   id: string;
   nome: string;
   porte: string;
+  isPadrao?: boolean;
 }
 
 interface Cliente {
@@ -84,18 +85,58 @@ const Clientes = () => {
     if (!user) return;
     
     const fetchRacas = async () => {
-      const { data, error } = await supabase
-        .from('racas')
-        .select('*')
-        .eq('user_id', user.id);
+      try {
+        // Buscar raças padrão (globais)
+        const { data: racasPadrao, error: errorPadrao } = await supabase
+          .from('racas_padrao')
+          .select('*')
+          .order('nome', { ascending: true });
         
-      if (!error && data) {
-        const mappedRacas = data.map(r => ({
-          id: r.id,
-          nome: r.nome,
-          porte: '' // Racas table doesn't have porte field in database
-        }));
-        setRacas(mappedRacas);
+        // Buscar raças customizadas (do usuário)
+        const { data: racasCustom, error: errorCustom } = await supabase
+          .from('racas')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('nome', { ascending: true });
+          
+        if (errorPadrao || errorCustom) {
+          console.error('Error fetching breeds:', errorPadrao || errorCustom);
+        } else {
+          // Mapear raças padrão
+          const mappedPadrao = (racasPadrao || []).map(r => ({
+            id: r.id,
+            nome: r.nome,
+            porte: r.porte,
+            isPadrao: true
+          }));
+          
+          // Mapear raças customizadas
+          const mappedCustom = (racasCustom || []).map(r => ({
+            id: r.id,
+            nome: r.nome,
+            porte: r.porte,
+            isPadrao: false
+          }));
+          
+          // Combinar e ordenar
+          const allRacas = [...mappedPadrao, ...mappedCustom].sort((a, b) => {
+            // Ordenar por porte primeiro
+            const porteOrder = { pequeno: 1, medio: 2, grande: 3 };
+            const porteDiff = porteOrder[a.porte as keyof typeof porteOrder] - 
+                             porteOrder[b.porte as keyof typeof porteOrder];
+            if (porteDiff !== 0) return porteDiff;
+            
+            // Depois por isPadrao (padrão primeiro)
+            if (a.isPadrao !== b.isPadrao) return a.isPadrao ? -1 : 1;
+            
+            // Por fim por nome
+            return a.nome.localeCompare(b.nome);
+          });
+          
+          setRacas(allRacas);
+        }
+      } catch (error) {
+        console.error('Error:', error);
       }
     };
     
