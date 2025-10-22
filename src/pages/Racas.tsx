@@ -14,6 +14,7 @@ interface Raca {
   id: string;
   nome: string;
   porte: string;
+  isPadrao?: boolean;
 }
 
 const Racas = () => {
@@ -21,28 +22,69 @@ const Racas = () => {
   const [racas, setRacas] = useState<Raca[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch racas from Supabase
+  // Fetch racas from Supabase (both standard and custom)
   useEffect(() => {
     if (!user) return;
     
     const fetchRacas = async () => {
-      const { data, error } = await supabase
-        .from('racas')
-        .select('*')
-        .eq('user_id', user.id);
+      try {
+        // Fetch standard breeds (global)
+        const { data: racasPadrao, error: errorPadrao } = await supabase
+          .from('racas_padrao')
+          .select('*')
+          .order('porte', { ascending: true })
+          .order('nome', { ascending: true });
         
-      if (error) {
-        console.error('Error fetching breeds:', error);
+        // Fetch custom breeds (user-specific)
+        const { data: racasCustom, error: errorCustom } = await supabase
+          .from('racas')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('porte', { ascending: true })
+          .order('nome', { ascending: true });
+          
+        if (errorPadrao || errorCustom) {
+          console.error('Error fetching breeds:', errorPadrao || errorCustom);
+          toast.error('Erro ao carregar raças');
+        } else {
+          // Map standard breeds
+          const mappedPadrao = (racasPadrao || []).map(r => ({
+            id: r.id,
+            nome: r.nome,
+            porte: r.porte,
+            isPadrao: true
+          }));
+          
+          // Map custom breeds
+          const mappedCustom = (racasCustom || []).map(r => ({
+            id: r.id,
+            nome: r.nome,
+            porte: r.porte,
+            isPadrao: false
+          }));
+          
+          // Combine and sort: standard breeds first, then custom
+          const allRacas = [...mappedPadrao, ...mappedCustom].sort((a, b) => {
+            // Sort by porte first
+            const porteOrder = { pequeno: 1, medio: 2, grande: 3 };
+            const porteDiff = porteOrder[a.porte as keyof typeof porteOrder] - porteOrder[b.porte as keyof typeof porteOrder];
+            if (porteDiff !== 0) return porteDiff;
+            
+            // Then by isPadrao (standard first)
+            if (a.isPadrao !== b.isPadrao) return a.isPadrao ? -1 : 1;
+            
+            // Finally by name
+            return a.nome.localeCompare(b.nome);
+          });
+          
+          setRacas(allRacas);
+        }
+      } catch (error) {
+        console.error('Error:', error);
         toast.error('Erro ao carregar raças');
-      } else {
-        const mappedRacas = (data || []).map(r => ({
-          id: r.id,
-          nome: r.nome,
-          porte: '' // Will update database schema later
-        }));
-        setRacas(mappedRacas);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     
     fetchRacas();
@@ -118,6 +160,10 @@ const Racas = () => {
   };
 
   const handleEdit = (raca: Raca) => {
+    if (raca.isPadrao) {
+      toast.error('Raças padrão não podem ser editadas');
+      return;
+    }
     setEditingRaca(raca);
     setFormData(raca);
     setIsDialogOpen(true);
@@ -125,6 +171,12 @@ const Racas = () => {
 
   const handleDelete = async (id: string) => {
     if (!user) return;
+    
+    const racaToDelete = racas.find(r => r.id === id);
+    if (racaToDelete?.isPadrao) {
+      toast.error('Raças padrão não podem ser removidas');
+      return;
+    }
     
     const { error } = await supabase
       .from('racas')
@@ -215,7 +267,9 @@ const Racas = () => {
           <div className="flex justify-between items-center gap-2">
             <div>
               <CardTitle className="text-base">Lista de Raças</CardTitle>
-              <CardDescription className="text-xs">Total: {racas.length} raças cadastradas</CardDescription>
+              <CardDescription className="text-xs">
+                Total: {racas.length} raças ({racas.filter(r => r.isPadrao).length} padrão, {racas.filter(r => !r.isPadrao).length} customizadas)
+              </CardDescription>
             </div>
             <div className="flex gap-2">
               <Select value={porteFilter} onValueChange={setPorteFilter}>
@@ -246,9 +300,9 @@ const Racas = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 px-3 font-semibold text-xs">ID</th>
                   <th className="text-left py-2 px-3 font-semibold text-xs">Raça</th>
                   <th className="text-left py-2 px-3 font-semibold text-xs">Porte</th>
+                  <th className="text-left py-2 px-3 font-semibold text-xs">Tipo</th>
                   <th className="text-right py-2 px-3 font-semibold text-xs">Ações</th>
                 </tr>
               </thead>
@@ -256,25 +310,49 @@ const Racas = () => {
                 {filteredRacas.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="text-center py-8 text-muted-foreground text-xs">
-                      Nenhuma raça cadastrada
+                      Nenhuma raça encontrada
                     </td>
                   </tr>
                 ) : (
                   filteredRacas.map((raca) => (
                     <tr key={raca.id} className="border-b hover:bg-secondary/50 transition-colors">
-                      <td className="py-2 px-3 text-muted-foreground text-xs">{raca.id}</td>
                       <td className="py-2 px-3 font-medium text-xs">{raca.nome}</td>
                       <td className="py-2 px-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
                           {raca.porte}
                         </span>
                       </td>
                       <td className="py-2 px-3">
+                        {raca.isPadrao ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            Padrão
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                            Customizada
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3">
                         <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => handleEdit(raca)} className="h-7 w-7 p-0">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => handleEdit(raca)} 
+                            className="h-7 w-7 p-0"
+                            disabled={raca.isPadrao}
+                            title={raca.isPadrao ? "Raças padrão não podem ser editadas" : "Editar raça"}
+                          >
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDelete(raca.id)} className="h-7 w-7 p-0">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => handleDelete(raca.id)} 
+                            className="h-7 w-7 p-0"
+                            disabled={raca.isPadrao}
+                            title={raca.isPadrao ? "Raças padrão não podem ser removidas" : "Remover raça"}
+                          >
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>

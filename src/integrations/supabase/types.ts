@@ -539,6 +539,27 @@ export type Database = {
         }
         Relationships: []
       }
+      racas_padrao: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          porte: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          porte: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          porte?: string
+        }
+        Relationships: []
+      }
       receitas: {
         Row: {
           categoria: string | null
