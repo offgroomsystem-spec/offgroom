@@ -2818,15 +2818,20 @@ const Agendamentos = () => {
                 <table className="w-full text-[10px] border">
                   <thead className="bg-secondary sticky top-0">
                     <tr>
-                      <th className="p-1.5 border text-left">Início</th>
-                      <th className="p-1.5 border text-left">Fim</th>
+                      {/* Colunas A e B (Início e Fim) - Mais estreitas */}
+                      <th className="p-1.5 border text-left w-[50px]">Início</th>
+                      <th className="p-1.5 border text-left w-[50px]">Fim</th>
+
+                      {/* Colunas C, D, E, F (Tutor, Pet, Raça, Serviço) - Deixe o navegador ajustar ou defina larguras maiores */}
                       <th className="p-1.5 border text-left">Tutor</th>
                       <th className="p-1.5 border text-left">Pet</th>
                       <th className="p-1.5 border text-left">Raça</th>
                       <th className="p-1.5 border text-left">Serviço</th>
-                      <th className="p-1.5 border text-left">N° PCT</th>
-                      <th className="p-1.5 border text-left">Taxi Dog</th>
-                      <th className="p-1.5 border text-left">Whatsapp</th>
+
+                      {/* Colunas G, H, I (N° PCT, Taxi Dog, Whatsapp) - Mais estreitas */}
+                      <th className="p-1.5 border text-left w-[60px]">N° PCT</th>
+                      <th className="p-1.5 border text-left w-[60px]">Taxi Dog</th>
+                      <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
                     </tr>
                   </thead>
                   <tbody>
