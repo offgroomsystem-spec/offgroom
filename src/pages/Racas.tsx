@@ -47,21 +47,23 @@ const Racas = () => {
           console.error('Error fetching breeds:', errorPadrao || errorCustom);
           toast.error('Erro ao carregar raças');
         } else {
-          // Map standard breeds
+          // Map standard breeds with fallbacks
           const mappedPadrao = (racasPadrao || []).map(r => ({
             id: r.id,
-            nome: r.nome,
-            porte: r.porte,
+            nome: r.nome || 'Sem nome',
+            porte: r.porte || 'pequeno',
             isPadrao: true
           }));
           
-          // Map custom breeds
+          // Map custom breeds with fallbacks
           const mappedCustom = (racasCustom || []).map(r => ({
             id: r.id,
-            nome: r.nome,
-            porte: r.porte,
+            nome: r.nome || 'Sem nome',
+            porte: r.porte || 'pequeno',
             isPadrao: false
           }));
+          
+          console.log(`✅ Raças carregadas: ${mappedPadrao.length} padrão + ${mappedCustom.length} customizadas`);
           
           // Combine and sort: standard breeds first, then custom
           const allRacas = [...mappedPadrao, ...mappedCustom].sort((a, b) => {
@@ -104,6 +106,17 @@ const Racas = () => {
     
     if (!user) {
       toast.error("Usuário não autenticado");
+      return;
+    }
+    
+    // Validação obrigatória
+    if (!formData.nome.trim()) {
+      toast.error("Nome da raça é obrigatório");
+      return;
+    }
+    
+    if (!formData.porte) {
+      toast.error("Porte é obrigatório");
       return;
     }
     
@@ -319,7 +332,7 @@ const Racas = () => {
                       <td className="py-2 px-3 font-medium text-xs">{raca.nome}</td>
                       <td className="py-2 px-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
-                          {raca.porte}
+                          {raca.porte || 'Não definido'}
                         </span>
                       </td>
                       <td className="py-2 px-3">
