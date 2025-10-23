@@ -3,9 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, Package, Calendar as CalendarIcon, ChevronUp, ChevronDown, Copy, Settings, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Clock,
+  Package,
+  Calendar as CalendarIcon,
+  ChevronUp,
+  ChevronDown,
+  Copy,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { TimeInput } from "@/components/TimeInput";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,7 +30,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -97,7 +123,7 @@ interface EmpresaConfig {
 }
 interface AgendamentoUnificado {
   id: string;
-  tipo: 'simples' | 'pacote';
+  tipo: "simples" | "pacote";
   data: string;
   horarioInicio: string;
   horarioTermino: string;
@@ -123,19 +149,19 @@ const Agendamentos = () => {
   // Função para formatar data sem problemas de timezone
   const formatDateForInput = (date: Date): string => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
   // Função para formatar data de exibição sem problemas de timezone
   const formatDateForDisplay = (dateStr: string): string => {
-    const [year, month, day] = dateStr.split('-').map(Number);
+    const [year, month, day] = dateStr.split("-").map(Number);
     const date = new Date(year, month - 1, day); // Cria data no timezone local
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
     });
   };
 
@@ -148,7 +174,7 @@ const Agendamentos = () => {
   const [empresaConfig, setEmpresaConfig] = useState<EmpresaConfig>({
     bordao: "",
     horarioInicio: "08:00",
-    horarioFim: "18:00"
+    horarioFim: "18:00",
   });
 
   // Load agendamentos from Supabase
@@ -157,11 +183,11 @@ const Agendamentos = () => {
 
     try {
       const { data, error } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('data', { ascending: true })
-        .order('horario', { ascending: true });
+        .from("agendamentos")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("data", { ascending: true })
+        .order("horario", { ascending: true });
 
       if (error) throw error;
 
@@ -180,13 +206,13 @@ const Agendamentos = () => {
         groomer: ag.groomer,
         taxiDog: ag.taxi_dog,
         status: ag.status as "confirmado" | "pendente" | "concluido",
-        numeroServicoPacote: ag.numero_servico_pacote || undefined
+        numeroServicoPacote: ag.numero_servico_pacote || undefined,
       }));
 
       setAgendamentos(agendamentosFormatados);
     } catch (error) {
-      console.error('Erro ao carregar agendamentos:', error);
-      toast.error('Erro ao carregar agendamentos');
+      console.error("Erro ao carregar agendamentos:", error);
+      toast.error("Erro ao carregar agendamentos");
     } finally {
       setLoading(false);
     }
@@ -198,83 +224,77 @@ const Agendamentos = () => {
 
     try {
       // Load groomers
-      const { data: groomersData } = await (supabase as any)
-        .from('groomers')
-        .select('*')
-        .eq('user_id', user.id);
-      
+      const { data: groomersData } = await (supabase as any).from("groomers").select("*").eq("user_id", user.id);
+
       if (groomersData) {
         setGroomers(groomersData.map((g: any) => ({ id: g.id, nome: g.nome })));
       }
 
       // Load clientes
-      const { data: clientesData } = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('user_id', user.id);
-      
+      const { data: clientesData } = await supabase.from("clientes").select("*").eq("user_id", user.id);
+
       if (clientesData) {
-        setClientes(clientesData.map((c: any) => ({
-          id: c.id,
-          nomeCliente: c.nome_cliente,
-          nomePet: c.nome_pet,
-          porte: c.porte,
-          raca: c.raca,
-          whatsapp: c.whatsapp,
-          endereco: c.endereco || '',
-          observacao: c.observacao || ''
-        })));
+        setClientes(
+          clientesData.map((c: any) => ({
+            id: c.id,
+            nomeCliente: c.nome_cliente,
+            nomePet: c.nome_pet,
+            porte: c.porte,
+            raca: c.raca,
+            whatsapp: c.whatsapp,
+            endereco: c.endereco || "",
+            observacao: c.observacao || "",
+          })),
+        );
       }
 
       // Load pacotes
-      const { data: pacotesData } = await supabase
-        .from('pacotes')
-        .select('*')
-        .eq('user_id', user.id);
-      
+      const { data: pacotesData } = await supabase.from("pacotes").select("*").eq("user_id", user.id);
+
       if (pacotesData) {
-        setPacotes(pacotesData.map((p: any) => ({
-          id: p.id,
-          nome: p.nome,
-          servicos: p.servicos || [],
-          validade: p.validade,
-          descontoPercentual: Number(p.desconto_percentual),
-          descontoValor: Number(p.desconto_valor),
-          valorFinal: Number(p.valor_final)
-        })));
+        setPacotes(
+          pacotesData.map((p: any) => ({
+            id: p.id,
+            nome: p.nome,
+            servicos: p.servicos || [],
+            validade: p.validade,
+            descontoPercentual: Number(p.desconto_percentual),
+            descontoValor: Number(p.desconto_valor),
+            valorFinal: Number(p.valor_final),
+          })),
+        );
       }
 
       // Load servicos
-      const { data: servicosData } = await supabase
-        .from('servicos')
-        .select('*')
-        .eq('user_id', user.id);
-      
+      const { data: servicosData } = await supabase.from("servicos").select("*").eq("user_id", user.id);
+
       if (servicosData) {
-        setServicos(servicosData.map((s: any) => ({
-          id: s.id,
-          nome: s.nome,
-          valor: Number(s.valor)
-        })));
+        setServicos(
+          servicosData.map((s: any) => ({
+            id: s.id,
+            nome: s.nome,
+            valor: Number(s.valor),
+          })),
+        );
       }
 
       // Load empresa config
       const { data: empresaData } = await (supabase as any)
-        .from('empresa_config')
-        .select('*')
-        .eq('user_id', user.id)
+        .from("empresa_config")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
-      
+
       if (empresaData) {
         const empresa = empresaData as any;
         setEmpresaConfig({
-          bordao: empresa.bordao || '',
-          horarioInicio: empresa.horario_inicio || '08:00',
-          horarioFim: empresa.horario_fim || '18:00'
+          bordao: empresa.bordao || "",
+          horarioInicio: empresa.horario_inicio || "08:00",
+          horarioFim: empresa.horario_fim || "18:00",
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar dados relacionados:', error);
+      console.error("Erro ao carregar dados relacionados:", error);
     }
   };
 
@@ -296,7 +316,7 @@ const Agendamentos = () => {
     data: "",
     horarioInicio: "",
     tempoServico: "",
-    servico: ""
+    servico: "",
   });
   const [formData, setFormData] = useState({
     cliente: "",
@@ -311,7 +331,7 @@ const Agendamentos = () => {
     dataVenda: "",
     numeroServicoPacote: "",
     groomer: "",
-    taxiDog: ""
+    taxiDog: "",
   });
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
   const [pacoteFormData, setPacoteFormData] = useState({
@@ -321,7 +341,7 @@ const Agendamentos = () => {
     whatsapp: "",
     nomePacote: "",
     taxiDog: "",
-    dataVenda: ""
+    dataVenda: "",
   });
   const [servicosAgendamento, setServicosAgendamento] = useState<ServicoAgendamento[]>([]);
 
@@ -348,14 +368,14 @@ const Agendamentos = () => {
     nomeCliente: "",
     dataAgendada: "",
     dataVenda: "",
-    nomePacote: ""
+    nomePacote: "",
   });
   const [filtrosAplicados, setFiltrosAplicados] = useState({
     nomePet: "",
     nomeCliente: "",
     dataAgendada: "",
     dataVenda: "",
-    nomePacote: ""
+    nomePacote: "",
   });
   const [editandoAgendamento, setEditandoAgendamento] = useState<AgendamentoUnificado | null>(null);
   const [editDialogGerenciamento, setEditDialogGerenciamento] = useState(false);
@@ -368,10 +388,10 @@ const Agendamentos = () => {
 
     try {
       const { data, error } = await supabase
-        .from('agendamentos_pacotes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('data_venda', { ascending: false });
+        .from("agendamentos_pacotes")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("data_venda", { ascending: false });
 
       if (error) throw error;
 
@@ -384,13 +404,13 @@ const Agendamentos = () => {
         nomePacote: ap.nome_pacote,
         taxiDog: ap.taxi_dog,
         dataVenda: ap.data_venda,
-        servicos: ap.servicos || []
+        servicos: ap.servicos || [],
       }));
 
       setAgendamentosPacotes(pacotesFormatados);
     } catch (error) {
-      console.error('Erro ao carregar agendamentos de pacotes:', error);
-      toast.error('Erro ao carregar agendamentos de pacotes');
+      console.error("Erro ao carregar agendamentos de pacotes:", error);
+      toast.error("Erro ao carregar agendamentos de pacotes");
     }
   };
 
@@ -403,7 +423,13 @@ const Agendamentos = () => {
   // Busca inteligente por cliente (Pacotes)
   useEffect(() => {
     if (clienteSearch.length >= 2) {
-      const matches = Array.from(new Set(clientes.filter(c => c.nomeCliente.toLowerCase().startsWith(clienteSearch.toLowerCase())).map(c => c.nomeCliente)));
+      const matches = Array.from(
+        new Set(
+          clientes
+            .filter((c) => c.nomeCliente.toLowerCase().startsWith(clienteSearch.toLowerCase()))
+            .map((c) => c.nomeCliente),
+        ),
+      );
       setFilteredClientes(matches);
     } else {
       setFilteredClientes([]);
@@ -413,7 +439,11 @@ const Agendamentos = () => {
   // Busca inteligente por pet (Pacotes)
   useEffect(() => {
     if (petSearch.length >= 2) {
-      const matches = Array.from(new Set(clientes.filter(c => c.nomePet.toLowerCase().startsWith(petSearch.toLowerCase())).map(c => c.nomePet)));
+      const matches = Array.from(
+        new Set(
+          clientes.filter((c) => c.nomePet.toLowerCase().startsWith(petSearch.toLowerCase())).map((c) => c.nomePet),
+        ),
+      );
       setFilteredPets(matches);
     } else {
       setFilteredPets([]);
@@ -423,7 +453,13 @@ const Agendamentos = () => {
   // Busca inteligente por cliente (Agendamento Simples)
   useEffect(() => {
     if (simpleClienteSearch.length >= 2) {
-      const matches = Array.from(new Set(clientes.filter(c => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase())).map(c => c.nomeCliente)));
+      const matches = Array.from(
+        new Set(
+          clientes
+            .filter((c) => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase()))
+            .map((c) => c.nomeCliente),
+        ),
+      );
       setSimpleFilteredClientes(matches);
     } else {
       setSimpleFilteredClientes([]);
@@ -433,7 +469,13 @@ const Agendamentos = () => {
   // Busca inteligente por pet (Agendamento Simples)
   useEffect(() => {
     if (simplePetSearch.length >= 2) {
-      const matches = Array.from(new Set(clientes.filter(c => c.nomePet.toLowerCase().startsWith(simplePetSearch.toLowerCase())).map(c => c.nomePet)));
+      const matches = Array.from(
+        new Set(
+          clientes
+            .filter((c) => c.nomePet.toLowerCase().startsWith(simplePetSearch.toLowerCase()))
+            .map((c) => c.nomePet),
+        ),
+      );
       setSimpleFilteredPets(matches);
     } else {
       setSimpleFilteredPets([]);
@@ -449,10 +491,10 @@ const Agendamentos = () => {
       nomeCliente,
       nomePet: "",
       raca: "",
-      whatsapp: ""
+      whatsapp: "",
     });
-    const clientesComNome = clientes.filter(c => c.nomeCliente === nomeCliente);
-    const petsUnicos = Array.from(new Set(clientesComNome.map(c => c.nomePet)));
+    const clientesComNome = clientes.filter((c) => c.nomeCliente === nomeCliente);
+    const petsUnicos = Array.from(new Set(clientesComNome.map((c) => c.nomePet)));
     setFilteredPets(petsUnicos);
     setFilteredClientes([]);
     setAvailableRacas([]);
@@ -463,27 +505,29 @@ const Agendamentos = () => {
     setPetSearch(nomePet);
     if (searchStartedWith === "cliente" || pacoteFormData.nomeCliente) {
       // Se começou pelo cliente, filtrar apenas pets desse cliente
-      const clientesComPet = clientes.filter(c => c.nomePet === nomePet && c.nomeCliente === pacoteFormData.nomeCliente);
-      const racasDisponiveis = Array.from(new Set(clientesComPet.map(c => c.raca)));
+      const clientesComPet = clientes.filter(
+        (c) => c.nomePet === nomePet && c.nomeCliente === pacoteFormData.nomeCliente,
+      );
+      const racasDisponiveis = Array.from(new Set(clientesComPet.map((c) => c.raca)));
       setAvailableRacas(racasDisponiveis);
       setPacoteFormData({
         ...pacoteFormData,
         nomePet,
         raca: "",
-        whatsapp: ""
+        whatsapp: "",
       });
     } else {
       // Se começou pelo pet, mostrar clientes que têm esse pet
       setSearchStartedWith("pet");
-      const clientesComPet = clientes.filter(c => c.nomePet === nomePet);
-      const clientesUnicos = Array.from(new Set(clientesComPet.map(c => c.nomeCliente)));
+      const clientesComPet = clientes.filter((c) => c.nomePet === nomePet);
+      const clientesUnicos = Array.from(new Set(clientesComPet.map((c) => c.nomeCliente)));
       setFilteredClientes(clientesUnicos);
       setPacoteFormData({
         ...pacoteFormData,
         nomePet,
         nomeCliente: "",
         raca: "",
-        whatsapp: ""
+        whatsapp: "",
       });
     }
     setFilteredPets([]);
@@ -491,13 +535,18 @@ const Agendamentos = () => {
 
   // Preencher WhatsApp quando raça é selecionada (Pacotes)
   const handleRacaSelect = (raca: string) => {
-    const clienteMatch = clientes.find(c => (pacoteFormData.nomeCliente === "" || c.nomeCliente === pacoteFormData.nomeCliente) && c.nomePet === pacoteFormData.nomePet && c.raca === raca);
+    const clienteMatch = clientes.find(
+      (c) =>
+        (pacoteFormData.nomeCliente === "" || c.nomeCliente === pacoteFormData.nomeCliente) &&
+        c.nomePet === pacoteFormData.nomePet &&
+        c.raca === raca,
+    );
     if (clienteMatch) {
       setPacoteFormData({
         ...pacoteFormData,
         nomeCliente: clienteMatch.nomeCliente,
         raca,
-        whatsapp: clienteMatch.whatsapp
+        whatsapp: clienteMatch.whatsapp,
       });
       setClienteSearch(clienteMatch.nomeCliente);
       setPetSearch(clienteMatch.nomePet);
@@ -514,10 +563,10 @@ const Agendamentos = () => {
       cliente: nomeCliente,
       pet: "",
       raca: "",
-      whatsapp: ""
+      whatsapp: "",
     });
-    const clientesComNome = clientes.filter(c => c.nomeCliente === nomeCliente);
-    const petsUnicos = Array.from(new Set(clientesComNome.map(c => c.nomePet)));
+    const clientesComNome = clientes.filter((c) => c.nomeCliente === nomeCliente);
+    const petsUnicos = Array.from(new Set(clientesComNome.map((c) => c.nomePet)));
     setSimpleFilteredPets(petsUnicos);
     setSimpleFilteredClientes([]);
     setSimpleAvailableRacas([]);
@@ -528,27 +577,27 @@ const Agendamentos = () => {
     setSimplePetSearch(nomePet);
     if (simpleSearchStartedWith === "cliente" || formData.cliente) {
       // Se começou pelo cliente, filtrar apenas pets desse cliente
-      const clientesComPet = clientes.filter(c => c.nomePet === nomePet && c.nomeCliente === formData.cliente);
-      const racasDisponiveis = Array.from(new Set(clientesComPet.map(c => c.raca)));
+      const clientesComPet = clientes.filter((c) => c.nomePet === nomePet && c.nomeCliente === formData.cliente);
+      const racasDisponiveis = Array.from(new Set(clientesComPet.map((c) => c.raca)));
       setSimpleAvailableRacas(racasDisponiveis);
       setFormData({
         ...formData,
         pet: nomePet,
         raca: "",
-        whatsapp: ""
+        whatsapp: "",
       });
     } else {
       // Se começou pelo pet, mostrar clientes que têm esse pet
       setSimpleSearchStartedWith("pet");
-      const clientesComPet = clientes.filter(c => c.nomePet === nomePet);
-      const clientesUnicos = Array.from(new Set(clientesComPet.map(c => c.nomeCliente)));
+      const clientesComPet = clientes.filter((c) => c.nomePet === nomePet);
+      const clientesUnicos = Array.from(new Set(clientesComPet.map((c) => c.nomeCliente)));
       setSimpleFilteredClientes(clientesUnicos);
       setFormData({
         ...formData,
         pet: nomePet,
         cliente: "",
         raca: "",
-        whatsapp: ""
+        whatsapp: "",
       });
     }
     setSimpleFilteredPets([]);
@@ -556,13 +605,18 @@ const Agendamentos = () => {
 
   // Preencher WhatsApp quando raça é selecionada (Agendamento Simples)
   const handleSimpleRacaSelect = (raca: string) => {
-    const clienteMatch = clientes.find(c => (formData.cliente === "" || c.nomeCliente === formData.cliente) && c.nomePet === formData.pet && c.raca === raca);
+    const clienteMatch = clientes.find(
+      (c) =>
+        (formData.cliente === "" || c.nomeCliente === formData.cliente) &&
+        c.nomePet === formData.pet &&
+        c.raca === raca,
+    );
     if (clienteMatch) {
       setFormData({
         ...formData,
         cliente: clienteMatch.nomeCliente,
         raca,
-        whatsapp: clienteMatch.whatsapp
+        whatsapp: clienteMatch.whatsapp,
       });
       setSimpleClienteSearch(clienteMatch.nomeCliente);
       setSimplePetSearch(clienteMatch.nomePet);
@@ -575,9 +629,9 @@ const Agendamentos = () => {
   // Sincronizar Data da Venda com Data do Agendamento
   useEffect(() => {
     if (formData.data && !formData.dataVenda) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        dataVenda: formData.data
+        dataVenda: formData.data,
       }));
     }
   }, [formData.data]);
@@ -586,13 +640,16 @@ const Agendamentos = () => {
     const currentDay = today.getDay();
     const diff = today.getDate() - currentDay;
     const sunday = new Date(today.setDate(diff));
-    return Array.from({
-      length: 7
-    }, (_, i) => {
-      const date = new Date(sunday);
-      date.setDate(sunday.getDate() + i);
-      return date;
-    });
+    return Array.from(
+      {
+        length: 7,
+      },
+      (_, i) => {
+        const date = new Date(sunday);
+        date.setDate(sunday.getDate() + i);
+        return date;
+      },
+    );
   };
   const weekDates = getWeekDates();
   const handleSubmit = async (e: React.FormEvent) => {
@@ -627,9 +684,8 @@ const Agendamentos = () => {
     const horarioTermino = calcularHorarioTermino(formData.horario, formData.tempoServico);
 
     try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .insert([{
+      const { error } = await supabase.from("agendamentos").insert([
+        {
           user_id: user.id,
           cliente: formData.cliente,
           pet: formData.pet,
@@ -644,8 +700,9 @@ const Agendamentos = () => {
           numero_servico_pacote: formData.numeroServicoPacote || null,
           groomer: formData.groomer,
           taxi_dog: formData.taxiDog,
-          status: "confirmado"
-        }]);
+          status: "confirmado",
+        },
+      ]);
 
       if (error) throw error;
 
@@ -653,8 +710,8 @@ const Agendamentos = () => {
       await loadAgendamentos();
       resetForm();
     } catch (error) {
-      console.error('Erro ao criar agendamento:', error);
-      toast.error('Erro ao criar agendamento');
+      console.error("Erro ao criar agendamento:", error);
+      toast.error("Erro ao criar agendamento");
     }
   };
   const resetForm = () => {
@@ -671,7 +728,7 @@ const Agendamentos = () => {
       dataVenda: "",
       numeroServicoPacote: "",
       groomer: "",
-      taxiDog: ""
+      taxiDog: "",
     });
     setIsPacoteSelecionado(false);
     setSimpleClienteSearch("");
@@ -690,7 +747,7 @@ const Agendamentos = () => {
       whatsapp: "",
       nomePacote: "",
       taxiDog: "",
-      dataVenda: ""
+      dataVenda: "",
     });
     setServicosAgendamento([]);
     setClienteSearch("");
@@ -706,20 +763,20 @@ const Agendamentos = () => {
   const handlePacoteSelect = (nomePacote: string) => {
     setPacoteFormData({
       ...pacoteFormData,
-      nomePacote
+      nomePacote,
     });
-    const pacoteSelecionado = pacotes.find(p => p.nome === nomePacote);
+    const pacoteSelecionado = pacotes.find((p) => p.nome === nomePacote);
     if (pacoteSelecionado) {
       const servicosInit: ServicoAgendamento[] = pacoteSelecionado.servicos.map((servico, index) => {
         const total = pacoteSelecionado.servicos.length;
-        const numero = `${String(index + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+        const numero = `${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`;
         return {
           numero,
           nomeServico: servico.nome,
           data: "",
           horarioInicio: "",
           tempoServico: "",
-          horarioTermino: ""
+          horarioTermino: "",
         };
       });
       setServicosAgendamento(servicosInit);
@@ -729,12 +786,12 @@ const Agendamentos = () => {
   // Calcular horário de término
   const calcularHorarioTermino = (inicio: string, tempo: string): string => {
     if (!inicio || !tempo) return "";
-    const [inicioH, inicioM] = inicio.split(':').map(Number);
-    const [tempoH, tempoM] = tempo.split(':').map(Number);
+    const [inicioH, inicioM] = inicio.split(":").map(Number);
+    const [tempoH, tempoM] = tempo.split(":").map(Number);
     const totalMinutos = inicioH * 60 + inicioM + (tempoH * 60 + tempoM);
     const fimH = Math.floor(totalMinutos / 60);
     const fimM = totalMinutos % 60;
-    return `${String(fimH).padStart(2, '0')}:${String(fimM).padStart(2, '0')}`;
+    return `${String(fimH).padStart(2, "0")}:${String(fimM).padStart(2, "0")}`;
   };
 
   // Atualizar serviço individual
@@ -742,13 +799,13 @@ const Agendamentos = () => {
     const updated = [...servicosAgendamento];
     updated[index] = {
       ...updated[index],
-      [field]: value
+      [field]: value,
     };
 
     // Calcular horário de término
-    if (field === 'horarioInicio' || field === 'tempoServico') {
-      const horarioInicio = field === 'horarioInicio' ? value : updated[index].horarioInicio;
-      const tempoServico = field === 'tempoServico' ? value : updated[index].tempoServico;
+    if (field === "horarioInicio" || field === "tempoServico") {
+      const horarioInicio = field === "horarioInicio" ? value : updated[index].horarioInicio;
+      const tempoServico = field === "tempoServico" ? value : updated[index].tempoServico;
       if (horarioInicio && tempoServico) {
         updated[index].horarioTermino = calcularHorarioTermino(horarioInicio, tempoServico);
       }
@@ -757,10 +814,10 @@ const Agendamentos = () => {
   };
 
   // Mover serviço para cima/baixo
-  const moveServico = (index: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === servicosAgendamento.length - 1) return;
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
+  const moveServico = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === servicosAgendamento.length - 1) return;
+    const newIndex = direction === "up" ? index - 1 : index + 1;
     const updated = [...servicosAgendamento];
     const temp = updated[index];
     updated[index] = updated[newIndex];
@@ -768,7 +825,7 @@ const Agendamentos = () => {
 
     // Renumerar
     updated.forEach((servico, idx) => {
-      servico.numero = `${String(idx + 1).padStart(2, '0')}/${String(updated.length).padStart(2, '0')}`;
+      servico.numero = `${String(idx + 1).padStart(2, "0")}/${String(updated.length).padStart(2, "0")}`;
     });
     setServicosAgendamento(updated);
   };
@@ -819,9 +876,8 @@ const Agendamentos = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('agendamentos_pacotes')
-        .insert([{
+      const { error } = await supabase.from("agendamentos_pacotes").insert([
+        {
           user_id: user.id,
           nome_cliente: pacoteFormData.nomeCliente,
           nome_pet: pacoteFormData.nomePet,
@@ -830,8 +886,9 @@ const Agendamentos = () => {
           nome_pacote: pacoteFormData.nomePacote,
           taxi_dog: pacoteFormData.taxiDog,
           data_venda: pacoteFormData.dataVenda,
-          servicos: servicosAgendamento as any
-        }]);
+          servicos: servicosAgendamento as any,
+        },
+      ]);
 
       if (error) throw error;
 
@@ -839,17 +896,17 @@ const Agendamentos = () => {
       await loadAgendamentosPacotes();
       resetPacoteForm();
     } catch (error) {
-      console.error('Erro ao agendar pacote:', error);
-      toast.error('Erro ao agendar pacote');
+      console.error("Erro ao agendar pacote:", error);
+      toast.error("Erro ao agendar pacote");
     }
   };
   const getAgendamentoForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.find(a => a.data === dateStr && a.horario === horario);
+    return agendamentos.find((a) => a.data === dateStr && a.horario === horario);
   };
   const getPacoteForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentosPacotes.find(a => a.servicos.some(s => s.data === dateStr && s.horarioInicio === horario));
+    return agendamentosPacotes.find((a) => a.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario));
   };
   const isHorarioOcupado = (date: Date, horario: string) => {
     return !!getAgendamentoForSlot(date, horario) || !!getPacoteForSlot(date, horario);
@@ -864,19 +921,19 @@ const Agendamentos = () => {
   const contarAgendamentos = () => {
     if (viewMode === "semana") {
       let count = 0;
-      weekDates.forEach(date => {
+      weekDates.forEach((date) => {
         const dateStr = formatDateForInput(date);
-        count += agendamentos.filter(a => a.data === dateStr).length;
-        agendamentosPacotes.forEach(p => {
-          count += p.servicos.filter(s => s.data === dateStr).length;
+        count += agendamentos.filter((a) => a.data === dateStr).length;
+        agendamentosPacotes.forEach((p) => {
+          count += p.servicos.filter((s) => s.data === dateStr).length;
         });
       });
       return count;
     } else {
       const dateStr = selectedDate;
-      let count = agendamentos.filter(a => a.data === dateStr).length;
-      agendamentosPacotes.forEach(p => {
-        count += p.servicos.filter(s => s.data === dateStr).length;
+      let count = agendamentos.filter((a) => a.data === dateStr).length;
+      agendamentosPacotes.forEach((p) => {
+        count += p.servicos.filter((s) => s.data === dateStr).length;
       });
       return count;
     }
@@ -884,12 +941,13 @@ const Agendamentos = () => {
 
   // Gerar mensagem WhatsApp
   const gerarMensagemWhatsApp = (pacote: AgendamentoPacote, servico: ServicoAgendamento) => {
-    const primeiroNomeCliente = pacote.nomeCliente.split(' ')[0];
-    const nomeClienteFormatado = primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
-    const primeiroNomePet = pacote.nomePet.split(' ')[0];
+    const primeiroNomeCliente = pacote.nomeCliente.split(" ")[0];
+    const nomeClienteFormatado =
+      primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
+    const primeiroNomePet = pacote.nomePet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
-    const dataFormatada = new Date(servico.data + 'T00:00:00').toLocaleDateString('pt-BR');
-    const isUltimoServico = servico.numero.split('/')[0] === servico.numero.split('/')[1];
+    const dataFormatada = new Date(servico.data + "T00:00:00").toLocaleDateString("pt-BR");
+    const isUltimoServico = servico.numero.split("/")[0] === servico.numero.split("/")[1];
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
     mensagem += `*Horario:* ${servico.horarioInicio}\n`;
@@ -903,12 +961,12 @@ const Agendamentos = () => {
       mensagem += `*${empresaConfig.bordao}*`;
     }
     const whatsappUrl = `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
-    
+
     // Criar link dinâmico para evitar bloqueio
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = whatsappUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -916,64 +974,65 @@ const Agendamentos = () => {
 
   // Gerar mensagem WhatsApp para agendamento simples
   const gerarMensagemWhatsAppSimples = (agendamento: Agendamento) => {
-    const primeiroNomeCliente = agendamento.cliente.split(' ')[0];
-    const nomeClienteFormatado = primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
-    const primeiroNomePet = agendamento.pet.split(' ')[0];
+    const primeiroNomeCliente = agendamento.cliente.split(" ")[0];
+    const nomeClienteFormatado =
+      primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
+    const primeiroNomePet = agendamento.pet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
-    const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR');
-    
+    const dataFormatada = new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR");
+
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
     mensagem += `*Horario:* ${agendamento.horario}\n`;
     mensagem += `*Serviço:* ${agendamento.servico}\n`;
-    
+
     if (agendamento.taxiDog === "Sim") {
       mensagem += `\n⚠️ *Lembrete:* Você optou pelo Taxi Dog.\n`;
     }
-    
+
     if (empresaConfig.bordao) {
       mensagem += `\n*${empresaConfig.bordao}*`;
     }
-    
-    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, '');
+
+    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, "");
     const urlWhatsApp = `https://wa.me/55${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
-    
+
     // Criar link dinâmico para evitar bloqueio
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = urlWhatsApp;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   // ========== FUNÇÕES AUXILIARES PARA FORMATAÇÃO ==========
-  
+
   // Capitalizar primeira letra de cada palavra
   const capitalizarPrimeiraLetra = (texto: string): string => {
-    if (!texto) return '';
+    if (!texto) return "";
     return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
   };
 
   // Obter apenas o primeiro nome
   const obterPrimeiroNome = (nomeCompleto: string): string => {
-    if (!nomeCompleto) return '';
-    const primeiroNome = nomeCompleto.trim().split(' ')[0];
+    if (!nomeCompleto) return "";
+    const primeiroNome = nomeCompleto.trim().split(" ")[0];
     return capitalizarPrimeiraLetra(primeiroNome);
   };
 
   // Verificar se é o último serviço do pacote
   const ehUltimoServicoPacote = (numeroServico: string): boolean => {
-    if (!numeroServico || !numeroServico.includes('/')) return false;
-    const [atual, total] = numeroServico.split('/').map(n => parseInt(n.trim()));
+    if (!numeroServico || !numeroServico.includes("/")) return false;
+    const [atual, total] = numeroServico.split("/").map((n) => parseInt(n.trim()));
     return atual === total;
   };
 
   // Formatar número do pacote
   const formatarNumeroPacote = (numeroServico?: string): string => {
-    if (!numeroServico || numeroServico.trim() === '') {
-      return 'Sem pacote.';
+    if (!numeroServico || numeroServico.trim() === "") {
+      return "Sem pacote.";
     }
     return numeroServico;
   };
@@ -987,24 +1046,24 @@ const Agendamentos = () => {
     const horarioFormatado = agendamento.horario.substring(0, 5); // HH:MM
     const numeroPacote = formatarNumeroPacote(agendamento.numeroServicoPacote);
     const taxiDog = agendamento.taxiDog === "Sim" ? "Sim" : "Não";
-    
+
     let mensagem = `Oii, ${primeiroNome}! Passando apenas para confirmar o agendamento de ${nomePet} com a gente.\n\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
     mensagem += `*Horario:* ${horarioFormatado}\n`;
     mensagem += `*Serviço:* ${nomeServico}\n`;
     mensagem += `*N° do Pacote:* ${numeroPacote}\n`;
     mensagem += `*Taxi Dog:* ${taxiDog}\n`;
-    
+
     // Se for último serviço do pacote, adicionar mensagem especial
     if (agendamento.numeroServicoPacote && ehUltimoServicoPacote(agendamento.numeroServicoPacote)) {
       mensagem += `\nPercebi que este será o último banho do seu pacote. Que tal já garantirmos a renovação no próximo agendamento e mantermos os banhos sequenciais?\n`;
     }
-    
+
     if (empresaConfig.bordao) {
       mensagem += `\n*${empresaConfig.bordao}*`;
     }
-    
-    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, '');
+
+    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, "");
     return `https://wa.me/55${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
   };
 
@@ -1017,30 +1076,30 @@ const Agendamentos = () => {
     const horarioFormatado = servico.horarioInicio.substring(0, 5); // HH:MM
     const numeroPacote = servico.numero; // Ex: "03/04"
     const taxiDog = pacote.taxiDog === "Sim" ? "Sim" : "Não";
-    
+
     let mensagem = `Oii, ${primeiroNome}! Passando apenas para confirmar o agendamento de ${nomePet} com a gente.\n\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
     mensagem += `*Horario:* ${horarioFormatado}\n`;
     mensagem += `*Serviço:* ${nomePacote}\n`;
     mensagem += `*N° do Pacote:* ${numeroPacote}\n`;
     mensagem += `*Taxi Dog:* ${taxiDog}\n`;
-    
+
     // Se for último serviço do pacote, adicionar mensagem especial
     if (ehUltimoServicoPacote(numeroPacote)) {
       mensagem += `\nPercebi que este será o último banho do seu pacote. Que tal já garantirmos a renovação no próximo agendamento e mantermos os banhos sequenciais?\n`;
     }
-    
+
     if (empresaConfig.bordao) {
       mensagem += `\n*${empresaConfig.bordao}*`;
     }
-    
+
     return `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
   };
 
   // Copiar link do WhatsApp para clipboard e mostrar notificação
   const copiarLinkWhatsApp = async (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     try {
       await navigator.clipboard.writeText(url);
       toast.success("✅ Link copiado!", {
@@ -1048,7 +1107,7 @@ const Agendamentos = () => {
         duration: 5000,
       });
     } catch (error) {
-      console.error('Erro ao copiar link:', error);
+      console.error("Erro ao copiar link:", error);
       toast.error("⚠️ Não foi possível copiar", {
         description: "Tente novamente ou copie manualmente",
         duration: 4000,
@@ -1059,11 +1118,11 @@ const Agendamentos = () => {
   // Obter horários do Gantt baseado na config da empresa
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
-      const [inicioH] = empresaConfig.horarioInicio.split(':').map(Number);
-      const [fimH] = empresaConfig.horarioFim.split(':').map(Number);
+      const [inicioH] = empresaConfig.horarioInicio.split(":").map(Number);
+      const [fimH] = empresaConfig.horarioFim.split(":").map(Number);
       const horarios = [];
       for (let h = inicioH; h <= fimH; h++) {
-        horarios.push(`${String(h).padStart(2, '0')}:00`);
+        horarios.push(`${String(h).padStart(2, "0")}:00`);
       }
       return horarios;
     }
@@ -1074,34 +1133,40 @@ const Agendamentos = () => {
   // Obter agendamentos do dia para Gantt
   const getAgendamentosDia = () => {
     const dateStr = selectedDate;
-    const agendamentosSimples = agendamentos.filter(a => a.data === dateStr).map(a => ({
-      tipo: 'simples' as const,
-      horarioInicio: a.horario,
-      horarioFim: a.horarioTermino || a.horario,
-      cliente: a.cliente,
-      pet: a.pet,
-      raca: a.raca,
-      servico: a.servico,
-      pacote: null,
-      numeroPacote: null,
-      taxiDog: a.taxiDog,
-      agendamento: a,
-      agendamentoOriginal: a
-    }));
-    const agendamentosPacote = agendamentosPacotes.flatMap(p => p.servicos.filter(s => s.data === dateStr).map(s => ({
-      tipo: 'pacote' as const,
-      horarioInicio: s.horarioInicio,
-      horarioFim: s.horarioTermino,
-      cliente: p.nomeCliente,
-      pet: p.nomePet,
-      raca: p.raca,
-      servico: s.nomeServico,
-      pacote: p.nomePacote,
-      numeroPacote: s.numero,
-      taxiDog: p.taxiDog,
-      agendamentoPacote: p,
-      servicoAgendamento: s
-    })));
+    const agendamentosSimples = agendamentos
+      .filter((a) => a.data === dateStr)
+      .map((a) => ({
+        tipo: "simples" as const,
+        horarioInicio: a.horario,
+        horarioFim: a.horarioTermino || a.horario,
+        cliente: a.cliente,
+        pet: a.pet,
+        raca: a.raca,
+        servico: a.servico,
+        pacote: null,
+        numeroPacote: null,
+        taxiDog: a.taxiDog,
+        agendamento: a,
+        agendamentoOriginal: a,
+      }));
+    const agendamentosPacote = agendamentosPacotes.flatMap((p) =>
+      p.servicos
+        .filter((s) => s.data === dateStr)
+        .map((s) => ({
+          tipo: "pacote" as const,
+          horarioInicio: s.horarioInicio,
+          horarioFim: s.horarioTermino,
+          cliente: p.nomeCliente,
+          pet: p.nomePet,
+          raca: p.raca,
+          servico: s.nomeServico,
+          pacote: p.nomePacote,
+          numeroPacote: s.numero,
+          taxiDog: p.taxiDog,
+          agendamentoPacote: p,
+          servicoAgendamento: s,
+        })),
+    );
     return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
       return a.horarioInicio.localeCompare(b.horarioInicio);
     });
@@ -1110,9 +1175,9 @@ const Agendamentos = () => {
 
   // Unificar todos os agendamentos (simples + pacotes)
   const unificarAgendamentos = (): AgendamentoUnificado[] => {
-    const agendamentosSimples: AgendamentoUnificado[] = agendamentos.map(a => ({
+    const agendamentosSimples: AgendamentoUnificado[] = agendamentos.map((a) => ({
       id: a.id,
-      tipo: 'simples' as const,
+      tipo: "simples" as const,
       data: a.data,
       horarioInicio: a.horario,
       horarioTermino: a.horario,
@@ -1127,28 +1192,30 @@ const Agendamentos = () => {
       whatsapp: a.whatsapp,
       tempoServico: "",
       groomer: a.groomer || "",
-      agendamentoOriginal: a
+      agendamentoOriginal: a,
     }));
-    const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap(p => p.servicos.map(s => ({
-      id: `${p.id}-${s.numero}`,
-      tipo: 'pacote' as const,
-      data: s.data,
-      horarioInicio: s.horarioInicio,
-      horarioTermino: s.horarioTermino,
-      cliente: p.nomeCliente,
-      pet: p.nomePet,
-      raca: p.raca,
-      servico: s.nomeServico,
-      nomePacote: p.nomePacote,
-      numeroPacote: s.numero,
-      taxiDog: p.taxiDog,
-      dataVenda: p.dataVenda,
-      whatsapp: p.whatsapp,
-      tempoServico: s.tempoServico,
-      groomer: "",
-      pacoteOriginal: p,
-      servicoOriginal: s
-    })));
+    const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap((p) =>
+      p.servicos.map((s) => ({
+        id: `${p.id}-${s.numero}`,
+        tipo: "pacote" as const,
+        data: s.data,
+        horarioInicio: s.horarioInicio,
+        horarioTermino: s.horarioTermino,
+        cliente: p.nomeCliente,
+        pet: p.nomePet,
+        raca: p.raca,
+        servico: s.nomeServico,
+        nomePacote: p.nomePacote,
+        numeroPacote: s.numero,
+        taxiDog: p.taxiDog,
+        dataVenda: p.dataVenda,
+        whatsapp: p.whatsapp,
+        tempoServico: s.tempoServico,
+        groomer: "",
+        pacoteOriginal: p,
+        servicoOriginal: s,
+      })),
+    );
     return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
       const dataCompare = a.data.localeCompare(b.data);
       if (dataCompare !== 0) return dataCompare;
@@ -1158,11 +1225,14 @@ const Agendamentos = () => {
 
   // Aplicar filtros
   const aplicarFiltros = (agendamentos: AgendamentoUnificado[]): AgendamentoUnificado[] => {
-    return agendamentos.filter(a => {
+    return agendamentos.filter((a) => {
       if (filtrosAplicados.nomePet && !a.pet.toLowerCase().includes(filtrosAplicados.nomePet.toLowerCase())) {
         return false;
       }
-      if (filtrosAplicados.nomeCliente && !a.cliente.toLowerCase().includes(filtrosAplicados.nomeCliente.toLowerCase())) {
+      if (
+        filtrosAplicados.nomeCliente &&
+        !a.cliente.toLowerCase().includes(filtrosAplicados.nomeCliente.toLowerCase())
+      ) {
         return false;
       }
       if (filtrosAplicados.dataAgendada && a.data !== filtrosAplicados.dataAgendada) {
@@ -1171,7 +1241,10 @@ const Agendamentos = () => {
       if (filtrosAplicados.dataVenda && a.dataVenda !== filtrosAplicados.dataVenda) {
         return false;
       }
-      if (filtrosAplicados.nomePacote && !a.nomePacote.toLowerCase().includes(filtrosAplicados.nomePacote.toLowerCase())) {
+      if (
+        filtrosAplicados.nomePacote &&
+        !a.nomePacote.toLowerCase().includes(filtrosAplicados.nomePacote.toLowerCase())
+      ) {
         return false;
       }
       return true;
@@ -1180,7 +1253,10 @@ const Agendamentos = () => {
 
   // Agendamentos filtrados
   const agendamentosUnificados = useMemo(() => unificarAgendamentos(), [agendamentos, agendamentosPacotes]);
-  const agendamentosFiltrados = useMemo(() => aplicarFiltros(agendamentosUnificados), [agendamentosUnificados, filtrosAplicados]);
+  const agendamentosFiltrados = useMemo(
+    () => aplicarFiltros(agendamentosUnificados),
+    [agendamentosUnificados, filtrosAplicados],
+  );
 
   // Contador total
   const totalAgendamentos = agendamentosUnificados.length;
@@ -1188,7 +1264,7 @@ const Agendamentos = () => {
   // Buscar
   const handleBuscar = () => {
     setFiltrosAplicados({
-      ...filtros
+      ...filtros,
     });
   };
 
@@ -1199,14 +1275,14 @@ const Agendamentos = () => {
       nomeCliente: "",
       dataAgendada: "",
       dataVenda: "",
-      nomePacote: ""
+      nomePacote: "",
     });
     setFiltrosAplicados({
       nomePet: "",
       nomeCliente: "",
       dataAgendada: "",
       dataVenda: "",
-      nomePacote: ""
+      nomePacote: "",
     });
   };
 
@@ -1221,9 +1297,9 @@ const Agendamentos = () => {
     if (!editandoAgendamento || !user) return;
 
     try {
-      if (editandoAgendamento.tipo === 'simples' && editandoAgendamento.agendamentoOriginal) {
+      if (editandoAgendamento.tipo === "simples" && editandoAgendamento.agendamentoOriginal) {
         const { error } = await supabase
-          .from('agendamentos')
+          .from("agendamentos")
           .update({
             cliente: editandoAgendamento.cliente,
             pet: editandoAgendamento.pet,
@@ -1233,33 +1309,42 @@ const Agendamentos = () => {
             data: editandoAgendamento.data,
             horario: editandoAgendamento.horarioInicio,
             data_venda: editandoAgendamento.dataVenda,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', editandoAgendamento.agendamentoOriginal.id);
+          .eq("id", editandoAgendamento.agendamentoOriginal.id);
 
         if (error) throw error;
 
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentos();
-      } else if (editandoAgendamento.tipo === 'pacote' && editandoAgendamento.pacoteOriginal && editandoAgendamento.servicoOriginal) {
-        const updatedServicos = editandoAgendamento.pacoteOriginal.servicos.map(s => 
-          s.numero === editandoAgendamento.servicoOriginal!.numero ? {
-            ...s,
-            nomeServico: editandoAgendamento.servico,
-            data: editandoAgendamento.data,
-            horarioInicio: editandoAgendamento.horarioInicio,
-            tempoServico: editandoAgendamento.tempoServico,
-            horarioTermino: calcularHorarioTermino(editandoAgendamento.horarioInicio, editandoAgendamento.tempoServico)
-          } : s
+      } else if (
+        editandoAgendamento.tipo === "pacote" &&
+        editandoAgendamento.pacoteOriginal &&
+        editandoAgendamento.servicoOriginal
+      ) {
+        const updatedServicos = editandoAgendamento.pacoteOriginal.servicos.map((s) =>
+          s.numero === editandoAgendamento.servicoOriginal!.numero
+            ? {
+                ...s,
+                nomeServico: editandoAgendamento.servico,
+                data: editandoAgendamento.data,
+                horarioInicio: editandoAgendamento.horarioInicio,
+                tempoServico: editandoAgendamento.tempoServico,
+                horarioTermino: calcularHorarioTermino(
+                  editandoAgendamento.horarioInicio,
+                  editandoAgendamento.tempoServico,
+                ),
+              }
+            : s,
         );
 
         const { error } = await supabase
-          .from('agendamentos_pacotes')
+          .from("agendamentos_pacotes")
           .update({
             servicos: updatedServicos as any,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', editandoAgendamento.pacoteOriginal.id);
+          .eq("id", editandoAgendamento.pacoteOriginal.id);
 
         if (error) throw error;
 
@@ -1270,8 +1355,8 @@ const Agendamentos = () => {
       setEditDialogGerenciamento(false);
       setEditandoAgendamento(null);
     } catch (error) {
-      console.error('Erro ao atualizar agendamento:', error);
-      toast.error('Erro ao atualizar agendamento');
+      console.error("Erro ao atualizar agendamento:", error);
+      toast.error("Erro ao atualizar agendamento");
     }
   };
 
@@ -1284,39 +1369,43 @@ const Agendamentos = () => {
     if (!agendamentoParaDeletar || !user) return;
 
     try {
-      if (agendamentoParaDeletar.tipo === 'simples' && agendamentoParaDeletar.agendamentoOriginal) {
+      if (agendamentoParaDeletar.tipo === "simples" && agendamentoParaDeletar.agendamentoOriginal) {
         const { error } = await supabase
-          .from('agendamentos')
+          .from("agendamentos")
           .delete()
-          .eq('id', agendamentoParaDeletar.agendamentoOriginal.id);
+          .eq("id", agendamentoParaDeletar.agendamentoOriginal.id);
 
         if (error) throw error;
 
         toast.success("Agendamento excluído com sucesso!");
         await loadAgendamentos();
-      } else if (agendamentoParaDeletar.tipo === 'pacote' && agendamentoParaDeletar.pacoteOriginal && agendamentoParaDeletar.servicoOriginal) {
+      } else if (
+        agendamentoParaDeletar.tipo === "pacote" &&
+        agendamentoParaDeletar.pacoteOriginal &&
+        agendamentoParaDeletar.servicoOriginal
+      ) {
         // Remove specific service from package or delete entire package if it's the last service
         const servicosAtualizados = agendamentoParaDeletar.pacoteOriginal.servicos.filter(
-          s => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero
+          (s) => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero,
         );
 
         if (servicosAtualizados.length === 0) {
           // Delete entire package if no services left
           const { error } = await supabase
-            .from('agendamentos_pacotes')
+            .from("agendamentos_pacotes")
             .delete()
-            .eq('id', agendamentoParaDeletar.pacoteOriginal.id);
+            .eq("id", agendamentoParaDeletar.pacoteOriginal.id);
 
           if (error) throw error;
         } else {
           // Update package with remaining services
           const { error } = await supabase
-            .from('agendamentos_pacotes')
+            .from("agendamentos_pacotes")
             .update({
               servicos: servicosAtualizados as any,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
-            .eq('id', agendamentoParaDeletar.pacoteOriginal.id);
+            .eq("id", agendamentoParaDeletar.pacoteOriginal.id);
 
           if (error) throw error;
         }
@@ -1330,17 +1419,18 @@ const Agendamentos = () => {
       setEditDialogGerenciamento(false);
       setEditandoAgendamento(null);
     } catch (error) {
-      console.error('Erro ao excluir agendamento:', error);
-      toast.error('Erro ao excluir agendamento');
+      console.error("Erro ao excluir agendamento:", error);
+      toast.error("Erro ao excluir agendamento");
     }
   };
-  return <div className="space-y-4">
+  return (
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="font-bold text-foreground">Agenda de Serviços</h1>
           <p className="text-muted-foreground text-xs">Visualize e gerencie os agendamentos</p>
         </div>
-        
+
         <div className="flex gap-2">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -1352,67 +1442,132 @@ const Agendamentos = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="text-lg">Novo Agendamento</DialogTitle>
-                <DialogDescription className="text-xs">
-                  Preencha os dados do agendamento
-                </DialogDescription>
+                <DialogDescription className="text-xs">Preencha os dados do agendamento</DialogDescription>
               </DialogHeader>
-              
+
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1 relative">
-                    <Label htmlFor="cliente" className="text-xs">Cliente *</Label>
-                    <Input id="cliente" value={simpleClienteSearch} onChange={e => setSimpleClienteSearch(e.target.value)} placeholder="Digite o nome do cliente..." className="h-8 text-xs" />
-                    {simpleFilteredClientes.length > 0 && <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {simpleFilteredClientes.map((nome, idx) => <div key={idx} className="px-3 py-2 hover:bg-accent cursor-pointer text-xs" onClick={() => handleSimpleClienteSelect(nome)}>
+                    <Label htmlFor="cliente" className="text-xs">
+                      Cliente *
+                    </Label>
+                    <Input
+                      id="cliente"
+                      value={simpleClienteSearch}
+                      onChange={(e) => setSimpleClienteSearch(e.target.value)}
+                      placeholder="Digite o nome do cliente..."
+                      className="h-8 text-xs"
+                    />
+                    {simpleFilteredClientes.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {simpleFilteredClientes.map((nome, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                            onClick={() => handleSimpleClienteSelect(nome)}
+                          >
                             {nome}
-                          </div>)}
-                      </div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1 relative">
-                    <Label htmlFor="pet" className="text-xs">Pet *</Label>
-                    <Input id="pet" value={simplePetSearch} onChange={e => setSimplePetSearch(e.target.value)} placeholder="Digite o nome do pet..." className="h-8 text-xs" />
-                    {simpleFilteredPets.length > 0 && <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {simpleFilteredPets.map((nome, idx) => <div key={idx} className="px-3 py-2 hover:bg-accent cursor-pointer text-xs" onClick={() => handleSimplePetSelect(nome)}>
+                    <Label htmlFor="pet" className="text-xs">
+                      Pet *
+                    </Label>
+                    <Input
+                      id="pet"
+                      value={simplePetSearch}
+                      onChange={(e) => setSimplePetSearch(e.target.value)}
+                      placeholder="Digite o nome do pet..."
+                      className="h-8 text-xs"
+                    />
+                    {simpleFilteredPets.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {simpleFilteredPets.map((nome, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                            onClick={() => handleSimplePetSelect(nome)}
+                          >
                             {nome}
-                          </div>)}
-                      </div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="raca" className="text-xs">Raça *</Label>
-                    <Select value={formData.raca} onValueChange={handleSimpleRacaSelect} disabled={simpleAvailableRacas.length === 0}>
+                    <Label htmlFor="raca" className="text-xs">
+                      Raça *
+                    </Label>
+                    <Select
+                      value={formData.raca}
+                      onValueChange={handleSimpleRacaSelect}
+                      disabled={simpleAvailableRacas.length === 0}
+                    >
                       <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder={simpleAvailableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"} />
+                        <SelectValue
+                          placeholder={
+                            simpleAvailableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {simpleAvailableRacas.map((raca, idx) => <SelectItem key={idx} value={raca} className="text-xs">
+                        {simpleAvailableRacas.map((raca, idx) => (
+                          <SelectItem key={idx} value={raca} className="text-xs">
                             {raca}
-                          </SelectItem>)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="whatsapp" className="text-xs">WhatsApp</Label>
-                    <Input id="whatsapp" value={formData.whatsapp ? `(${formData.whatsapp.slice(0, 2)}) ${formData.whatsapp.slice(2, 7)}-${formData.whatsapp.slice(7)}` : ""} readOnly className="h-8 text-xs bg-secondary" />
+                    <Label htmlFor="whatsapp" className="text-xs">
+                      WhatsApp
+                    </Label>
+                    <Input
+                      id="whatsapp"
+                      value={
+                        formData.whatsapp
+                          ? `(${formData.whatsapp.slice(0, 2)}) ${formData.whatsapp.slice(2, 7)}-${formData.whatsapp.slice(7)}`
+                          : ""
+                      }
+                      readOnly
+                      className="h-8 text-xs bg-secondary"
+                    />
                   </div>
                 </div>
 
-
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="data" className="text-xs">Data do Agendamento *</Label>
-                    <Input id="data" type="date" value={formData.data} onChange={e => setFormData({
-                    ...formData,
-                    data: e.target.value
-                  })} className="h-8 text-xs" required />
+                    <Label htmlFor="data" className="text-xs">
+                      Data do Agendamento *
+                    </Label>
+                    <Input
+                      id="data"
+                      type="date"
+                      value={formData.data}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          data: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                      required
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="horario" className="text-xs">Horário de Início do Serviço *</Label>
+                    <Label htmlFor="horario" className="text-xs">
+                      Horário de Início do Serviço *
+                    </Label>
                     <TimeInput
                       value={formData.horario}
                       onChange={(value) => {
@@ -1420,7 +1575,7 @@ const Agendamentos = () => {
                         setFormData({
                           ...formData,
                           horario: value,
-                          horarioTermino
+                          horarioTermino,
                         });
                       }}
                       placeholder="00:00"
@@ -1432,7 +1587,9 @@ const Agendamentos = () => {
                 {/* Tempo Serviço, Horário Término e Serviço */}
                 <div className="grid grid-cols-[20%_20%_60%] gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="tempoServico" className="text-xs">Tempo de Serviço *</Label>
+                    <Label htmlFor="tempoServico" className="text-xs">
+                      Tempo de Serviço *
+                    </Label>
                     <TimeInput
                       value={formData.tempoServico}
                       onChange={(value) => {
@@ -1440,7 +1597,7 @@ const Agendamentos = () => {
                         setFormData({
                           ...formData,
                           tempoServico: value,
-                          horarioTermino
+                          horarioTermino,
                         });
                       }}
                       placeholder="0:00"
@@ -1450,7 +1607,9 @@ const Agendamentos = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="horarioTermino" className="text-xs">Horário Término</Label>
+                    <Label htmlFor="horarioTermino" className="text-xs">
+                      Horário Término
+                    </Label>
                     <Input
                       id="horarioTermino"
                       value={formData.horarioTermino}
@@ -1461,16 +1620,21 @@ const Agendamentos = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="servico" className="text-xs">Serviço *</Label>
-                    <Select value={formData.servico} onValueChange={value => {
-                      const isPacote = pacotes.some(p => p.nome === value);
-                      setIsPacoteSelecionado(isPacote);
-                      setFormData({
-                        ...formData,
-                        servico: value,
-                        numeroServicoPacote: isPacote ? formData.numeroServicoPacote : ""
-                      });
-                    }}>
+                    <Label htmlFor="servico" className="text-xs">
+                      Serviço *
+                    </Label>
+                    <Select
+                      value={formData.servico}
+                      onValueChange={(value) => {
+                        const isPacote = pacotes.some((p) => p.nome === value);
+                        setIsPacoteSelecionado(isPacote);
+                        setFormData({
+                          ...formData,
+                          servico: value,
+                          numeroServicoPacote: isPacote ? formData.numeroServicoPacote : "",
+                        });
+                      }}
+                    >
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Selecione um serviço" />
                       </SelectTrigger>
@@ -1480,7 +1644,7 @@ const Agendamentos = () => {
                             <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
                               Serviços Individuais
                             </SelectItem>
-                            {servicos.map(servico => (
+                            {servicos.map((servico) => (
                               <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
                                 {servico.nome}
                               </SelectItem>
@@ -1492,7 +1656,7 @@ const Agendamentos = () => {
                             <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
                               Pacotes de Serviços
                             </SelectItem>
-                            {pacotes.map(pacote => (
+                            {pacotes.map((pacote) => (
                               <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
                                 {pacote.nome}
                               </SelectItem>
@@ -1506,27 +1670,38 @@ const Agendamentos = () => {
 
                 {isPacoteSelecionado && (
                   <div className="space-y-1">
-                    <Label htmlFor="numeroServicoPacote" className="text-xs">Número do Serviço do Pacote *</Label>
-                    <Input 
-                      id="numeroServicoPacote" 
-                      value={formData.numeroServicoPacote} 
-                      onChange={e => setFormData({
-                        ...formData,
-                        numeroServicoPacote: e.target.value
-                      })} 
-                      placeholder="Ex: 01/02, 01/04" 
-                      className="h-8 text-xs" 
-                      required 
+                    <Label htmlFor="numeroServicoPacote" className="text-xs">
+                      Número do Serviço do Pacote *
+                    </Label>
+                    <Input
+                      id="numeroServicoPacote"
+                      value={formData.numeroServicoPacote}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          numeroServicoPacote: e.target.value,
+                        })
+                      }
+                      placeholder="Ex: 01/02, 01/04"
+                      className="h-8 text-xs"
+                      required
                     />
                   </div>
                 )}
 
                 <div className="space-y-1">
-                  <Label htmlFor="groomer" className="text-xs">Groomer</Label>
-                  <Select value={formData.groomer} onValueChange={value => setFormData({
-                    ...formData,
-                    groomer: value
-                  })}>
+                  <Label htmlFor="groomer" className="text-xs">
+                    Groomer
+                  </Label>
+                  <Select
+                    value={formData.groomer}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        groomer: value,
+                      })
+                    }
+                  >
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Selecione o groomer" />
                     </SelectTrigger>
@@ -1536,7 +1711,7 @@ const Agendamentos = () => {
                           Nenhum groomer cadastrado
                         </SelectItem>
                       ) : (
-                        groomers.map(g => (
+                        groomers.map((g) => (
                           <SelectItem key={g.id} value={g.nome} className="text-xs">
                             {g.nome}
                           </SelectItem>
@@ -1548,25 +1723,48 @@ const Agendamentos = () => {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="dataVenda" className="text-xs">Data da Venda do Serviço *</Label>
-                    <Input id="dataVenda" type="date" value={formData.dataVenda} onChange={e => setFormData({
-                    ...formData,
-                    dataVenda: e.target.value
-                  })} className="h-8 text-xs" required />
+                    <Label htmlFor="dataVenda" className="text-xs">
+                      Data da Venda do Serviço *
+                    </Label>
+                    <Input
+                      id="dataVenda"
+                      type="date"
+                      value={formData.dataVenda}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          dataVenda: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                      required
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="taxiDog" className="text-xs">Taxi Dog *</Label>
-                    <Select value={formData.taxiDog} onValueChange={value => setFormData({
-                      ...formData,
-                      taxiDog: value
-                    })} required>
+                    <Label htmlFor="taxiDog" className="text-xs">
+                      Taxi Dog *
+                    </Label>
+                    <Select
+                      value={formData.taxiDog}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          taxiDog: value,
+                        })
+                      }
+                      required
+                    >
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent className="bg-background z-50">
-                        <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
-                        <SelectItem value="Não" className="text-xs">Não</SelectItem>
+                        <SelectItem value="Sim" className="text-xs">
+                          Sim
+                        </SelectItem>
+                        <SelectItem value="Não" className="text-xs">
+                          Não
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1598,143 +1796,266 @@ const Agendamentos = () => {
                   Preencha os dados para agendar um pacote de serviços
                 </DialogDescription>
               </DialogHeader>
-              
+
               <form onSubmit={handlePacoteSubmit} className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1 relative">
-                    <Label htmlFor="nomeCliente" className="text-xs">Nome do Cliente *</Label>
-                    <Input id="nomeCliente" value={clienteSearch} onChange={e => setClienteSearch(e.target.value)} placeholder="Digite o nome do cliente..." className="h-8 text-xs" />
-                    {filteredClientes.length > 0 && <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {filteredClientes.map((nome, idx) => <div key={idx} className="px-3 py-2 hover:bg-accent cursor-pointer text-xs" onClick={() => handleClienteSelect(nome)}>
+                    <Label htmlFor="nomeCliente" className="text-xs">
+                      Nome do Cliente *
+                    </Label>
+                    <Input
+                      id="nomeCliente"
+                      value={clienteSearch}
+                      onChange={(e) => setClienteSearch(e.target.value)}
+                      placeholder="Digite o nome do cliente..."
+                      className="h-8 text-xs"
+                    />
+                    {filteredClientes.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {filteredClientes.map((nome, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                            onClick={() => handleClienteSelect(nome)}
+                          >
                             {nome}
-                          </div>)}
-                      </div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1 relative">
-                    <Label htmlFor="nomePet" className="text-xs">Nome do Pet *</Label>
-                    <Input id="nomePet" value={petSearch} onChange={e => setPetSearch(e.target.value)} placeholder="Digite o nome do pet..." className="h-8 text-xs" />
-                    {filteredPets.length > 0 && <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {filteredPets.map((nome, idx) => <div key={idx} className="px-3 py-2 hover:bg-accent cursor-pointer text-xs" onClick={() => handlePetSelect(nome)}>
+                    <Label htmlFor="nomePet" className="text-xs">
+                      Nome do Pet *
+                    </Label>
+                    <Input
+                      id="nomePet"
+                      value={petSearch}
+                      onChange={(e) => setPetSearch(e.target.value)}
+                      placeholder="Digite o nome do pet..."
+                      className="h-8 text-xs"
+                    />
+                    {filteredPets.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {filteredPets.map((nome, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                            onClick={() => handlePetSelect(nome)}
+                          >
                             {nome}
-                          </div>)}
-                      </div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="raca" className="text-xs">Raça *</Label>
-                    <Select value={pacoteFormData.raca} onValueChange={handleRacaSelect} disabled={availableRacas.length === 0}>
+                    <Label htmlFor="raca" className="text-xs">
+                      Raça *
+                    </Label>
+                    <Select
+                      value={pacoteFormData.raca}
+                      onValueChange={handleRacaSelect}
+                      disabled={availableRacas.length === 0}
+                    >
                       <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder={availableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"} />
+                        <SelectValue
+                          placeholder={
+                            availableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableRacas.map((raca, idx) => <SelectItem key={idx} value={raca} className="text-xs">
+                        {availableRacas.map((raca, idx) => (
+                          <SelectItem key={idx} value={raca} className="text-xs">
                             {raca}
-                          </SelectItem>)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="whatsapp" className="text-xs">WhatsApp</Label>
-                    <Input id="whatsapp" value={pacoteFormData.whatsapp ? `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}` : ""} readOnly className="h-8 text-xs bg-secondary" />
+                    <Label htmlFor="whatsapp" className="text-xs">
+                      WhatsApp
+                    </Label>
+                    <Input
+                      id="whatsapp"
+                      value={
+                        pacoteFormData.whatsapp
+                          ? `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}`
+                          : ""
+                      }
+                      readOnly
+                      className="h-8 text-xs bg-secondary"
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="taxiDog" className="text-xs">Taxi Dog? *</Label>
-                    <Select value={pacoteFormData.taxiDog} onValueChange={value => setPacoteFormData({
-                    ...pacoteFormData,
-                    taxiDog: value
-                  })}>
+                    <Label htmlFor="taxiDog" className="text-xs">
+                      Taxi Dog? *
+                    </Label>
+                    <Select
+                      value={pacoteFormData.taxiDog}
+                      onValueChange={(value) =>
+                        setPacoteFormData({
+                          ...pacoteFormData,
+                          taxiDog: value,
+                        })
+                      }
+                    >
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
-                        <SelectItem value="Não" className="text-xs">Não</SelectItem>
+                        <SelectItem value="Sim" className="text-xs">
+                          Sim
+                        </SelectItem>
+                        <SelectItem value="Não" className="text-xs">
+                          Não
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="nomePacote" className="text-xs">Nome do Pacote de Serviço *</Label>
+                  <Label htmlFor="nomePacote" className="text-xs">
+                    Nome do Pacote de Serviço *
+                  </Label>
                   <Select value={pacoteFormData.nomePacote} onValueChange={handlePacoteSelect}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Selecione o pacote" />
                     </SelectTrigger>
                     <SelectContent>
-                      {pacotes.length === 0 ? <SelectItem value="sem-pacote" disabled className="text-xs">
+                      {pacotes.length === 0 ? (
+                        <SelectItem value="sem-pacote" disabled className="text-xs">
                           Nenhum pacote cadastrado
-                        </SelectItem> : pacotes.map(pacote => <SelectItem key={pacote.id} value={pacote.nome} className="text-xs">
+                        </SelectItem>
+                      ) : (
+                        pacotes.map((pacote) => (
+                          <SelectItem key={pacote.id} value={pacote.nome} className="text-xs">
                             {pacote.nome}
-                          </SelectItem>)}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="dataVendaPacote" className="text-xs">Data da Venda do Serviço *</Label>
-                  <Input id="dataVendaPacote" type="date" value={pacoteFormData.dataVenda} onChange={e => setPacoteFormData({
-                  ...pacoteFormData,
-                  dataVenda: e.target.value
-                })} className="h-8 text-xs" required />
+                  <Label htmlFor="dataVendaPacote" className="text-xs">
+                    Data da Venda do Serviço *
+                  </Label>
+                  <Input
+                    id="dataVendaPacote"
+                    type="date"
+                    value={pacoteFormData.dataVenda}
+                    onChange={(e) =>
+                      setPacoteFormData({
+                        ...pacoteFormData,
+                        dataVenda: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs"
+                    required
+                  />
                 </div>
 
-                {servicosAgendamento.length > 0 && <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                {servicosAgendamento.length > 0 && (
+                  <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
                     <Label className="text-xs font-semibold">Agendamentos dos Serviços do Pacote</Label>
-                    
+
                     {/* Header com títulos das colunas */}
                     <div className="flex gap-2 items-center pb-1">
                       <div className="w-12"></div>
                       <div className="w-14"></div>
                       <div className="flex-1 min-w-[100px]"></div>
                       <div className="w-32">
-                        <Label className="text-muted-foreground text-[[10px]] font-bold px-px mx-0 my-px py-0">Dia Agendamento</Label>
+                        <Label className="text-muted-foreground text-[[10px]] font-bold px-px mx-0 my-px py-0">
+                          Dia Agendamento
+                        </Label>
                       </div>
                       <div className="w-20">
                         <Label className="text-muted-foreground font-bold text-xs">Hora Início</Label>
                       </div>
                       <div className="w-20 px-[13px]">
-                        <Label className="text-muted-foreground font-bold text-xs text-right my-0 mx-0 px-0">Tempo de Serviço *</Label>
+                        <Label className="text-muted-foreground font-bold text-xs text-right my-0 mx-0 px-0">
+                          Tempo de Serviço *
+                        </Label>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
-                      {servicosAgendamento.map((servico, index) => <div key={index} className="flex gap-2 items-end">
+                      {servicosAgendamento.map((servico, index) => (
+                        <div key={index} className="flex gap-2 items-end">
                           <div className="flex flex-col gap-1">
-                            <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, 'up')} disabled={index === 0} className="h-6 w-6 p-0">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveServico(index, "up")}
+                              disabled={index === 0}
+                              className="h-6 w-6 p-0"
+                            >
                               <ChevronUp className="h-3 w-3" />
                             </Button>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, 'down')} disabled={index === servicosAgendamento.length - 1} className="h-6 w-6 p-0">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveServico(index, "down")}
+                              disabled={index === servicosAgendamento.length - 1}
+                              className="h-6 w-6 p-0"
+                            >
                               <ChevronDown className="h-3 w-3" />
                             </Button>
                           </div>
-                          
+
                           <div className="w-14 py-[16px]">
                             <Label className="text-xs text-primary font-semibold">{servico.numero}</Label>
                           </div>
-                          
+
                           <div className="flex-1 min-w-[100px] py-[16px] px-0 mx-0 my-0">
                             <Label className="text-xs text-left py-0 my-px mx-[3px] px-0">{servico.nomeServico}</Label>
                           </div>
-                          
+
                           <div className="w-32">
-                            <Input type="date" value={servico.data} onChange={e => handleServicoAgendamentoChange(index, 'data', e.target.value)} className="h-8 text-xs py-0 px-[11px] my-[9px]" />
+                            <Input
+                              type="date"
+                              value={servico.data}
+                              onChange={(e) => handleServicoAgendamentoChange(index, "data", e.target.value)}
+                              className="h-8 text-xs py-0 px-[11px] my-[9px]"
+                            />
                           </div>
-                          
+
                           <div className="w-20 my-[9px]">
-                            <TimeInput value={servico.horarioInicio} onChange={value => handleServicoAgendamentoChange(index, 'horarioInicio', value)} placeholder="00:00" className="h-8 text-xs" />
+                            <TimeInput
+                              value={servico.horarioInicio}
+                              onChange={(value) => handleServicoAgendamentoChange(index, "horarioInicio", value)}
+                              placeholder="00:00"
+                              className="h-8 text-xs"
+                            />
                           </div>
-                          
+
                           <div className="w-20 my-[9px]">
-                            <TimeInput value={servico.tempoServico} onChange={value => handleServicoAgendamentoChange(index, 'tempoServico', value)} placeholder="0:00" className="h-8 text-xs" allowSingleDigitHour={true} />
+                            <TimeInput
+                              value={servico.tempoServico}
+                              onChange={(value) => handleServicoAgendamentoChange(index, "tempoServico", value)}
+                              placeholder="0:00"
+                              className="h-8 text-xs"
+                              allowSingleDigitHour={true}
+                            />
                           </div>
-                        </div>)}
+                        </div>
+                      ))}
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={resetPacoteForm} className="h-8 text-xs">
@@ -1766,36 +2087,73 @@ const Agendamentos = () => {
               {/* Filtros */}
               <div className="space-y-3 border-b py-0 my-0">
                 <div className="grid grid-cols-5 gap-2 mx-0 my-0 py-0">
-                  <Input placeholder="Buscar por Nome do Pet" value={filtros.nomePet} onChange={e => setFiltros({
-                  ...filtros,
-                  nomePet: e.target.value
-                })} className="h-8 text-xs my-[28px]" />
-                  <Input placeholder="Buscar por Nome do Cliente" value={filtros.nomeCliente} onChange={e => setFiltros({
-                  ...filtros,
-                  nomeCliente: e.target.value
-                })} className="h-8 text-xs py-0 my-[28px]" />
+                  <Input
+                    placeholder="Buscar por Nome do Pet"
+                    value={filtros.nomePet}
+                    onChange={(e) =>
+                      setFiltros({
+                        ...filtros,
+                        nomePet: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs my-[28px]"
+                  />
+                  <Input
+                    placeholder="Buscar por Nome do Cliente"
+                    value={filtros.nomeCliente}
+                    onChange={(e) =>
+                      setFiltros({
+                        ...filtros,
+                        nomeCliente: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs py-0 my-[28px]"
+                  />
                   <div className="space-y-1 py-0">
                     <Label htmlFor="dataAgendada" className="text-[10px] font-medium">
                       Buscar por Data Agendada
                     </Label>
-                    <Input id="dataAgendada" type="date" value={filtros.dataAgendada} onChange={e => setFiltros({
-                    ...filtros,
-                    dataAgendada: e.target.value
-                  })} className="h-8 text-xs" />
+                    <Input
+                      id="dataAgendada"
+                      type="date"
+                      value={filtros.dataAgendada}
+                      onChange={(e) =>
+                        setFiltros({
+                          ...filtros,
+                          dataAgendada: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
                   <div className="space-y-1 my-0 px-0 py-0">
                     <Label htmlFor="dataVenda" className="text-[10px] font-medium">
                       Buscar por Data da Venda do Serviço
                     </Label>
-                    <Input id="dataVenda" type="date" value={filtros.dataVenda} onChange={e => setFiltros({
-                    ...filtros,
-                    dataVenda: e.target.value
-                  })} className="h-8 text-xs" />
+                    <Input
+                      id="dataVenda"
+                      type="date"
+                      value={filtros.dataVenda}
+                      onChange={(e) =>
+                        setFiltros({
+                          ...filtros,
+                          dataVenda: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
-                  <Input placeholder="Nome do Pacote" value={filtros.nomePacote} onChange={e => setFiltros({
-                  ...filtros,
-                  nomePacote: e.target.value
-                })} className="h-8 text-xs my-[28px]" />
+                  <Input
+                    placeholder="Nome do Pacote"
+                    value={filtros.nomePacote}
+                    onChange={(e) =>
+                      setFiltros({
+                        ...filtros,
+                        nomePacote: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs my-[28px]"
+                  />
                 </div>
                 <div className="flex gap-2 py-0 my-0">
                   <Button onClick={handleBuscar} className="h-8 text-xs">
@@ -1826,27 +2184,41 @@ const Agendamentos = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {agendamentosFiltrados.length === 0 ? <TableRow>
+                    {agendamentosFiltrados.length === 0 ? (
+                      <TableRow>
                         <TableCell colSpan={11} className="text-center text-xs text-muted-foreground py-8">
                           Nenhum agendamento encontrado
                         </TableCell>
-                      </TableRow> : agendamentosFiltrados.map(agendamento => <TableRow key={agendamento.id} className="cursor-pointer hover:bg-cyan-500/20" onClick={() => handleEditarClick(agendamento)}>
+                      </TableRow>
+                    ) : (
+                      agendamentosFiltrados.map((agendamento) => (
+                        <TableRow
+                          key={agendamento.id}
+                          className="cursor-pointer hover:bg-cyan-500/20"
+                          onClick={() => handleEditarClick(agendamento)}
+                        >
                           <TableCell className="text-[10px] p-1.5">
-                            {agendamento.data ? new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}
+                            {agendamento.data
+                              ? new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR")
+                              : "-"}
                           </TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioInicio || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioTermino || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.cliente || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.pet || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.raca || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.servico || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.nomePacote || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.numeroPacote || '-'}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.taxiDog || '-'}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioInicio || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioTermino || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.cliente || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.pet || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.raca || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.servico || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.nomePacote || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.numeroPacote || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.taxiDog || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">
-                            {agendamento.dataVenda ? new Date(agendamento.dataVenda + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}
+                            {agendamento.dataVenda
+                              ? new Date(agendamento.dataVenda + "T00:00:00").toLocaleDateString("pt-BR")
+                              : "-"}
                           </TableCell>
-                        </TableRow>)}
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -1859,32 +2231,40 @@ const Agendamentos = () => {
               <DialogHeader>
                 <DialogTitle>Editar Agendamento</DialogTitle>
                 <DialogDescription className="text-xs">
-                  {editandoAgendamento?.tipo === 'simples' ? 'Agendamento Simples' : 'Agendamento de Pacote'}
+                  {editandoAgendamento?.tipo === "simples" ? "Agendamento Simples" : "Agendamento de Pacote"}
                 </DialogDescription>
               </DialogHeader>
 
-              {editandoAgendamento && <div className="space-y-3">
+              {editandoAgendamento && (
+                <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Data do Agendamento</Label>
-                      <Input type="date" value={editandoAgendamento.data} onChange={e => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    data: e.target.value
-                  })} className="h-8 text-xs" />
+                      <Input
+                        type="date"
+                        value={editandoAgendamento.data}
+                        onChange={(e) =>
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            data: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Horário do Agendamento</Label>
-                      <TimeInput 
-                        value={editandoAgendamento.horarioInicio} 
-                        onChange={value => {
+                      <TimeInput
+                        value={editandoAgendamento.horarioInicio}
+                        onChange={(value) => {
                           const horarioTermino = calcularHorarioTermino(value, editandoAgendamento.tempoServico);
                           setEditandoAgendamento({
                             ...editandoAgendamento,
                             horarioInicio: value,
-                            horarioTermino
+                            horarioTermino,
                           });
-                        }} 
-                        className="h-8 text-xs" 
+                        }}
+                        className="h-8 text-xs"
                       />
                     </div>
                   </div>
@@ -1892,16 +2272,16 @@ const Agendamentos = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Tempo de Serviço *</Label>
-                      <TimeInput 
-                        value={editandoAgendamento.tempoServico} 
-                        onChange={value => {
+                      <TimeInput
+                        value={editandoAgendamento.tempoServico}
+                        onChange={(value) => {
                           const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
                           setEditandoAgendamento({
                             ...editandoAgendamento,
                             tempoServico: value,
-                            horarioTermino
+                            horarioTermino,
                           });
-                        }} 
+                        }}
                         placeholder="0:00"
                         className="h-8 text-xs"
                         allowSingleDigitHour={true}
@@ -1911,7 +2291,7 @@ const Agendamentos = () => {
                     <div className="space-y-1">
                       <Label className="text-xs">Horário de Término</Label>
                       <Input
-                        value={editandoAgendamento.horarioTermino || '--:--'}
+                        value={editandoAgendamento.horarioTermino || "--:--"}
                         readOnly
                         className="h-8 text-xs bg-secondary cursor-not-allowed"
                       />
@@ -1921,52 +2301,87 @@ const Agendamentos = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Nome do Cliente</Label>
-                      <Input value={editandoAgendamento.cliente} onChange={e => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    cliente: e.target.value
-                  })} className="h-8 text-xs" />
+                      <Input
+                        value={editandoAgendamento.cliente}
+                        onChange={(e) =>
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            cliente: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Nome do Pet</Label>
-                      <Input value={editandoAgendamento.pet} onChange={e => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    pet: e.target.value
-                  })} className="h-8 text-xs" />
+                      <Input
+                        value={editandoAgendamento.pet}
+                        onChange={(e) =>
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            pet: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Raça</Label>
-                      <Input value={editandoAgendamento.raca} onChange={e => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    raca: e.target.value
-                  })} className="h-8 text-xs" />
+                      <Input
+                        value={editandoAgendamento.raca}
+                        onChange={(e) =>
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            raca: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">WhatsApp</Label>
-                      <Input value={editandoAgendamento.whatsapp} onChange={e => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    whatsapp: e.target.value
-                  })} className="h-8 text-xs" />
+                      <Input
+                        value={editandoAgendamento.whatsapp}
+                        onChange={(e) =>
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            whatsapp: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço</Label>
-                    <Input value={editandoAgendamento.servico} onChange={e => setEditandoAgendamento({
-                  ...editandoAgendamento,
-                  servico: e.target.value
-                })} className="h-8 text-xs" />
+                    <Input
+                      value={editandoAgendamento.servico}
+                      onChange={(e) =>
+                        setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          servico: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
 
-                  {editandoAgendamento.tipo === 'simples' && (
+                  {editandoAgendamento.tipo === "simples" && (
                     <div className="space-y-1">
                       <Label className="text-xs">Groomer</Label>
-                      <Select value={editandoAgendamento.groomer} onValueChange={value => setEditandoAgendamento({
-                        ...editandoAgendamento,
-                        groomer: value
-                      })}>
+                      <Select
+                        value={editandoAgendamento.groomer}
+                        onValueChange={(value) =>
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            groomer: value,
+                          })
+                        }
+                      >
                         <SelectTrigger className="h-8 text-xs">
                           <SelectValue placeholder="Selecione o groomer" />
                         </SelectTrigger>
@@ -1976,7 +2391,7 @@ const Agendamentos = () => {
                               Nenhum groomer cadastrado
                             </SelectItem>
                           ) : (
-                            groomers.map(g => (
+                            groomers.map((g) => (
                               <SelectItem key={g.id} value={g.nome} className="text-xs">
                                 {g.nome}
                               </SelectItem>
@@ -1987,86 +2402,140 @@ const Agendamentos = () => {
                     </div>
                   )}
 
-                  {editandoAgendamento.tipo === 'pacote' && <>
+                  {editandoAgendamento.tipo === "pacote" && (
+                    <>
                       <div className="space-y-1">
                         <Label className="text-xs">Nome do Pacote</Label>
-                        <Input value={editandoAgendamento.nomePacote} onChange={e => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    nomePacote: e.target.value
-                  })} className="h-8 text-xs" />
+                        <Input
+                          value={editandoAgendamento.nomePacote}
+                          onChange={(e) =>
+                            setEditandoAgendamento({
+                              ...editandoAgendamento,
+                              nomePacote: e.target.value,
+                            })
+                          }
+                          className="h-8 text-xs"
+                        />
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">N° do Serviço do Pacote</Label>
-                          <Input value={editandoAgendamento.numeroPacote} readOnly className="h-8 text-xs bg-secondary" />
+                          <Input
+                            value={editandoAgendamento.numeroPacote}
+                            readOnly
+                            className="h-8 text-xs bg-secondary"
+                          />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Taxi Dog</Label>
-                          <Select value={editandoAgendamento.taxiDog} onValueChange={value => setEditandoAgendamento({
-                      ...editandoAgendamento,
-                      taxiDog: value
-                    })}>
+                          <Select
+                            value={editandoAgendamento.taxiDog}
+                            onValueChange={(value) =>
+                              setEditandoAgendamento({
+                                ...editandoAgendamento,
+                                taxiDog: value,
+                              })
+                            }
+                          >
                             <SelectTrigger className="h-8 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-background z-50">
-                              <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
-                              <SelectItem value="Não" className="text-xs">Não</SelectItem>
+                              <SelectItem value="Sim" className="text-xs">
+                                Sim
+                              </SelectItem>
+                              <SelectItem value="Não" className="text-xs">
+                                Não
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
-                    </>}
+                    </>
+                  )}
 
-                  {editandoAgendamento.tipo === 'simples' && (
+                  {editandoAgendamento.tipo === "simples" && (
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-xs">Data da Venda</Label>
-                        <Input type="date" value={editandoAgendamento.dataVenda} onChange={e => setEditandoAgendamento({
-                      ...editandoAgendamento,
-                      dataVenda: e.target.value
-                    })} className="h-8 text-xs" />
+                        <Input
+                          type="date"
+                          value={editandoAgendamento.dataVenda}
+                          onChange={(e) =>
+                            setEditandoAgendamento({
+                              ...editandoAgendamento,
+                              dataVenda: e.target.value,
+                            })
+                          }
+                          className="h-8 text-xs"
+                        />
                       </div>
 
                       <div className="space-y-1">
                         <Label className="text-xs">Taxi Dog *</Label>
-                        <Select value={editandoAgendamento.taxiDog} onValueChange={value => setEditandoAgendamento({
-                          ...editandoAgendamento,
-                          taxiDog: value
-                        })}>
+                        <Select
+                          value={editandoAgendamento.taxiDog}
+                          onValueChange={(value) =>
+                            setEditandoAgendamento({
+                              ...editandoAgendamento,
+                              taxiDog: value,
+                            })
+                          }
+                        >
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent className="bg-background z-50">
-                            <SelectItem value="Sim" className="text-xs">Sim</SelectItem>
-                            <SelectItem value="Não" className="text-xs">Não</SelectItem>
+                            <SelectItem value="Sim" className="text-xs">
+                              Sim
+                            </SelectItem>
+                            <SelectItem value="Não" className="text-xs">
+                              Não
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                   )}
 
-                  {editandoAgendamento.tipo === 'pacote' && (
+                  {editandoAgendamento.tipo === "pacote" && (
                     <div className="space-y-1">
                       <Label className="text-xs">Data da Venda</Label>
-                      <Input type="date" value={editandoAgendamento.dataVenda} onChange={e => setEditandoAgendamento({
-                    ...editandoAgendamento,
-                    dataVenda: e.target.value
-                  })} className="h-8 text-xs" />
+                      <Input
+                        type="date"
+                        value={editandoAgendamento.dataVenda}
+                        onChange={(e) =>
+                          setEditandoAgendamento({
+                            ...editandoAgendamento,
+                            dataVenda: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
                     </div>
                   )}
 
                   <div className="flex justify-between gap-2 pt-4">
-                    <Button type="button" variant="destructive" onClick={() => handleExcluirAgendamento(editandoAgendamento)} className="h-8 text-xs gap-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => handleExcluirAgendamento(editandoAgendamento)}
+                      className="h-8 text-xs gap-2"
+                    >
                       <Trash2 className="h-3 w-3" />
                       Excluir Agendamento
                     </Button>
                     <div className="flex gap-2">
-                      <Button type="button" variant="outline" onClick={() => {
-                    setEditDialogGerenciamento(false);
-                    setEditandoAgendamento(null);
-                  }} className="h-8 text-xs">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditDialogGerenciamento(false);
+                          setEditandoAgendamento(null);
+                        }}
+                        className="h-8 text-xs"
+                      >
                         Cancelar
                       </Button>
                       <Button type="button" onClick={handleAtualizarAgendamento} className="h-8 text-xs">
@@ -2074,7 +2543,8 @@ const Agendamentos = () => {
                       </Button>
                     </div>
                   </div>
-                </div>}
+                </div>
+              )}
             </DialogContent>
           </Dialog>
 
@@ -2088,13 +2558,18 @@ const Agendamentos = () => {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => {
-                setDeleteDialogOpen(false);
-                setAgendamentoParaDeletar(null);
-              }}>
+                <AlertDialogCancel
+                  onClick={() => {
+                    setDeleteDialogOpen(false);
+                    setAgendamentoParaDeletar(null);
+                  }}
+                >
                   Cancelar
                 </AlertDialogCancel>
-                <AlertDialogAction onClick={confirmarExclusao} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <AlertDialogAction
+                  onClick={confirmarExclusao}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -2108,116 +2583,161 @@ const Agendamentos = () => {
           <div className="flex justify-between items-center">
             <div>
               <div className="flex gap-2 items-center mb-2">
-                <Button variant={viewMode === "semana" ? "default" : "outline"} onClick={() => setViewMode("semana")} className="h-7 text-xs">
+                <Button
+                  variant={viewMode === "semana" ? "default" : "outline"}
+                  onClick={() => setViewMode("semana")}
+                  className="h-7 text-xs"
+                >
                   Semana
                 </Button>
-                <Button variant={selectedDate === formatDateForInput(new Date()) && viewMode === "dia" ? "default" : "outline"} onClick={() => {
-                setViewMode("dia");
-                const today = formatDateForInput(new Date());
-                setSelectedDate(today);
-                setCalendarDate(new Date());
-              }} className="h-7 text-xs">
+                <Button
+                  variant={
+                    selectedDate === formatDateForInput(new Date()) && viewMode === "dia" ? "default" : "outline"
+                  }
+                  onClick={() => {
+                    setViewMode("dia");
+                    const today = formatDateForInput(new Date());
+                    setSelectedDate(today);
+                    setCalendarDate(new Date());
+                  }}
+                  className="h-7 text-xs"
+                >
                   Hoje
                 </Button>
-                {viewMode === "dia" && <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                {viewMode === "dia" && (
+                  <Popover open={showCalendar} onOpenChange={setShowCalendar}>
                     <PopoverTrigger asChild>
-                      <Button variant={selectedDate !== formatDateForInput(new Date()) ? "default" : "outline"} className="h-7 text-xs gap-2">
+                      <Button
+                        variant={selectedDate !== formatDateForInput(new Date()) ? "default" : "outline"}
+                        className="h-7 text-xs gap-2"
+                      >
                         <CalendarIcon className="h-3 w-3" />
                         {format(calendarDate, "dd/MM/yyyy", {
-                      locale: ptBR
-                    })}
+                          locale: ptBR,
+                        })}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={calendarDate} onSelect={date => {
-                    if (date) {
-                      setCalendarDate(date);
-                      setSelectedDate(formatDateForInput(date));
-                      setShowCalendar(false);
-                    }
-                  }} initialFocus className="pointer-events-auto" />
+                      <Calendar
+                        mode="single"
+                        selected={calendarDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setCalendarDate(date);
+                            setSelectedDate(formatDateForInput(date));
+                            setShowCalendar(false);
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
                     </PopoverContent>
-                  </Popover>}
+                  </Popover>
+                )}
               </div>
-              
-              {viewMode === "semana" ? <>
+
+              {viewMode === "semana" ? (
+                <>
                   <CardTitle className="text-base">Agenda Semanal</CardTitle>
                   <CardDescription className="text-xs">
-                    Semana de {weekDates[0].toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: 'long'
-                })} 
-                    {' '}a {weekDates[6].toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: 'long'
-                })}
+                    Semana de{" "}
+                    {weekDates[0].toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "long",
+                    })}{" "}
+                    a{" "}
+                    {weekDates[6].toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "long",
+                    })}
                   </CardDescription>
                   <p className="text-xs text-muted-foreground mt-1">
                     Houve {contarAgendamentos()} agendamentos realizados nesta semana.
                   </p>
-                </> : <>
+                </>
+              ) : (
+                <>
                   <CardTitle className="text-base">Agenda do Dia</CardTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Houve {contarAgendamentos()} agendamentos realizados neste dia.
                   </p>
-                </>}
+                </>
+              )}
             </div>
-            {viewMode === "semana" && <div className="flex gap-2">
+            {viewMode === "semana" && (
+              <div className="flex gap-2">
                 <Button variant="outline" onClick={() => navigateWeek(-1)} className="h-8 text-xs">
                   ← Semana Anterior
                 </Button>
                 <Button variant="outline" onClick={() => navigateWeek(1)} className="h-8 text-xs">
                   Próxima Semana →
                 </Button>
-              </div>}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="py-2">
-          {viewMode === "semana" ? <div className="overflow-x-auto">
+          {viewMode === "semana" ? (
+            <div className="overflow-x-auto">
               <div className="min-w-[800px]">
                 <div className="grid grid-cols-8 gap-2">
                   <div className="p-2 font-semibold">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  {weekDates.map((date, idx) => <div key={idx} className="p-2 text-center">
+                  {weekDates.map((date, idx) => (
+                    <div key={idx} className="p-2 text-center">
                       <div className="font-semibold text-sm">{diasSemana[idx]}</div>
                       <div className="text-xs text-muted-foreground">
-                        {date.toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit'
-                  })}
+                        {date.toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        })}
                       </div>
-                    </div>)}
+                    </div>
+                  ))}
                 </div>
 
-                {horarios.map(horario => <div key={horario} className="grid grid-cols-8 gap-2 border-t">
-                    <div className="p-2 text-sm font-medium text-muted-foreground">
-                      {horario}
-                    </div>
+                {horarios.map((horario) => (
+                  <div key={horario} className="grid grid-cols-8 gap-2 border-t">
+                    <div className="p-2 text-sm font-medium text-muted-foreground">{horario}</div>
                     {weekDates.map((date, idx) => {
-                const agendamento = getAgendamentoForSlot(date, horario);
-                const pacote = getPacoteForSlot(date, horario);
-                const ocupado = isHorarioOcupado(date, horario);
-                return <div key={idx} className={`p-2 rounded-lg min-h-[60px] transition-colors ${pacote ? "bg-primary/20 text-primary-foreground border border-primary/40" : ocupado ? "bg-accent text-accent-foreground" : "bg-secondary/30 hover:bg-secondary/50"}`}>
-                          {agendamento && <div className="text-xs">
+                      const agendamento = getAgendamentoForSlot(date, horario);
+                      const pacote = getPacoteForSlot(date, horario);
+                      const ocupado = isHorarioOcupado(date, horario);
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-2 rounded-lg min-h-[60px] transition-colors ${pacote ? "bg-primary/20 text-primary-foreground border border-primary/40" : ocupado ? "bg-accent text-accent-foreground" : "bg-secondary/30 hover:bg-secondary/50"}`}
+                        >
+                          {agendamento && (
+                            <div className="text-xs">
                               <div className="font-semibold">{agendamento.cliente}</div>
                               <div className="text-xs opacity-80">{agendamento.pet}</div>
                               <div className="text-xs opacity-60">{agendamento.servico}</div>
-                            </div>}
-                          {pacote && <div className="text-xs">
+                            </div>
+                          )}
+                          {pacote && (
+                            <div className="text-xs">
                               <div className="flex items-center gap-1">
                                 <Package className="h-3 w-3" />
                                 <span className="font-semibold">{pacote.nomeCliente}</span>
                               </div>
                               <div className="text-xs opacity-80">{pacote.nomePet}</div>
                               <div className="text-xs opacity-60">{pacote.nomePacote}</div>
-                              {pacote.servicos[0] && <div className="text-xs opacity-60">{pacote.servicos[0].nomeServico}</div>}
-                            </div>}
-                        </div>;
-              })}
-                  </div>)}
+                              {pacote.servicos[0] && (
+                                <div className="text-xs opacity-60">{pacote.servicos[0].nomeServico}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-            </div> : <div className="flex gap-2">
+            </div>
+          ) : (
+            <div className="flex gap-2">
               {/* Gantt Chart */}
               <div className="flex-1 overflow-x-auto">
                 <div className="min-w-[400px] relative">
@@ -2226,48 +2746,69 @@ const Agendamentos = () => {
                     {/* Linhas verticais de fundo */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
-                    length: (horariosGantt.length - 1) * 2 + 1
-                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/30" />)}
+                        length: (horariosGantt.length - 1) * 2 + 1,
+                      }).map((_, i) => (
+                        <div key={i} className="flex-1 border-r border-gray-300/30" />
+                      ))}
                     </div>
-                    
-                    {horariosGantt.map(h => <div key={h} className="flex-1 text-center text-[10px] font-semibold text-muted-foreground relative z-10">
+
+                    {horariosGantt.map((h) => (
+                      <div
+                        key={h}
+                        className="flex-1 text-center text-[10px] font-semibold text-muted-foreground relative z-10"
+                      >
                         {h}
-                      </div>)}
+                      </div>
+                    ))}
                   </div>
-                  
+
                   {/* Barras de agendamentos */}
-                  <div className="space-y-0 relative" style={{
-                minHeight: `${Math.max(agendamentosDia.length * 8 + 16, 200)}px`
-              }}>
+                  <div
+                    className="space-y-0 relative"
+                    style={{
+                      minHeight: `${Math.max(agendamentosDia.length * 8 + 16, 200)}px`,
+                    }}
+                  >
                     {/* Linhas verticais estendidas para a área de barras */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
-                    length: (horariosGantt.length - 1) * 2 + 1
-                  }).map((_, i) => <div key={i} className="flex-1 border-r border-gray-300/30 h-full" />)}
+                        length: (horariosGantt.length - 1) * 2 + 1,
+                      }).map((_, i) => (
+                        <div key={i} className="flex-1 border-r border-gray-300/30 h-full" />
+                      ))}
                     </div>
-                    
+
                     {agendamentosDia.map((agendamento, index) => {
-                  const [inicioH, inicioM] = agendamento.horarioInicio.split(':').map(Number);
-                  const [fimH, fimM] = agendamento.horarioFim ? agendamento.horarioFim.split(':').map(Number) : [inicioH + 1, inicioM];
-                  const [primeiroH] = horariosGantt[0].split(':').map(Number);
-                  const [ultimoH] = horariosGantt[horariosGantt.length - 1].split(':').map(Number);
-                  const totalMinutos = (ultimoH - primeiroH + 1) * 60;
-                  const inicioMinutos = (inicioH - primeiroH) * 60 + inicioM;
-                  const duracaoMinutos = (fimH - inicioH) * 60 + (fimM - inicioM);
-                  const left = inicioMinutos / totalMinutos * 100;
-                  const width = duracaoMinutos / totalMinutos * 100;
-                  return <div key={index} className="absolute h-4 bg-orange-500 rounded flex items-center justify-center text-[8px] font-semibold text-black relative z-10" style={{
-                    left: `${left}%`,
-                    width: `${Math.max(width, 5)}%`,
-                    top: `${index * 8}px`
-                  }}>
-                          {agendamento.horarioInicio} - {agendamento.horarioFim || agendamento.horarioInicio}
-                        </div>;
-                })}
+                      const [inicioH, inicioM] = agendamento.horarioInicio.split(":").map(Number);
+                      const [fimH, fimM] = agendamento.horarioFim
+                        ? agendamento.horarioFim.split(":").map(Number)
+                        : [inicioH + 1, inicioM];
+                      const [primeiroH] = horariosGantt[0].split(":").map(Number);
+                      const [ultimoH] = horariosGantt[horariosGantt.length - 1].split(":").map(Number);
+                      const totalMinutos = (ultimoH - primeiroH + 1) * 60;
+                      const inicioMinutos = (inicioH - primeiroH) * 60 + inicioM;
+                      const duracaoMinutos = (fimH - inicioH) * 60 + (fimM - inicioM);
+                      const left = (inicioMinutos / totalMinutos) * 100;
+                      const width = (duracaoMinutos / totalMinutos) * 100;
+                      return (
+                        <div
+                          key={index}
+                          className="absolute h-4 bg-orange-500 rounded flex items-center justify-center text-[8px] font-semibold text-black relative z-10"
+                          style={{
+                            left: `${left}%`,
+                            width: `${Math.max(width, 5)}%`,
+                            top: `${index * 8}px`,
+                          }}
+                        >
+                          {agendamento.horarioInicio.substring(0, 5)} -{" "}
+                          {agendamento.horarioFim?.substring(0, 5) || agendamento.horarioInicio.substring(0, 5)}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
-              
+
               {/* Tabela de informações */}
               <div className="flex-1 overflow-visible">
                 <table className="w-full text-[10px] border">
@@ -2285,86 +2826,100 @@ const Agendamentos = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {agendamentosDia.map((agendamento, index) => <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
+                    {agendamentosDia.map((agendamento, index) => (
+                      <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
                         <td className="p-1.5 border">{agendamento.horarioInicio}</td>
-                        <td className="p-1.5 border">{agendamento.horarioFim || '-'}</td>
+                        <td className="p-1.5 border">{agendamento.horarioFim || "-"}</td>
                         <td className="p-1.5 border">{agendamento.cliente}</td>
                         <td className="p-1.5 border">{agendamento.pet}</td>
-                        <td className="p-1.5 border">{agendamento.raca || '-'}</td>
+                        <td className="p-1.5 border">{agendamento.raca || "-"}</td>
                         <td className="p-1.5 border">{agendamento.servico}</td>
-                        <td className="p-1.5 border">{agendamento.numeroPacote || ''}</td>
-                        <td className="p-1.5 border">{agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ''}</td>
+                        <td className="p-1.5 border">{agendamento.numeroPacote || ""}</td>
                         <td className="p-1.5 border">
-                          {agendamento.tipo === 'pacote' && agendamento.agendamentoPacote && agendamento.servicoAgendamento ? (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={(e) => copiarLinkWhatsApp(
-                                gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
-                                e
-                              )} 
+                          {agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ""}
+                        </td>
+                        <td className="p-1.5 border">
+                          {agendamento.tipo === "pacote" &&
+                          agendamento.agendamentoPacote &&
+                          agendamento.servicoAgendamento ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) =>
+                                copiarLinkWhatsApp(
+                                  gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
+                                  e,
+                                )
+                              }
                               className="h-5 w-5 p-0"
                             >
                               <Copy className="h-3 w-3" />
                             </Button>
-                          ) : agendamento.tipo === 'simples' && agendamento.agendamentoOriginal ? (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={(e) => copiarLinkWhatsApp(
-                                gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal),
-                                e
-                              )} 
+                          ) : agendamento.tipo === "simples" && agendamento.agendamentoOriginal ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) =>
+                                copiarLinkWhatsApp(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), e)
+                              }
                               className="h-5 w-5 p-0"
                             >
                               <Copy className="h-3 w-3" />
                             </Button>
                           ) : null}
                         </td>
-                      </tr>)}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            </div>}
-          
+            </div>
+          )}
+
           {/* Dialog de edição */}
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-lg">Editar Agendamento</DialogTitle>
-                <DialogDescription className="text-xs">
-                  Altere as informações do agendamento
-                </DialogDescription>
+                <DialogDescription className="text-xs">Altere as informações do agendamento</DialogDescription>
               </DialogHeader>
-              
-              {editingAgendamento && <div className="space-y-3">
+
+              {editingAgendamento && (
+                <div className="space-y-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Cliente</Label>
                     <Input value={editingAgendamento.cliente} disabled className="h-8 text-xs bg-secondary" />
                   </div>
-                  
+
                   <div className="space-y-1">
                     <Label className="text-xs">Pet</Label>
                     <Input value={editingAgendamento.pet} disabled className="h-8 text-xs bg-secondary" />
                   </div>
-                  
+
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço</Label>
-                    <Select value={editFormData.servico} onValueChange={value => setEditFormData({
-                      ...editFormData,
-                      servico: value
-                    })}>
+                    <Select
+                      value={editFormData.servico}
+                      onValueChange={(value) =>
+                        setEditFormData({
+                          ...editFormData,
+                          servico: value,
+                        })
+                      }
+                    >
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Selecione um serviço" />
                       </SelectTrigger>
                       <SelectContent className="bg-background z-50">
-                        <SelectItem value="__none__" className="text-xs">Selecione um serviço</SelectItem>
+                        <SelectItem value="__none__" className="text-xs">
+                          Selecione um serviço
+                        </SelectItem>
                         {servicos.length > 0 && (
                           <>
                             <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
                               Serviços Individuais
                             </SelectItem>
-                            {servicos.map(servico => (
+                            {servicos.map((servico) => (
                               <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
                                 {servico.nome}
                               </SelectItem>
@@ -2376,7 +2931,7 @@ const Agendamentos = () => {
                             <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
                               Pacotes de Serviços
                             </SelectItem>
-                            {pacotes.map(pacote => (
+                            {pacotes.map((pacote) => (
                               <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
                                 {pacote.nome}
                               </SelectItem>
@@ -2386,87 +2941,126 @@ const Agendamentos = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-1">
                     <Label className="text-xs">Data</Label>
-                    <Input type="date" value={editFormData.data} onChange={e => setEditFormData({
-                  ...editFormData,
-                  data: e.target.value
-                })} className="h-8 text-xs" />
+                    <Input
+                      type="date"
+                      value={editFormData.data}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          data: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
-                  
+
                   <div className="space-y-1">
                     <Label className="text-xs">Horário de Início</Label>
-                    <TimeInput value={editFormData.horarioInicio} onChange={value => setEditFormData({
-                  ...editFormData,
-                  horarioInicio: value
-                })} placeholder="00:00" className="h-8 text-xs" />
+                    <TimeInput
+                      value={editFormData.horarioInicio}
+                      onChange={(value) =>
+                        setEditFormData({
+                          ...editFormData,
+                          horarioInicio: value,
+                        })
+                      }
+                      placeholder="00:00"
+                      className="h-8 text-xs"
+                    />
                   </div>
-                  
+
                   <div className="space-y-1">
                     <Label className="text-xs">Tempo de Serviço (horas)</Label>
-                    <TimeInput value={editFormData.tempoServico} onChange={value => setEditFormData({
-                  ...editFormData,
-                  tempoServico: value
-                })} placeholder="00:00" className="h-8 text-xs" />
-                  </div>
-                  
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="destructive" onClick={() => {
-                  if (editingAgendamento.tipo === 'pacote') {
-                    const updated = agendamentosPacotes.map(p => {
-                      if (p.id === editingAgendamento.agendamentoPacote.id) {
-                        return {
-                          ...p,
-                          servicos: p.servicos.filter(s => s.numero !== editingAgendamento.servicoAgendamento.numero)
-                        };
+                    <TimeInput
+                      value={editFormData.tempoServico}
+                      onChange={(value) =>
+                        setEditFormData({
+                          ...editFormData,
+                          tempoServico: value,
+                        })
                       }
-                      return p;
-                    }).filter(p => p.servicos.length > 0);
-                    setAgendamentosPacotes(updated);
-                    toast.success("Agendamento excluído!");
-                    setEditDialogOpen(false);
-                  }
-                }} className="h-8 text-xs">
+                      placeholder="00:00"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => {
+                        if (editingAgendamento.tipo === "pacote") {
+                          const updated = agendamentosPacotes
+                            .map((p) => {
+                              if (p.id === editingAgendamento.agendamentoPacote.id) {
+                                return {
+                                  ...p,
+                                  servicos: p.servicos.filter(
+                                    (s) => s.numero !== editingAgendamento.servicoAgendamento.numero,
+                                  ),
+                                };
+                              }
+                              return p;
+                            })
+                            .filter((p) => p.servicos.length > 0);
+                          setAgendamentosPacotes(updated);
+                          toast.success("Agendamento excluído!");
+                          setEditDialogOpen(false);
+                        }
+                      }}
+                      className="h-8 text-xs"
+                    >
                       Excluir Agendamento
                     </Button>
-                    <Button type="button" onClick={() => {
-                  if (editingAgendamento.tipo === 'pacote') {
-                    const horarioTermino = calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
-                    const updated = agendamentosPacotes.map(p => {
-                      if (p.id === editingAgendamento.agendamentoPacote.id) {
-                        return {
-                          ...p,
-                          servicos: p.servicos.map(s => {
-                            if (s.numero === editingAgendamento.servicoAgendamento.numero) {
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (editingAgendamento.tipo === "pacote") {
+                          const horarioTermino = calcularHorarioTermino(
+                            editFormData.horarioInicio,
+                            editFormData.tempoServico,
+                          );
+                          const updated = agendamentosPacotes.map((p) => {
+                            if (p.id === editingAgendamento.agendamentoPacote.id) {
                               return {
-                                ...s,
-                                nomeServico: editFormData.servico,
-                                data: editFormData.data,
-                                horarioInicio: editFormData.horarioInicio,
-                                tempoServico: editFormData.tempoServico,
-                                horarioTermino
+                                ...p,
+                                servicos: p.servicos.map((s) => {
+                                  if (s.numero === editingAgendamento.servicoAgendamento.numero) {
+                                    return {
+                                      ...s,
+                                      nomeServico: editFormData.servico,
+                                      data: editFormData.data,
+                                      horarioInicio: editFormData.horarioInicio,
+                                      tempoServico: editFormData.tempoServico,
+                                      horarioTermino,
+                                    };
+                                  }
+                                  return s;
+                                }),
                               };
                             }
-                            return s;
-                          })
-                        };
-                      }
-                      return p;
-                    });
-                    setAgendamentosPacotes(updated);
-                    toast.success("Agendamento atualizado!");
-                    setEditDialogOpen(false);
-                  }
-                }} className="h-8 text-xs">
+                            return p;
+                          });
+                          setAgendamentosPacotes(updated);
+                          toast.success("Agendamento atualizado!");
+                          setEditDialogOpen(false);
+                        }
+                      }}
+                      className="h-8 text-xs"
+                    >
                       Atualizar Agendamento
                     </Button>
                   </div>
-                </div>}
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
 export default Agendamentos;
