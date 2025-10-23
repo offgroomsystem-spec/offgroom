@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Plus, Search } from "lucide-react";
+import { Pencil, Trash2, Plus, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,73 +22,108 @@ const Racas = () => {
   const [racas, setRacas] = useState<Raca[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch racas from Supabase (both standard and custom)
-  useEffect(() => {
-    if (!user) return;
+  // Function to fetch racas from Supabase (both standard and custom)
+  const fetchRacas = async () => {
+    if (!user) {
+      console.warn('⚠️ User not authenticated');
+      return;
+    }
     
-    const fetchRacas = async () => {
-      try {
-        // Fetch standard breeds (global)
-        const { data: racasPadrao, error: errorPadrao } = await supabase
-          .from('racas_padrao')
-          .select('*')
-          .order('porte', { ascending: true })
-          .order('nome', { ascending: true });
+    setLoading(true);
+    
+    try {
+      console.log('🔄 Fetching breeds...', {
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Fetch standard breeds (global)
+      const { data: racasPadrao, error: errorPadrao } = await supabase
+        .from('racas_padrao')
+        .select('*')
+        .order('porte', { ascending: true })
+        .order('nome', { ascending: true });
+      
+      // Fetch custom breeds (user-specific)
+      const { data: racasCustom, error: errorCustom } = await supabase
+        .from('racas')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('porte', { ascending: true })
+        .order('nome', { ascending: true });
         
-        // Fetch custom breeds (user-specific)
-        const { data: racasCustom, error: errorCustom } = await supabase
-          .from('racas')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('porte', { ascending: true })
-          .order('nome', { ascending: true });
-          
-        if (errorPadrao || errorCustom) {
-          console.error('Error fetching breeds:', errorPadrao || errorCustom);
-          toast.error('Erro ao carregar raças');
-        } else {
-          // Map standard breeds with fallbacks
-          const mappedPadrao = (racasPadrao || []).map(r => ({
+      if (errorPadrao || errorCustom) {
+        console.error('❌ Error fetching breeds:', {
+          errorPadrao,
+          errorCustom,
+          user: user?.id,
+          timestamp: new Date().toISOString()
+        });
+        toast.error('Erro ao carregar raças. Verifique sua conexão.');
+      } else {
+        console.log('✅ Dados brutos recebidos:', {
+          racasPadrao: racasPadrao?.length || 0,
+          racasCustom: racasCustom?.length || 0,
+          primeirasRacasPadrao: racasPadrao?.slice(0, 3),
+          primeirasRacasCustom: racasCustom?.slice(0, 3)
+        });
+        
+        // Map standard breeds with fallbacks
+        const mappedPadrao = (racasPadrao || []).map(r => {
+          console.log('📋 Raça padrão:', { id: r.id, nome: r.nome, porte: r.porte });
+          return {
             id: r.id,
             nome: r.nome || 'Sem nome',
             porte: r.porte || 'pequeno',
             isPadrao: true
-          }));
-          
-          // Map custom breeds with fallbacks
-          const mappedCustom = (racasCustom || []).map(r => ({
+          };
+        });
+        
+        // Map custom breeds with fallbacks
+        const mappedCustom = (racasCustom || []).map(r => {
+          console.log('📝 Raça customizada:', { id: r.id, nome: r.nome, porte: r.porte });
+          return {
             id: r.id,
             nome: r.nome || 'Sem nome',
             porte: r.porte || 'pequeno',
             isPadrao: false
-          }));
+          };
+        });
+        
+        console.log(`✅ Raças mapeadas: ${mappedPadrao.length} padrão + ${mappedCustom.length} customizadas`);
+        
+        // Combine and sort: standard breeds first, then custom
+        const allRacas = [...mappedPadrao, ...mappedCustom].sort((a, b) => {
+          // Sort by porte first
+          const porteOrder = { pequeno: 1, medio: 2, grande: 3 };
+          const porteDiff = porteOrder[a.porte as keyof typeof porteOrder] - porteOrder[b.porte as keyof typeof porteOrder];
+          if (porteDiff !== 0) return porteDiff;
           
-          console.log(`✅ Raças carregadas: ${mappedPadrao.length} padrão + ${mappedCustom.length} customizadas`);
+          // Then by isPadrao (standard first)
+          if (a.isPadrao !== b.isPadrao) return a.isPadrao ? -1 : 1;
           
-          // Combine and sort: standard breeds first, then custom
-          const allRacas = [...mappedPadrao, ...mappedCustom].sort((a, b) => {
-            // Sort by porte first
-            const porteOrder = { pequeno: 1, medio: 2, grande: 3 };
-            const porteDiff = porteOrder[a.porte as keyof typeof porteOrder] - porteOrder[b.porte as keyof typeof porteOrder];
-            if (porteDiff !== 0) return porteDiff;
-            
-            // Then by isPadrao (standard first)
-            if (a.isPadrao !== b.isPadrao) return a.isPadrao ? -1 : 1;
-            
-            // Finally by name
-            return a.nome.localeCompare(b.nome);
-          });
-          
-          setRacas(allRacas);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        toast.error('Erro ao carregar raças');
-      } finally {
-        setLoading(false);
+          // Finally by name
+          return a.nome.localeCompare(b.nome);
+        });
+        
+        console.log('🎯 Total de raças após ordenação:', allRacas.length);
+        setRacas(allRacas);
       }
-    };
-    
+    } catch (error) {
+      console.error('💥 Unexpected error:', error);
+      toast.error('Erro inesperado ao carregar raças');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forceRefresh = () => {
+    console.log('🔄 Manual refresh triggered');
+    setRacas([]);
+    fetchRacas();
+  };
+
+  useEffect(() => {
     fetchRacas();
   }, [user]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -218,16 +253,25 @@ const Racas = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="font-bold text-foreground">Raças de Pets</h1>
-          <p className="text-muted-foreground text-xs">Gerencie as raças cadastradas</p>
+          <p className="text-muted-foreground text-xs">
+            Total: {racas.length} raças 
+            ({racas.filter(r => r.isPadrao).length} padrão, {racas.filter(r => !r.isPadrao).length} customizadas)
+            {loading && " - Carregando..."}
+          </p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 h-8 text-xs">
-              <Plus className="h-3 w-3" />
-              Nova Raça
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={forceRefresh} disabled={loading} className="gap-2 h-8 text-xs">
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 h-8 text-xs">
+                <Plus className="h-3 w-3" />
+                Nova Raça
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="text-lg">{editingRaca ? "Editar Raça" : "Nova Raça"}</DialogTitle>
@@ -273,6 +317,7 @@ const Racas = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -332,7 +377,10 @@ const Racas = () => {
                       <td className="py-2 px-3 font-medium text-xs">{raca.nome}</td>
                       <td className="py-2 px-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
-                          {raca.porte || 'Não definido'}
+                          {raca.porte === 'medio' ? 'Médio' : 
+                           raca.porte === 'pequeno' ? 'Pequeno' : 
+                           raca.porte === 'grande' ? 'Grande' : 
+                           'Não definido'}
                         </span>
                       </td>
                       <td className="py-2 px-3">
