@@ -2819,8 +2819,8 @@ const Agendamentos = () => {
                   <thead className="bg-secondary sticky top-0">
                     <tr>
                       {/* Colunas A e B (Início e Fim) - Mais estreitas */}
-                      <th className="p-1.5 border text-left w-[40px]">Início</th>
-                      <th className="p-1.5 border text-left w-[40px]">Fim</th>
+                      <th className="p-1.5 border text-left w-[35px]">Início</th>
+                      <th className="p-1.5 border text-left w-[35px]">Fim</th>
 
                       {/* Colunas C, D, E, F (Tutor, Pet, Raça, Serviço) - Deixe o navegador ajustar ou defina larguras maiores */}
                       <th className="p-1.5 border text-left">Tutor</th>
