@@ -2189,7 +2189,6 @@ const Agendamentos = () => {
                         <TableCell colSpan={11} className="text-center text-xs text-muted-foreground py-8">
                           Nenhum agendamento encontrado
                         </TableCell>
-                                             {" "}
                       </TableRow>
                     ) : (
                       agendamentosFiltrados.map((agendamento) => (
@@ -2198,24 +2197,13 @@ const Agendamentos = () => {
                           className="cursor-pointer hover:bg-cyan-500/20"
                           onClick={() => handleEditarClick(agendamento)}
                         >
-                                                   {" "}
                           <TableCell className="text-[10px] p-1.5">
-                                                       {" "}
                             {agendamento.data
                               ? new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR")
                               : "-"}
-                                                     {" "}
                           </TableCell>
-                                                    {/* CORREÇÃO DE HORÁRIO DE INÍCIO */}                         {" "}
-                          <TableCell className="text-[10px] p-1.5">
-                            {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
-                          </TableCell>
-                                                   {/* CORREÇÃO DE HORÁRIO DE TÉRMINO */}                         {" "}
-                          <TableCell className="text-[10px] p-1.5">
-                            {agendamento.horarioTermino ? agendamento.horarioTermino.substring(0, 5) : "-"}
-                          </TableCell>
-                                                   {" "}
-                          <TableCell className="text-[10px] p-1.5">{agendamento.cliente || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioInicio || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioTermino || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">{agendamento.cliente || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">{agendamento.pet || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">{agendamento.raca || "-"}</TableCell>
@@ -2812,7 +2800,8 @@ const Agendamentos = () => {
                             top: `${index * 8}px`,
                           }}
                         >
-                          {agendamento.horarioInicio} - {agendamento.horarioFim || agendamento.horarioInicio}
+                          {agendamento.horarioInicio.substring(0, 5)} -{" "}
+                          {agendamento.horarioFim?.substring(0, 5) || agendamento.horarioInicio.substring(0, 5)}
                         </div>
                       );
                     })}
