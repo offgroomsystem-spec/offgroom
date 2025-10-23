@@ -2830,7 +2830,7 @@ const Agendamentos = () => {
 
                       {/* Colunas G, H, I (N° PCT, Taxi Dog, Whatsapp) - Mais estreitas */}
                       <th className="p-1.5 border text-left w-[50px]">N° PCT</th>
-                      <th className="p-1.5 border text-left w-[50px]">Taxi Dog</th>
+                      <th className="p-1.5 border text-left w-[30px]">Taxi Dog</th>
                       <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
                     </tr>
                   </thead>
