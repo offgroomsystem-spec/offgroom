@@ -1180,7 +1180,7 @@ const Agendamentos = () => {
       tipo: "simples" as const,
       data: a.data,
       horarioInicio: a.horario,
-      horarioTermino: a.horario,
+      horarioTermino: a.horarioTermino,
       cliente: a.cliente,
       pet: a.pet,
       raca: a.raca,
@@ -2202,8 +2202,12 @@ const Agendamentos = () => {
                               ? new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR")
                               : "-"}
                           </TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioInicio || "-"}</TableCell>
-                          <TableCell className="text-[10px] p-1.5">{agendamento.horarioTermino || "-"}</TableCell>
+                          <TableCell className="text-[10px] p-1.5">
+                            {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
+                          </TableCell>
+                          <TableCell className="text-[10px] p-1.5">
+                            {agendamento.horarioTermino ? agendamento.horarioTermino.substring(0, 5) : "-"}
+                          </TableCell>
                           <TableCell className="text-[10px] p-1.5">{agendamento.cliente || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">{agendamento.pet || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">{agendamento.raca || "-"}</TableCell>
@@ -2828,8 +2832,12 @@ const Agendamentos = () => {
                   <tbody>
                     {agendamentosDia.map((agendamento, index) => (
                       <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
-                        <td className="p-1.5 border">{agendamento.horarioInicio}</td>
-                        <td className="p-1.5 border">{agendamento.horarioFim || "-"}</td>
+                        <td className="p-1.5 border">
+                          {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
+                        </td>
+                        <td className="p-1.5 border">
+                          {agendamento.horarioFim ? agendamento.horarioFim.substring(0, 5) : "-"}
+                        </td>
                         <td className="p-1.5 border">{agendamento.cliente}</td>
                         <td className="p-1.5 border">{agendamento.pet}</td>
                         <td className="p-1.5 border">{agendamento.raca || "-"}</td>
