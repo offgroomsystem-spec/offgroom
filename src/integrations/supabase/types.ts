@@ -139,10 +139,7 @@ export type Database = {
           endereco: string | null
           id: string
           nome_cliente: string
-          nome_pet: string
           observacao: string | null
-          porte: string
-          raca: string
           updated_at: string | null
           user_id: string
           whatsapp: string
@@ -152,10 +149,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome_cliente: string
-          nome_pet: string
           observacao?: string | null
-          porte: string
-          raca: string
           updated_at?: string | null
           user_id: string
           whatsapp: string
@@ -165,10 +159,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome_cliente?: string
-          nome_pet?: string
           observacao?: string | null
-          porte?: string
-          raca?: string
           updated_at?: string | null
           user_id?: string
           whatsapp?: string
@@ -442,6 +433,50 @@ export type Database = {
           valor_final?: number
         }
         Relationships: []
+      }
+      pets: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          nome_pet: string
+          observacao: string | null
+          porte: string
+          raca: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          nome_pet: string
+          observacao?: string | null
+          porte: string
+          raca: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          nome_pet?: string
+          observacao?: string | null
+          porte?: string
+          raca?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pets_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       produtos: {
         Row: {

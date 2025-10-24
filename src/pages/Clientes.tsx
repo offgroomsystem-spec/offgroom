@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Search, Plus, Trash2, Edit, PawPrint, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Trash2, Plus, Search } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { Separator } from "@/components/ui/separator";
 
 interface Raca {
   id: string;
@@ -18,494 +19,556 @@ interface Raca {
   isPadrao?: boolean;
 }
 
-interface Cliente {
-  id: string;
-  nomeCliente: string;
-  nomePet: string;
+interface Pet {
+  id?: string;
+  nome_pet: string;
   porte: string;
   raca: string;
-  whatsapp: string;
-  endereco: string;
   observacao: string;
 }
 
-const Clientes = () => {
-  const { user } = useAuth();
+interface Cliente {
+  id: string;
+  nome_cliente: string;
+  whatsapp: string;
+  endereco: string;
+  observacao: string;
+  pets: Pet[];
+}
+
+export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
   const [racas, setRacas] = useState<Raca[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
 
-  const [formData, setFormData] = useState({
-    nomeCliente: "",
-    nomePet: "",
-    porte: "",
-    raca: "",
-    whatsapp: "",
-    endereco: "",
-    observacao: "",
-  });
+  // Form state
+  const [nomeCliente, setNomeCliente] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [observacaoCliente, setObservacaoCliente] = useState("");
+  const [pets, setPets] = useState<Pet[]>([
+    { nome_pet: "", porte: "", raca: "", observacao: "" }
+  ]);
 
-  // Fetch clientes from Supabase
   useEffect(() => {
-    if (!user) return;
-    
-    const fetchClientes = async () => {
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('user_id', user.id);
-        
-      if (error) {
-        console.error('Error fetching clients:', error);
-        toast.error('Erro ao carregar clientes');
-      } else {
-        const mappedClientes = (data || []).map(c => ({
-          id: c.id,
-          nomeCliente: c.nome_cliente,
-          nomePet: c.nome_pet,
-          porte: c.porte,
-          raca: c.raca,
-          whatsapp: c.whatsapp,
-          endereco: c.endereco || '',
-          observacao: c.observacao || ''
-        }));
-        setClientes(mappedClientes);
-      }
-      setLoading(false);
-    };
-    
-    fetchClientes();
+    if (user) {
+      fetchClientes();
+      fetchRacas();
+    }
   }, [user]);
 
-  // Fetch racas from Supabase
-  useEffect(() => {
+  const fetchRacas = async () => {
     if (!user) return;
     
-    const fetchRacas = async () => {
-      try {
-        // Buscar raças padrão (globais)
-        const { data: racasPadrao, error: errorPadrao } = await supabase
-          .from('racas_padrao')
-          .select('*')
-          .order('nome', { ascending: true });
-        
-        // Buscar raças customizadas (do usuário)
-        const { data: racasCustom, error: errorCustom } = await supabase
-          .from('racas')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('nome', { ascending: true });
-          
-        if (errorPadrao || errorCustom) {
-          console.error('Error fetching breeds:', errorPadrao || errorCustom);
-        } else {
-          // Mapear raças padrão
-          const mappedPadrao = (racasPadrao || []).map(r => ({
-            id: r.id,
-            nome: r.nome,
-            porte: r.porte,
-            isPadrao: true
-          }));
-          
-          // Mapear raças customizadas
-          const mappedCustom = (racasCustom || []).map(r => ({
-            id: r.id,
-            nome: r.nome,
-            porte: r.porte,
-            isPadrao: false
-          }));
-          
-          // Combinar e ordenar
-          const allRacas = [...mappedPadrao, ...mappedCustom].sort((a, b) => {
-            // Ordenar por porte primeiro
-            const porteOrder = { pequeno: 1, medio: 2, grande: 3 };
-            const porteDiff = porteOrder[a.porte as keyof typeof porteOrder] - 
-                             porteOrder[b.porte as keyof typeof porteOrder];
-            if (porteDiff !== 0) return porteDiff;
-            
-            // Depois por isPadrao (padrão primeiro)
-            if (a.isPadrao !== b.isPadrao) return a.isPadrao ? -1 : 1;
-            
-            // Por fim por nome
-            return a.nome.localeCompare(b.nome);
-          });
-          
-          setRacas(allRacas);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    };
-    
-    fetchRacas();
-  }, [user]);
+    const { data: racasPadrao } = await supabase
+      .from("racas_padrao")
+      .select("*")
+      .order("nome", { ascending: true });
 
-  const racasFiltradas = racas.filter(raca => raca.porte === formData.porte);
+    const { data: racasCustom } = await supabase
+      .from("racas")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("nome", { ascending: true });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    const racasPadraoFormatted = racasPadrao?.map(r => ({ ...r, isPadrao: true })) || [];
+    const racasCustomFormatted = racasCustom?.map(r => ({ ...r, isPadrao: false })) || [];
     
-    if (!user) {
-      toast.error("Usuário não autenticado");
+    setRacas([...racasPadraoFormatted, ...racasCustomFormatted]);
+  };
+
+  const fetchClientes = async () => {
+    if (!user) return;
+
+    // Buscar clientes
+    const { data: clientesData, error: clientesError } = await supabase
+      .from("clientes")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("nome_cliente");
+
+    if (clientesError) {
+      toast.error("Erro ao carregar clientes");
       return;
     }
-    
-    if (!formData.nomeCliente.trim()) {
-      toast.error("Favor preencher o Nome do Cliente");
+
+    // Buscar todos os pets de uma vez
+    const { data: petsData, error: petsError } = await supabase
+      .from("pets")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("nome_pet");
+
+    if (petsError) {
+      toast.error("Erro ao carregar pets");
       return;
     }
-    if (!formData.nomePet.trim()) {
-      toast.error("Favor preencher o Nome do Pet");
-      return;
-    }
-    if (!formData.porte) {
-      toast.error("Favor selecionar o Porte do Pet");
-      return;
-    }
-    if (!formData.raca) {
-      toast.error("Favor preencher a Raça do Pet");
-      return;
-    }
-    if (!formData.whatsapp || formData.whatsapp.length !== 11) {
-      toast.error("Favor preencher o WhatsApp com 11 dígitos (DDD + número)");
-      return;
-    }
-    
-    if (editingCliente) {
-      const { error } = await supabase
-        .from('clientes')
-        .update({
-          nome_cliente: formData.nomeCliente,
-          nome_pet: formData.nomePet,
-          porte: formData.porte,
-          raca: formData.raca,
-          whatsapp: formData.whatsapp,
-          endereco: formData.endereco,
-          observacao: formData.observacao
-        })
-        .eq('id', editingCliente.id)
-        .eq('user_id', user.id);
-        
-      if (error) {
-        toast.error("Erro ao atualizar cliente");
-        console.error(error);
-        return;
-      }
-      
-      setClientes(clientes.map(c => 
-        c.id === editingCliente.id ? { ...formData, id: editingCliente.id } : c
-      ));
-      toast.success("Cliente atualizado com sucesso!");
-    } else {
-      const { data, error } = await supabase
-        .from('clientes')
-        .insert([{
-          user_id: user.id,
-          nome_cliente: formData.nomeCliente,
-          nome_pet: formData.nomePet,
-          porte: formData.porte,
-          raca: formData.raca,
-          whatsapp: formData.whatsapp,
-          endereco: formData.endereco,
-          observacao: formData.observacao
-        }])
-        .select()
-        .single();
-        
-      if (error) {
-        toast.error("Erro ao cadastrar cliente");
-        console.error(error);
-        return;
-      }
-      
-      if (data) {
-        setClientes([...clientes, {
-          id: data.id,
-          nomeCliente: data.nome_cliente,
-          nomePet: data.nome_pet,
-          porte: data.porte,
-          raca: data.raca,
-          whatsapp: data.whatsapp,
-          endereco: data.endereco || '',
-          observacao: data.observacao || ''
-        }]);
-      }
-      toast.success("Cliente cadastrado com sucesso!");
-    }
-    
-    resetForm();
+
+    // Agrupar pets por cliente
+    const clientesComPets = clientesData.map(cliente => ({
+      ...cliente,
+      pets: petsData.filter(pet => pet.cliente_id === cliente.id)
+    }));
+
+    setClientes(clientesComPets);
   };
 
   const resetForm = () => {
-    setFormData({
-      nomeCliente: "",
-      nomePet: "",
-      porte: "",
-      raca: "",
-      whatsapp: "",
-      endereco: "",
-      observacao: "",
-    });
-    setEditingCliente(null);
-    setIsDialogOpen(false);
+    setNomeCliente("");
+    setWhatsapp("");
+    setEndereco("");
+    setObservacaoCliente("");
+    setPets([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setEditingId(null);
   };
 
   const handleEdit = (cliente: Cliente) => {
-    setEditingCliente(cliente);
-    setFormData(cliente);
-    setIsDialogOpen(true);
+    setEditingId(cliente.id);
+    setNomeCliente(cliente.nome_cliente);
+    setWhatsapp(cliente.whatsapp);
+    setEndereco(cliente.endereco || "");
+    setObservacaoCliente(cliente.observacao || "");
+    setPets(cliente.pets.length > 0 ? cliente.pets : [{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!user) return;
-    
+    if (!confirm("Tem certeza que deseja deletar este cliente? Todos os pets associados também serão deletados.")) return;
+
     const { error } = await supabase
-      .from('clientes')
+      .from("clientes")
       .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
-      
+      .eq("id", id);
+
     if (error) {
-      toast.error("Erro ao remover cliente");
-      console.error(error);
+      toast.error("Erro ao deletar cliente");
+    } else {
+      toast.success("Cliente deletado com sucesso");
+      fetchClientes();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!user) return;
+
+    // Validação
+    if (!nomeCliente.trim() || !whatsapp.trim()) {
+      toast.error("Nome do cliente e WhatsApp são obrigatórios");
       return;
     }
-    
-    setClientes(clientes.filter(c => c.id !== id));
-    toast.success("Cliente removido com sucesso!");
+
+    if (pets.length === 0) {
+      toast.error("Adicione pelo menos um pet");
+      return;
+    }
+
+    for (let i = 0; i < pets.length; i++) {
+      const pet = pets[i];
+      if (!pet.nome_pet.trim() || !pet.porte || !pet.raca) {
+        toast.error(`Preencha todos os campos obrigatórios do Pet ${i + 1}`);
+        return;
+      }
+    }
+
+    try {
+      if (editingId) {
+        // UPDATE Cliente
+        const { error: clienteError } = await supabase
+          .from("clientes")
+          .update({
+            nome_cliente: nomeCliente,
+            whatsapp,
+            endereco,
+            observacao: observacaoCliente,
+          })
+          .eq("id", editingId);
+
+        if (clienteError) throw clienteError;
+
+        // Buscar pets existentes
+        const { data: petsExistentes } = await supabase
+          .from("pets")
+          .select("id")
+          .eq("cliente_id", editingId);
+
+        const idsExistentes = petsExistentes?.map(p => p.id) || [];
+        const idsNoFormulario = pets.filter(p => p.id).map(p => p.id);
+
+        // Deletar pets removidos
+        const idsParaDeletar = idsExistentes.filter(id => !idsNoFormulario.includes(id));
+        if (idsParaDeletar.length > 0) {
+          await supabase
+            .from("pets")
+            .delete()
+            .in("id", idsParaDeletar);
+        }
+
+        // Atualizar e inserir pets
+        for (const pet of pets) {
+          if (pet.id) {
+            // UPDATE pet existente
+            await supabase
+              .from("pets")
+              .update({
+                nome_pet: pet.nome_pet,
+                porte: pet.porte,
+                raca: pet.raca,
+                observacao: pet.observacao || "",
+              })
+              .eq("id", pet.id);
+          } else {
+            // INSERT novo pet
+            await supabase
+              .from("pets")
+              .insert({
+                user_id: user.id,
+                cliente_id: editingId,
+                nome_pet: pet.nome_pet,
+                porte: pet.porte,
+                raca: pet.raca,
+                observacao: pet.observacao || "",
+              });
+          }
+        }
+
+        toast.success("Cliente atualizado com sucesso");
+      } else {
+        // INSERT Cliente
+        const { data: novoCliente, error: clienteError } = await supabase
+          .from("clientes")
+          .insert({
+            user_id: user.id,
+            nome_cliente: nomeCliente,
+            whatsapp,
+            endereco,
+            observacao: observacaoCliente,
+          })
+          .select()
+          .single();
+
+        if (clienteError) throw clienteError;
+
+        // INSERT Pets
+        const petsParaInserir = pets.map(pet => ({
+          user_id: user.id,
+          cliente_id: novoCliente.id,
+          nome_pet: pet.nome_pet,
+          porte: pet.porte,
+          raca: pet.raca,
+          observacao: pet.observacao || "",
+        }));
+
+        const { error: petsError } = await supabase
+          .from("pets")
+          .insert(petsParaInserir);
+
+        if (petsError) throw petsError;
+
+        toast.success("Cliente cadastrado com sucesso");
+      }
+
+      setDialogOpen(false);
+      resetForm();
+      fetchClientes();
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error);
+      toast.error("Erro ao salvar cliente");
+    }
+  };
+
+  const addPet = () => {
+    setPets([...pets, { nome_pet: "", porte: "", raca: "", observacao: "" }]);
+  };
+
+  const removePet = (index: number) => {
+    if (pets.length === 1) {
+      toast.error("É necessário ter pelo menos um pet");
+      return;
+    }
+    setPets(pets.filter((_, i) => i !== index));
+  };
+
+  const updatePet = (index: number, field: keyof Pet, value: string) => {
+    const newPets = [...pets];
+    newPets[index] = { ...newPets[index], [field]: value };
+    setPets(newPets);
   };
 
   const filteredClientes = clientes.filter(cliente =>
-    cliente.nomeCliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.nomePet.toLowerCase().includes(searchTerm.toLowerCase())
+    cliente.nome_cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.whatsapp.includes(searchTerm) ||
+    cliente.pets.some(pet => pet.nome_pet.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="font-bold text-foreground">Clientes e Pets</h1>
-          <p className="text-muted-foreground text-xs">Gerencie os cadastros de clientes e seus pets</p>
-        </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 h-8 text-xs">
-              <Plus className="h-3 w-3" />
-              Novo Cliente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-lg">{editingCliente ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
-              <DialogDescription className="text-xs">
-                Preencha os dados do cliente e pet
-              </DialogDescription>
-            </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="nomeCliente" className="text-xs">Nome do Cliente *</Label>
-                  <Input
-                    id="nomeCliente"
-                    value={formData.nomeCliente}
-                    onChange={(e) => setFormData({ ...formData, nomeCliente: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="nomePet" className="text-xs">Nome do Pet *</Label>
-                  <Input
-                    id="nomePet"
-                    value={formData.nomePet}
-                    onChange={(e) => setFormData({ ...formData, nomePet: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="porte" className="text-xs">Porte do Pet *</Label>
-                  <Select 
-                    value={formData.porte} 
-                    onValueChange={(value) => setFormData({ ...formData, porte: value, raca: "" })}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Selecione o porte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pequeno" className="text-xs">Pequeno</SelectItem>
-                      <SelectItem value="medio" className="text-xs">Médio</SelectItem>
-                      <SelectItem value="grande" className="text-xs">Grande</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="raca" className="text-xs">Raça *</Label>
-                  <Select 
-                    value={formData.raca} 
-                    onValueChange={(value) => setFormData({ ...formData, raca: value })}
-                    disabled={!formData.porte}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder={!formData.porte ? "Selecione o porte primeiro" : "Selecione a raça"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {racasFiltradas.length === 0 ? (
-                        <SelectItem value="sem-raca" disabled className="text-xs">
-                          Nenhuma raça cadastrada para este porte
-                        </SelectItem>
-                      ) : (
-                        racasFiltradas.map((raca) => (
-                          <SelectItem key={raca.id} value={raca.nome} className="text-xs">
-                            {raca.nome}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="whatsapp" className="text-xs">WhatsApp *</Label>
-                <Input
-                  id="whatsapp"
-                  value={formData.whatsapp}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
-                    if (value.length <= 11) {
-                      setFormData({ ...formData, whatsapp: value });
-                    }
-                  }}
-                  placeholder="DDD + número (11 dígitos)"
-                  maxLength={11}
-                  className="h-8 text-xs"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Ex: 11987654321 (DDD + número)
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="endereco" className="text-xs">Endereço</Label>
-                <Input
-                  id="endereco"
-                  value={formData.endereco}
-                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                  className="h-8 text-xs"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="observacao" className="text-xs">Observação</Label>
-                <Textarea
-                  id="observacao"
-                  value={formData.observacao}
-                  onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
-                  rows={2}
-                  className="text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={resetForm} className="h-8 text-xs">
-                  Cancelar
-                </Button>
-                <Button type="submit" className="h-8 text-xs">
-                  {editingCliente ? "Atualizar" : "Salvar"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+    <div className="container mx-auto py-6 space-y-6">
       <Card>
-        <CardHeader className="py-3">
-          <div className="flex justify-between items-center">
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base">Lista de Clientes</CardTitle>
-              <CardDescription className="text-xs">Total: {clientes.length} clientes cadastrados</CardDescription>
+              <CardTitle className="text-2xl">Clientes e Pets</CardTitle>
+              <CardDescription>Gerencie seus clientes e seus pets</CardDescription>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente ou pet..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-7 h-8 text-xs"
-              />
-            </div>
+            <Dialog open={dialogOpen} onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingId ? "Editar Cliente" : "Novo Cliente"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Dados do Cliente */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      📝 Dados do Cliente
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nome_cliente">Nome do Cliente *</Label>
+                        <Input
+                          id="nome_cliente"
+                          value={nomeCliente}
+                          onChange={(e) => setNomeCliente(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="whatsapp">WhatsApp *</Label>
+                        <Input
+                          id="whatsapp"
+                          value={whatsapp}
+                          onChange={(e) => setWhatsapp(e.target.value)}
+                          placeholder="(00) 00000-0000"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endereco">Endereço</Label>
+                      <Input
+                        id="endereco"
+                        value={endereco}
+                        onChange={(e) => setEndereco(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="observacao_cliente">Observação</Label>
+                      <Textarea
+                        id="observacao_cliente"
+                        value={observacaoCliente}
+                        onChange={(e) => setObservacaoCliente(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Pets do Cliente */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        🐾 Pets do Cliente
+                      </h3>
+                      <Button type="button" onClick={addPet} variant="outline" size="sm">
+                        <Plus className="mr-2 h-4 w-4" /> Adicionar Pet
+                      </Button>
+                    </div>
+
+                    {pets.map((pet, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium flex items-center gap-2">
+                              <PawPrint className="h-4 w-4" />
+                              Pet #{index + 1}
+                            </h4>
+                            {pets.length > 1 && (
+                              <Button
+                                type="button"
+                                onClick={() => removePet(index)}
+                                variant="ghost"
+                                size="sm"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Nome do Pet *</Label>
+                              <Input
+                                value={pet.nome_pet}
+                                onChange={(e) => updatePet(index, "nome_pet", e.target.value)}
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Porte *</Label>
+                              <Select
+                                value={pet.porte}
+                                onValueChange={(value) => updatePet(index, "porte", value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o porte" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pequeno">Pequeno</SelectItem>
+                                  <SelectItem value="medio">Médio</SelectItem>
+                                  <SelectItem value="grande">Grande</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Raça *</Label>
+                            <Select
+                              value={pet.raca}
+                              onValueChange={(value) => updatePet(index, "raca", value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a raça" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {racas.map((raca) => (
+                                  <SelectItem key={raca.id} value={raca.nome}>
+                                    {raca.nome} {raca.isPadrao ? "" : "(Personalizada)"}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Observação</Label>
+                            <Textarea
+                              value={pet.observacao}
+                              onChange={(e) => updatePet(index, "observacao", e.target.value)}
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setDialogOpen(false);
+                        resetForm();
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit">
+                      {editingId ? "Atualizar" : "Cadastrar"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
-        <CardContent className="py-3">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-3 font-semibold text-xs">Cliente</th>
-                  <th className="text-left py-2 px-3 font-semibold text-xs">Pet</th>
-                  <th className="text-left py-2 px-3 font-semibold text-xs">WhatsApp</th>
-                  <th className="text-left py-2 px-3 font-semibold text-xs">Porte</th>
-                  <th className="text-left py-2 px-3 font-semibold text-xs">Raça</th>
-                  <th className="text-left py-2 px-3 font-semibold text-xs">Endereço</th>
-                  <th className="text-right py-2 px-3 font-semibold text-xs">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredClientes.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8 text-muted-foreground text-xs">
-                      Nenhum cliente cadastrado
-                    </td>
-                  </tr>
-                ) : (
-                  filteredClientes.map((cliente) => (
-                    <tr key={cliente.id} className="border-b hover:bg-secondary/50 transition-colors">
-                      <td className="py-2 px-3 text-xs">{cliente.nomeCliente}</td>
-                      <td className="py-2 px-3 text-xs">{cliente.nomePet}</td>
-                      <td className="py-2 px-3 text-xs">
-                        {cliente.whatsapp ? 
-                          `(${cliente.whatsapp.slice(0,2)}) ${cliente.whatsapp.slice(2,7)}-${cliente.whatsapp.slice(7)}` 
-                          : '-'
-                        }
-                      </td>
-                      <td className="py-2 px-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {cliente.porte}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3 text-xs">{cliente.raca}</td>
-                      <td className="py-2 px-3 text-xs">{cliente.endereco || '-'}</td>
-                      <td className="py-2 px-3">
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => handleEdit(cliente)} className="h-7 w-7 p-0">
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDelete(cliente.id)} className="h-7 w-7 p-0">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </td>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar por cliente, pet ou telefone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <div className="rounded-md border">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-medium">Cliente</th>
+                      <th className="text-left p-3 font-medium">Pets</th>
+                      <th className="text-left p-3 font-medium">WhatsApp</th>
+                      <th className="text-left p-3 font-medium">Endereço</th>
+                      <th className="text-right p-3 font-medium">Ações</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {filteredClientes.map((cliente) => (
+                      <tr key={cliente.id} className="border-b hover:bg-muted/30 transition-colors">
+                        <td className="p-3 font-medium">{cliente.nome_cliente}</td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-1">
+                            {cliente.pets.map((pet, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                              >
+                                <PawPrint className="h-3 w-3" />
+                                {pet.nome_pet}
+                                <span className="text-muted-foreground">
+                                  ({pet.porte === 'pequeno' ? 'P' : pet.porte === 'medio' ? 'M' : 'G'})
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="p-3">{cliente.whatsapp}</td>
+                        <td className="p-3 text-sm text-muted-foreground">
+                          {cliente.endereco || "-"}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(cliente)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(cliente.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredClientes.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                          Nenhum cliente encontrado
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
   );
-};
-
-export default Clientes;
+}
