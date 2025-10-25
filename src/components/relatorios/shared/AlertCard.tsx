@@ -45,7 +45,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone }: AlertCardProps)
         )}
         {lista && lista.length > 0 && (
           <ul className="list-disc list-inside space-y-1 text-sm">
-            {lista.slice(0, 5).map((item, idx) => (
+            {lista.slice(0, 5).filter(item => item !== undefined && item !== null).map((item, idx) => (
               <li key={idx}>
                 {typeof item === 'string' ? item : `${item.nomeCliente || item.cliente} - ${item.nomePet || item.pet || ''}`}
               </li>
