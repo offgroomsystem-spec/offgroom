@@ -239,6 +239,7 @@ export type Database = {
           horario_fim: string | null
           horario_inicio: string | null
           id: string
+          meta_faturamento_mensal: number | null
           nome_empresa: string | null
           telefone: string | null
           updated_at: string | null
@@ -251,6 +252,7 @@ export type Database = {
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
+          meta_faturamento_mensal?: number | null
           nome_empresa?: string | null
           telefone?: string | null
           updated_at?: string | null
@@ -263,6 +265,7 @@ export type Database = {
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
+          meta_faturamento_mensal?: number | null
           nome_empresa?: string | null
           telefone?: string | null
           updated_at?: string | null

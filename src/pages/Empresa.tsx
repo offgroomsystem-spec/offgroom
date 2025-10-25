@@ -12,6 +12,7 @@ interface EmpresaConfig {
   bordao: string;
   horarioInicio: string;
   horarioFim: string;
+  metaFaturamentoMensal: number;
 }
 
 interface Groomer {
@@ -25,6 +26,7 @@ const Empresa = () => {
     bordao: "",
     horarioInicio: "",
     horarioFim: "",
+    metaFaturamentoMensal: 10000,
   });
   const [groomers, setGroomers] = useState<Groomer[]>([]);
   const [novoGroomer, setNovoGroomer] = useState("");
@@ -50,7 +52,8 @@ const Empresa = () => {
           id: empresaData.id,
           bordao: empresaData.bordao || '',
           horarioInicio: empresaData.horario_inicio || '',
-          horarioFim: empresaData.horario_fim || ''
+          horarioFim: empresaData.horario_fim || '',
+          metaFaturamentoMensal: empresaData.meta_faturamento_mensal || 10000,
         });
       }
       setLoading(false);
@@ -104,7 +107,8 @@ const Empresa = () => {
         .update({
           bordao: formData.bordao,
           horario_inicio: formData.horarioInicio,
-          horario_fim: formData.horarioFim
+          horario_fim: formData.horarioFim,
+          meta_faturamento_mensal: formData.metaFaturamentoMensal,
         })
         .eq('id', formData.id)
         .eq('user_id', user.id);
@@ -123,7 +127,8 @@ const Empresa = () => {
           user_id: user.id,
           bordao: formData.bordao,
           horario_inicio: formData.horarioInicio,
-          horario_fim: formData.horarioFim
+          horario_fim: formData.horarioFim,
+          meta_faturamento_mensal: formData.metaFaturamentoMensal,
         })
         .select()
         .single();
@@ -291,6 +296,44 @@ const Empresa = () => {
 
             <Button type="submit" className="w-full">
               Salvar Configurações
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Meta de Faturamento Mensal</CardTitle>
+          <CardDescription>
+            Defina a meta de faturamento mensal da empresa
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="metaFaturamento">Meta Mensal (R$)</Label>
+              <Input
+                id="metaFaturamento"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="10.000,00"
+                value={formData.metaFaturamentoMensal}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  metaFaturamentoMensal: parseFloat(e.target.value) || 0 
+                })}
+              />
+              <p className="text-sm text-muted-foreground">
+                Valor atual: {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                }).format(formData.metaFaturamentoMensal)}
+              </p>
+            </div>
+
+            <Button type="submit" className="w-full">
+              Salvar Meta
             </Button>
           </form>
         </CardContent>
