@@ -7,6 +7,7 @@ interface AlertCardProps {
   lista?: any[];
   valor?: number;
   icone?: ReactNode;
+  onClick?: () => void;
 }
 
 const formatCurrency = (value: number): string => {
@@ -16,7 +17,7 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-export const AlertCard = ({ tipo, titulo, lista, valor, icone }: AlertCardProps) => {
+export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick }: AlertCardProps) => {
   const tipoClasses = {
     warning: 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950',
     error: 'border-red-500 bg-red-50 dark:bg-red-950',
@@ -30,7 +31,10 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone }: AlertCardProps)
   };
 
   return (
-    <Card className={`border-2 ${tipoClasses[tipo]}`}>
+    <Card 
+      className={`border-2 ${tipoClasses[tipo]} ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow hover:border-primary' : ''}`}
+      onClick={onClick}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}

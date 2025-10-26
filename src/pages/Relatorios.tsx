@@ -52,7 +52,13 @@ const Relatorios = () => {
           onLimpar={handleLimparFiltros}
         />
         
-        {relatorioAtivo === "dashboard" && <DashboardExecutivo key={versaoFiltro} filtros={filtros} />}
+        {relatorioAtivo === "dashboard" && (
+          <DashboardExecutivo 
+            key={versaoFiltro} 
+            filtros={filtros} 
+            onNavigateToReport={handleCardClick}
+          />
+        )}
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}

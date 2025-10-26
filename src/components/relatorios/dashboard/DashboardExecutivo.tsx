@@ -17,9 +17,10 @@ interface Filtros {
 
 interface DashboardExecutivoProps {
   filtros: Filtros;
+  onNavigateToReport?: (reportId: string) => void;
 }
 
-export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
+export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExecutivoProps) => {
   const { user } = useAuth();
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
@@ -419,6 +420,7 @@ export const DashboardExecutivo = ({ filtros }: DashboardExecutivoProps) => {
             titulo="Pacotes a Expirar (7 dias)"
             lista={alertas.pacotesExpirando}
             icone={<Clock className="h-5 w-5" />}
+            onClick={() => onNavigateToReport?.("pacotes-vencimento")}
           />
           <AlertCard 
             tipo="error"
