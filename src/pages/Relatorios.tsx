@@ -8,6 +8,7 @@ import { DashboardExecutivo } from "@/components/relatorios/dashboard/DashboardE
 import { FluxoDeCaixa } from "@/components/relatorios/financeiros/FluxoDeCaixa";
 import { DRE } from "@/components/relatorios/financeiros/DRE";
 import { Inadimplencia } from "@/components/relatorios/financeiros/InadimplenciaDisabled";
+import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/PacotesProximosVencimento";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -55,8 +56,9 @@ const Relatorios = () => {
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
+        {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         
-        {!["dashboard", "fluxo-caixa", "dre", "inadimplencia"].includes(relatorioAtivo) && (
+        {!["dashboard", "fluxo-caixa", "dre", "inadimplencia", "pacotes-vencimento"].includes(relatorioAtivo) && (
           <Card>
             <CardHeader>
               <CardTitle>Relatório em Desenvolvimento</CardTitle>
@@ -163,12 +165,20 @@ const Relatorios = () => {
 
         <TabsContent value="clientes" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {["Pacotes Ativos", "Pacotes Próximos do Vencimento", "Pacotes Expirados", "Taxa de Renovação", "Clientes Top (Por Receita)", "Valor de Vida do Cliente (CLV)", "Clientes em Risco (Churn Proativo)"].map(titulo => (
+            {["Pacotes Ativos", "Pacotes Expirados", "Taxa de Renovação", "Clientes Top (Por Receita)", "Valor de Vida do Cliente (CLV)", "Clientes em Risco (Churn Proativo)"].map(titulo => (
               <Card key={titulo} className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary">
                 <CardHeader><CardTitle className="text-sm">{titulo}</CardTitle></CardHeader>
                 <CardContent><p className="text-xs text-muted-foreground">Em desenvolvimento</p></CardContent>
               </Card>
             ))}
+            <Card 
+              key="Pacotes Próximos do Vencimento" 
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("pacotes-vencimento")}
+            >
+              <CardHeader><CardTitle className="text-sm">Pacotes Próximos do Vencimento</CardTitle></CardHeader>
+              <CardContent><p className="text-xs text-muted-foreground">Visualize pacotes que vencem nos próximos 7 dias</p></CardContent>
+            </Card>
           </div>
         </TabsContent>
 
