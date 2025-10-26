@@ -28,6 +28,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
   const [produtos, setProdutos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [metaFaturamento, setMetaFaturamento] = useState<number>(10000);
 
   // Calcular intervalo de datas baseado nos filtros
   const calcularIntervaloFiltro = useMemo(() => {
@@ -73,6 +74,17 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         setLoading(true);
         
         const { dataInicio, dataFim } = calcularIntervaloFiltro;
+        
+        // Carregar Configuração da Empresa (Meta de Faturamento)
+        const { data: empresaConfig } = await supabase
+          .from('empresa_config')
+          .select('meta_faturamento_mensal')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (empresaConfig?.meta_faturamento_mensal) {
+          setMetaFaturamento(Number(empresaConfig.meta_faturamento_mensal));
+        }
         
         // Carregar Clientes
         const { data: clientesData } = await supabase
@@ -290,6 +302,21 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     // Detectar se deve agrupar por mês (trimestre/ano) ou por dia
     const agruparPorMes = filtros.periodo === "trimestre" || filtros.periodo === "ano";
     
+    // Calcular meta proporcional baseada no período
+    let metaProporcional: number;
+    
+    if (agruparPorMes) {
+      // Meta por mês (valor completo)
+      metaProporcional = metaFaturamento;
+    } else if (filtros.periodo === "semana") {
+      // Meta dividida por 7 dias
+      metaProporcional = metaFaturamento / 30 * 7 / 7; // Meta mensal / 30 dias * 7 dias / 7 pontos no gráfico
+      metaProporcional = metaFaturamento / 30; // Simplificando: meta diária
+    } else {
+      // Meta por dia (dividir por 30 dias do mês)
+      metaProporcional = metaFaturamento / 30;
+    }
+    
     if (agruparPorMes) {
       // AGRUPAMENTO POR MÊS
       const meses: { [key: string]: { receita: number; despesa: number } } = {};
@@ -323,7 +350,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           periodo: chaveMs,
           receita: dadosMes.receita,
           despesa: dadosMes.despesa,
-          meta: 10000
+          meta: metaProporcional // Meta mensal completa
         });
         
         // Avançar para o próximo mês
@@ -358,13 +385,13 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           periodo: format(dataAtual, 'dd/MM'),
           receita: receitaDia,
           despesa: despesaDia,
-          meta: 333
+          meta: metaProporcional // Meta diária
         });
       }
     }
     
     return dados;
-  }, [lancamentos, calcularIntervaloFiltro, filtros.periodo]);
+  }, [lancamentos, calcularIntervaloFiltro, filtros.periodo, metaFaturamento]);
 
   if (loading) {
     return (
