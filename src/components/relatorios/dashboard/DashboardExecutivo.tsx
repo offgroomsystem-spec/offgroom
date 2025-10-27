@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { KPICard } from "../shared/KPICard";
 import { AlertCard } from "../shared/AlertCard";
 import { DollarSign, TrendingUp, Calendar, Users, Clock, AlertCircle, Package, UserX } from "lucide-react";
 import { format } from "date-fns";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -19,6 +19,29 @@ interface DashboardExecutivoProps {
   filtros: Filtros;
   onNavigateToReport?: (reportId: string) => void;
 }
+
+interface DadosAtendimentos {
+  mes: string;
+  quantidadeTotal: number;
+  mediaDiaria: number;
+}
+
+// Função para calcular dias úteis (segunda a sexta)
+const calcularDiasUteis = (ano: number, mes: number): number => {
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia = new Date(ano, mes + 1, 0);
+  let diasUteis = 0;
+  
+  for (let dia = new Date(primeiroDia); dia <= ultimoDia; dia.setDate(dia.getDate() + 1)) {
+    const diaSemana = dia.getDay();
+    // 0 = Domingo, 6 = Sábado (descartar)
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasUteis++;
+    }
+  }
+  
+  return diasUteis;
+};
 
 export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExecutivoProps) => {
   const { user } = useAuth();
@@ -393,6 +416,72 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     return dados;
   }, [lancamentos, calcularIntervaloFiltro, filtros.periodo, metaFaturamento]);
 
+  // Calcular dados de atendimentos (quantidade total e média diária)
+  const dadosAtendimentos = useMemo(() => {
+    const { dataInicio, dataFim } = calcularIntervaloFiltro;
+    const anoInicio = dataInicio.getFullYear();
+    const anoFim = dataFim.getFullYear();
+    
+    const meses = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    
+    const dados: DadosAtendimentos[] = [];
+    
+    // Determinar quais meses mostrar baseado no filtro
+    let mesInicio = dataInicio.getMonth();
+    let mesFim = dataFim.getMonth();
+    let anoAtual = anoInicio;
+    
+    if (filtros.periodo === "ano") {
+      mesInicio = 0;
+      mesFim = 11;
+    } else if (filtros.periodo === "trimestre") {
+      mesInicio = Math.floor(dataInicio.getMonth() / 3) * 3;
+      mesFim = mesInicio + 2;
+    }
+    
+    // Iterar pelos meses no intervalo
+    for (let mesIndex = mesInicio; mesIndex <= mesFim || (anoAtual < anoFim); mesIndex++) {
+      if (mesIndex > 11) {
+        mesIndex = 0;
+        anoAtual++;
+        if (anoAtual > anoFim) break;
+      }
+      
+      if (anoAtual === anoFim && mesIndex > mesFim) break;
+      
+      // Filtrar agendamentos concluídos do mês
+      const atendimentosDoMes = agendamentos.filter((a: any) => {
+        if (a.status !== "confirmado" && a.status !== "concluido") return false;
+        const dataAgend = new Date(a.data);
+        return dataAgend.getFullYear() === anoAtual && 
+               dataAgend.getMonth() === mesIndex &&
+               dataAgend >= dataInicio && 
+               dataAgend <= dataFim;
+      });
+      
+      const quantidadeTotal = atendimentosDoMes.length;
+      
+      // Calcular dias úteis do mês
+      const diasUteis = calcularDiasUteis(anoAtual, mesIndex);
+      
+      // Calcular média e arredondar para cima
+      const mediaDiaria = diasUteis > 0 
+        ? Math.ceil(quantidadeTotal / diasUteis) 
+        : 0;
+      
+      dados.push({
+        mes: meses[mesIndex],
+        quantidadeTotal,
+        mediaDiaria
+      });
+    }
+    
+    return dados;
+  }, [agendamentos, calcularIntervaloFiltro, filtros.periodo]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -496,6 +585,59 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
               <Line type="monotone" dataKey="despesa" stroke="#ef4444" name="Despesa" strokeWidth={2} />
               <Line type="monotone" dataKey="meta" stroke="#6b7280" name="Meta de Faturamento" strokeWidth={2} strokeDasharray="5 5" />
             </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Gráfico de Quantidade Total de Atendimentos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quantidade Total de Atendimentos Realizados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dadosAtendimentos}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="mes" />
+              <YAxis />
+              <Tooltip 
+                formatter={(value: number) => `${value} atendimentos`}
+              />
+              <Legend />
+              <Bar 
+                dataKey="quantidadeTotal" 
+                fill="hsl(var(--primary))" 
+                name="Atendimentos Realizados"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Gráfico de Média de Atendimentos por Dia */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
+          <CardDescription>
+            Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dadosAtendimentos}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="mes" />
+              <YAxis />
+              <Tooltip 
+                formatter={(value: number) => `${value} atendimentos/dia`}
+              />
+              <Legend />
+              <Bar 
+                dataKey="mediaDiaria" 
+                fill="hsl(var(--chart-2))" 
+                name="Média Diária"
+              />
+            </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
