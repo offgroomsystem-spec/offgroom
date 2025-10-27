@@ -6,48 +6,41 @@ interface KPICardProps {
   valor: string | number;
   subtitulo?: string;
   icon?: ReactNode;
-  cor?: 'default' | 'green' | 'red' | 'yellow';
+  cor?: "default" | "green" | "red" | "yellow";
   periodo?: string;
   destaque?: boolean;
 }
 
 const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
   }).format(value);
 };
 
-export const KPICard = ({ 
-  titulo, 
-  valor, 
-  subtitulo, 
-  icon, 
-  cor = 'default', 
-  periodo, 
-  destaque 
-}: KPICardProps) => {
+export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", periodo, destaque }: KPICardProps) => {
   const corClasses = {
-    default: 'text-foreground',
-    green: 'text-green-600',
-    red: 'text-red-600',
-    yellow: 'text-yellow-600'
+    default: "text-foreground",
+    green: "text-green-600",
+    red: "text-red-600",
+    yellow: "text-yellow-600",
   };
 
   return (
-    <Card className={destaque ? 'border-2 border-primary' : ''}>
-      <CardHeader className="pb-2">
+    <Card className={destaque ? "border-2 border-primary" : ""}>
+      {/* AJUSTE AQUI: De "pb-2" para "p-3 pb-2" para reduzir o padding */}
+      <CardHeader className="p-3 pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {titulo}
-          </CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
           {icon && <div className="text-muted-foreground">{icon}</div>}
         </div>
         {periodo && <CardDescription className="text-xs">{periodo}</CardDescription>}
       </CardHeader>
-      <CardContent>
+
+      {/* AJUSTE AQUI: Adicionado "p-3 pt-0" para reduzir o padding */}
+      <CardContent className="p-3 pt-0">
         <div className={`text-2xl font-bold ${corClasses[cor]}`}>
-          {typeof valor === 'number' ? formatCurrency(valor) : valor}
+          {typeof valor === "number" ? formatCurrency(valor) : valor}
         </div>
         {subtitulo && <p className="text-xs text-muted-foreground mt-1">{subtitulo}</p>}
       </CardContent>
