@@ -518,7 +518,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
   };
 
   return (
-    <div className="space-y-3">
+    // AJUSTE 1: Espaço entre seções reduzido de space-y-3 para space-y-2
+    <div className="space-y-2">
       {/* KPIs no Topo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
@@ -553,7 +554,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
       {/* Seção de Alertas */}
       <div>
-        <h2 className="text-xl font-bold mb-3">Alertas Importantes</h2>
+        {/* AJUSTE 2: Margem abaixo do título reduzida de mb-3 para mb-1.5 */}
+        <h2 className="text-xl font-bold mb-1.5">Alertas Importantes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <AlertCard
             tipo="warning"
@@ -599,9 +601,6 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={dadosGrafico} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                {/* AJUSTE AQUI: 
-                  Adicionado tick={{ fontSize: 9 }} para diminuir a fonte do eixo X 
-                */}
                 <XAxis dataKey="periodo" tick={{ fontSize: 9 }} />
                 <YAxis />
                 <Tooltip
