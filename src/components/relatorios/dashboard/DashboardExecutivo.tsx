@@ -518,8 +518,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
   };
 
   return (
-    // AJUSTE 1: Removido o space-y-* para controle manual
-    <div className="">
+    // AJUSTE 1: Espaço entre seções reduzido de space-y-3 para space-y-1.5 (6px)
+    <div className="space-y-1.5">
       {/* KPIs no Topo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
@@ -553,9 +553,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       </div>
 
       {/* Seção de Alertas */}
-      {/* AJUSTE 2: Adicionada margem superior mínima (mt-1 = 4px) */}
-      <div className="mt-1">
-        {/* AJUSTE 3: Margem inferior do título reduzida para mb-1 (4px) */}
+      <div>
+        {/* AJUSTE 2: Margem abaixo do título reduzida de mb-3 para mb-1 (4px) */}
         <h2 className="text-xl font-bold mb-1">Alertas Importantes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <AlertCard
@@ -587,8 +586,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       </div>
 
       {/* Gráficos Lado a Lado */}
-      {/* AJUSTE 4: Adicionada margem superior mínima (mt-1 = 4px) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-1">
+      {/* O espaço aqui agora é controlado pelo 'space-y-1.5' principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Gráfico de Tendência */}
         <Card>
           <CardHeader>
