@@ -614,7 +614,10 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dadosGrafico}>
+              <LineChart 
+                data={dadosGrafico}
+                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="periodo" />
                 <YAxis />
@@ -640,7 +643,10 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dadosAtendimentos}>
+              <BarChart 
+                data={dadosAtendimentos}
+                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis />
@@ -666,7 +672,10 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dadosAtendimentos}>
+              <BarChart 
+                data={dadosAtendimentos}
+                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis />
