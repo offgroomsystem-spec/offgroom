@@ -426,8 +426,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     const mesFim = 11;    // Dezembro
     
     const meses = [
-      "Jan.", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+      "Jan.", "Fev.", "Mar.", "Abr.", "Maio", "Jun.",
+      "Jul.", "Ago.", "Set.", "Out.", "Nov.", "Dez."
     ];
     
     const dados: DadosAtendimentos[] = [];
