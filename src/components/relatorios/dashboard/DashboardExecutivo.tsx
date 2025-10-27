@@ -555,7 +555,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       {/* Seção de Alertas */}
       <div>
         {/* AJUSTE 2: Margem abaixo do título reduzida de mb-3 para mb-1 (4px) */}
-        <h2 className="text-xl font-bold mb-1">Alertas Importantes</h2>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <AlertCard
             tipo="warning"
