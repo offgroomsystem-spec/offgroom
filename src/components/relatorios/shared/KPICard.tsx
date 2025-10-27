@@ -28,17 +28,23 @@ export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", perio
 
   return (
     <Card className={destaque ? "border-2 border-primary" : ""}>
-      {/* AJUSTE AQUI: De "pb-2" para "p-3 pb-2" para reduzir o padding */}
-      <CardHeader className="p-3 pb-2">
+      {/* AJUSTE 1: Padding ainda menor (p-2) */}
+      <CardHeader className="p-2 pb-1">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
+          {/* AJUSTE 2: Agrupado Título e Período lado a lado */}
+          <div className="flex items-baseline space-x-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
+            {/* AJUSTE 2: Período movido para cá */}
+            {periodo && <CardDescription className="text-xs">{periodo}</CardDescription>}
+          </div>
+
           {icon && <div className="text-muted-foreground">{icon}</div>}
         </div>
-        {periodo && <CardDescription className="text-xs">{periodo}</CardDescription>}
+        {/* Período não é mais renderizado aqui */}
       </CardHeader>
 
-      {/* AJUSTE AQUI: Adicionado "p-3 pt-0" para reduzir o padding */}
-      <CardContent className="p-3 pt-0">
+      {/* AJUSTE 1: Padding ainda menor (p-2) */}
+      <CardContent className="p-2 pt-0">
         <div className={`text-2xl font-bold ${corClasses[cor]}`}>
           {typeof valor === "number" ? formatCurrency(valor) : valor}
         </div>
