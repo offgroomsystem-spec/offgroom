@@ -426,8 +426,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     const mesFim = 11;    // Dezembro
     
     const meses = [
-      "Jan.", "Fev.", "Mar.", "Abr.", "Maio", "Jun.",
-      "Jul.", "Ago.", "Set.", "Out.", "Nov.", "Dez."
+      "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+      "Jul", "Ago", "Set", "Out", "Nov", "Dez"
     ];
     
     const dados: DadosAtendimentos[] = [];
@@ -572,7 +572,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       {/* Seção de Alertas */}
       <div>
         <h2 className="text-xl font-bold mb-3">Alertas Importantes</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <AlertCard 
             tipo="warning"
             titulo="Pacotes a Expirar (7 dias)"
@@ -601,38 +601,38 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         </div>
       </div>
 
-      {/* Gráfico de Tendência */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {filtros.periodo === "trimestre" && "Receitas e Despesas por Mês (Trimestre Atual)"}
-            {filtros.periodo === "ano" && "Receitas e Despesas por Mês (Ano Atual)"}
-            {!["trimestre", "ano"].includes(filtros.periodo) && "Receitas e Despesas no Período Filtrado"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={dadosGrafico}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="periodo" />
-              <YAxis />
-              <Tooltip 
-                formatter={(value: number) => new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL'
-                }).format(value)}
-              />
-              <Legend />
-              <Line type="monotone" dataKey="receita" stroke="#22c55e" name="Receita" strokeWidth={2} />
-              <Line type="monotone" dataKey="despesa" stroke="#ef4444" name="Despesa" strokeWidth={2} />
-              <Line type="monotone" dataKey="meta" stroke="#6b7280" name="Meta de Faturamento" strokeWidth={2} strokeDasharray="5 5" />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Gráficos Lado a Lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Gráfico de Tendência */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {filtros.periodo === "trimestre" && "Receitas e Despesas por Mês (Trimestre Atual)"}
+              {filtros.periodo === "ano" && "Receitas e Despesas por Mês (Ano Atual)"}
+              {!["trimestre", "ano"].includes(filtros.periodo) && "Receitas e Despesas no Período Filtrado"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={dadosGrafico}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="periodo" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: number) => new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(value)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="receita" stroke="#22c55e" name="Receita" strokeWidth={2} />
+                <Line type="monotone" dataKey="despesa" stroke="#ef4444" name="Despesa" strokeWidth={2} />
+                <Line type="monotone" dataKey="meta" stroke="#6b7280" name="Meta de Faturamento" strokeWidth={2} strokeDasharray="5 5" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Gráficos de Atendimentos - Lado a Lado */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Gráfico de Quantidade Total de Atendimentos */}
         <Card>
           <CardHeader>
