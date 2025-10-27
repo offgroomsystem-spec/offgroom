@@ -642,7 +642,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dadosAtendimentos}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
+                <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis />
                 <Tooltip content={<CustomTooltip tipo="quantidade" />} />
                 <Legend />
@@ -668,7 +668,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dadosAtendimentos}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
+                <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis />
                 <Tooltip content={<CustomTooltip tipo="media" />} />
                 <Legend />
