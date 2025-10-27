@@ -595,13 +595,14 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             </CardTitle>
           </CardHeader>
 
-          {/* AJUSTE AQUI: Padding do Card ainda menor (p-1) */}
           <CardContent className="p-1 pt-0">
             <ResponsiveContainer width="100%" height={300}>
-              {/* AJUSTE AQUI: Margem negativa para "puxar" o eixo Y */}
               <LineChart data={dadosGrafico} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="periodo" />
+                {/* AJUSTE AQUI: 
+                  Adicionado tick={{ fontSize: 9 }} para diminuir a fonte do eixo X 
+                */}
+                <XAxis dataKey="periodo" tick={{ fontSize: 9 }} />
                 <YAxis />
                 <Tooltip
                   formatter={(value: number) =>
@@ -633,10 +634,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             <CardTitle>Quantidade Total de Atendimentos Realizados</CardTitle>
           </CardHeader>
 
-          {/* AJUSTE AQUI: Padding do Card ainda menor (p-1) */}
           <CardContent className="p-1 pt-0">
             <ResponsiveContainer width="100%" height={300}>
-              {/* AJUSTE AQUI: Margem negativa para "puxar" o eixo Y */}
               <BarChart data={dadosAtendimentos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
@@ -658,10 +657,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             </CardDescription>
           </CardHeader>
 
-          {/* AJUSTE AQUI: Padding do Card ainda menor (p-1) */}
           <CardContent className="p-1 pt-0">
             <ResponsiveContainer width="100%" height={300}>
-              {/* AJUSTE AQUI: Margem negativa para "puxar" o eixo Y */}
               <BarChart data={dadosAtendimentos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
