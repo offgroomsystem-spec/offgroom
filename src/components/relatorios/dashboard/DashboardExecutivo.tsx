@@ -24,6 +24,8 @@ interface DadosAtendimentos {
   mes: string;
   quantidadeTotal: number;
   mediaDiaria: number;
+  variacaoQuantidade: number | null;
+  variacaoMedia: number | null;
 }
 
 // Função para calcular dias úteis (segunda a sexta)
@@ -418,9 +420,10 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
   // Calcular dados de atendimentos (quantidade total e média diária)
   const dadosAtendimentos = useMemo(() => {
-    const { dataInicio, dataFim } = calcularIntervaloFiltro;
-    const anoInicio = dataInicio.getFullYear();
-    const anoFim = dataFim.getFullYear();
+    // SEMPRE mostrar todos os 12 meses do ano atual
+    const anoAtual = new Date().getFullYear();
+    const mesInicio = 0;  // Janeiro
+    const mesFim = 11;    // Dezembro
     
     const meses = [
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -428,38 +431,17 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     ];
     
     const dados: DadosAtendimentos[] = [];
+    let quantidadeAnterior = 0;
+    let mediaAnterior = 0;
     
-    // Determinar quais meses mostrar baseado no filtro
-    let mesInicio = dataInicio.getMonth();
-    let mesFim = dataFim.getMonth();
-    let anoAtual = anoInicio;
-    
-    if (filtros.periodo === "ano") {
-      mesInicio = 0;
-      mesFim = 11;
-    } else if (filtros.periodo === "trimestre") {
-      mesInicio = Math.floor(dataInicio.getMonth() / 3) * 3;
-      mesFim = mesInicio + 2;
-    }
-    
-    // Iterar pelos meses no intervalo
-    for (let mesIndex = mesInicio; mesIndex <= mesFim || (anoAtual < anoFim); mesIndex++) {
-      if (mesIndex > 11) {
-        mesIndex = 0;
-        anoAtual++;
-        if (anoAtual > anoFim) break;
-      }
-      
-      if (anoAtual === anoFim && mesIndex > mesFim) break;
-      
-      // Filtrar agendamentos concluídos do mês
+    // Iterar pelos 12 meses do ano atual
+    for (let mesIndex = mesInicio; mesIndex <= mesFim; mesIndex++) {
+      // Filtrar agendamentos do mês INDEPENDENTE do filtro de período
       const atendimentosDoMes = agendamentos.filter((a: any) => {
         if (a.status !== "confirmado" && a.status !== "concluido") return false;
         const dataAgend = new Date(a.data);
         return dataAgend.getFullYear() === anoAtual && 
-               dataAgend.getMonth() === mesIndex &&
-               dataAgend >= dataInicio && 
-               dataAgend <= dataFim;
+               dataAgend.getMonth() === mesIndex;
       });
       
       const quantidadeTotal = atendimentosDoMes.length;
@@ -472,15 +454,30 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         ? Math.ceil(quantidadeTotal / diasUteis) 
         : 0;
       
+      // Calcular variação percentual
+      const variacaoQuantidade = quantidadeAnterior > 0 
+        ? ((quantidadeTotal - quantidadeAnterior) / quantidadeAnterior) * 100 
+        : 0;
+      
+      const variacaoMedia = mediaAnterior > 0 
+        ? ((mediaDiaria - mediaAnterior) / mediaAnterior) * 100 
+        : 0;
+      
       dados.push({
         mes: meses[mesIndex],
         quantidadeTotal,
-        mediaDiaria
+        mediaDiaria,
+        variacaoQuantidade: mesIndex === 0 ? null : variacaoQuantidade,
+        variacaoMedia: mesIndex === 0 ? null : variacaoMedia
       });
+      
+      // Atualizar valores anteriores para próxima iteração
+      quantidadeAnterior = quantidadeTotal;
+      mediaAnterior = mediaDiaria;
     }
     
     return dados;
-  }, [agendamentos, calcularIntervaloFiltro, filtros.periodo]);
+  }, [agendamentos]);
 
   if (loading) {
     return (
@@ -489,6 +486,51 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       </div>
     );
   }
+
+  // Componente de Tooltip Customizado
+  const CustomTooltip = ({ active, payload, tipo }: any) => {
+    if (!active || !payload || payload.length === 0) return null;
+    
+    const data = payload[0].payload;
+    const variacao = tipo === 'quantidade' 
+      ? data.variacaoQuantidade 
+      : data.variacaoMedia;
+    
+    const valor = tipo === 'quantidade' 
+      ? data.quantidadeTotal 
+      : data.mediaDiaria;
+    
+    const unidade = tipo === 'quantidade' 
+      ? 'atendimentos' 
+      : 'atendimentos/dia';
+    
+    // Se for Janeiro ou variação é 0/null
+    if (variacao === null || variacao === 0) {
+      return (
+        <div className="bg-popover border border-border p-3 rounded-md shadow-lg">
+          <p className="font-semibold text-foreground">{data.mes}</p>
+          <p className="text-foreground">{valor} {unidade}</p>
+        </div>
+      );
+    }
+    
+    const cresceu = variacao > 0;
+    const textoVariacao = cresceu 
+      ? `O mês atual Cresceu ${Math.abs(variacao).toFixed(1)}% em comparação com o mês anterior`
+      : `O mês atual Diminuiu ${Math.abs(variacao).toFixed(1)}% em comparação com o mês anterior`;
+    
+    const corVariacao = cresceu ? 'text-blue-600' : 'text-red-600';
+    
+    return (
+      <div className="bg-popover border border-border p-3 rounded-md shadow-lg">
+        <p className="font-semibold text-foreground">{data.mes}</p>
+        <p className="text-foreground">{valor} {unidade}</p>
+        <p className={`${corVariacao} font-medium mt-1`}>
+          {textoVariacao}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-3">
@@ -589,58 +631,57 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         </CardContent>
       </Card>
 
-      {/* Gráfico de Quantidade Total de Atendimentos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quantidade Total de Atendimentos Realizados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dadosAtendimentos}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip 
-                formatter={(value: number) => `${value} atendimentos`}
-              />
-              <Legend />
-              <Bar 
-                dataKey="quantidadeTotal" 
-                fill="hsl(var(--primary))" 
-                name="Atendimentos Realizados"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Gráficos de Atendimentos - Lado a Lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Gráfico de Quantidade Total de Atendimentos */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quantidade Total de Atendimentos Realizados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dadosAtendimentos}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip content={<CustomTooltip tipo="quantidade" />} />
+                <Legend />
+                <Bar 
+                  dataKey="quantidadeTotal" 
+                  fill="hsl(var(--primary))" 
+                  name="Atendimentos Realizados"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Gráfico de Média de Atendimentos por Dia */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
-          <CardDescription>
-            Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dadosAtendimentos}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip 
-                formatter={(value: number) => `${value} atendimentos/dia`}
-              />
-              <Legend />
-              <Bar 
-                dataKey="mediaDiaria" 
-                fill="hsl(var(--chart-2))" 
-                name="Média Diária"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        {/* Gráfico de Média de Atendimentos por Dia */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
+            <CardDescription>
+              Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dadosAtendimentos}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip content={<CustomTooltip tipo="media" />} />
+                <Legend />
+                <Bar 
+                  dataKey="mediaDiaria" 
+                  fill="hsl(var(--chart-2))" 
+                  name="Média Diária"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
