@@ -46,7 +46,8 @@ const calcularDiasUteis = (ano: number, mes: number): number => {
   let diasUteis = 0;
 
   for (let dia = new Date(primeiroDia); dia <= ultimoDia; dia.setDate(dia.getDate() + 1)) {
-    const diaSemana = dia.getDay(); // 0 = Domingo, 6 = Sábado (descartar)
+    const diaSemana = dia.getDay();
+    // 0 = Domingo, 6 = Sábado (descartar)
     if (diaSemana !== 0 && diaSemana !== 6) {
       diasUteis++;
     }
@@ -63,8 +64,9 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
   const [produtos, setProdutos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [metaFaturamento, setMetaFaturamento] = useState<number>(10000); // Calcular intervalo de datas baseado nos filtros
+  const [metaFaturamento, setMetaFaturamento] = useState<number>(10000);
 
+  // Calcular intervalo de datas baseado nos filtros
   const calcularIntervaloFiltro = useMemo(() => {
     const hoje = new Date();
     let dataInicio: Date;
@@ -107,8 +109,9 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       try {
         setLoading(true);
 
-        const { dataInicio, dataFim } = calcularIntervaloFiltro; // Carregar Configuração da Empresa (Meta de Faturamento)
+        const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
+        // Carregar Configuração da Empresa (Meta de Faturamento)
         const { data: empresaConfig } = await supabase
           .from("empresa_config")
           .select("meta_faturamento_mensal")
@@ -117,29 +120,30 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
         if (empresaConfig?.meta_faturamento_mensal) {
           setMetaFaturamento(Number(empresaConfig.meta_faturamento_mensal));
-        } // Carregar Clientes
+        }
 
+        // Carregar Clientes
         const { data: clientesData } = await supabase.from("clientes").select("*").eq("user_id", user.id);
-        setClientes(clientesData || []); // Carregar Produtos
+        setClientes(clientesData || []);
 
+        // Carregar Produtos
         const { data: produtosData } = await supabase.from("produtos").select("*").eq("user_id", user.id);
-        setProdutos(produtosData || []); // Carregar Pacotes (TODOS)
+        setProdutos(produtosData || []);
 
+        // Carregar Pacotes
         const { data: pacotesData } = await supabase.from("pacotes").select("*").eq("user_id", user.id);
-        setPacotes(pacotesData || []); // Carregar Agendamentos (TODOS do ANO ATUAL para os gráficos)
+        setPacotes(pacotesData || []);
 
-        const anoAtual = new Date().getFullYear();
-        const dataInicioAno = `${anoAtual}-01-01`;
-        const dataFimAno = `${anoAtual}-12-31`;
-
+        // Carregar Agendamentos
         const { data: agendamentosData } = await supabase
           .from("agendamentos")
           .select("*")
           .eq("user_id", user.id)
-          .gte("data", dataInicioAno)
-          .lte("data", dataFimAno);
-        setAgendamentos(agendamentosData || []); // Carregar Receitas e Despesas (Estes sim, usam o filtro de período)
+          .gte("data", dataInicio.toISOString().split("T")[0])
+          .lte("data", dataFim.toISOString().split("T")[0]);
+        setAgendamentos(agendamentosData || []);
 
+        // Carregar Receitas e Despesas
         const { data: receitasData } = await supabase
           .from("receitas")
           .select("*")
@@ -152,8 +156,9 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           .select("*")
           .eq("user_id", user.id)
           .gte("data", dataInicio.toISOString().split("T")[0])
-          .lte("data", dataFim.toISOString().split("T")[0]); // Combinar em formato de lançamentos
+          .lte("data", dataFim.toISOString().split("T")[0]);
 
+        // Combinar em formato de lançamentos
         const lancamentosCombinados = [
           ...(receitasData || []).map((r) => ({
             id: r.id,
@@ -185,12 +190,14 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     };
 
     loadDashboardData();
-  }, [user, filtros, calcularIntervaloFiltro]); // Cálculos dos KPIs
+  }, [user, filtros, calcularIntervaloFiltro]);
 
+  // Cálculos dos KPIs
   const kpis = useMemo(() => {
     const hoje = new Date();
-    const { dataInicio, dataFim } = calcularIntervaloFiltro; // Lucro Líquido do Período (usa lancamentos, que é filtrado pelo período)
+    const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
+    // Lucro Líquido do Período
     const receitasMes = lancamentos
       .filter((l: any) => {
         if (l.tipo !== "Receita" || !l.pago) return false;
@@ -207,32 +214,23 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       })
       .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
-    const lucroLiquido = receitasMes - despesasMes; // Ticket Médio (usa receitasMes e agendamentos filtrados)
+    const lucroLiquido = receitasMes - despesasMes;
 
+    // Ticket Médio
     const atendimentosConcluidos = agendamentos.filter((a: any) => {
       if (a.status !== "concluido") return false;
-      const dataAgend = new Date(a.data); // Filtra pelos dados do período selecionado
+      const dataAgend = new Date(a.data);
       return dataAgend >= dataInicio && dataAgend <= dataFim;
-    }).length; // (NOTA: O Ticket Médio AINDA não inclui pacotes.)
-    const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0; // Agenda do Dia (sempre hoje)
+    }).length;
+    const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0;
 
-    const hojeStr = format(hoje, "yyyy-MM-dd"); // 1. Contar agendamentos avulsos
-
-    let contagemAgendaDia = agendamentos.filter(
+    // Agenda do Dia (sempre hoje)
+    const hojeStr = format(hoje, "yyyy-MM-dd");
+    const agendaDia = agendamentos.filter(
       (a: any) => a.data === hojeStr && (a.status === "confirmado" || a.status === "pendente"),
-    ).length; // 2. Contar serviços de pacotes
+    ).length;
 
-    pacotes.forEach((p: any) => {
-      if (p.servicos && Array.isArray(p.servicos)) {
-        const servicosDeHoje = p.servicos.filter(
-          (s: any) => s.data === hojeStr && (s.status === "confirmado" || s.status === "pendente"),
-        ).length;
-        contagemAgendaDia += servicosDeHoje;
-      }
-    });
-
-    const agendaDia = contagemAgendaDia; // Taxa de Retenção
-
+    // Taxa de Retenção
     const clientesMesAtual = new Set(
       agendamentos
         .filter((a: any) => {
@@ -242,17 +240,16 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         .map((a: any) => a.cliente),
     );
 
-    const diasNoFiltro = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Calcular período anterior com mesmo tamanho
+    const diasNoFiltro = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
     const dataInicioAnterior = new Date(dataInicio);
     dataInicioAnterior.setDate(dataInicioAnterior.getDate() - diasNoFiltro);
-    const dataFimAnterior = new Date(dataInicio);
-    dataFimAnterior.setDate(dataFimAnterior.getDate() - 1);
 
     const clientesMesAnterior = new Set(
       agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
-          return dataAgend >= dataInicioAnterior && dataAgend <= dataFimAnterior;
+          return dataAgend >= dataInicioAnterior && dataAgend < dataInicio;
         })
         .map((a: any) => a.cliente),
     );
@@ -266,115 +263,131 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       agendaDia,
       taxaRetencao,
     };
-  }, [lancamentos, agendamentos, pacotes, calcularIntervaloFiltro]); // Alertas
+  }, [lancamentos, agendamentos, calcularIntervaloFiltro]);
 
+  // Alertas
   const alertas = useMemo(() => {
-    const { dataInicio, dataFim } = calcularIntervaloFiltro; // Pacotes a Expirar (7 dias a partir de hoje)
+    const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-    const dataExpiracaoInicio = new Date();
-    const dataExpiracaoFim = new Date();
-    dataExpiracaoFim.setDate(dataExpiracaoFim.getDate() + 7);
-
+    // Pacotes a Expirar no período filtrado
     const pacotesExpirando = pacotes
       .filter((p: any) => {
         if (!p.validade || !p.dataVenda) return false;
         const dataExpiracao = new Date(p.dataVenda);
         dataExpiracao.setDate(dataExpiracao.getDate() + parseInt(p.validade));
-        return dataExpiracao >= dataExpiracaoInicio && dataExpiracao <= dataExpiracaoFim;
+        return dataExpiracao >= dataInicio && dataExpiracao <= dataFim;
       })
-      .map((p: any) => `${p.nomeCliente} - ${p.nomePacote}`); // Inadimplência no período (usa 'lancamentos' filtrados)
+      .map((p: any) => `${p.nomeCliente} - ${p.nomePacote}`);
 
+    // Inadimplência no período
     const valorInadimplencia = lancamentos
       .filter((l: any) => {
         if (l.tipo !== "Receita" || l.pago) return false;
         const dataPag = new Date(l.dataPagamento);
         return dataPag >= dataInicio && dataPag <= dataFim;
       })
-      .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0); // Produtos vencendo (30 dias a partir de hoje)
+      .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
-    const dataVencimentoInicio = new Date();
-    const dataVencimentoFim = new Date();
-    dataVencimentoFim.setDate(dataVencimentoFim.getDate() + 30);
-
+    // Produtos vencendo no período
     const produtosVencendo = produtos
       .filter((p: any) => {
         if (!p.dataValidade) return false;
         const dataVal = new Date(p.dataValidade);
-        return dataVal >= dataVencimentoInicio && dataVal <= dataVencimentoFim;
+        return dataVal >= dataInicio && dataVal <= dataFim;
       })
-      .map((p: any) => `${p.descricao} - ${format(new Date(p.dataValidade), "dd/MM/yyyy")}`); // Clientes em Risco (sem agendamento nos últimos 30 dias)
+      .map((p: any) => `${p.descricao} - ${format(new Date(p.dataValidade), "dd/MM/yyyy")}`);
 
-    const dataRisco = new Date();
-    dataRisco.setDate(dataRisco.getDate() - 30);
-
+    // Clientes em Risco
     const clientesComAgendamentoRecente = new Set(
       agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
-          return dataAgend >= dataRisco;
+          return dataAgend >= dataInicio;
         })
-        .map((a: any) => a.cliente), // Assumindo que a.cliente é o ID
+        .map((a: any) => a.cliente),
     );
 
-    const clientesEmRiscoNomes = clientes
-      .filter((c: any) => !clientesComAgendamentoRecente.has(c.id)) // Assumindo que c.id é o ID
-      .map((c: any) => c.nomeCliente)
-      .slice(0, 10);
+    const todosClientes = [...new Set(clientes.map((c: any) => c.nomeCliente))];
+    const clientesEmRisco = todosClientes.filter((c) => !clientesComAgendamentoRecente.has(c)).slice(0, 10);
 
     return {
       pacotesExpirando,
       valorInadimplencia,
       produtosVencendo,
-      clientesEmRisco: clientesEmRiscoNomes,
+      clientesEmRisco,
     };
-  }, [lancamentos, pacotes, produtos, clientes, agendamentos, calcularIntervaloFiltro]); // Dados do Gráfico de Tendência (usa 'lancamentos' filtrados)
+  }, [lancamentos, pacotes, produtos, clientes, agendamentos, calcularIntervaloFiltro]);
 
+  // Dados do Gráfico de Tendência
   const dadosGrafico = useMemo(() => {
     const { dataInicio, dataFim } = calcularIntervaloFiltro;
     const dados = [];
 
+    // Detectar se deve agrupar por mês (trimestre/ano) ou por dia
     const agruparPorMes = filtros.periodo === "trimestre" || filtros.periodo === "ano";
+
+    // Calcular meta proporcional baseada no período
     let metaProporcional: number;
 
     if (agruparPorMes) {
+      // Meta por mês (valor completo)
       metaProporcional = metaFaturamento;
+    } else if (filtros.periodo === "semana") {
+      // Meta dividida por 7 dias
+      metaProporcional = ((metaFaturamento / 30) * 7) / 7; // Meta mensal / 30 dias * 7 dias / 7 pontos no gráfico
+      metaProporcional = metaFaturamento / 30; // Simplificando: meta diária
     } else {
-      metaProporcional = metaFaturamento / 30; // Meta diária
+      // Meta por dia (dividir por 30 dias do mês)
+      metaProporcional = metaFaturamento / 30;
     }
 
     if (agruparPorMes) {
+      // AGRUPAMENTO POR MÊS
       const meses: { [key: string]: { receita: number; despesa: number } } = {};
+
+      // Iterar por todos os lançamentos e agrupar por mês
       lancamentos.forEach((l: any) => {
         if (!l.pago) return;
         const dataLanc = new Date(l.dataPagamento);
         if (dataLanc < dataInicio || dataLanc > dataFim) return;
+
         const chaveMs = format(dataLanc, "MM/yyyy");
+
         if (!meses[chaveMs]) {
           meses[chaveMs] = { receita: 0, despesa: 0 };
         }
+
         if (l.tipo === "Receita") {
           meses[chaveMs].receita += l.valorTotal || 0;
         } else if (l.tipo === "Despesa") {
           meses[chaveMs].despesa += l.valorTotal || 0;
         }
       });
+
+      // Criar array ordenado de meses no intervalo
       const dataAtual = new Date(dataInicio);
       while (dataAtual <= dataFim) {
         const chaveMs = format(dataAtual, "MM/yyyy");
         const dadosMes = meses[chaveMs] || { receita: 0, despesa: 0 };
+
         dados.push({
           periodo: chaveMs,
           receita: dadosMes.receita,
           despesa: dadosMes.despesa,
-          meta: metaProporcional,
+          meta: metaProporcional, // Meta mensal completa
         });
+
+        // Avançar para o próximo mês
         dataAtual.setMonth(dataAtual.getMonth() + 1);
       }
     } else {
+      // AGRUPAMENTO POR DIA
       const diasNoIntervalo = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
       for (let i = 0; i < Math.min(diasNoIntervalo, 31); i++) {
         const dataAtual = new Date(dataInicio);
         dataAtual.setDate(dataAtual.getDate() + i);
+
         const receitaDia = lancamentos
           .filter((l: any) => {
             if (l.tipo !== "Receita" || !l.pago) return false;
@@ -382,6 +395,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             return dataLanc.toDateString() === dataAtual.toDateString();
           })
           .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
+
         const despesaDia = lancamentos
           .filter((l: any) => {
             if (l.tipo !== "Despesa" || !l.pago) return false;
@@ -389,19 +403,22 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             return dataLanc.toDateString() === dataAtual.toDateString();
           })
           .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
+
         dados.push({
           periodo: format(dataAtual, "dd/MM"),
           receita: receitaDia,
           despesa: despesaDia,
-          meta: metaProporcional,
+          meta: metaProporcional, // Meta diária
         });
       }
     }
-    return dados;
-  }, [lancamentos, calcularIntervaloFiltro, filtros.periodo, metaFaturamento]); // Calcular dados de atendimentos (quantidade total e média diária)
 
+    return dados;
+  }, [lancamentos, calcularIntervaloFiltro, filtros.periodo, metaFaturamento]);
+
+  // Calcular dados de atendimentos (quantidade total e média diária)
   const dadosAtendimentos = useMemo(() => {
-    // Usa 'agendamentos' e 'pacotes' (ambos carregados com o ano inteiro)
+    // SEMPRE mostrar todos os 12 meses do ano atual
     const anoAtual = new Date().getFullYear();
     const mesInicio = 0; // Janeiro
     const mesFim = 11; // Dezembro
@@ -412,30 +429,24 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     let quantidadeAnterior = 0;
     let mediaAnterior = 0;
 
+    // Iterar pelos 12 meses do ano atual
     for (let mesIndex = mesInicio; mesIndex <= mesFim; mesIndex++) {
-      // 1. Filtrar agendamentos AVULSOS do mês
-      const atendimentosAvulsosDoMes = agendamentos.filter((a: any) => {
+      // Filtrar agendamentos do mês INDEPENDENTE do filtro de período
+      const atendimentosDoMes = agendamentos.filter((a: any) => {
         if (a.status !== "confirmado" && a.status !== "concluido") return false;
         const dataAgend = new Date(a.data);
         return dataAgend.getFullYear() === anoAtual && dataAgend.getMonth() === mesIndex;
-      }).length; // 2. Filtrar serviços de PACOTE do mês
+      });
 
-      let atendimentosPacoteDoMes = 0;
-      pacotes.forEach((p: any) => {
-        if (p.servicos && Array.isArray(p.servicos)) {
-          atendimentosPacoteDoMes += p.servicos.filter((s: any) => {
-            if (s.status !== "confirmado" && s.status !== "concluido") return false;
-            const dataServ = new Date(s.data);
-            return dataServ.getFullYear() === anoAtual && dataServ.getMonth() === mesIndex;
-          }).length;
-        }
-      }); // 3. Somar os dois
+      const quantidadeTotal = atendimentosDoMes.length;
 
-      const quantidadeTotal = atendimentosAvulsosDoMes + atendimentosPacoteDoMes;
-
+      // Calcular dias úteis do mês
       const diasUteis = calcularDiasUteis(anoAtual, mesIndex);
+
+      // Calcular média e arredondar para cima
       const mediaDiaria = diasUteis > 0 ? Math.ceil(quantidadeTotal / diasUteis) : 0;
 
+      // Calcular variação percentual
       const variacaoQuantidade =
         quantidadeAnterior > 0 ? ((quantidadeTotal - quantidadeAnterior) / quantidadeAnterior) * 100 : 0;
 
@@ -449,21 +460,23 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         variacaoMedia: mesIndex === 0 ? null : variacaoMedia,
       });
 
+      // Atualizar valores anteriores para próxima iteração
       quantidadeAnterior = quantidadeTotal;
       mediaAnterior = mediaDiaria;
     }
 
     return dados;
-  }, [agendamentos, pacotes]);
+  }, [agendamentos]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-                <p>Carregando dashboard...</p>     {" "}
+        <p>Carregando dashboard...</p>
       </div>
     );
-  } // Componente de Tooltip Customizado
+  }
 
+  // Componente de Tooltip Customizado
   const CustomTooltip = ({ active, payload, tipo }: any) => {
     if (!active || !payload || payload.length === 0) return null;
 
@@ -472,16 +485,16 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
     const valor = tipo === "quantidade" ? data.quantidadeTotal : data.mediaDiaria;
 
-    const unidade = tipo === "quantidade" ? "atendimentos" : "atendimentos/dia"; // Se for Janeiro ou variação é 0/null
+    const unidade = tipo === "quantidade" ? "atendimentos" : "atendimentos/dia";
 
+    // Se for Janeiro ou variação é 0/null
     if (variacao === null || variacao === 0) {
       return (
         <div className="bg-popover border border-border p-3 rounded-md shadow-lg">
-                    <p className="font-semibold text-foreground">{data.mes}</p>         {" "}
+          <p className="font-semibold text-foreground">{data.mes}</p>
           <p className="text-foreground">
-                        {valor} {unidade}         {" "}
+            {valor} {unidade}
           </p>
-                 {" "}
         </div>
       );
     }
@@ -495,20 +508,20 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
     return (
       <div className="bg-popover border border-border p-3 rounded-md shadow-lg">
-                <p className="font-semibold text-foreground">{data.mes}</p>       {" "}
+        <p className="font-semibold text-foreground">{data.mes}</p>
         <p className="text-foreground">
-                    {valor} {unidade}       {" "}
+          {valor} {unidade}
         </p>
-                <p className={`${corVariacao} font-medium mt-1`}>{textoVariacao}</p>     {" "}
+        <p className={`${corVariacao} font-medium mt-1`}>{textoVariacao}</p>
       </div>
     );
   };
 
   return (
+    // AJUSTE 1: Espaço entre seções reduzido de space-y-3 para space-y-1.5 (6px)
     <div className="space-y-1.5">
-            {/* KPIs no Topo */}     {" "}
+      {/* KPIs no Topo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-               {" "}
         <KPICard
           titulo="Lucro Líquido"
           valor={kpis.lucroLiquido}
@@ -529,23 +542,21 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           cor={kpis.lucroLiquido >= 0 ? "green" : "red"}
           destaque
         />
-                <KPICard titulo="Ticket Médio" valor={kpis.ticketMedio} icon={<TrendingUp className="h-4 w-4" />} />
-               {" "}
+        <KPICard titulo="Ticket Médio" valor={kpis.ticketMedio} icon={<TrendingUp className="h-4 w-4" />} />
         <KPICard titulo="Agenda do Dia" valor={`${kpis.agendaDia} serviços`} icon={<Calendar className="h-4 w-4" />} />
-               {" "}
         <KPICard
           titulo="Taxa de Retenção"
           valor={`${kpis.taxaRetencao.toFixed(1)}%`}
           icon={<Users className="h-4 w-4" />}
           cor={kpis.taxaRetencao >= 70 ? "green" : kpis.taxaRetencao >= 50 ? "yellow" : "red"}
         />
-             {" "}
       </div>
-            {/* Seção de Alertas */}     {" "}
+
+      {/* Seção de Alertas */}
       <div>
-               {" "}
+        {/* AJUSTE 2: Margem abaixo do título reduzida de mb-3 para mb-1 (4px) */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                   {" "}
           <AlertCard
             tipo="warning"
             titulo="Pacotes a Expirar (7 dias)"
@@ -553,56 +564,46 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             icone={<Clock className="h-5 w-5" />}
             onClick={() => onNavigateToReport?.("pacotes-vencimento")}
           />
-                   {" "}
           <AlertCard
             tipo="error"
             titulo="Inadimplência Total"
             valor={alertas.valorInadimplencia}
             icone={<AlertCircle className="h-5 w-5" />}
           />
-                   {" "}
           <AlertCard
             tipo="warning"
             titulo="Produtos Próximos ao Vencimento (30 dias)"
             lista={alertas.produtosVencendo}
             icone={<Package className="h-5 w-5" />}
           />
-                   {" "}
           <AlertCard
             tipo="warning"
             titulo="Clientes em Risco (sem agendamento há 30+ dias)"
             lista={alertas.clientesEmRisco}
             icone={<UserX className="h-5 w-5" />}
           />
-                 {" "}
         </div>
-             {" "}
       </div>
-            {/* Gráficos Lado a Lado */}     {" "}
+
+      {/* Gráficos Lado a Lado */}
+      {/* O espaço aqui agora é controlado pelo 'space-y-1.5' principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                {/* Gráfico de Tendência */}       {" "}
+        {/* Gráfico de Tendência */}
         <Card>
-                   {" "}
           <CardHeader>
-                       {" "}
             <CardTitle>
-                            {filtros.periodo === "trimestre" && "Receitas e Despesas por Mês (Trimestre Atual)"}       
-                    {filtros.periodo === "ano" && "Receitas e Despesas por Mês (Ano Atual)"}             {" "}
-              {!["trimestre", "ano"].includes(filtros.periodo) && "Receitas e Despesas no Período Filtrado"}         
-               {" "}
+              {filtros.periodo === "trimestre" && "Receitas e Despesas por Mês (Trimestre Atual)"}
+              {filtros.periodo === "ano" && "Receitas e Despesas por Mês (Ano Atual)"}
+              {!["trimestre", "ano"].includes(filtros.periodo) && "Receitas e Despesas no Período Filtrado"}
             </CardTitle>
-                     {" "}
           </CardHeader>
-                   {" "}
+
           <CardContent className="p-1 pt-0">
-                       {" "}
             <ResponsiveContainer width="100%" height={300}>
-                           {" "}
               <LineChart data={dadosGrafico} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="periodo" tick={{ fontSize: 9 }} />
-                                <YAxis />
-                               {" "}
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="periodo" tick={{ fontSize: 9 }} />
+                <YAxis />
                 <Tooltip
                   formatter={(value: number) =>
                     new Intl.NumberFormat("pt-BR", {
@@ -611,12 +612,9 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
                     }).format(value)
                   }
                 />
-                                <Legend />
-                               {" "}
+                <Legend />
                 <Line type="monotone" dataKey="receita" stroke="#22c55e" name="Receita" strokeWidth={2} />
-                               {" "}
                 <Line type="monotone" dataKey="despesa" stroke="#ef4444" name="Despesa" strokeWidth={2} />
-                               {" "}
                 <Line
                   type="monotone"
                   dataKey="meta"
@@ -625,75 +623,54 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
                   strokeWidth={2}
                   strokeDasharray="5 5"
                 />
-                             {" "}
               </LineChart>
-                         {" "}
             </ResponsiveContainer>
-                     {" "}
           </CardContent>
-                 {" "}
         </Card>
-                {/* Gráfico de Quantidade Total de Atendimentos */}       {" "}
+
+        {/* Gráfico de Quantidade Total de Atendimentos */}
         <Card>
-                   {" "}
           <CardHeader>
-                        <CardTitle>Quantidade Total de Atendimentos Realizados</CardTitle>         {" "}
+            <CardTitle>Quantidade Total de Atendimentos Realizados</CardTitle>
           </CardHeader>
-                   {" "}
+
           <CardContent className="p-1 pt-0">
-                       {" "}
             <ResponsiveContainer width="100%" height={300}>
-                           {" "}
               <BarChart data={dadosAtendimentos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
-                                <YAxis />
-                            _     <Tooltip content={<CustomTooltip tipo="quantidade" />} />
-                                <Legend />
-                               {" "}
-                <Bar dataKey="quantidadeTotal" fill="hsl(var(--primary))" name="Atendimentos Realizados" />           
-                 {" "}
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
+                <YAxis />
+                <Tooltip content={<CustomTooltip tipo="quantidade" />} />
+                <Legend />
+                <Bar dataKey="quantidadeTotal" fill="hsl(var(--primary))" name="Atendimentos Realizados" />
               </BarChart>
-                         {" "}
             </ResponsiveContainer>
-                     {" "}
           </CardContent>
-                 {" "}
         </Card>
-                {/* Gráfico de Média de Atendimentos por Dia */}       {" "}
+
+        {/* Gráfico de Média de Atendimentos por Dia */}
         <Card>
-                   {" "}
           <CardHeader>
-                        <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>           {" "}
+            <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
             <CardDescription>
-                            Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)        
-                 {" "}
+              Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)
             </CardDescription>
-                     {" "}
           </CardHeader>
-                   {" "}
+
           <CardContent className="p-1 pt-0">
-                       {" "}
             <ResponsiveContainer width="100%" height={300}>
-                           {" "}
               <BarChart data={dadosAtendimentos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
-                                <YAxis />
-                                <Tooltip content={<CustomTooltip tipo="media" />} />
-                                <Legend />
-                                <Bar dataKey="mediaDiaria" fill="hsl(var(--chart-2))" name="Média Diária" />        _  
-                 {" "}
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
+                <YAxis />
+                <Tooltip content={<CustomTooltip tipo="media" />} />
+                <Legend />
+                <Bar dataKey="mediaDiaria" fill="hsl(var(--chart-2))" name="Média Diária" />
               </BarChart>
-                         {" "}
             </ResponsiveContainer>
-                     {" "}
           </CardContent>
-                 {" "}
         </Card>
-             {" "}
       </div>
-         {" "}
     </div>
   );
 };
