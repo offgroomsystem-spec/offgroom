@@ -193,91 +193,108 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
   }, [user, filtros, calcularIntervaloFiltro]);
 
   // Cálculos dos KPIs
-  const kpis = useMemo(() => {
-    const hoje = new Date();
-    const { dataInicio, dataFim } = calcularIntervaloFiltro;
+	const kpis = useMemo(() => {
+	const hoje = new Date();
+	const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-    // Lucro Líquido do Período
-    const receitasMes = lancamentos
-      .filter((l: any) => {
-        if (l.tipo !== "Receita" || !l.pago) return false;
-        const dataPag = new Date(l.dataPagamento);
-        return dataPag >= dataInicio && dataPag <= dataFim;
-      })
-      .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
+	// Lucro Líquido do Período
+	const receitasMes = lancamentos
+		.filter((l: any) => {
+		if (l.tipo !== "Receita" || !l.pago) return false;
+		const dataPag = new Date(l.dataPagamento);
+		return dataPag >= dataInicio && dataPag <= dataFim;
+		})
+		.reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
-    const despesasMes = lancamentos
-      .filter((l: any) => {
-        if (l.tipo !== "Despesa" || !l.pago) return false;
-        const dataPag = new Date(l.dataPagamento);
-        return dataPag >= dataInicio && dataPag <= dataFim;
-      })
-      .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
+	const despesasMes = lancamentos
+		.filter((l: any) => {
+		if (l.tipo !== "Despesa" || !l.pago) return false;
+		const dataPag = new Date(l.dataPagamento);
+		return dataPag >= dataInicio && dataPag <= dataFim;
+		})
+		.reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
-    const lucroLiquido = receitasMes - despesasMes;
+	const lucroLiquido = receitasMes - despesasMes;
 
-    // Ticket Médio
-    const atendimentosConcluidos = agendamentos.filter((a: any) => {
-      if (a.status !== "concluido") return false;
-      const dataAgend = new Date(a.data);
-      return dataAgend >= dataInicio && dataAgend <= dataFim;
-    }).length;
-    const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0;
+	// Ticket Médio
+	const atendimentosConcluidos = agendamentos.filter((a: any) => {
+		if (a.status !== "concluido") return false;
+		const dataAgend = new Date(a.data);
+		return dataAgend >= dataInicio && dataAgend <= dataFim;
+	}).length;
+	const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0;
 
-    // Agenda do Dia (sempre hoje)
-    const hojeStr = format(hoje, "yyyy-MM-dd");
-    const agendaDia = agendamentos.filter(
-      (a: any) => a.data === hojeStr && (a.status === "confirmado" || a.status === "pendente"),
-    ).length;
+	// Agenda do Dia (serviços avulsos + pacotes)
+	const hojeStr = format(hoje, "yyyy-MM-dd");
 
-    // Taxa de Retenção
-    const clientesMesAtual = new Set(
-      agendamentos
-        .filter((a: any) => {
-          const dataAgend = new Date(a.data);
-          return dataAgend >= dataInicio && dataAgend <= dataFim;
-        })
-        .map((a: any) => a.cliente),
-    );
+	let agendaDia = 0;
 
-    // Calcular período anterior com mesmo tamanho
-    const diasNoFiltro = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
-    const dataInicioAnterior = new Date(dataInicio);
-    dataInicioAnterior.setDate(dataInicioAnterior.getDate() - diasNoFiltro);
+	// Contar agendamentos avulsos do dia
+	agendaDia += agendamentos.filter(
+		(a: any) =>
+		a.data === hojeStr &&
+		(a.status === "confirmado" || a.status === "pendente")
+	).length;
 
-    const clientesMesAnterior = new Set(
-      agendamentos
-        .filter((a: any) => {
-          const dataAgend = new Date(a.data);
-          return dataAgend >= dataInicioAnterior && dataAgend < dataInicio;
-        })
-        .map((a: any) => a.cliente),
-    );
+	// Contar serviços de pacotes do dia
+	pacotes.forEach((p: any) => {
+		if (Array.isArray(p.servicos)) {
+		agendaDia += p.servicos.filter(
+			(s: any) =>
+			s.data === hojeStr &&
+			(s.status === "confirmado" || s.status === "pendente")
+		).length;
+		}
+	});
 
-    const clientesRetidos = [...clientesMesAtual].filter((c) => clientesMesAnterior.has(c)).length;
-    const taxaRetencao = clientesMesAnterior.size > 0 ? (clientesRetidos / clientesMesAnterior.size) * 100 : 0;
+	// Taxa de Retenção
+	const clientesMesAtual = new Set(
+		agendamentos
+		.filter((a: any) => {
+			const dataAgend = new Date(a.data);
+			return dataAgend >= dataInicio && dataAgend <= dataFim;
+		})
+		.map((a: any) => a.cliente)
+	);
 
-    return {
-      lucroLiquido,
-      ticketMedio,
-      agendaDia,
-      taxaRetencao,
-    };
-  }, [lancamentos, agendamentos, calcularIntervaloFiltro]);
+	const diasNoFiltro = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
+	const dataInicioAnterior = new Date(dataInicio);
+	dataInicioAnterior.setDate(dataInicioAnterior.getDate() - diasNoFiltro);
 
-  // Alertas
-  const alertas = useMemo(() => {
-    const { dataInicio, dataFim } = calcularIntervaloFiltro;
+	const clientesMesAnterior = new Set(
+		agendamentos
+		.filter((a: any) => {
+			const dataAgend = new Date(a.data);
+			return dataAgend >= dataInicioAnterior && dataAgend < dataInicio;
+		})
+		.map((a: any) => a.cliente)
+	);
 
-    // Pacotes a Expirar no período filtrado
-    const pacotesExpirando = pacotes
-      .filter((p: any) => {
-        if (!p.validade || !p.dataVenda) return false;
-        const dataExpiracao = new Date(p.dataVenda);
-        dataExpiracao.setDate(dataExpiracao.getDate() + parseInt(p.validade));
-        return dataExpiracao >= dataInicio && dataExpiracao <= dataFim;
-      })
-      .map((p: any) => `${p.nomeCliente} - ${p.nomePacote}`);
+	const clientesRetidos = [...clientesMesAtual].filter((c) => clientesMesAnterior.has(c)).length;
+	const taxaRetencao = clientesMesAnterior.size > 0 ? (clientesRetidos / clientesMesAnterior.size) * 100 : 0;
+
+	return {
+		lucroLiquido,
+		ticketMedio,
+		agendaDia,
+		taxaRetencao,
+	};
+	}, [lancamentos, agendamentos, pacotes, calcularIntervaloFiltro]);
+
+
+	// Alertas
+	const alertas = useMemo(() => {
+		const { dataInicio, dataFim } = calcularIntervaloFiltro;
+
+		// Pacotes a Expirar no período filtrado
+		const pacotesExpirando = pacotes
+		.filter((p: any) => {
+			if (!p.validade || !p.dataVenda) return false;
+			const dataExpiracao = new Date(p.dataVenda);
+			dataExpiracao.setDate(dataExpiracao.getDate() + parseInt(p.validade));
+			return dataExpiracao >= dataInicio && dataExpiracao <= dataFim;
+		  })
+		  .map((p: any) => `${p.nomeCliente} - ${p.nomePacote}`);
 
     // Inadimplência no período
     const valorInadimplencia = lancamentos
