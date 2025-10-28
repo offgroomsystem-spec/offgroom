@@ -648,7 +648,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                                 <YAxis />
-                                <Tooltip content={<CustomTooltip tipo="quantidade" />} />
+                            _     <Tooltip content={<CustomTooltip tipo="quantidade" />} />
                                 <Legend />
                                {" "}
                 <Bar dataKey="quantidadeTotal" fill="hsl(var(--primary))" name="Atendimentos Realizados" />           
@@ -682,7 +682,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
                                 <YAxis />
                                 <Tooltip content={<CustomTooltip tipo="media" />} />
                                 <Legend />
-                                <Bar dataKey="mediaDiaria" fill="hsl(var(--chart-2))" name="Média Diária" />           
+                                <Bar dataKey="mediaDiaria" fill="hsl(var(--chart-2))" name="Média Diária" />        _  
                  {" "}
               </BarChart>
                          {" "}
