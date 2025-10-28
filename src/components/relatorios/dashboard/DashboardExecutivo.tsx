@@ -123,12 +123,10 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         setClientes(clientesData || []); // Carregar Produtos
 
         const { data: produtosData } = await supabase.from("produtos").select("*").eq("user_id", user.id);
-        setProdutos(produtosData || []); // Carregar Pacotes (TODOS, pois a lógica de "serviços" está neles)
-        // IMPORTANTE: Ajuste para carregar TODOS os pacotes, não apenas do período do filtro
+        setProdutos(produtosData || []); // Carregar Pacotes (TODOS)
 
         const { data: pacotesData } = await supabase.from("pacotes").select("*").eq("user_id", user.id);
-        setPacotes(pacotesData || []); // Carregar Agendamentos
-        // IMPORTANTE: Ajuste para carregar TODOS os agendamentos do ANO ATUAL para os gráficos
+        setPacotes(pacotesData || []); // Carregar Agendamentos (TODOS do ANO ATUAL para os gráficos)
 
         const anoAtual = new Date().getFullYear();
         const dataInicioAno = `${anoAtual}-01-01`;
@@ -138,7 +136,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           .from("agendamentos")
           .select("*")
           .eq("user_id", user.id)
-          .gte("data", dataInicioAno) // Pega o ano inteiro
+          .gte("data", dataInicioAno)
           .lte("data", dataFimAno);
         setAgendamentos(agendamentosData || []); // Carregar Receitas e Despesas (Estes sim, usam o filtro de período)
 
@@ -187,11 +185,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     };
 
     loadDashboardData();
-  }, [user, filtros, calcularIntervaloFiltro]); // Removido 'filtros' e 'calcularIntervaloFiltro' do useEffect de 'loadDashboardData'
-  // Cálculos dos KPIs
-  // Mas mantido 'calcularIntervaloFiltro' para o useMemo que depende dele.
-  // Vamos manter o 'filtros' e 'calcularIntervaloFiltro' para recarregar os LANÇAMENTOS
-  // A lógica de carregar o ANO INTEIRO para agendamentos/pacotes está correta.
+  }, [user, filtros, calcularIntervaloFiltro]); // Cálculos dos KPIs
 
   const kpis = useMemo(() => {
     const hoje = new Date();
@@ -219,16 +213,14 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       if (a.status !== "concluido") return false;
       const dataAgend = new Date(a.data); // Filtra pelos dados do período selecionado
       return dataAgend >= dataInicio && dataAgend <= dataFim;
-    }).length; // (NOTA: O Ticket Médio AINDA não inclui pacotes. Se precisar, avise!)
+    }).length; // (NOTA: O Ticket Médio AINDA não inclui pacotes.)
     const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0; // Agenda do Dia (sempre hoje)
 
     const hojeStr = format(hoje, "yyyy-MM-dd"); // 1. Contar agendamentos avulsos
-    // (Usa 'agendamentos' que contém o ano todo, filtrando por 'hojeStr')
 
     let contagemAgendaDia = agendamentos.filter(
       (a: any) => a.data === hojeStr && (a.status === "confirmado" || a.status === "pendente"),
     ).length; // 2. Contar serviços de pacotes
-    // (Usa 'pacotes' que contém todos)
 
     pacotes.forEach((p: any) => {
       if (p.servicos && Array.isArray(p.servicos)) {
@@ -239,7 +231,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       }
     });
 
-    const agendaDia = contagemAgendaDia; // Taxa de Retenção (Usa 'agendamentos' do ano todo, mas filtrado pelo período)
+    const agendaDia = contagemAgendaDia; // Taxa de Retenção
 
     const clientesMesAtual = new Set(
       agendamentos
@@ -254,13 +246,13 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     const dataInicioAnterior = new Date(dataInicio);
     dataInicioAnterior.setDate(dataInicioAnterior.getDate() - diasNoFiltro);
     const dataFimAnterior = new Date(dataInicio);
-    dataFimAnterior.setDate(dataFimAnterior.getDate() - 1); // Um dia antes do início do filtro atual
+    dataFimAnterior.setDate(dataFimAnterior.getDate() - 1);
 
     const clientesMesAnterior = new Set(
       agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
-          return dataAgend >= dataInicioAnterior && dataAgend <= dataFimAnterior; // Corrigido para dataFimAnterior
+          return dataAgend >= dataInicioAnterior && dataAgend <= dataFimAnterior;
         })
         .map((a: any) => a.cliente),
     );
@@ -277,11 +269,11 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
   }, [lancamentos, agendamentos, pacotes, calcularIntervaloFiltro]); // Alertas
 
   const alertas = useMemo(() => {
-    const { dataInicio, dataFim } = calcularIntervaloFiltro; // Pacotes a Expirar (usando 'pacotes' completo)
+    const { dataInicio, dataFim } = calcularIntervaloFiltro; // Pacotes a Expirar (7 dias a partir de hoje)
 
     const dataExpiracaoInicio = new Date();
     const dataExpiracaoFim = new Date();
-    dataExpiracaoFim.setDate(dataExpiracaoFim.getDate() + 7); // 7 dias a partir de hoje
+    dataExpiracaoFim.setDate(dataExpiracaoFim.getDate() + 7);
 
     const pacotesExpirando = pacotes
       .filter((p: any) => {
@@ -298,11 +290,11 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         const dataPag = new Date(l.dataPagamento);
         return dataPag >= dataInicio && dataPag <= dataFim;
       })
-      .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0); // Produtos vencendo (usa 'produtos' completo)
+      .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0); // Produtos vencendo (30 dias a partir de hoje)
 
     const dataVencimentoInicio = new Date();
     const dataVencimentoFim = new Date();
-    dataVencimentoFim.setDate(dataVencimentoFim.getDate() + 30); // 30 dias a partir de hoje
+    dataVencimentoFim.setDate(dataVencimentoFim.getDate() + 30);
 
     const produtosVencendo = produtos
       .filter((p: any) => {
@@ -310,23 +302,22 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         const dataVal = new Date(p.dataValidade);
         return dataVal >= dataVencimentoInicio && dataVal <= dataVencimentoFim;
       })
-      .map((p: any) => `${p.descricao} - ${format(new Date(p.dataValidade), "dd/MM/yyyy")}`); // Clientes em Risco (usa 'agendamentos' do ano todo)
+      .map((p: any) => `${p.descricao} - ${format(new Date(p.dataValidade), "dd/MM/yyyy")}`); // Clientes em Risco (sem agendamento nos últimos 30 dias)
 
     const dataRisco = new Date();
-    dataRisco.setDate(dataRisco.getDate() - 30); // 30 dias atrás
+    dataRisco.setDate(dataRisco.getDate() - 30);
 
     const clientesComAgendamentoRecente = new Set(
       agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
-          return dataAgend >= dataRisco; // Agendou nos últimos 30 dias
+          return dataAgend >= dataRisco;
         })
-        .map((a: any) => a.cliente),
+        .map((a: any) => a.cliente), // Assumindo que a.cliente é o ID
     );
 
-    const todosClientes = [...new Set(clientes.map((c: any) => c.id))]; // Assumindo que 'clientes' tem 'id'
     const clientesEmRiscoNomes = clientes
-      .filter((c: any) => !clientesComAgendamentoRecente.has(c.id))
+      .filter((c: any) => !clientesComAgendamentoRecente.has(c.id)) // Assumindo que c.id é o ID
       .map((c: any) => c.nomeCliente)
       .slice(0, 10);
 
@@ -407,9 +398,8 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       }
     }
     return dados;
-  }, [lancamentos, calcularIntervaloFiltro, filtros.periodo, metaFaturamento]);
+  }, [lancamentos, calcularIntervaloFiltro, filtros.periodo, metaFaturamento]); // Calcular dados de atendimentos (quantidade total e média diária)
 
-  M; // Calcular dados de atendimentos (quantidade total e média diária)
   const dadosAtendimentos = useMemo(() => {
     // Usa 'agendamentos' e 'pacotes' (ambos carregados com o ano inteiro)
     const anoAtual = new Date().getFullYear();
@@ -425,7 +415,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     for (let mesIndex = mesInicio; mesIndex <= mesFim; mesIndex++) {
       // 1. Filtrar agendamentos AVULSOS do mês
       const atendimentosAvulsosDoMes = agendamentos.filter((a: any) => {
-        if (a.status !== "confirmado" && a.status !== "concluido") return false; // Aqui está o 'V' removido:
+        if (a.status !== "confirmado" && a.status !== "concluido") return false;
         const dataAgend = new Date(a.data);
         return dataAgend.getFullYear() === anoAtual && dataAgend.getMonth() === mesIndex;
       }).length; // 2. Filtrar serviços de PACOTE do mês
@@ -472,9 +462,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
                 <p>Carregando dashboard...</p>     {" "}
       </div>
     );
-  } // ... (Restante do código, incluindo CustomTooltip e o JSX de retorno)
-  // O JSX de retorno permanece o mesmo
-  // Componente de Tooltip Customizado
+  } // Componente de Tooltip Customizado
 
   const CustomTooltip = ({ active, payload, tipo }: any) => {
     if (!active || !payload || payload.length === 0) return null;
@@ -564,7 +552,6 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             lista={alertas.pacotesExpirando}
             icone={<Clock className="h-5 w-5" />}
             onClick={() => onNavigateToReport?.("pacotes-vencimento")}
-            G
           />
                    {" "}
           <AlertCard
@@ -583,7 +570,6 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
                    {" "}
           <AlertCard
             tipo="warning"
-            C
             titulo="Clientes em Risco (sem agendamento há 30+ dias)"
             lista={alertas.clientesEmRisco}
             icone={<UserX className="h-5 w-5" />}
@@ -615,7 +601,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
               <LineChart data={dadosGrafico} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="periodo" tick={{ fontSize: 9 }} />
-                B              <YAxis />
+                                <YAxis />
                                {" "}
                 <Tooltip
                   formatter={(value: number) =>
@@ -678,8 +664,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         <Card>
                    {" "}
           <CardHeader>
-                        <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
-            A           {" "}
+                        <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>           {" "}
             <CardDescription>
                             Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)        
                  {" "}
@@ -696,7 +681,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
                                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                                 <YAxis />
                                 <Tooltip content={<CustomTooltip tipo="media" />} />
-                  M             <Legend />
+                                <Legend />
                                 <Bar dataKey="mediaDiaria" fill="hsl(var(--chart-2))" name="Média Diária" />           
                  {" "}
               </BarChart>
