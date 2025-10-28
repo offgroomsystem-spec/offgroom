@@ -224,28 +224,35 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     }).length;
     const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0;
 
+		// =================================================================
+		// INÍCIO DA MODIFICAÇÃO - AGENDA DO DIA
+		// =================================================================
     // Agenda do Dia (sempre hoje)
     const hojeStr = format(hoje, "yyyy-MM-dd");
 
-    // 1. Contar agendamentos avulsos
-    // (Nota: 'agendamentos' está pré-filtrado pelo período do dashboard)
+		// 1. Contar agendamentos avulsos
+		// (Nota: 'agendamentos' está pré-filtrado pelo período do dashboard,
+		// então isso só funcionará se "hoje" estiver no filtro selecionado)
     let contagemAgendaDia = agendamentos.filter(
       (a: any) => a.data === hojeStr && (a.status === "confirmado" || a.status === "pendente"),
     ).length;
 
-    // 2. Contar serviços de pacotes
-    // (Nota: 'pacotes' NÃO está pré-filtrado, contém todos os pacotes)
-    pacotes.forEach((p: any) => {
-      // Verifica se o pacote tem a propriedade 'servicos' e se é um array
-      if (p.servicos && Array.isArray(p.servicos)) {
-        const servicosDeHoje = p.servicos.filter(
-          (s: any) => s.data === hojeStr && (s.status === "confirmado" || s.status === "pendente"),
-        ).length;
-        contagemAgendaDia += servicosDeHoje;
-      }
-    });
+		// 2. Contar serviços de pacotes
+		// (Nota: 'pacotes' NÃO está pré-filtrado, contém todos os pacotes)
+		pacotes.forEach((p: any) => {
+			// Verifica se o pacote tem a propriedade 'servicos' e se é um array
+			if (p.servicos && Array.isArray(p.servicos)) {
+				const servicosDeHoje = p.servicos.filter(
+					(s: any) => s.data === hojeStr && (s.status === "confirmado" || s.status === "pendente")
+				).length;
+				contagemAgendaDia += servicosDeHoje;
+			}
+		});
 
-    const agendaDia = contagemAgendaDia;
+		const agendaDia = contagemAgendaDia;
+		// =================================================================
+		// FIM DA MODIFICAÇÃO - AGENDA DO DIA
+		// =================================================================
 
     // Taxa de Retenção
     const clientesMesAtual = new Set(
@@ -280,7 +287,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       agendaDia,
       taxaRetencao,
     };
-  }, [lancamentos, agendamentos, pacotes, calcularIntervaloFiltro]); // 'pacotes' já estava aqui
+  }, [lancamentos, agendamentos, pacotes, calcularIntervaloFiltro]); // Adicionado 'pacotes' ao array de dependências
 
   // Alertas
   const alertas = useMemo(() => {
@@ -433,10 +440,6 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     return dados;
   }, [lancamentos, calcularIntervaloFiltro, filtros.periodo, metaFaturamento]);
 
-  // =================================================================
-  // INÍCIO DA MODIFICAÇÃO - GRÁFICOS DE ATENDIMENTO
-  // =================================================================
-
   // Calcular dados de atendimentos (quantidade total e média diária)
   const dadosAtendimentos = useMemo(() => {
     // SEMPRE mostrar todos os 12 meses do ano atual
@@ -452,30 +455,14 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
     // Iterar pelos 12 meses do ano atual
     for (let mesIndex = mesInicio; mesIndex <= mesFim; mesIndex++) {
-      // 1. Filtrar agendamentos AVULSOS do mês
-      // (Nota: 'agendamentos' está filtrado pelo período, mas o filtro interno do 'agendamentosDoMes' já foi removido
-      // e agora o filtro de data está sendo aplicado corretamente aqui)
-      const atendimentosAvulsosDoMes = agendamentos.filter((a: any) => {
+      // Filtrar agendamentos do mês INDEPENDENTE do filtro de período
+      const atendimentosDoMes = agendamentos.filter((a: any) => {
         if (a.status !== "confirmado" && a.status !== "concluido") return false;
-        const dataAgend = new Date(a.data);
+  V       const dataAgend = new Date(a.data);
         return dataAgend.getFullYear() === anoAtual && dataAgend.getMonth() === mesIndex;
-      }).length;
-
-      // 2. Filtrar serviços de PACOTE do mês
-      // (Nota: 'pacotes' não é filtrado por período, o que é correto)
-      let atendimentosPacoteDoMes = 0;
-      pacotes.forEach((p: any) => {
-        if (p.servicos && Array.isArray(p.servicos)) {
-          atendimentosPacoteDoMes += p.servicos.filter((s: any) => {
-            if (s.status !== "confirmado" && s.status !== "concluido") return false;
-            const dataServ = new Date(s.data);
-            return dataServ.getFullYear() === anoAtual && dataServ.getMonth() === mesIndex;
-          }).length;
-        }
       });
 
-      // 3. Somar os dois
-      const quantidadeTotal = atendimentosAvulsosDoMes + atendimentosPacoteDoMes;
+      const quantidadeTotal = atendimentosDoMes.length;
 
       // Calcular dias úteis do mês
       const diasUteis = calcularDiasUteis(anoAtual, mesIndex);
@@ -503,11 +490,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     }
 
     return dados;
-  }, [agendamentos, pacotes]); // Atualizada a dependência
-section
-  // =================================================================
-  // FIM DA MODIFICAÇÃO
-  // =================================================================
+  }, [agendamentos]);
 
   if (loading) {
     return (
@@ -577,7 +560,7 @@ section
                   : filtros.periodo === "trimestre"
                     ? "Este Trimestre"
                     : filtros.periodo === "ano"
-Â                    ? "Este Ano"
+                      ? "Este Ano"
                       : "Período Customizado"
           }
           cor={kpis.lucroLiquido >= 0 ? "green" : "red"}
@@ -636,7 +619,7 @@ section
               {filtros.periodo === "trimestre" && "Receitas e Despesas por Mês (Trimestre Atual)"}
               {filtros.periodo === "ano" && "Receitas e Despesas por Mês (Ano Atual)"}
               {!["trimestre", "ano"].includes(filtros.periodo) && "Receitas e Despesas no Período Filtrado"}
-Â            </CardTitle>
+            </CardTitle>
           </CardHeader>
 
           <CardContent className="p-1 pt-0">
@@ -650,39 +633,39 @@ section
                     new Intl.NumberFormat("pt-BR", {
                       style: "currency",
                       currency: "BRL",
-Â                  }).format(value)
+                    }).format(value)
                   }
                 />
                 <Legend />
                 <Line type="monotone" dataKey="receita" stroke="#22c55e" name="Receita" strokeWidth={2} />
-                <Line type="monotone" dataKey="despesa" stroke="#ef4444" name="Despesa" strokeWidth={2} />
+t               <Line type="monotone" dataKey="despesa" stroke="#ef4444" name="Despesa" strokeWidth={2} />
                 <Line
-Â                  type="monotone"
+                  type="monotone"
                   dataKey="meta"
                   stroke="#6b7280"
                   name="Meta de Faturamento"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-Â                />
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Gráfico de Quantidade Total de Atendimentos */}
-Â        <Card>
+        <Card>
           <CardHeader>
             <CardTitle>Quantidade Total de Atendimentos Realizados</CardTitle>
           </CardHeader>
 
           <CardContent className="p-1 pt-0">
             <ResponsiveContainer width="100%" height={300}>
-Â              <BarChart data={dadosAtendimentos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={dadosAtendimentos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis />
                 <Tooltip content={<CustomTooltip tipo="quantidade" />} />
-                <Legend />
+  D             <Legend />
                 <Bar dataKey="quantidadeTotal" fill="hsl(var(--primary))" name="Atendimentos Realizados" />
               </BarChart>
             </ResponsiveContainer>
@@ -692,23 +675,23 @@ section
         {/* Gráfico de Média de Atendimentos por Dia */}
         <Card>
           <CardHeader>
-Â            <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
+            <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
             <CardDescription>
               Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)
             </CardDescription>
           </CardHeader>
 
-Â          <CardContent className="p-1 pt-0">
+          <CardContent className="p-1 pt-0">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dadosAtendimentos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
-Âid_APS_3849         <YAxis />
+                <YAxis />
                 <Tooltip content={<CustomTooltip tipo="media" />} />
                 <Legend />
                 <Bar dataKey="mediaDiaria" fill="hsl(var(--chart-2))" name="Média Diária" />
               </BarChart>
-Â            </ResponsiveContainer>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
