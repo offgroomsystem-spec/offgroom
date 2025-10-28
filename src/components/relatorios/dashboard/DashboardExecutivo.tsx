@@ -237,9 +237,11 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     // Contar serviços de pacotes do dia
     pacotes.forEach((p: any) => {
       if (Array.isArray(p.servicos)) {
-        agendaDia += p.servicos.filter(
-          (s: any) => s.data === hojeStr && (s.status === "confirmado" || s.status === "pendente"),
-        ).length;
+        p.servicos.forEach((s: any) => {
+          if (s.data === hojeStr && (s.status === "confirmado" || s.status === "pendente")) {
+            agendaDia++;
+          }
+        });
       }
     });
 
