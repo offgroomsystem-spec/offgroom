@@ -40,7 +40,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
     >
       {/* AJUSTE AQUI: Padding "justinho" p-2 pb-1 */}
       <CardHeader className="p-2 pb-1">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="text-base leading-tight">
           {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}
           {titulo}
         </CardTitle>
