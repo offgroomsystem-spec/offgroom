@@ -42,6 +42,11 @@ interface LancamentoFinanceiro {
 interface Cliente {
   id: string;
   nomeCliente: string;
+}
+
+interface Pet {
+  id: string;
+  clienteId: string;
   nomePet: string;
 }
 
@@ -264,6 +269,7 @@ const ControleFinanceiro = () => {
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [pets, setPets] = useState<Pet[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
@@ -312,23 +318,26 @@ const ControleFinanceiro = () => {
         .select('*')
         .eq('user_id', user.id);
 
+      const petsData = await supabase
+        .from('pets')
+        .select('*')
+        .eq('user_id', user.id);
+
       const contasData = await supabase
         .from('contas_bancarias')
         .select('*')
         .eq('user_id', user.id);
 
-      if (clientesData.data && contasData.data) {
-        const clientesMap = new Map(clientesData.data.map((c: any) => [c.id, { nome: c.nome_cliente, pet: c.nome_pet }]));
+      if (clientesData.data && petsData.data && contasData.data) {
+        const clientesMap = new Map(clientesData.data.map((c: any) => [c.id, c.nome_cliente]));
+        const petsMap = new Map(petsData.data.map((p: any) => [p.cliente_id, p.nome_pet]));
         const contasMap = new Map(contasData.data.map((c: any) => [c.id, c.nome]));
 
         lancamentosFormatados.forEach((l: any) => {
           const lancOriginal = data?.find((lo: any) => lo.id === l.id);
           if (lancOriginal) {
-            const cliente = clientesMap.get(lancOriginal.cliente_id);
-            if (cliente) {
-              l.nomeCliente = cliente.nome;
-              l.nomePet = cliente.pet;
-            }
+            l.nomeCliente = clientesMap.get(lancOriginal.cliente_id) || '';
+            l.nomePet = petsMap.get(lancOriginal.cliente_id) || '';
             l.nomeBanco = contasMap.get(lancOriginal.conta_id) || '';
           }
         });
@@ -348,8 +357,9 @@ const ControleFinanceiro = () => {
     if (!user) return;
 
     try {
-      const [clientesRes, contasRes, servicosRes, pacotesRes, produtosRes] = await Promise.all([
+      const [clientesRes, petsRes, contasRes, servicosRes, pacotesRes, produtosRes] = await Promise.all([
         supabase.from('clientes').select('*').eq('user_id', user.id),
+        supabase.from('pets').select('*').eq('user_id', user.id),
         supabase.from('contas_bancarias').select('*').eq('user_id', user.id),
         supabase.from('servicos').select('*').eq('user_id', user.id),
         supabase.from('pacotes').select('*').eq('user_id', user.id),
@@ -359,8 +369,15 @@ const ControleFinanceiro = () => {
       if (clientesRes.data) {
         setClientes(clientesRes.data.map((c: any) => ({
           id: c.id,
-          nomeCliente: c.nome_cliente,
-          nomePet: c.nome_pet
+          nomeCliente: c.nome_cliente
+        })));
+      }
+
+      if (petsRes.data) {
+        setPets(petsRes.data.map((p: any) => ({
+          id: p.id,
+          clienteId: p.cliente_id,
+          nomePet: p.nome_pet
         })));
       }
 
@@ -456,22 +473,33 @@ const ControleFinanceiro = () => {
   // Filtrar pets baseado no cliente selecionado
   const petsFormulario = useMemo(() => {
     if (!formData.nomeCliente) {
-      return [...new Set(clientes.map(c => c.nomePet))];
+      // Se não há cliente selecionado, retorna todos os pets
+      return [...new Set(pets.map(p => p.nomePet))];
     }
-    return clientes
-      .filter(c => c.nomeCliente === formData.nomeCliente)
-      .map(c => c.nomePet);
-  }, [formData.nomeCliente, clientes]);
+    // Encontrar o ID do cliente selecionado
+    const clienteSelecionado = clientes.find(c => c.nomeCliente === formData.nomeCliente);
+    if (!clienteSelecionado) return [];
+    
+    // Retornar apenas os pets deste cliente
+    return pets
+      .filter(p => p.clienteId === clienteSelecionado.id)
+      .map(p => p.nomePet);
+  }, [formData.nomeCliente, clientes, pets]);
 
   // Filtrar clientes baseado no pet selecionado
   const clientesFormulario = useMemo(() => {
     if (!formData.nomePet) {
+      // Se não há pet selecionado, retorna todos os clientes
       return [...new Set(clientes.map(c => c.nomeCliente))];
     }
-    return [...new Set(clientes
-      .filter(c => c.nomePet === formData.nomePet)
-      .map(c => c.nomeCliente))];
-  }, [formData.nomePet, clientes]);
+    // Encontrar o pet selecionado
+    const petSelecionado = pets.find(p => p.nomePet === formData.nomePet);
+    if (!petSelecionado) return [];
+    
+    // Retornar apenas o cliente dono deste pet
+    const clienteDonoPet = clientes.find(c => c.id === petSelecionado.clienteId);
+    return clienteDonoPet ? [clienteDonoPet.nomeCliente] : [];
+  }, [formData.nomePet, clientes, pets]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -535,11 +563,12 @@ const ControleFinanceiro = () => {
 
     try {
       // Find cliente_id and conta_id
-      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente && c.nomePet === formData.nomePet);
+      const pet = pets.find(p => p.nomePet === formData.nomePet);
+      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente);
       const conta = contas.find(c => c.nomeBanco === formData.nomeBanco);
 
-      if (!cliente) {
-        toast.error("Cliente/Pet não encontrado!");
+      if (!pet || !cliente || pet.clienteId !== cliente.id) {
+        toast.error("Cliente/Pet não encontrado ou não correspondem!");
         return;
       }
       if (!conta) {
@@ -648,10 +677,11 @@ const ControleFinanceiro = () => {
     const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
 
     try {
-      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente && c.nomePet === formData.nomePet);
+      const pet = pets.find(p => p.nomePet === formData.nomePet);
+      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente);
       const conta = contas.find(c => c.nomeBanco === formData.nomeBanco);
 
-      if (!cliente || !conta) {
+      if (!pet || !cliente || pet.clienteId !== cliente.id || !conta) {
         toast.error("Cliente/Pet ou Conta bancária não encontrados!");
         return;
       }
@@ -808,21 +838,26 @@ const ControleFinanceiro = () => {
   // Filtros para pets e clientes
   const petsFiltro = useMemo(() => {
     if (!filtros.nomeCliente) {
-      return [...new Set(clientes.map(c => c.nomePet))];
+      return [...new Set(pets.map(p => p.nomePet))];
     }
-    return clientes
-      .filter(c => c.nomeCliente === filtros.nomeCliente)
-      .map(c => c.nomePet);
-  }, [filtros.nomeCliente, clientes]);
+    const clienteSelecionado = clientes.find(c => c.nomeCliente === filtros.nomeCliente);
+    if (!clienteSelecionado) return [];
+    
+    return pets
+      .filter(p => p.clienteId === clienteSelecionado.id)
+      .map(p => p.nomePet);
+  }, [filtros.nomeCliente, clientes, pets]);
 
   const clientesFiltro = useMemo(() => {
     if (!filtros.nomePet) {
       return [...new Set(clientes.map(c => c.nomeCliente))];
     }
-    return [...new Set(clientes
-      .filter(c => c.nomePet === filtros.nomePet)
-      .map(c => c.nomeCliente))];
-  }, [filtros.nomePet, clientes]);
+    const petSelecionado = pets.find(p => p.nomePet === filtros.nomePet);
+    if (!petSelecionado) return [];
+    
+    const clienteDonoPet = clientes.find(c => c.id === petSelecionado.clienteId);
+    return clienteDonoPet ? [clienteDonoPet.nomeCliente] : [];
+  }, [filtros.nomePet, clientes, pets]);
 
   return (
     <div className="space-y-3">
@@ -927,7 +962,18 @@ const ControleFinanceiro = () => {
                     <ComboboxField
                       value={formData.nomeCliente}
                       onChange={(value) => {
-                        setFormData({ ...formData, nomeCliente: value, nomePet: "" });
+                        // Ao mudar cliente, limpar pet apenas se o pet atual não pertencer ao novo cliente
+                        const novoCliente = clientes.find(c => c.nomeCliente === value);
+                        if (novoCliente && formData.nomePet) {
+                          const petAtual = pets.find(p => p.nomePet === formData.nomePet);
+                          if (petAtual && petAtual.clienteId !== novoCliente.id) {
+                            setFormData({ ...formData, nomeCliente: value, nomePet: "" });
+                          } else {
+                            setFormData({ ...formData, nomeCliente: value });
+                          }
+                        } else {
+                          setFormData({ ...formData, nomeCliente: value });
+                        }
                       }}
                       options={clientesFormulario}
                       placeholder="Selecione o cliente"
@@ -940,7 +986,20 @@ const ControleFinanceiro = () => {
                     <Label className="text-[10px] font-semibold">Nome do Pet *</Label>
                     <ComboboxField
                       value={formData.nomePet}
-                      onChange={(value) => setFormData({ ...formData, nomePet: value })}
+                      onChange={(value) => {
+                        // Ao mudar pet, atualizar cliente automaticamente
+                        const petSelecionado = pets.find(p => p.nomePet === value);
+                        if (petSelecionado) {
+                          const clienteDoPet = clientes.find(c => c.id === petSelecionado.clienteId);
+                          if (clienteDoPet) {
+                            setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente });
+                          } else {
+                            setFormData({ ...formData, nomePet: value });
+                          }
+                        } else {
+                          setFormData({ ...formData, nomePet: value });
+                        }
+                      }}
                       options={petsFormulario}
                       placeholder="Selecione o pet"
                       searchPlaceholder="Buscar pet..."
