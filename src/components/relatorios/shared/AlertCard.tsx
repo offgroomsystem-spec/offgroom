@@ -36,14 +36,27 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
       className={`border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow hover:border-primary" : ""}`}
       onClick={onClick}
     >
-      <CardHeader className="p-2 pb-1 flex-row items-center space-x-2">
+      {/* MUDANÇAS ESTÃO AQUI:
+        - padding "p-2 pb-1" (para ficar "justinho")
+        - 'flex-row' (para colocar ícone e título lado a lado)
+        - 'items-center' (para alinhar ícone e título verticalmente)
+        - 'space-x-2' (para dar um espaço entre o ícone e o título)
+      */}
+      <CardHeader className="p-2 pb-1 flex-row items-center space-x-2"> // <-- MUDANÇA AQUI
         {icone && <span className={`${tipoIconColor[tipo]} flex-shrink-0`}>{icone}</span>}
-        <CardTitle className="text-base leading-tight">
+        {/* MUDANÇAS ESTÃO AQUI:
+          - 'leading-tight' (para diminuir a altura da linha do título)
+          - Removido o 'flex items-center gap-2' de dentro do CardTitle
+        */}
+        <CardTitle className="text-base leading-tight"> // <-- MUDANÇA AQUI
           {titulo}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="p-2 pt-0">
+      {/* MUDANÇAS ESTÃO AQUI:
+        - padding "p-2 pt-0" (para colar o conteúdo no título)
+      */}
+      <CardContent className="p-2 pt-0"> // <-- MUDANÇA AQUI
         {/* Prioridade 1: Valor (monetário) */}
         {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
         
@@ -52,7 +65,8 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
 
         {/* Prioridade 3: Lista (só mostra se não houver valor nem textoDestaque) */}
         {!valor && !textoDestaque && lista && lista.length > 0 && (
-          <ul className="list-disc list-inside space-y-0.5 text-sm">
+          // 'space-y-0.5' para diminuir o espaço entre os itens da lista
+          <ul className="list-disc list-inside space-y-0.5 text-sm"> // <-- MUDANÇA AQUI
             {lista
               .slice(0, 5)
               .filter((item) => item !== undefined && item !== null)
@@ -69,7 +83,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
         
         {/* "Nenhum item" */}
         {!valor && !textoDestaque && lista && lista.length === 0 && <p className="text-sm text-muted-foreground">Nenhum item encontrado</p>}
-    N </CardContent>
-  Vertical </Card>
+      </CardContent>
+    </Card>
   );
 };
