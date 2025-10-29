@@ -3,13 +3,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { TrendingUp, TrendingDown, DollarSign, Filter, Plus, Edit2, Trash2, X, Check, ChevronsUpDown } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Filter,
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Check,
+  ChevronsUpDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,16 +102,23 @@ interface Produto {
 
 // Categorias
 const categoriasDescricao1 = {
-  "Receita": ["Receita Operacional", "Receita Não Operacional"],
-  "Despesa": ["Despesa Fixa", "Despesa Variável", "Despesa Não Operacional"]
+  Receita: ["Receita Operacional", "Receita Não Operacional"],
+  Despesa: ["Despesa Fixa", "Despesa Variável", "Despesa Não Operacional"],
 };
 
 const categoriasDescricao2: { [key: string]: string[] } = {
   "Receita Operacional": ["Serviços", "Venda", "Outras Receitas Operacionais"],
   "Receita Não Operacional": ["Venda de Ativo", "Outras Receitas Não Operacionais"],
   "Despesa Fixa": ["Aluguel", "Salários", "Impostos Fixos", "Outras Despesas Fixas"],
-  "Despesa Variável": ["Produtos para Banho", "Material de Limpeza", "Energia Elétrica", "Água", "Internet", "Outras Despesas Variáveis"],
-  "Despesa Não Operacional": ["Manutenção", "Reparos", "Outras Despesas Não Operacionais"]
+  "Despesa Variável": [
+    "Produtos para Banho",
+    "Material de Limpeza",
+    "Energia Elétrica",
+    "Água",
+    "Internet",
+    "Outras Despesas Variáveis",
+  ],
+  "Despesa Não Operacional": ["Manutenção", "Reparos", "Outras Despesas Não Operacionais"],
 };
 
 const meses = [
@@ -99,7 +133,7 @@ const meses = [
   { value: "09", label: "Setembro" },
   { value: "10", label: "Outubro" },
   { value: "11", label: "Novembro" },
-  { value: "12", label: "Dezembro" }
+  { value: "12", label: "Dezembro" },
 ];
 
 // Componente ComboboxField
@@ -162,32 +196,42 @@ interface ItemLancamentoFormProps {
   canRemove: boolean;
 }
 
-const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos, onChange, onRemove, canRemove }: ItemLancamentoFormProps) => {
+const ItemLancamentoForm = ({
+  item,
+  index,
+  formData,
+  servicos,
+  pacotes,
+  produtos,
+  onChange,
+  onRemove,
+  canRemove,
+}: ItemLancamentoFormProps) => {
   const opcoesDescricao2 = formData.descricao1 ? categoriasDescricao2[formData.descricao1] || [] : [];
-  
+
   const isServicos = item.descricao2 === "Serviços";
   const isVenda = item.descricao2 === "Venda";
   const isObrigatorio = isServicos || isVenda;
-  
-    const opcoesProdutoServico = useMemo(() => {
-      if (isServicos) {
-        return [
-          ...servicos.map(s => ({ nome: s.nome, valor: s.valor })),
-          ...pacotes.map(p => ({ nome: p.nome, valor: p.valorFinal }))
-        ];
-      } else if (isVenda) {
-        return produtos.map(p => ({ nome: p.descricao, valor: p.valorVenda }));
-      }
-      return [];
-    }, [isServicos, isVenda, servicos, pacotes, produtos]);
-  
+
+  const opcoesProdutoServico = useMemo(() => {
+    if (isServicos) {
+      return [
+        ...servicos.map((s) => ({ nome: s.nome, valor: s.valor })),
+        ...pacotes.map((p) => ({ nome: p.nome, valor: p.valorFinal })),
+      ];
+    } else if (isVenda) {
+      return produtos.map((p) => ({ nome: p.descricao, valor: p.valorVenda }));
+    }
+    return [];
+  }, [isServicos, isVenda, servicos, pacotes, produtos]);
+
   const handleProdutoServicoChange = (nomeSelecionado: string) => {
-    const itemSelecionado = opcoesProdutoServico.find(o => o.nome === nomeSelecionado);
-    
+    const itemSelecionado = opcoesProdutoServico.find((o) => o.nome === nomeSelecionado);
+
     onChange({
       ...item,
       produtoServico: nomeSelecionado,
-      valor: itemSelecionado ? itemSelecionado.valor : item.valor
+      valor: itemSelecionado ? itemSelecionado.valor : item.valor,
     });
   };
 
@@ -204,11 +248,11 @@ const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos
           <X className="h-3 w-3" />
         </Button>
       )}
-      
+
       <div className="col-span-4 space-y-0.5">
         <Label className="text-[10px] font-semibold">Descrição 2 *</Label>
-        <Select 
-          value={item.descricao2} 
+        <Select
+          value={item.descricao2}
           onValueChange={(value) => onChange({ ...item, descricao2: value, produtoServico: "", valor: 0 })}
           disabled={!formData.descricao1}
         >
@@ -216,24 +260,26 @@ const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos
             <SelectValue placeholder={formData.descricao1 ? "Selecione" : "Selecione Desc1"} />
           </SelectTrigger>
           <SelectContent>
-            {opcoesDescricao2.map(desc => (
-              <SelectItem key={desc} value={desc} className="text-xs">{desc}</SelectItem>
+            {opcoesDescricao2.map((desc) => (
+              <SelectItem key={desc} value={desc} className="text-xs">
+                {desc}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      
+
       <div className="col-span-5 space-y-0.5">
         <Label className="text-[10px] font-semibold">
           {isServicos ? "Serviço" : isVenda ? "Produto" : "Observação"}
           {isObrigatorio && " *"}
         </Label>
-        
+
         {isObrigatorio ? (
           <ComboboxField
             value={item.produtoServico}
             onChange={handleProdutoServicoChange}
-            options={opcoesProdutoServico.map(o => o.nome)}
+            options={opcoesProdutoServico.map((o) => o.nome)}
             placeholder={`Selecione ${isServicos ? "serviço" : "produto"}`}
             searchPlaceholder={`Buscar ${isServicos ? "serviço" : "produto"}...`}
             id={`item-produto-${item.id}`}
@@ -247,7 +293,7 @@ const ItemLancamentoForm = ({ item, index, formData, servicos, pacotes, produtos
           />
         )}
       </div>
-      
+
       <div className="col-span-3 space-y-0.5">
         <Label className="text-[10px] font-semibold">Valor *</Label>
         <Input
@@ -281,13 +327,15 @@ const ControleFinanceiro = () => {
 
     try {
       const { data, error } = await supabase
-        .from('lancamentos_financeiros')
-        .select(`
+        .from("lancamentos_financeiros")
+        .select(
+          `
           *,
           lancamentos_financeiros_itens (*)
-        `)
-        .eq('user_id', user.id)
-        .order('data_cadastro', { ascending: false });
+        `,
+        )
+        .eq("user_id", user.id)
+        .order("data_cadastro", { ascending: false });
 
       if (error) throw error;
 
@@ -297,36 +345,27 @@ const ControleFinanceiro = () => {
         mesCompetencia: l.mes_competencia,
         tipo: l.tipo as "Receita" | "Despesa",
         descricao1: l.descricao1,
-        nomeCliente: l.cliente_id ? '' : '', // Will be handled via lookup
-        nomePet: '', // Will be handled via lookup
+        nomeCliente: l.cliente_id ? "" : "", // Will be handled via lookup
+        nomePet: "", // Will be handled via lookup
         itens: (l.lancamentos_financeiros_itens || []).map((i: any) => ({
           id: i.id,
           descricao2: i.descricao2,
-          produtoServico: i.produto_servico || '',
-          valor: Number(i.valor)
+          produtoServico: i.produto_servico || "",
+          valor: Number(i.valor),
         })),
         valorTotal: Number(l.valor_total),
         dataPagamento: l.data_pagamento,
-        nomeBanco: '', // Will be handled via lookup
+        nomeBanco: "", // Will be handled via lookup
         pago: l.pago,
-        dataCadastro: l.data_cadastro || l.created_at
+        dataCadastro: l.data_cadastro || l.created_at,
       }));
 
       // Map cliente_id and conta_id to names
-      const clientesData = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('user_id', user.id);
+      const clientesData = await supabase.from("clientes").select("*").eq("user_id", user.id);
 
-      const petsData = await supabase
-        .from('pets')
-        .select('*')
-        .eq('user_id', user.id);
+      const petsData = await supabase.from("pets").select("*").eq("user_id", user.id);
 
-      const contasData = await supabase
-        .from('contas_bancarias')
-        .select('*')
-        .eq('user_id', user.id);
+      const contasData = await supabase.from("contas_bancarias").select("*").eq("user_id", user.id);
 
       if (clientesData.data && petsData.data && contasData.data) {
         const clientesMap = new Map(clientesData.data.map((c: any) => [c.id, c.nome_cliente]));
@@ -336,17 +375,17 @@ const ControleFinanceiro = () => {
         lancamentosFormatados.forEach((l: any) => {
           const lancOriginal = data?.find((lo: any) => lo.id === l.id);
           if (lancOriginal) {
-            l.nomeCliente = clientesMap.get(lancOriginal.cliente_id) || '';
-            l.nomePet = petsMap.get(lancOriginal.cliente_id) || '';
-            l.nomeBanco = contasMap.get(lancOriginal.conta_id) || '';
+            l.nomeCliente = clientesMap.get(lancOriginal.cliente_id) || "";
+            l.nomePet = petsMap.get(lancOriginal.cliente_id) || "";
+            l.nomeBanco = contasMap.get(lancOriginal.conta_id) || "";
           }
         });
       }
 
       setLancamentos(lancamentosFormatados);
     } catch (error) {
-      console.error('Erro ao carregar lançamentos:', error);
-      toast.error('Erro ao carregar lançamentos');
+      console.error("Erro ao carregar lançamentos:", error);
+      toast.error("Erro ao carregar lançamentos");
     } finally {
       setLoading(false);
     }
@@ -358,61 +397,73 @@ const ControleFinanceiro = () => {
 
     try {
       const [clientesRes, petsRes, contasRes, servicosRes, pacotesRes, produtosRes] = await Promise.all([
-        supabase.from('clientes').select('*').eq('user_id', user.id),
-        supabase.from('pets').select('*').eq('user_id', user.id),
-        supabase.from('contas_bancarias').select('*').eq('user_id', user.id),
-        supabase.from('servicos').select('*').eq('user_id', user.id),
-        supabase.from('pacotes').select('*').eq('user_id', user.id),
-        supabase.from('produtos').select('*').eq('user_id', user.id)
+        supabase.from("clientes").select("*").eq("user_id", user.id),
+        supabase.from("pets").select("*").eq("user_id", user.id),
+        supabase.from("contas_bancarias").select("*").eq("user_id", user.id),
+        supabase.from("servicos").select("*").eq("user_id", user.id),
+        supabase.from("pacotes").select("*").eq("user_id", user.id),
+        supabase.from("produtos").select("*").eq("user_id", user.id),
       ]);
 
       if (clientesRes.data) {
-        setClientes(clientesRes.data.map((c: any) => ({
-          id: c.id,
-          nomeCliente: c.nome_cliente
-        })));
+        setClientes(
+          clientesRes.data.map((c: any) => ({
+            id: c.id,
+            nomeCliente: c.nome_cliente,
+          })),
+        );
       }
 
       if (petsRes.data) {
-        setPets(petsRes.data.map((p: any) => ({
-          id: p.id,
-          clienteId: p.cliente_id,
-          nomePet: p.nome_pet
-        })));
+        setPets(
+          petsRes.data.map((p: any) => ({
+            id: p.id,
+            clienteId: p.cliente_id,
+            nomePet: p.nome_pet,
+          })),
+        );
       }
 
       if (contasRes.data) {
-        setContas(contasRes.data.map((c: any) => ({
-          id: c.id,
-          nomeBanco: c.nome
-        })));
+        setContas(
+          contasRes.data.map((c: any) => ({
+            id: c.id,
+            nomeBanco: c.nome,
+          })),
+        );
       }
 
       if (servicosRes.data) {
-        setServicos(servicosRes.data.map((s: any) => ({
-          id: s.id,
-          nome: s.nome,
-          valor: Number(s.valor)
-        })));
+        setServicos(
+          servicosRes.data.map((s: any) => ({
+            id: s.id,
+            nome: s.nome,
+            valor: Number(s.valor),
+          })),
+        );
       }
 
       if (pacotesRes.data) {
-        setPacotes(pacotesRes.data.map((p: any) => ({
-          id: p.id,
-          nome: p.nome,
-          valorFinal: Number(p.valor_final)
-        })));
+        setPacotes(
+          pacotesRes.data.map((p: any) => ({
+            id: p.id,
+            nome: p.nome,
+            valorFinal: Number(p.valor_final),
+          })),
+        );
       }
 
       if (produtosRes.data) {
-        setProdutos(produtosRes.data.map((p: any) => ({
-          id: p.id,
-          descricao: p.nome,
-          valorVenda: Number(p.valor)
-        })));
+        setProdutos(
+          produtosRes.data.map((p: any) => ({
+            id: p.id,
+            descricao: p.nome,
+            valorVenda: Number(p.valor),
+          })),
+        );
       }
     } catch (error) {
-      console.error('Erro ao carregar dados relacionados:', error);
+      console.error("Erro ao carregar dados relacionados:", error);
     }
   };
 
@@ -431,7 +482,7 @@ const ControleFinanceiro = () => {
 
   const [formData, setFormData] = useState({
     ano: new Date().getFullYear().toString(),
-    mesCompetencia: String(new Date().getMonth() + 1).padStart(2, '0'),
+    mesCompetencia: String(new Date().getMonth() + 1).padStart(2, "0"),
     tipo: "" as "Receita" | "Despesa" | "",
     descricao1: "",
     nomeCliente: "",
@@ -442,7 +493,7 @@ const ControleFinanceiro = () => {
   });
 
   const [itensLancamento, setItensLancamento] = useState<ItemLancamento[]>([
-    { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }
+    { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
   ]);
 
   const [filtros, setFiltros] = useState({
@@ -459,14 +510,13 @@ const ControleFinanceiro = () => {
     pago: null as boolean | null,
   });
 
-
-  const [filtroDataAtivo, setFiltroDataAtivo] = useState<'periodo' | 'mesano' | null>(null);
+  const [filtroDataAtivo, setFiltroDataAtivo] = useState<"periodo" | "mesano" | null>(null);
   const [filtrosAplicados, setFiltrosAplicados] = useState(false);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
@@ -474,30 +524,28 @@ const ControleFinanceiro = () => {
   const petsFormulario = useMemo(() => {
     if (!formData.nomeCliente) {
       // Se não há cliente selecionado, retorna todos os pets
-      return [...new Set(pets.map(p => p.nomePet))];
+      return [...new Set(pets.map((p) => p.nomePet))];
     }
     // Encontrar o ID do cliente selecionado
-    const clienteSelecionado = clientes.find(c => c.nomeCliente === formData.nomeCliente);
+    const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
     if (!clienteSelecionado) return [];
-    
+
     // Retornar apenas os pets deste cliente
-    return pets
-      .filter(p => p.clienteId === clienteSelecionado.id)
-      .map(p => p.nomePet);
+    return pets.filter((p) => p.clienteId === clienteSelecionado.id).map((p) => p.nomePet);
   }, [formData.nomeCliente, clientes, pets]);
 
   // Filtrar clientes baseado no pet selecionado
   const clientesFormulario = useMemo(() => {
     if (!formData.nomePet) {
       // Se não há pet selecionado, retorna todos os clientes
-      return [...new Set(clientes.map(c => c.nomeCliente))];
+      return [...new Set(clientes.map((c) => c.nomeCliente))];
     }
     // Encontrar o pet selecionado
-    const petSelecionado = pets.find(p => p.nomePet === formData.nomePet);
+    const petSelecionado = pets.find((p) => p.nomePet === formData.nomePet);
     if (!petSelecionado) return [];
-    
+
     // Retornar apenas o cliente dono deste pet
-    const clienteDonoPet = clientes.find(c => c.id === petSelecionado.clienteId);
+    const clienteDonoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
     return clienteDonoPet ? [clienteDonoPet.nomeCliente] : [];
   }, [formData.nomePet, clientes, pets]);
 
@@ -509,51 +557,51 @@ const ControleFinanceiro = () => {
       toast.error("Favor selecionar o Ano de competência!");
       return;
     }
-    
+
     if (!formData.mesCompetencia) {
       toast.error("Favor selecionar o Mês de competência!");
       return;
     }
-    
+
     if (!formData.tipo) {
       toast.error("Favor selecionar o Tipo financeiro!");
       return;
     }
-    
+
     if (!formData.descricao1) {
       toast.error("Favor preencher a Descrição 1!");
       return;
     }
-    
+
     if (!formData.nomePet) {
       toast.error("Favor selecionar o nome do Pet!");
       return;
     }
-    
+
     if (!formData.nomeCliente) {
       toast.error("Favor selecionar o nome do Cliente!");
       return;
     }
-    
+
     for (let i = 0; i < itensLancamento.length; i++) {
       const item = itensLancamento[i];
-      
+
       if (!item.descricao2) {
         toast.error(`Item ${i + 1}: Favor preencher a Descrição 2!`);
         return;
       }
-      
+
       if ((item.descricao2 === "Serviços" || item.descricao2 === "Venda") && !item.produtoServico) {
         toast.error(`Item ${i + 1}: Favor selecionar ${item.descricao2 === "Serviços" ? "o serviço" : "o produto"}!`);
         return;
       }
-      
+
       if (item.valor <= 0) {
         toast.error(`Item ${i + 1}: Favor preencher o valor!`);
         return;
       }
     }
-    
+
     if (!formData.nomeBanco) {
       toast.error("Favor selecionar o Banco!");
       return;
@@ -563,9 +611,9 @@ const ControleFinanceiro = () => {
 
     try {
       // Find cliente_id and conta_id
-      const pet = pets.find(p => p.nomePet === formData.nomePet);
-      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente);
-      const conta = contas.find(c => c.nomeBanco === formData.nomeBanco);
+      const pet = pets.find((p) => p.nomePet === formData.nomePet);
+      const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+      const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
 
       if (!pet || !cliente || pet.clienteId !== cliente.id) {
         toast.error("Cliente/Pet não encontrado ou não correspondem!");
@@ -578,36 +626,36 @@ const ControleFinanceiro = () => {
 
       // Insert main record
       const { data: lancamentoData, error: lancamentoError } = await supabase
-        .from('lancamentos_financeiros')
-        .insert([{
-          user_id: user.id,
-          ano: formData.ano,
-          mes_competencia: formData.mesCompetencia,
-          tipo: formData.tipo,
-          descricao1: formData.descricao1,
-          cliente_id: cliente.id,
-          valor_total: valorTotal,
-          data_pagamento: formData.dataPagamento,
-          conta_id: conta.id,
-          pago: formData.pago,
-          observacao: null
-        }])
+        .from("lancamentos_financeiros")
+        .insert([
+          {
+            user_id: user.id,
+            ano: formData.ano,
+            mes_competencia: formData.mesCompetencia,
+            tipo: formData.tipo,
+            descricao1: formData.descricao1,
+            cliente_id: cliente.id,
+            valor_total: valorTotal,
+            data_pagamento: formData.dataPagamento,
+            conta_id: conta.id,
+            pago: formData.pago,
+            observacao: null,
+          },
+        ])
         .select()
         .single();
 
       if (lancamentoError) throw lancamentoError;
 
       // Insert items
-      const { error: itensError } = await supabase
-        .from('lancamentos_financeiros_itens')
-        .insert(
-          itensLancamento.map(item => ({
-            lancamento_id: lancamentoData.id,
-            descricao2: item.descricao2,
-            produto_servico: item.produtoServico,
-            valor: item.valor
-          }))
-        );
+      const { error: itensError } = await supabase.from("lancamentos_financeiros_itens").insert(
+        itensLancamento.map((item) => ({
+          lancamento_id: lancamentoData.id,
+          descricao2: item.descricao2,
+          produto_servico: item.produtoServico,
+          valor: item.valor,
+        })),
+      );
 
       if (itensError) throw itensError;
 
@@ -615,15 +663,15 @@ const ControleFinanceiro = () => {
       await loadLancamentos();
       resetForm();
     } catch (error) {
-      console.error('Erro ao criar lançamento:', error);
-      toast.error('Erro ao criar lançamento');
+      console.error("Erro ao criar lançamento:", error);
+      toast.error("Erro ao criar lançamento");
     }
   };
 
   const resetForm = () => {
     setFormData({
       ano: new Date().getFullYear().toString(),
-      mesCompetencia: String(new Date().getMonth() + 1).padStart(2, '0'),
+      mesCompetencia: String(new Date().getMonth() + 1).padStart(2, "0"),
       tipo: "",
       descricao1: "",
       nomeCliente: "",
@@ -632,9 +680,7 @@ const ControleFinanceiro = () => {
       nomeBanco: "",
       pago: false,
     });
-    setItensLancamento([
-      { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }
-    ]);
+    setItensLancamento([{ id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }]);
     setIsDialogOpen(false);
     setIsEditDialogOpen(false);
   };
@@ -661,7 +707,14 @@ const ControleFinanceiro = () => {
     if (!lancamentoSelecionado || !user) return;
 
     // Validations...
-    if (!formData.ano || !formData.mesCompetencia || !formData.tipo || !formData.descricao1 || !formData.nomePet || !formData.nomeCliente) {
+    if (
+      !formData.ano ||
+      !formData.mesCompetencia ||
+      !formData.tipo ||
+      !formData.descricao1 ||
+      !formData.nomePet ||
+      !formData.nomeCliente
+    ) {
       toast.error("Favor preencher todos os campos obrigatórios!");
       return;
     }
@@ -677,56 +730,61 @@ const ControleFinanceiro = () => {
     const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
 
     try {
-      const pet = pets.find(p => p.nomePet === formData.nomePet);
-      const cliente = clientes.find(c => c.nomeCliente === formData.nomeCliente);
-      const conta = contas.find(c => c.nomeBanco === formData.nomeBanco);
+      const pet = pets.find((p) => p.nomePet === formData.nomePet);
+      const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+      const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
 
       if (!pet || !cliente || pet.clienteId !== cliente.id || !conta) {
         toast.error("Cliente/Pet ou Conta bancária não encontrados!");
         return;
       }
 
-      await supabase.from('lancamentos_financeiros').update({
-        ano: formData.ano,
-        mes_competencia: formData.mesCompetencia,
-        tipo: formData.tipo,
-        descricao1: formData.descricao1,
-        cliente_id: cliente.id,
-        valor_total: valorTotal,
-        data_pagamento: formData.dataPagamento,
-        conta_id: conta.id,
-        pago: formData.pago
-      }).eq('id', lancamentoSelecionado.id);
+      await supabase
+        .from("lancamentos_financeiros")
+        .update({
+          ano: formData.ano,
+          mes_competencia: formData.mesCompetencia,
+          tipo: formData.tipo,
+          descricao1: formData.descricao1,
+          cliente_id: cliente.id,
+          valor_total: valorTotal,
+          data_pagamento: formData.dataPagamento,
+          conta_id: conta.id,
+          pago: formData.pago,
+        })
+        .eq("id", lancamentoSelecionado.id);
 
-      await supabase.from('lancamentos_financeiros_itens').delete().eq('lancamento_id', lancamentoSelecionado.id);
-      await supabase.from('lancamentos_financeiros_itens').insert(itensLancamento.map(item => ({
-        lancamento_id: lancamentoSelecionado.id,
-        descricao2: item.descricao2,
-        produto_servico: item.produtoServico,
-        valor: item.valor
-      })));
+      await supabase.from("lancamentos_financeiros_itens").delete().eq("lancamento_id", lancamentoSelecionado.id);
+      await supabase.from("lancamentos_financeiros_itens").insert(
+        itensLancamento.map((item) => ({
+          lancamento_id: lancamentoSelecionado.id,
+          descricao2: item.descricao2,
+          produto_servico: item.produtoServico,
+          valor: item.valor,
+        })),
+      );
 
       toast.success("Lançamento atualizado com sucesso!");
       await loadLancamentos();
       resetForm();
       setLancamentoSelecionado(null);
     } catch (error) {
-      console.error('Erro ao atualizar:', error);
-      toast.error('Erro ao atualizar lançamento');
+      console.error("Erro ao atualizar:", error);
+      toast.error("Erro ao atualizar lançamento");
     }
   };
 
   const handleExcluir = async () => {
     if (!lancamentoSelecionado || !user) return;
     try {
-      await supabase.from('lancamentos_financeiros').delete().eq('id', lancamentoSelecionado.id);
+      await supabase.from("lancamentos_financeiros").delete().eq("id", lancamentoSelecionado.id);
       toast.success("Lançamento excluído com sucesso!");
       await loadLancamentos();
       setIsDeleteDialogOpen(false);
       setLancamentoSelecionado(null);
     } catch (error) {
-      console.error('Erro ao excluir:', error);
-      toast.error('Erro ao excluir lançamento');
+      console.error("Erro ao excluir:", error);
+      toast.error("Erro ao excluir lançamento");
     }
   };
 
@@ -760,18 +818,18 @@ const ControleFinanceiro = () => {
 
     let resultado = [...lancamentos];
 
-    if (filtroDataAtivo === 'periodo') {
+    if (filtroDataAtivo === "periodo") {
       if (filtros.dataInicio || filtros.dataFim) {
-        resultado = resultado.filter(l => {
+        resultado = resultado.filter((l) => {
           if (!l.dataPagamento) return false;
           if (filtros.dataInicio && l.dataPagamento < filtros.dataInicio) return false;
           if (filtros.dataFim && l.dataPagamento > filtros.dataFim) return false;
           return true;
         });
       }
-    } else if (filtroDataAtivo === 'mesano') {
+    } else if (filtroDataAtivo === "mesano") {
       if (filtros.mes || filtros.ano) {
-        resultado = resultado.filter(l => {
+        resultado = resultado.filter((l) => {
           if (filtros.mes && filtros.ano) {
             return l.mesCompetencia === filtros.mes && l.ano === filtros.ano;
           }
@@ -783,25 +841,25 @@ const ControleFinanceiro = () => {
     }
 
     if (filtros.nomePet) {
-      resultado = resultado.filter(l => l.nomePet === filtros.nomePet);
+      resultado = resultado.filter((l) => l.nomePet === filtros.nomePet);
     }
     if (filtros.nomeCliente) {
-      resultado = resultado.filter(l => l.nomeCliente === filtros.nomeCliente);
+      resultado = resultado.filter((l) => l.nomeCliente === filtros.nomeCliente);
     }
     if (filtros.tipo) {
-      resultado = resultado.filter(l => l.tipo === filtros.tipo);
+      resultado = resultado.filter((l) => l.tipo === filtros.tipo);
     }
     if (filtros.descricao1) {
-      resultado = resultado.filter(l => l.descricao1 === filtros.descricao1);
+      resultado = resultado.filter((l) => l.descricao1 === filtros.descricao1);
     }
     if (filtros.dataPagamento) {
-      resultado = resultado.filter(l => l.dataPagamento === filtros.dataPagamento);
+      resultado = resultado.filter((l) => l.dataPagamento === filtros.dataPagamento);
     }
     if (filtros.nomeBanco) {
-      resultado = resultado.filter(l => l.nomeBanco === filtros.nomeBanco);
+      resultado = resultado.filter((l) => l.nomeBanco === filtros.nomeBanco);
     }
     if (filtros.pago !== null) {
-      resultado = resultado.filter(l => l.pago === filtros.pago);
+      resultado = resultado.filter((l) => l.pago === filtros.pago);
     }
 
     return resultado;
@@ -809,53 +867,51 @@ const ControleFinanceiro = () => {
 
   const metricas = useMemo(() => {
     const dados = filtrosAplicados ? lancamentosFiltrados : lancamentos;
-    
-    const recebido = dados.filter(l => l.tipo === "Receita" && l.pago);
-    const aReceber = dados.filter(l => l.tipo === "Receita" && !l.pago);
-    const pago = dados.filter(l => l.tipo === "Despesa" && l.pago);
-    const aPagar = dados.filter(l => l.tipo === "Despesa" && !l.pago);
+
+    const recebido = dados.filter((l) => l.tipo === "Receita" && l.pago);
+    const aReceber = dados.filter((l) => l.tipo === "Receita" && !l.pago);
+    const pago = dados.filter((l) => l.tipo === "Despesa" && l.pago);
+    const aPagar = dados.filter((l) => l.tipo === "Despesa" && !l.pago);
 
     return {
       recebido: {
         valor: recebido.reduce((acc, l) => acc + l.valorTotal, 0),
-        qtd: recebido.length
+        qtd: recebido.length,
       },
       aReceber: {
         valor: aReceber.reduce((acc, l) => acc + l.valorTotal, 0),
-        qtd: aReceber.length
+        qtd: aReceber.length,
       },
       pago: {
         valor: pago.reduce((acc, l) => acc + l.valorTotal, 0),
-        qtd: pago.length
+        qtd: pago.length,
       },
       aPagar: {
         valor: aPagar.reduce((acc, l) => acc + l.valorTotal, 0),
-        qtd: aPagar.length
-      }
+        qtd: aPagar.length,
+      },
     };
   }, [lancamentos, lancamentosFiltrados, filtrosAplicados]);
 
   // Filtros para pets e clientes
   const petsFiltro = useMemo(() => {
     if (!filtros.nomeCliente) {
-      return [...new Set(pets.map(p => p.nomePet))];
+      return [...new Set(pets.map((p) => p.nomePet))];
     }
-    const clienteSelecionado = clientes.find(c => c.nomeCliente === filtros.nomeCliente);
+    const clienteSelecionado = clientes.find((c) => c.nomeCliente === filtros.nomeCliente);
     if (!clienteSelecionado) return [];
-    
-    return pets
-      .filter(p => p.clienteId === clienteSelecionado.id)
-      .map(p => p.nomePet);
+
+    return pets.filter((p) => p.clienteId === clienteSelecionado.id).map((p) => p.nomePet);
   }, [filtros.nomeCliente, clientes, pets]);
 
   const clientesFiltro = useMemo(() => {
     if (!filtros.nomePet) {
-      return [...new Set(clientes.map(c => c.nomeCliente))];
+      return [...new Set(clientes.map((c) => c.nomeCliente))];
     }
-    const petSelecionado = pets.find(p => p.nomePet === filtros.nomePet);
+    const petSelecionado = pets.find((p) => p.nomePet === filtros.nomePet);
     if (!petSelecionado) return [];
-    
-    const clienteDonoPet = clientes.find(c => c.id === petSelecionado.clienteId);
+
+    const clienteDonoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
     return clienteDonoPet ? [clienteDonoPet.nomeCliente] : [];
   }, [filtros.nomePet, clientes, pets]);
 
@@ -865,11 +921,7 @@ const ControleFinanceiro = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Controle Financeiro</h1>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setMostrarFiltros(!mostrarFiltros)} 
-            className="h-8 text-xs gap-2"
-          >
+          <Button variant="outline" onClick={() => setMostrarFiltros(!mostrarFiltros)} className="h-8 text-xs gap-2">
             <Filter className="h-3 w-3" />
             {mostrarFiltros ? "Ocultar Filtros" : "Aplicar Filtros"}
           </Button>
@@ -901,18 +953,18 @@ const ControleFinanceiro = () => {
                       className="h-7 text-xs"
                     />
                   </div>
-                  
+
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Mês Competência *</Label>
-                    <Select 
-                      value={formData.mesCompetencia} 
+                    <Select
+                      value={formData.mesCompetencia}
                       onValueChange={(value) => setFormData({ ...formData, mesCompetencia: value })}
                     >
                       <SelectTrigger className="h-7 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {meses.map(mes => (
+                        {meses.map((mes) => (
                           <SelectItem key={mes.value} value={mes.value} className="text-xs">
                             {mes.label}
                           </SelectItem>
@@ -920,27 +972,31 @@ const ControleFinanceiro = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Tipo *</Label>
-                    <Select 
-                      value={formData.tipo} 
+                    <Select
+                      value={formData.tipo}
                       onValueChange={(value: any) => setFormData({ ...formData, tipo: value, descricao1: "" })}
                     >
                       <SelectTrigger className="h-7 text-xs">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Receita" className="text-xs">Receita</SelectItem>
-                        <SelectItem value="Despesa" className="text-xs">Despesa</SelectItem>
+                        <SelectItem value="Receita" className="text-xs">
+                          Receita
+                        </SelectItem>
+                        <SelectItem value="Despesa" className="text-xs">
+                          Despesa
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Descrição 1 *</Label>
-                    <Select 
-                      value={formData.descricao1} 
+                    <Select
+                      value={formData.descricao1}
                       onValueChange={(value) => setFormData({ ...formData, descricao1: value })}
                       disabled={!formData.tipo}
                     >
@@ -948,9 +1004,12 @@ const ControleFinanceiro = () => {
                         <SelectValue placeholder={formData.tipo ? "Selecione" : "Selecione tipo"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {formData.tipo && categoriasDescricao1[formData.tipo].map(desc => (
-                          <SelectItem key={desc} value={desc} className="text-xs">{desc}</SelectItem>
-                        ))}
+                        {formData.tipo &&
+                          categoriasDescricao1[formData.tipo].map((desc) => (
+                            <SelectItem key={desc} value={desc} className="text-xs">
+                              {desc}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -963,9 +1022,9 @@ const ControleFinanceiro = () => {
                       value={formData.nomeCliente}
                       onChange={(value) => {
                         // Ao mudar cliente, limpar pet apenas se o pet atual não pertencer ao novo cliente
-                        const novoCliente = clientes.find(c => c.nomeCliente === value);
+                        const novoCliente = clientes.find((c) => c.nomeCliente === value);
                         if (novoCliente && formData.nomePet) {
-                          const petAtual = pets.find(p => p.nomePet === formData.nomePet);
+                          const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
                           if (petAtual && petAtual.clienteId !== novoCliente.id) {
                             setFormData({ ...formData, nomeCliente: value, nomePet: "" });
                           } else {
@@ -981,16 +1040,16 @@ const ControleFinanceiro = () => {
                       id="form-cliente"
                     />
                   </div>
-                  
+
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Nome do Pet *</Label>
                     <ComboboxField
                       value={formData.nomePet}
                       onChange={(value) => {
                         // Ao mudar pet, atualizar cliente automaticamente
-                        const petSelecionado = pets.find(p => p.nomePet === value);
+                        const petSelecionado = pets.find((p) => p.nomePet === value);
                         if (petSelecionado) {
-                          const clienteDoPet = clientes.find(c => c.id === petSelecionado.clienteId);
+                          const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
                           if (clienteDoPet) {
                             setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente });
                           } else {
@@ -1019,7 +1078,7 @@ const ControleFinanceiro = () => {
                         onClick={() => {
                           setItensLancamento([
                             ...itensLancamento,
-                            { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }
+                            { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
                           ]);
                         }}
                         className="h-6 text-[10px] gap-1"
@@ -1029,7 +1088,7 @@ const ControleFinanceiro = () => {
                       </Button>
                     )}
                   </div>
-                  
+
                   {itensLancamento.map((item, index) => (
                     <ItemLancamentoForm
                       key={item.id}
@@ -1040,13 +1099,11 @@ const ControleFinanceiro = () => {
                       pacotes={pacotes}
                       produtos={produtos}
                       onChange={(novoItem) => {
-                        setItensLancamento(itensLancamento.map(i => 
-                          i.id === item.id ? novoItem : i
-                        ));
+                        setItensLancamento(itensLancamento.map((i) => (i.id === item.id ? novoItem : i)));
                       }}
                       onRemove={() => {
                         if (itensLancamento.length > 1) {
-                          setItensLancamento(itensLancamento.filter(i => i.id !== item.id));
+                          setItensLancamento(itensLancamento.filter((i) => i.id !== item.id));
                         } else {
                           toast.error("É necessário ter pelo menos 1 item");
                         }
@@ -1054,7 +1111,7 @@ const ControleFinanceiro = () => {
                       canRemove={itensLancamento.length > 1}
                     />
                   ))}
-                  
+
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
                       <Label className="text-xs font-semibold">Valor Total:</Label>
@@ -1075,18 +1132,18 @@ const ControleFinanceiro = () => {
                       className="h-7 text-xs"
                     />
                   </div>
-                  
+
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Conta Bancária *</Label>
-                    <Select 
-                      value={formData.nomeBanco} 
+                    <Select
+                      value={formData.nomeBanco}
                       onValueChange={(value) => setFormData({ ...formData, nomeBanco: value })}
                     >
                       <SelectTrigger className="h-7 text-xs">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        {contas.map(c => (
+                        {contas.map((c) => (
                           <SelectItem key={c.id} value={c.nomeBanco} className="text-xs">
                             {c.nomeBanco}
                           </SelectItem>
@@ -1094,19 +1151,23 @@ const ControleFinanceiro = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Pago *</Label>
-                    <Select 
-                      value={formData.pago ? "sim" : "nao"} 
+                    <Select
+                      value={formData.pago ? "sim" : "nao"}
                       onValueChange={(value) => setFormData({ ...formData, pago: value === "sim" })}
                     >
                       <SelectTrigger className="h-7 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sim" className="text-xs">Sim</SelectItem>
-                        <SelectItem value="nao" className="text-xs">Não</SelectItem>
+                        <SelectItem value="sim" className="text-xs">
+                          Sim
+                        </SelectItem>
+                        <SelectItem value="nao" className="text-xs">
+                          Não
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1139,26 +1200,21 @@ const ControleFinanceiro = () => {
             <div className="text-lg font-bold text-green-700 dark:text-green-400">
               {formatCurrency(metricas.recebido.valor)}
             </div>
-            <p className="text-[10px] text-green-600 dark:text-green-500">
-              Qtd: {metricas.recebido.qtd}
-            </p>
+            <p className="text-[10px] text-green-600 dark:text-green-500">Qtd: {metricas.recebido.qtd}</p>
           </CardContent>
         </Card>
 
         <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/30">
           <CardHeader className="py-1 pb-0">
             <CardTitle className="text-xs font-medium text-yellow-700 dark:text-yellow-400 flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              A Receber
+              <DollarSign className="h-3 w-3" />A Receber
             </CardTitle>
           </CardHeader>
           <CardContent className="py-1">
             <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">
               {formatCurrency(metricas.aReceber.valor)}
             </div>
-            <p className="text-[10px] text-yellow-600 dark:text-yellow-500">
-              Qtd: {metricas.aReceber.qtd}
-            </p>
+            <p className="text-[10px] text-yellow-600 dark:text-yellow-500">Qtd: {metricas.aReceber.qtd}</p>
           </CardContent>
         </Card>
 
@@ -1173,26 +1229,21 @@ const ControleFinanceiro = () => {
             <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
               {formatCurrency(metricas.pago.valor)}
             </div>
-            <p className="text-[10px] text-blue-600 dark:text-blue-500">
-              Qtd: {metricas.pago.qtd}
-            </p>
+            <p className="text-[10px] text-blue-600 dark:text-blue-500">Qtd: {metricas.pago.qtd}</p>
           </CardContent>
         </Card>
 
         <Card className="border-red-200 bg-red-50 dark:bg-red-950/30">
           <CardHeader className="py-1 pb-0">
             <CardTitle className="text-xs font-medium text-red-700 dark:text-red-400 flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              A Pagar
+              <DollarSign className="h-3 w-3" />A Pagar
             </CardTitle>
           </CardHeader>
           <CardContent className="py-1">
             <div className="text-lg font-bold text-red-700 dark:text-red-400">
               {formatCurrency(metricas.aPagar.valor)}
             </div>
-            <p className="text-[10px] text-red-600 dark:text-red-500">
-              Qtd: {metricas.aPagar.qtd}
-            </p>
+            <p className="text-[10px] text-red-600 dark:text-red-500">Qtd: {metricas.aPagar.qtd}</p>
           </CardContent>
         </Card>
       </div>
@@ -1206,12 +1257,7 @@ const ControleFinanceiro = () => {
                 <Filter className="h-3 w-3" />
                 Filtros
               </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setMostrarFiltros(false)}
-                className="h-6 w-6 p-0"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setMostrarFiltros(false)} className="h-6 w-6 p-0">
                 <X className="h-3 w-3" />
               </Button>
             </div>
@@ -1222,16 +1268,16 @@ const ControleFinanceiro = () => {
               <Label className="text-xs font-semibold">Filtros de Data</Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div className="space-y-0.5">
-                  <Label className="text-[10px]">Período</Label>
+                  <Label className="text-[10px]">Período da Data do Pagamento</Label>
                   <div className="grid grid-cols-2 gap-1">
                     <Input
                       type="date"
                       value={filtros.dataInicio}
                       onChange={(e) => {
                         setFiltros({ ...filtros, dataInicio: e.target.value, mes: "", ano: "" });
-                        setFiltroDataAtivo('periodo');
+                        setFiltroDataAtivo("periodo");
                       }}
-                      disabled={filtroDataAtivo === 'mesano'}
+                      disabled={filtroDataAtivo === "mesano"}
                       className="h-7 text-xs"
                       placeholder="De"
                     />
@@ -1240,30 +1286,30 @@ const ControleFinanceiro = () => {
                       value={filtros.dataFim}
                       onChange={(e) => {
                         setFiltros({ ...filtros, dataFim: e.target.value, mes: "", ano: "" });
-                        setFiltroDataAtivo('periodo');
+                        setFiltroDataAtivo("periodo");
                       }}
-                      disabled={filtroDataAtivo === 'mesano'}
+                      disabled={filtroDataAtivo === "mesano"}
                       className="h-7 text-xs"
                       placeholder="Até"
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Mês da Competência</Label>
-                  <Select 
-                    value={filtros.mes} 
+                  <Select
+                    value={filtros.mes}
                     onValueChange={(value) => {
                       setFiltros({ ...filtros, mes: value, dataInicio: "", dataFim: "" });
-                      setFiltroDataAtivo('mesano');
+                      setFiltroDataAtivo("mesano");
                     }}
-                    disabled={filtroDataAtivo === 'periodo'}
+                    disabled={filtroDataAtivo === "periodo"}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      {meses.map(mes => (
+                      {meses.map((mes) => (
                         <SelectItem key={mes.value} value={mes.value} className="text-xs">
                           {mes.label}
                         </SelectItem>
@@ -1271,22 +1317,22 @@ const ControleFinanceiro = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Ano</Label>
-                  <Select 
-                    value={filtros.ano} 
+                  <Select
+                    value={filtros.ano}
                     onValueChange={(value) => {
                       setFiltros({ ...filtros, ano: value, dataInicio: "", dataFim: "" });
-                      setFiltroDataAtivo('mesano');
+                      setFiltroDataAtivo("mesano");
                     }}
-                    disabled={filtroDataAtivo === 'periodo'}
+                    disabled={filtroDataAtivo === "periodo"}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 11 }, (_, i) => 2025 + i).map(ano => (
+                      {Array.from({ length: 11 }, (_, i) => 2025 + i).map((ano) => (
                         <SelectItem key={ano} value={ano.toString()} className="text-xs">
                           {ano}
                         </SelectItem>
@@ -1312,7 +1358,7 @@ const ControleFinanceiro = () => {
                     id="filtro-pet"
                   />
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Nome do Cliente</Label>
                   <ComboboxField
@@ -1324,27 +1370,28 @@ const ControleFinanceiro = () => {
                     id="filtro-cliente"
                   />
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Tipo</Label>
-                  <Select 
-                    value={filtros.tipo} 
-                    onValueChange={(value: any) => setFiltros({ ...filtros, tipo: value })}
-                  >
+                  <Select value={filtros.tipo} onValueChange={(value: any) => setFiltros({ ...filtros, tipo: value })}>
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Receita" className="text-xs">Receita</SelectItem>
-                      <SelectItem value="Despesa" className="text-xs">Despesa</SelectItem>
+                      <SelectItem value="Receita" className="text-xs">
+                        Receita
+                      </SelectItem>
+                      <SelectItem value="Despesa" className="text-xs">
+                        Despesa
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Descrição 1</Label>
-                  <Select 
-                    value={filtros.descricao1} 
+                  <Select
+                    value={filtros.descricao1}
                     onValueChange={(value) => setFiltros({ ...filtros, descricao1: value })}
                     disabled={!filtros.tipo}
                   >
@@ -1352,13 +1399,16 @@ const ControleFinanceiro = () => {
                       <SelectValue placeholder={filtros.tipo ? "Selecione" : "Selecione tipo"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {filtros.tipo && categoriasDescricao1[filtros.tipo].map(desc => (
-                        <SelectItem key={desc} value={desc} className="text-xs">{desc}</SelectItem>
-                      ))}
+                      {filtros.tipo &&
+                        categoriasDescricao1[filtros.tipo].map((desc) => (
+                          <SelectItem key={desc} value={desc} className="text-xs">
+                            {desc}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Data do Pagamento</Label>
                   <Input
@@ -1368,18 +1418,18 @@ const ControleFinanceiro = () => {
                     className="h-7 text-xs"
                   />
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Banco</Label>
-                  <Select 
-                    value={filtros.nomeBanco} 
+                  <Select
+                    value={filtros.nomeBanco}
                     onValueChange={(value) => setFiltros({ ...filtros, nomeBanco: value })}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      {contas.map(c => (
+                      {contas.map((c) => (
                         <SelectItem key={c.id} value={c.nomeBanco} className="text-xs">
                           {c.nomeBanco}
                         </SelectItem>
@@ -1387,19 +1437,25 @@ const ControleFinanceiro = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Foi Pago</Label>
-                  <Select 
-                    value={filtros.pago === null ? "" : filtros.pago ? "sim" : "nao"} 
-                    onValueChange={(value) => setFiltros({ ...filtros, pago: value === "sim" ? true : value === "nao" ? false : null })}
+                  <Select
+                    value={filtros.pago === null ? "" : filtros.pago ? "sim" : "nao"}
+                    onValueChange={(value) =>
+                      setFiltros({ ...filtros, pago: value === "sim" ? true : value === "nao" ? false : null })
+                    }
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sim" className="text-xs">Sim</SelectItem>
-                      <SelectItem value="nao" className="text-xs">Não</SelectItem>
+                      <SelectItem value="sim" className="text-xs">
+                        Sim
+                      </SelectItem>
+                      <SelectItem value="nao" className="text-xs">
+                        Não
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1451,8 +1507,8 @@ const ControleFinanceiro = () => {
                   </tr>
                 ) : (
                   lancamentosFiltrados.map((lancamento) => (
-                    <tr 
-                      key={lancamento.id} 
+                    <tr
+                      key={lancamento.id}
                       className="border-b hover:bg-secondary/50 transition-colors cursor-pointer"
                       onClick={() => abrirEdicao(lancamento)}
                     >
@@ -1460,7 +1516,10 @@ const ControleFinanceiro = () => {
                         {lancamento.ano}/{lancamento.mesCompetencia}
                       </td>
                       <td className="py-2 px-2">
-                        <Badge variant={lancamento.tipo === "Receita" ? "default" : "destructive"} className="text-[10px]">
+                        <Badge
+                          variant={lancamento.tipo === "Receita" ? "default" : "destructive"}
+                          className="text-[10px]"
+                        >
                           {lancamento.tipo}
                         </Badge>
                       </td>
@@ -1468,40 +1527,38 @@ const ControleFinanceiro = () => {
                       <td className="py-2 px-2 text-xs">{lancamento.nomePet}</td>
                       <td className="py-2 px-2 text-xs">{lancamento.descricao1}</td>
                       <td className="py-2 px-2 text-xs">
-                        {lancamento.itens.length} item{lancamento.itens.length > 1 ? 's' : ''}
+                        {lancamento.itens.length} item{lancamento.itens.length > 1 ? "s" : ""}
                       </td>
-                      <td className="py-2 px-2 text-xs font-semibold">
-                        {formatCurrency(lancamento.valorTotal)}
-                      </td>
+                      <td className="py-2 px-2 text-xs font-semibold">{formatCurrency(lancamento.valorTotal)}</td>
                       <td className="py-2 px-2 text-xs">{lancamento.nomeBanco}</td>
                       <td className="py-2 px-2">
-                        <Badge 
-                          variant={lancamento.pago ? "default" : "outline"} 
-                          className="text-[10px]"
-                        >
-                          {lancamento.tipo === "Receita" 
-                            ? (lancamento.pago ? "Recebido" : "A Receber")
-                            : (lancamento.pago ? "Pago" : "A Pagar")
-                          }
+                        <Badge variant={lancamento.pago ? "default" : "outline"} className="text-[10px]">
+                          {lancamento.tipo === "Receita"
+                            ? lancamento.pago
+                              ? "Recebido"
+                              : "A Receber"
+                            : lancamento.pago
+                              ? "Pago"
+                              : "A Pagar"}
                         </Badge>
                       </td>
                       <td className="py-2 px-2">
                         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => abrirEdicao(lancamento)} 
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => abrirEdicao(lancamento)}
                             className="h-6 w-6 p-0"
                           >
                             <Edit2 className="h-3 w-3" />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => {
                               setLancamentoSelecionado(lancamento);
                               setIsDeleteDialogOpen(true);
-                            }} 
+                            }}
                             className="h-6 w-6 p-0"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -1522,9 +1579,7 @@ const ControleFinanceiro = () => {
         <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base">Editar Lançamento</DialogTitle>
-            <DialogDescription className="text-[10px]">
-              Atualize os dados do lançamento financeiro
-            </DialogDescription>
+            <DialogDescription className="text-[10px]">Atualize os dados do lançamento financeiro</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleEditar} className="space-y-2">
@@ -1540,18 +1595,18 @@ const ControleFinanceiro = () => {
                   className="h-7 text-xs"
                 />
               </div>
-              
+
               <div className="space-y-0.5">
                 <Label className="text-[10px] font-semibold">Mês Competência *</Label>
-                <Select 
-                  value={formData.mesCompetencia} 
+                <Select
+                  value={formData.mesCompetencia}
                   onValueChange={(value) => setFormData({ ...formData, mesCompetencia: value })}
                 >
                   <SelectTrigger className="h-7 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {meses.map(mes => (
+                    {meses.map((mes) => (
                       <SelectItem key={mes.value} value={mes.value} className="text-xs">
                         {mes.label}
                       </SelectItem>
@@ -1559,27 +1614,31 @@ const ControleFinanceiro = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-0.5">
                 <Label className="text-[10px] font-semibold">Tipo *</Label>
-                <Select 
-                  value={formData.tipo} 
+                <Select
+                  value={formData.tipo}
                   onValueChange={(value: any) => setFormData({ ...formData, tipo: value, descricao1: "" })}
                 >
                   <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Receita" className="text-xs">Receita</SelectItem>
-                    <SelectItem value="Despesa" className="text-xs">Despesa</SelectItem>
+                    <SelectItem value="Receita" className="text-xs">
+                      Receita
+                    </SelectItem>
+                    <SelectItem value="Despesa" className="text-xs">
+                      Despesa
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-0.5">
                 <Label className="text-[10px] font-semibold">Descrição 1 *</Label>
-                <Select 
-                  value={formData.descricao1} 
+                <Select
+                  value={formData.descricao1}
                   onValueChange={(value) => setFormData({ ...formData, descricao1: value })}
                   disabled={!formData.tipo}
                 >
@@ -1587,9 +1646,12 @@ const ControleFinanceiro = () => {
                     <SelectValue placeholder={formData.tipo ? "Selecione" : "Selecione tipo"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {formData.tipo && categoriasDescricao1[formData.tipo].map(desc => (
-                      <SelectItem key={desc} value={desc} className="text-xs">{desc}</SelectItem>
-                    ))}
+                    {formData.tipo &&
+                      categoriasDescricao1[formData.tipo].map((desc) => (
+                        <SelectItem key={desc} value={desc} className="text-xs">
+                          {desc}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1609,7 +1671,7 @@ const ControleFinanceiro = () => {
                   id="edit-form-cliente"
                 />
               </div>
-              
+
               <div className="space-y-0.5">
                 <Label className="text-[10px] font-semibold">Nome do Pet *</Label>
                 <ComboboxField
@@ -1634,7 +1696,7 @@ const ControleFinanceiro = () => {
                     onClick={() => {
                       setItensLancamento([
                         ...itensLancamento,
-                        { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }
+                        { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
                       ]);
                     }}
                     className="h-6 text-[10px] gap-1"
@@ -1644,7 +1706,7 @@ const ControleFinanceiro = () => {
                   </Button>
                 )}
               </div>
-              
+
               {itensLancamento.map((item, index) => (
                 <ItemLancamentoForm
                   key={item.id}
@@ -1655,13 +1717,11 @@ const ControleFinanceiro = () => {
                   pacotes={pacotes}
                   produtos={produtos}
                   onChange={(novoItem) => {
-                    setItensLancamento(itensLancamento.map(i => 
-                      i.id === item.id ? novoItem : i
-                    ));
+                    setItensLancamento(itensLancamento.map((i) => (i.id === item.id ? novoItem : i)));
                   }}
                   onRemove={() => {
                     if (itensLancamento.length > 1) {
-                      setItensLancamento(itensLancamento.filter(i => i.id !== item.id));
+                      setItensLancamento(itensLancamento.filter((i) => i.id !== item.id));
                     } else {
                       toast.error("É necessário ter pelo menos 1 item");
                     }
@@ -1669,7 +1729,7 @@ const ControleFinanceiro = () => {
                   canRemove={itensLancamento.length > 1}
                 />
               ))}
-              
+
               <div className="pt-2 border-t">
                 <div className="flex justify-between items-center">
                   <Label className="text-xs font-semibold">Valor Total:</Label>
@@ -1690,18 +1750,18 @@ const ControleFinanceiro = () => {
                   className="h-7 text-xs"
                 />
               </div>
-              
+
               <div className="space-y-0.5">
                 <Label className="text-[10px] font-semibold">Conta Bancária *</Label>
-                <Select 
-                  value={formData.nomeBanco} 
+                <Select
+                  value={formData.nomeBanco}
                   onValueChange={(value) => setFormData({ ...formData, nomeBanco: value })}
                 >
                   <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    {contas.map(c => (
+                    {contas.map((c) => (
                       <SelectItem key={c.id} value={c.nomeBanco} className="text-xs">
                         {c.nomeBanco}
                       </SelectItem>
@@ -1709,19 +1769,23 @@ const ControleFinanceiro = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-0.5">
                 <Label className="text-[10px] font-semibold">Pago *</Label>
-                <Select 
-                  value={formData.pago ? "sim" : "nao"} 
+                <Select
+                  value={formData.pago ? "sim" : "nao"}
                   onValueChange={(value) => setFormData({ ...formData, pago: value === "sim" })}
                 >
                   <SelectTrigger className="h-7 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sim" className="text-xs">Sim</SelectItem>
-                    <SelectItem value="nao" className="text-xs">Não</SelectItem>
+                    <SelectItem value="sim" className="text-xs">
+                      Sim
+                    </SelectItem>
+                    <SelectItem value="nao" className="text-xs">
+                      Não
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1748,19 +1812,27 @@ const ControleFinanceiro = () => {
               <p>Tem certeza que deseja excluir este lançamento?</p>
               {lancamentoSelecionado && (
                 <div className="text-xs bg-secondary/50 p-2 rounded space-y-1">
-                  <p><strong>Tipo:</strong> {lancamentoSelecionado.tipo}</p>
-                  <p><strong>Cliente:</strong> {lancamentoSelecionado.nomeCliente}</p>
-                  <p><strong>Pet:</strong> {lancamentoSelecionado.nomePet}</p>
-                  <p><strong>Valor Total:</strong> {formatCurrency(lancamentoSelecionado.valorTotal)}</p>
-                  <p><strong>Competência:</strong> {lancamentoSelecionado.ano}/{lancamentoSelecionado.mesCompetencia}</p>
+                  <p>
+                    <strong>Tipo:</strong> {lancamentoSelecionado.tipo}
+                  </p>
+                  <p>
+                    <strong>Cliente:</strong> {lancamentoSelecionado.nomeCliente}
+                  </p>
+                  <p>
+                    <strong>Pet:</strong> {lancamentoSelecionado.nomePet}
+                  </p>
+                  <p>
+                    <strong>Valor Total:</strong> {formatCurrency(lancamentoSelecionado.valorTotal)}
+                  </p>
+                  <p>
+                    <strong>Competência:</strong> {lancamentoSelecionado.ano}/{lancamentoSelecionado.mesCompetencia}
+                  </p>
                 </div>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
-              Não
-            </AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Não</AlertDialogCancel>
             <AlertDialogAction onClick={handleExcluir} className="bg-destructive hover:bg-destructive/90">
               Sim, Excluir
             </AlertDialogAction>
