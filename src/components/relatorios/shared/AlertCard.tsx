@@ -1,5 +1,3 @@
-// Codigo referente ao AlertCards;
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReactNode } from "react";
 
@@ -8,9 +6,7 @@ interface AlertCardProps {
   titulo: string;
   lista?: any[];
   valor?: number;
-  // --- INÍCIO DA MUDANÇA (1/2) ---
-  textoDestaque?: string; // Nova prop para texto (ex: "2 pacotes.")
-  // --- FIM DA MUDANÇA (1/2) ---
+  textoDestaque?: string; // Prop que adicionamos
   icone?: ReactNode;
   onClick?: () => void;
 }
@@ -37,9 +33,12 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
 
   return (
     <Card
-      className={`border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow hover:border-primary" : ""}`}
+      // --- MUDANÇA EXATAMENTE AQUI ---
+      className={`h-full border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow hover:border-primary" : ""}`}
+      // --- FIM DA MUDANÇA ---
       onClick={onClick}
     >
+      {/* AJUSTE AQUI: Padding "justinho" p-2 pb-1 */}
       <CardHeader className="p-2 pb-1">
         <CardTitle className="flex items-center gap-2 text-base">
           {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}
@@ -47,13 +46,12 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
         </CardTitle>
       </CardHeader>
 
+      {/* AJUSTE AQUI: Padding "justinho" p-2 pt-0 */}
       <CardContent className="p-2 pt-0">
-        {/* --- INÍCIO DA MUDANÇA (2/2) --- */}
-      
-        {/* Prioridade 1: Valor (monetário) */}
+        {/* Prioridade 1: Valor (monetário) */}
         {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
-        
-        {/* Prioridade 2: Texto de Destaque (nosso contador) */}
+        
+        {/* Prioridade 2: Texto de Destaque (nosso contador) */}
         {textoDestaque && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{textoDestaque}</p>}
 
         {/* Prioridade 3: Lista (só mostra se não houver valor nem textoDestaque) */}
@@ -72,11 +70,9 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
             {lista.length > 5 && <li className="text-muted-foreground">+ {lista.length - 5} mais</li>}
           </ul>
         )}
-        
-        {/* "Nenhum item" só mostra se não houver valor, nem textoDestaque, e a lista estiver vazia */}
+        
+        {/* "Nenhum item" */}
         {!valor && !textoDestaque && lista && lista.length === 0 && <p className="text-sm text-muted-foreground">Nenhum item encontrado</p>}
-        
-        {/* --- FIM DA MUDANÇA (2/2) --- */}
       </CardContent>
     </Card>
   );
