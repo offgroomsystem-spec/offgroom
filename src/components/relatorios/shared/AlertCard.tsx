@@ -76,4 +76,5 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
       </CardContent>
     </Card>
   );
-};z
+  
+};
