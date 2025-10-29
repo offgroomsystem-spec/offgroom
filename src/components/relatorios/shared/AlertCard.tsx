@@ -47,12 +47,17 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
       </CardHeader>
 
       {/* CONTENT */}
-      <CardContent className="p-3 pt-1">
-        {/* Valor em destaque (monetário) */}
-        {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
-
-        {/* Texto de destaque (contador ou número) */}
-        {textoDestaque && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{textoDestaque}</p>}
+      <CardContent className="p-3 pt-1 space-y-2">
+        {/* Valor ou texto de destaque movido para o topo */}
+        {(valor !== undefined || textoDestaque) && (
+          <div className="text-2xl font-bold leading-tight">
+            {valor !== undefined ? (
+              <span className={tipoIconColor[tipo]}>{formatCurrency(valor)}</span>
+            ) : (
+              <span className={tipoIconColor[tipo]}>{textoDestaque}</span>
+            )}
+          </div>
+        )}
 
         {/* Lista de itens (se não houver valor nem destaque) */}
         {!valor && !textoDestaque && lista && lista.length > 0 && (
