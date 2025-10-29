@@ -235,7 +235,6 @@ export type Database = {
         Row: {
           bordao: string | null
           created_at: string | null
-          dias_funcionamento: Json | null
           endereco: string | null
           horario_fim: string | null
           horario_inicio: string | null
@@ -249,7 +248,6 @@ export type Database = {
         Insert: {
           bordao?: string | null
           created_at?: string | null
-          dias_funcionamento?: Json | null
           endereco?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
@@ -263,7 +261,6 @@ export type Database = {
         Update: {
           bordao?: string | null
           created_at?: string | null
-          dias_funcionamento?: Json | null
           endereco?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
