@@ -6,7 +6,7 @@ interface AlertCardProps {
   titulo: string;
   lista?: any[];
   valor?: number;
-  textoDestaque?: string; // Prop que adicionamos
+  textoDestaque?: string;
   icone?: ReactNode;
   onClick?: () => void;
 }
@@ -33,21 +33,21 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
 
   return (
     <Card
-      // --- MUDANÇA REMOVIDA DAQUI ---
-      // A classe 'h-full' foi retirada para que os cards não estiquem
+      // REMOVEMOS O h-full, já está assim no seu último código.
+      // Agora, o card deve apenas ocupar o espaço que precisa.
       className={`border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow hover:border-primary" : ""}`}
       onClick={onClick}
     >
-      {/* O padding "justinho" p-2 pb-1 está correto */}
-      <CardHeader className="p-2 pb-1">
-        <CardTitle className="flex items-center gap-2 text-base">
-          {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}
+      {/* AJUSTE CRÍTICO AQUI: Padding do CardHeader mais compacto */}
+      <CardHeader className="p-3 pb-1 flex-row items-center space-x-2"> {/* Adicionado flex-row, items-center e space-x-2 */}
+        {icone && <span className={`${tipoIconColor[tipo]} flex-shrink-0`}>{icone}</span>} {/* flex-shrink-0 para o ícone não diminuir */}
+        <CardTitle className="text-base leading-tight"> {/* leading-tight para reduzir altura da linha */}
           {titulo}
         </CardTitle>
       </CardHeader>
 
-      {/* O padding "justinho" p-2 pt-0 está correto */}
-      <CardContent className="p-2 pt-0">
+      {/* AJUSTE CRÍTICO AQUI: Padding do CardContent mais compacto */}
+      <CardContent className="p-3 pt-1"> {/* Reduzido de p-2 para p-3 e pt-0 para pt-1 para um visual mais clean */}
         {/* Prioridade 1: Valor (monetário) */}
         {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
         
@@ -56,7 +56,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
 
         {/* Prioridade 3: Lista (só mostra se não houver valor nem textoDestaque) */}
         {!valor && !textoDestaque && lista && lista.length > 0 && (
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-0.5 text-sm"> {/* space-y-0.5 para linhas mais próximas */}
             {lista
               .slice(0, 5)
               .filter((item) => item !== undefined && item !== null)
