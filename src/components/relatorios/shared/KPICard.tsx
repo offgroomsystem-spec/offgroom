@@ -18,7 +18,15 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", periodo, destaque }: KPICardProps) => {
+export const KPICard = ({
+  titulo,
+  valor,
+  subtitulo,
+  icon,
+  cor = "default",
+  periodo,
+  destaque,
+}: KPICardProps) => {
   const corClasses = {
     default: "text-foreground",
     green: "text-green-600",
@@ -27,28 +35,34 @@ export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", perio
   };
 
   return (
-    <Card className={destaque ? "border-2 border-primary" : ""}>
-      {/* AJUSTE 1: Padding ainda menor (p-2) */}
-      <CardHeader className="p-2 pb-1">
-        <div className="flex items-center justify-between">
-          {/* AJUSTE 2: Agrupado Título e Período lado a lado */}
-          <div className="flex items-baseline space-x-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
-            {/* AJUSTE 2: Período movido para cá */}
-            {periodo && <CardDescription className="text-xs">{periodo}</CardDescription>}
+    <Card
+      className={`flex flex-col justify-between rounded-2xl shadow-sm border border-gray-200 ${
+        destaque ? "border-2 border-primary" : ""
+      }`}
+    >
+      {/* HEADER - título colado à borda */}
+      <CardHeader className="p-3 pb-1">
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col">
+            <CardTitle className="text-sm font-semibold text-left text-muted-foreground leading-tight">
+              {titulo}
+            </CardTitle>
+            {periodo && (
+              <CardDescription className="text-xs mt-0.5 text-left">{periodo}</CardDescription>
+            )}
           </div>
-
-          {icon && <div className="text-muted-foreground">{icon}</div>}
+          {icon && <div className="text-muted-foreground text-lg">{icon}</div>}
         </div>
-        {/* Período não é mais renderizado aqui */}
       </CardHeader>
 
-      {/* AJUSTE 1: Padding ainda menor (p-2) */}
-      <CardContent className="p-2 pt-0">
+      {/* CONTENT - valor e subtítulo */}
+      <CardContent className="p-3 pt-1">
         <div className={`text-2xl font-bold ${corClasses[cor]}`}>
           {typeof valor === "number" ? formatCurrency(valor) : valor}
         </div>
-        {subtitulo && <p className="text-xs text-muted-foreground mt-1">{subtitulo}</p>}
+        {subtitulo && (
+          <p className="text-xs text-muted-foreground mt-1 leading-snug">{subtitulo}</p>
+        )}
       </CardContent>
     </Card>
   );
