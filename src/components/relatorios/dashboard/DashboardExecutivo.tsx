@@ -39,107 +39,32 @@ interface DadosAtendimentos {
   variacaoMedia: number | null;
 }
 
-// Função para calcular dias de funcionamento baseado na configuração da empresa
-const calcularDiasFuncionamento = (
-  ano: number, 
-  mes: number, 
-  diasConfig: any
-): number => {
+// Função para calcular dias úteis (segunda a sexta)
+const calcularDiasUteis = (ano: number, mes: number): number => {
   const primeiroDia = new Date(ano, mes, 1);
   const ultimoDia = new Date(ano, mes + 1, 0);
-  let diasFuncionamento = 0;
-
-  // Mapear dias da semana para o objeto de configuração
-  const mapaDias: { [key: number]: string } = {
-    0: 'domingo',
-    1: 'segunda',
-    2: 'terca',
-    3: 'quarta',
-    4: 'quinta',
-    5: 'sexta',
-    6: 'sabado',
-  };
+  let diasUteis = 0;
 
   for (let dia = new Date(primeiroDia); dia <= ultimoDia; dia.setDate(dia.getDate() + 1)) {
     const diaSemana = dia.getDay();
-    const nomeDia = mapaDias[diaSemana];
-    
-    // Verificar se esse dia da semana está configurado como dia de funcionamento
-    if (diasConfig[nomeDia] === true) {
-      diasFuncionamento++;
+    // 0 = Domingo, 6 = Sábado (descartar)
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasUteis++;
     }
   }
 
-  return diasFuncionamento;
-};
-
-// Função para gerar texto descritivo dos dias de funcionamento
-const gerarTextoDiasFuncionamento = (diasConfig: any): string => {
-  const diasAtivos: string[] = [];
-  const mapaDias: { [key: string]: string } = {
-    segunda: 'segunda-feira',
-    terca: 'terça-feira',
-    quarta: 'quarta-feira',
-    quinta: 'quinta-feira',
-    sexta: 'sexta-feira',
-    sabado: 'sábado',
-    domingo: 'domingo',
-  };
-
-  Object.keys(mapaDias).forEach((dia) => {
-    if (diasConfig[dia] === true) {
-      diasAtivos.push(mapaDias[dia]);
-    }
-  });
-
-  if (diasAtivos.length === 0) return "sem dias de funcionamento configurados";
-  if (diasAtivos.length === 7) return "todos os dias da semana";
-  
-  // Caso especial: Segunda a Sexta
-  if (
-    diasAtivos.length === 5 &&
-    diasConfig.segunda && diasConfig.terca && diasConfig.quarta && 
-    diasConfig.quinta && diasConfig.sexta && !diasConfig.sabado && !diasConfig.domingo
-  ) {
-    return "apenas dias úteis (segunda a sexta-feira)";
-  }
-
-  // Caso especial: Segunda a Sábado
-  if (
-    diasAtivos.length === 6 &&
-    diasConfig.segunda && diasConfig.terca && diasConfig.quarta && 
-    diasConfig.quinta && diasConfig.sexta && diasConfig.sabado && !diasConfig.domingo
-  ) {
-    return "de segunda-feira a sábado";
-  }
-
-  // Caso geral: listar todos os dias
-  if (diasAtivos.length <= 3) {
-    return diasAtivos.join(", ");
-  }
-
-  return `${diasAtivos.slice(0, -1).join(", ")} e ${diasAtivos[diasAtivos.length - 1]}`;
+  return diasUteis;
 };
 
 export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExecutivoProps) => {
   const { user } = useAuth();
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
-  const [agendamentosPacotes, setAgendamentosPacotes] = useState<any[]>([]);
   const [pacotes, setPacotes] = useState<any[]>([]);
   const [produtos, setProdutos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [metaFaturamento, setMetaFaturamento] = useState<number>(10000);
-  const [diasFuncionamento, setDiasFuncionamento] = useState<any>({
-    segunda: true,
-    terca: true,
-    quarta: true,
-    quinta: true,
-    sexta: true,
-    sabado: false,
-    domingo: false,
-  });
 
   // Calcular intervalo de datas baseado nos filtros
   const calcularIntervaloFiltro = useMemo(() => {
@@ -186,19 +111,15 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
         const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-        // Carregar Configuração da Empresa (Meta de Faturamento + Dias de Funcionamento)
+        // Carregar Configuração da Empresa (Meta de Faturamento)
         const { data: empresaConfig } = await supabase
           .from("empresa_config")
-          .select("meta_faturamento_mensal, dias_funcionamento")
+          .select("meta_faturamento_mensal")
           .eq("user_id", user.id)
           .maybeSingle();
 
         if (empresaConfig?.meta_faturamento_mensal) {
           setMetaFaturamento(Number(empresaConfig.meta_faturamento_mensal));
-        }
-
-        if (empresaConfig?.dias_funcionamento) {
-          setDiasFuncionamento(empresaConfig.dias_funcionamento);
         }
 
         // Carregar Clientes
@@ -212,13 +133,6 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         // Carregar Pacotes
         const { data: pacotesData } = await supabase.from("pacotes").select("*").eq("user_id", user.id);
         setPacotes(pacotesData || []);
-
-        // Carregar Agendamentos de Pacotes
-        const { data: agendamentosPacotesData } = await supabase
-          .from("agendamentos_pacotes")
-          .select("*")
-          .eq("user_id", user.id);
-        setAgendamentosPacotes(agendamentosPacotesData || []);
 
         // Carregar Agendamentos
         const { data: agendamentosData } = await supabase
@@ -302,89 +216,43 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
     const lucroLiquido = receitasMes - despesasMes;
 
-    // Ticket Médio = Faturamento Total / Número de Atendimentos (Avulsos + Pacotes)
-
-    // Contar agendamentos avulsos concluídos
-    const atendimentosAvulsosConcluidos = agendamentos.filter((a: any) => {
-      if (a.status !== "concluido" && a.status !== "confirmado") return false;
+    // Ticket Médio
+    const atendimentosConcluidos = agendamentos.filter((a: any) => {
+      if (a.status !== "concluido") return false;
       const dataAgend = new Date(a.data);
       return dataAgend >= dataInicio && dataAgend <= dataFim;
     }).length;
+    const ticketMedio = atendimentosConcluidos > 0 ? receitasMes / atendimentosConcluidos : 0;
 
-    // Contar serviços de pacotes realizados no período
-    let servicosPacotesConcluidos = 0;
-    agendamentosPacotes.forEach((ap: any) => {
-      if (Array.isArray(ap.servicos)) {
-        ap.servicos.forEach((s: any) => {
-          const dataServico = new Date(s.data);
-          if (dataServico >= dataInicio && dataServico <= dataFim) {
-            servicosPacotesConcluidos++;
-          }
-        });
-      }
-    });
-
-    const totalAtendimentos = atendimentosAvulsosConcluidos + servicosPacotesConcluidos;
-    const ticketMedio = totalAtendimentos > 0 ? receitasMes / totalAtendimentos : 0;
-
-    // Agenda do Dia (serviços avulsos + pacotes)
+    // Agenda do Dia (sempre hoje)
     const hojeStr = format(hoje, "yyyy-MM-dd");
-
-    let agendaDia = 0;
-
-    // Contar agendamentos avulsos do dia
-    agendaDia += agendamentos.filter(
+    const agendaDia = agendamentos.filter(
       (a: any) => a.data === hojeStr && (a.status === "confirmado" || a.status === "pendente"),
     ).length;
 
-    // Contar serviços de pacotes do dia
-    agendamentosPacotes.forEach((ap: any) => {
-      if (Array.isArray(ap.servicos)) {
-        ap.servicos.forEach((s: any) => {
-          if (s.data === hojeStr) {
-            agendaDia++;
-          }
-        });
-      }
-    });
-
-    // Taxa de Retenção (incluindo pacotes)
-
-    // Clientes do período atual (avulsos + pacotes)
-    const clientesMesAtual = new Set([
-      ...agendamentos
+    // Taxa de Retenção
+    const clientesMesAtual = new Set(
+      agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
           return dataAgend >= dataInicio && dataAgend <= dataFim;
         })
         .map((a: any) => a.cliente),
-      ...agendamentosPacotes
-        .filter((ap: any) => {
-          const dataVenda = new Date(ap.data_venda);
-          return dataVenda >= dataInicio && dataVenda <= dataFim;
-        })
-        .map((ap: any) => ap.nome_cliente)
-    ]);
+    );
 
+    // Calcular período anterior com mesmo tamanho
     const diasNoFiltro = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
     const dataInicioAnterior = new Date(dataInicio);
     dataInicioAnterior.setDate(dataInicioAnterior.getDate() - diasNoFiltro);
 
-    // Clientes do período anterior (avulsos + pacotes)
-    const clientesMesAnterior = new Set([
-      ...agendamentos
+    const clientesMesAnterior = new Set(
+      agendamentos
         .filter((a: any) => {
           const dataAgend = new Date(a.data);
           return dataAgend >= dataInicioAnterior && dataAgend < dataInicio;
         })
         .map((a: any) => a.cliente),
-      ...agendamentosPacotes
-        .filter((ap: any) => {
-          const dataVenda = new Date(ap.data_venda);
-          return dataVenda >= dataInicioAnterior && dataVenda < dataInicio;
-        })
-        .map((ap: any) => ap.nome_cliente)
-    ]);
+    );
 
     const clientesRetidos = [...clientesMesAtual].filter((c) => clientesMesAnterior.has(c)).length;
     const taxaRetencao = clientesMesAnterior.size > 0 ? (clientesRetidos / clientesMesAnterior.size) * 100 : 0;
@@ -395,43 +263,21 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       agendaDia,
       taxaRetencao,
     };
-  }, [lancamentos, agendamentos, agendamentosPacotes, pacotes, calcularIntervaloFiltro]);
+  }, [lancamentos, agendamentos, calcularIntervaloFiltro]);
 
   // Alertas
   const alertas = useMemo(() => {
     const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-    // Pacotes a Expirar nos próximos 7 dias (não depende do filtro)
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    const pacotesExpirando = agendamentosPacotes
-      .map((ap: any) => {
-        // Buscar validade do pacote na tabela de definições
-        const pacoteDef = pacotes.find((p: any) => p.nome === ap.nome_pacote);
-        if (!pacoteDef || !pacoteDef.validade) return null;
-        
-        const validadeDias = parseInt(pacoteDef.validade.replace(/\D/g, '')) || 0;
-        const dataVenda = new Date(ap.data_venda);
-        dataVenda.setHours(0, 0, 0, 0);
-        
-        const dataExpiracao = new Date(dataVenda);
-        dataExpiracao.setDate(dataExpiracao.getDate() + validadeDias);
-        
-        const diffTime = dataExpiracao.getTime() - hoje.getTime();
-        const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diasRestantes >= 0 && diasRestantes <= 7) {
-          return {
-            texto: `${ap.nome_cliente} - ${ap.nome_pacote} (${diasRestantes} dias)`,
-            diasRestantes
-          };
-        }
-        return null;
+    // Pacotes a Expirar no período filtrado
+    const pacotesExpirando = pacotes
+      .filter((p: any) => {
+        if (!p.validade || !p.dataVenda) return false;
+        const dataExpiracao = new Date(p.dataVenda);
+        dataExpiracao.setDate(dataExpiracao.getDate() + parseInt(p.validade));
+        return dataExpiracao >= dataInicio && dataExpiracao <= dataFim;
       })
-      .filter(Boolean)
-      .sort((a: any, b: any) => a.diasRestantes - b.diasRestantes)
-      .map((p: any) => p.texto);
+      .map((p: any) => `${p.nomeCliente} - ${p.nomePacote}`);
 
     // Inadimplência no período
     const valorInadimplencia = lancamentos
@@ -451,41 +297,18 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       })
       .map((p: any) => `${p.descricao} - ${format(new Date(p.dataValidade), "dd/MM/yyyy")}`);
 
-    // Clientes em Risco (sem agendamento há mais de 30 dias)
-    const dataLimite30Dias = new Date();
-    dataLimite30Dias.setDate(dataLimite30Dias.getDate() - 30);
+    // Clientes em Risco
+    const clientesComAgendamentoRecente = new Set(
+      agendamentos
+        .filter((a: any) => {
+          const dataAgend = new Date(a.data);
+          return dataAgend >= dataInicio;
+        })
+        .map((a: any) => a.cliente),
+    );
 
-    // Mapear último agendamento de cada cliente (avulsos + pacotes)
-    const ultimoAgendamentoPorCliente = new Map<string, Date>();
-
-    agendamentos.forEach((a: any) => {
-      const dataAgend = new Date(a.data);
-      const ultimaData = ultimoAgendamentoPorCliente.get(a.cliente);
-      if (!ultimaData || dataAgend > ultimaData) {
-        ultimoAgendamentoPorCliente.set(a.cliente, dataAgend);
-      }
-    });
-
-    agendamentosPacotes.forEach((ap: any) => {
-      if (Array.isArray(ap.servicos)) {
-        ap.servicos.forEach((s: any) => {
-          const dataServico = new Date(s.data);
-          const ultimaData = ultimoAgendamentoPorCliente.get(ap.nome_cliente);
-          if (!ultimaData || dataServico > ultimaData) {
-            ultimoAgendamentoPorCliente.set(ap.nome_cliente, dataServico);
-          }
-        });
-      }
-    });
-
-    // Filtrar clientes sem agendamento há mais de 30 dias
-    const todosClientes = [...new Set(clientes.map((c: any) => c.nome_cliente))];
-    const clientesEmRisco = todosClientes
-      .filter((nomeCliente) => {
-        const ultimaData = ultimoAgendamentoPorCliente.get(nomeCliente);
-        return !ultimaData || ultimaData < dataLimite30Dias;
-      })
-      .slice(0, 10); // Limitar a 10 clientes
+    const todosClientes = [...new Set(clientes.map((c: any) => c.nomeCliente))];
+    const clientesEmRisco = todosClientes.filter((c) => !clientesComAgendamentoRecente.has(c)).slice(0, 10);
 
     return {
       pacotesExpirando,
@@ -493,7 +316,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       produtosVencendo,
       clientesEmRisco,
     };
-  }, [lancamentos, pacotes, produtos, clientes, agendamentos, agendamentosPacotes, calcularIntervaloFiltro]);
+  }, [lancamentos, pacotes, produtos, clientes, agendamentos, calcularIntervaloFiltro]);
 
   // Dados do Gráfico de Tendência
   const dadosGrafico = useMemo(() => {
@@ -510,10 +333,11 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       // Meta por mês (valor completo)
       metaProporcional = metaFaturamento;
     } else if (filtros.periodo === "semana") {
-      // Meta semanal = (Meta Mensal / 30 dias) * 7 dias
-      metaProporcional = (metaFaturamento / 30) * 7;
+      // Meta dividida por 7 dias
+      metaProporcional = ((metaFaturamento / 30) * 7) / 7; // Meta mensal / 30 dias * 7 dias / 7 pontos no gráfico
+      metaProporcional = metaFaturamento / 30; // Simplificando: meta diária
     } else {
-      // Meta por dia
+      // Meta por dia (dividir por 30 dias do mês)
       metaProporcional = metaFaturamento / 30;
     }
 
@@ -607,34 +431,20 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
     // Iterar pelos 12 meses do ano atual
     for (let mesIndex = mesInicio; mesIndex <= mesFim; mesIndex++) {
-      // ===== CONTAR AGENDAMENTOS AVULSOS =====
-      const atendimentosAvulsos = agendamentos.filter((a: any) => {
+      // Filtrar agendamentos do mês INDEPENDENTE do filtro de período
+      const atendimentosDoMes = agendamentos.filter((a: any) => {
         if (a.status !== "confirmado" && a.status !== "concluido") return false;
         const dataAgend = new Date(a.data);
         return dataAgend.getFullYear() === anoAtual && dataAgend.getMonth() === mesIndex;
-      }).length;
-
-      // ===== CONTAR SERVIÇOS DE PACOTES =====
-      let servicosPacotes = 0;
-      agendamentosPacotes.forEach((ap: any) => {
-        if (Array.isArray(ap.servicos)) {
-          ap.servicos.forEach((s: any) => {
-            const dataServico = new Date(s.data);
-            if (dataServico.getFullYear() === anoAtual && dataServico.getMonth() === mesIndex) {
-              servicosPacotes++;
-            }
-          });
-        }
       });
 
-      // ===== TOTAL DE ATENDIMENTOS (AVULSOS + PACOTES) =====
-      const quantidadeTotal = atendimentosAvulsos + servicosPacotes;
+      const quantidadeTotal = atendimentosDoMes.length;
 
-      // Calcular dias de funcionamento do mês baseado na configuração
-      const diasFunc = calcularDiasFuncionamento(anoAtual, mesIndex, diasFuncionamento);
+      // Calcular dias úteis do mês
+      const diasUteis = calcularDiasUteis(anoAtual, mesIndex);
 
       // Calcular média e arredondar para cima
-      const mediaDiaria = diasFunc > 0 ? Math.ceil(quantidadeTotal / diasFunc) : 0;
+      const mediaDiaria = diasUteis > 0 ? Math.ceil(quantidadeTotal / diasUteis) : 0;
 
       // Calcular variação percentual
       const variacaoQuantidade =
@@ -656,12 +466,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     }
 
     return dados;
-  }, [agendamentos, agendamentosPacotes, diasFuncionamento]);
-
-  // Texto dinâmico para subtítulo do gráfico
-  const textoDiasFuncionamento = useMemo(() => {
-    return gerarTextoDiasFuncionamento(diasFuncionamento);
-  }, [diasFuncionamento]);
+  }, [agendamentos]);
 
   if (loading) {
     return (
@@ -750,19 +555,15 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       {/* Seção de Alertas */}
       <div>
         {/* AJUSTE 2: Margem abaixo do título reduzida de mb-3 para mb-1 (4px) */}
-
+        <h2 className="text-xl font-bold mb-1">Alertas Importantes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <AlertCard
             tipo="warning"
             titulo="Pacotes a Expirar (7 dias)"
-			// A prop 'lista' foi removida daqui
-            textoDestaque={
-              // Lógica para singular/plural
-              `${alertas.pacotesExpirando.length} ${alertas.pacotesExpirando.length === 1 ? 'pacote.' : 'pacotes.'}`
-            }
-            icone={<Clock className="h-5 w-5" />}
-            onClick={() => onNavigateToReport?.("pacotes-vencimento")}
-          />
+            lista={alertas.pacotesExpirando}
+            icone={<Clock className="h-5 w-5" />}
+            onClick={() => onNavigateToReport?.("pacotes-vencimento")}
+          />
           <AlertCard
             tipo="error"
             titulo="Inadimplência Total"
@@ -852,7 +653,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           <CardHeader>
             <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
             <CardDescription>
-              Média diária de atendimentos considerando {textoDiasFuncionamento}
+              Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)
             </CardDescription>
           </CardHeader>
 
