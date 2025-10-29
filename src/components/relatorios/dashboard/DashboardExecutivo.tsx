@@ -39,21 +39,86 @@ interface DadosAtendimentos {
   variacaoMedia: number | null;
 }
 
-// Função para calcular dias úteis (segunda a sexta)
-const calcularDiasUteis = (ano: number, mes: number): number => {
+// Função para calcular dias de funcionamento baseado na configuração da empresa
+const calcularDiasFuncionamento = (
+  ano: number, 
+  mes: number, 
+  diasConfig: any
+): number => {
   const primeiroDia = new Date(ano, mes, 1);
   const ultimoDia = new Date(ano, mes + 1, 0);
-  let diasUteis = 0;
+  let diasFuncionamento = 0;
+
+  // Mapear dias da semana para o objeto de configuração
+  const mapaDias: { [key: number]: string } = {
+    0: 'domingo',
+    1: 'segunda',
+    2: 'terca',
+    3: 'quarta',
+    4: 'quinta',
+    5: 'sexta',
+    6: 'sabado',
+  };
 
   for (let dia = new Date(primeiroDia); dia <= ultimoDia; dia.setDate(dia.getDate() + 1)) {
     const diaSemana = dia.getDay();
-    // 0 = Domingo, 6 = Sábado (descartar)
-    if (diaSemana !== 0 && diaSemana !== 6) {
-      diasUteis++;
+    const nomeDia = mapaDias[diaSemana];
+    
+    // Verificar se esse dia da semana está configurado como dia de funcionamento
+    if (diasConfig[nomeDia] === true) {
+      diasFuncionamento++;
     }
   }
 
-  return diasUteis;
+  return diasFuncionamento;
+};
+
+// Função para gerar texto descritivo dos dias de funcionamento
+const gerarTextoDiasFuncionamento = (diasConfig: any): string => {
+  const diasAtivos: string[] = [];
+  const mapaDias: { [key: string]: string } = {
+    segunda: 'segunda-feira',
+    terca: 'terça-feira',
+    quarta: 'quarta-feira',
+    quinta: 'quinta-feira',
+    sexta: 'sexta-feira',
+    sabado: 'sábado',
+    domingo: 'domingo',
+  };
+
+  Object.keys(mapaDias).forEach((dia) => {
+    if (diasConfig[dia] === true) {
+      diasAtivos.push(mapaDias[dia]);
+    }
+  });
+
+  if (diasAtivos.length === 0) return "sem dias de funcionamento configurados";
+  if (diasAtivos.length === 7) return "todos os dias da semana";
+  
+  // Caso especial: Segunda a Sexta
+  if (
+    diasAtivos.length === 5 &&
+    diasConfig.segunda && diasConfig.terca && diasConfig.quarta && 
+    diasConfig.quinta && diasConfig.sexta && !diasConfig.sabado && !diasConfig.domingo
+  ) {
+    return "apenas dias úteis (segunda a sexta-feira)";
+  }
+
+  // Caso especial: Segunda a Sábado
+  if (
+    diasAtivos.length === 6 &&
+    diasConfig.segunda && diasConfig.terca && diasConfig.quarta && 
+    diasConfig.quinta && diasConfig.sexta && diasConfig.sabado && !diasConfig.domingo
+  ) {
+    return "de segunda-feira a sábado";
+  }
+
+  // Caso geral: listar todos os dias
+  if (diasAtivos.length <= 3) {
+    return diasAtivos.join(", ");
+  }
+
+  return `${diasAtivos.slice(0, -1).join(", ")} e ${diasAtivos[diasAtivos.length - 1]}`;
 };
 
 export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExecutivoProps) => {
@@ -66,6 +131,15 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [metaFaturamento, setMetaFaturamento] = useState<number>(10000);
+  const [diasFuncionamento, setDiasFuncionamento] = useState<any>({
+    segunda: true,
+    terca: true,
+    quarta: true,
+    quinta: true,
+    sexta: true,
+    sabado: false,
+    domingo: false,
+  });
 
   // Calcular intervalo de datas baseado nos filtros
   const calcularIntervaloFiltro = useMemo(() => {
@@ -112,15 +186,19 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
         const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-        // Carregar Configuração da Empresa (Meta de Faturamento)
+        // Carregar Configuração da Empresa (Meta de Faturamento + Dias de Funcionamento)
         const { data: empresaConfig } = await supabase
           .from("empresa_config")
-          .select("meta_faturamento_mensal")
+          .select("meta_faturamento_mensal, dias_funcionamento")
           .eq("user_id", user.id)
           .maybeSingle();
 
         if (empresaConfig?.meta_faturamento_mensal) {
           setMetaFaturamento(Number(empresaConfig.meta_faturamento_mensal));
+        }
+
+        if (empresaConfig?.dias_funcionamento) {
+          setDiasFuncionamento(empresaConfig.dias_funcionamento);
         }
 
         // Carregar Clientes
@@ -529,20 +607,34 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
     // Iterar pelos 12 meses do ano atual
     for (let mesIndex = mesInicio; mesIndex <= mesFim; mesIndex++) {
-      // Filtrar agendamentos do mês INDEPENDENTE do filtro de período
-      const atendimentosDoMes = agendamentos.filter((a: any) => {
+      // ===== CONTAR AGENDAMENTOS AVULSOS =====
+      const atendimentosAvulsos = agendamentos.filter((a: any) => {
         if (a.status !== "confirmado" && a.status !== "concluido") return false;
         const dataAgend = new Date(a.data);
         return dataAgend.getFullYear() === anoAtual && dataAgend.getMonth() === mesIndex;
+      }).length;
+
+      // ===== CONTAR SERVIÇOS DE PACOTES =====
+      let servicosPacotes = 0;
+      agendamentosPacotes.forEach((ap: any) => {
+        if (Array.isArray(ap.servicos)) {
+          ap.servicos.forEach((s: any) => {
+            const dataServico = new Date(s.data);
+            if (dataServico.getFullYear() === anoAtual && dataServico.getMonth() === mesIndex) {
+              servicosPacotes++;
+            }
+          });
+        }
       });
 
-      const quantidadeTotal = atendimentosDoMes.length;
+      // ===== TOTAL DE ATENDIMENTOS (AVULSOS + PACOTES) =====
+      const quantidadeTotal = atendimentosAvulsos + servicosPacotes;
 
-      // Calcular dias úteis do mês
-      const diasUteis = calcularDiasUteis(anoAtual, mesIndex);
+      // Calcular dias de funcionamento do mês baseado na configuração
+      const diasFunc = calcularDiasFuncionamento(anoAtual, mesIndex, diasFuncionamento);
 
       // Calcular média e arredondar para cima
-      const mediaDiaria = diasUteis > 0 ? Math.ceil(quantidadeTotal / diasUteis) : 0;
+      const mediaDiaria = diasFunc > 0 ? Math.ceil(quantidadeTotal / diasFunc) : 0;
 
       // Calcular variação percentual
       const variacaoQuantidade =
@@ -564,7 +656,12 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     }
 
     return dados;
-  }, [agendamentos]);
+  }, [agendamentos, agendamentosPacotes, diasFuncionamento]);
+
+  // Texto dinâmico para subtítulo do gráfico
+  const textoDiasFuncionamento = useMemo(() => {
+    return gerarTextoDiasFuncionamento(diasFuncionamento);
+  }, [diasFuncionamento]);
 
   if (loading) {
     return (
@@ -751,7 +848,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           <CardHeader>
             <CardTitle>Média do Mês de Atendimentos Realizados</CardTitle>
             <CardDescription>
-              Média diária de atendimentos considerando apenas dias úteis (segunda a sexta-feira)
+              Média diária de atendimentos considerando {textoDiasFuncionamento}
             </CardDescription>
           </CardHeader>
 
