@@ -47,7 +47,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
       </CardHeader>
 
       {/* AJUSTE AQUI: Padding "justinho" p-2 pt-0 */}
-      <CardContent className="p-2 pt-20">
+      <CardContent className="p-2 pt-0">
         {/* Prioridade 1: Valor (monetário) */}
         {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
         
