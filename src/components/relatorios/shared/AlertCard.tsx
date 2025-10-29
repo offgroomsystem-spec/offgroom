@@ -33,12 +33,12 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
 
   return (
     <Card
-      // --- MUDANÇA EXATAMENTE AQUI ---
+      // --- MUDANÇA REMOVIDA DAQUI ---
+      // A classe 'h-full' foi retirada para que os cards não estiquem
       className={`border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow hover:border-primary" : ""}`}
-      // --- FIM DA MUDANÇA ---
       onClick={onClick}
     >
-      {/* AJUSTE AQUI: Padding "justinho" p-2 pb-1 */}
+      {/* O padding "justinho" p-2 pb-1 está correto */}
       <CardHeader className="p-2 pb-1">
         <CardTitle className="flex items-center gap-2 text-base">
           {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}
@@ -46,11 +46,11 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
         </CardTitle>
       </CardHeader>
 
-      {/* AJUSTE AQUI: Padding "justinho" p-2 pt-0 */}
+      {/* O padding "justinho" p-2 pt-0 está correto */}
       <CardContent className="p-2 pt-0">
         {/* Prioridade 1: Valor (monetário) */}
         {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
-        
+        
         {/* Prioridade 2: Texto de Destaque (nosso contador) */}
         {textoDestaque && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{textoDestaque}</p>}
 
@@ -70,7 +70,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
             {lista.length > 5 && <li className="text-muted-foreground">+ {lista.length - 5} mais</li>}
           </ul>
         )}
-        
+        
         {/* "Nenhum item" */}
         {!valor && !textoDestaque && lista && lista.length === 0 && <p className="text-sm text-muted-foreground">Nenhum item encontrado</p>}
       </CardContent>
