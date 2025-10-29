@@ -40,7 +40,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
     >
       {/* AJUSTE AQUI: Padding "justinho" p-2 pb-1 */}
       <CardHeader className="p-2 pb-1">
-        <CardTitle className="text-base leading-tight">
+        <CardTitle className="flex items-center gap-2 text-base">
           {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}
           {titulo}
         </CardTitle>
@@ -56,7 +56,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
 
         {/* Prioridade 3: Lista (só mostra se não houver valor nem textoDestaque) */}
         {!valor && !textoDestaque && lista && lista.length > 0 && (
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-0.5 text-sm">
             {lista
               .slice(0, 5)
               .filter((item) => item !== undefined && item !== null)
