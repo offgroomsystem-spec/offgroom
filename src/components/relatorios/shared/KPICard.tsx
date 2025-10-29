@@ -18,15 +18,7 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-export const KPICard = ({
-  titulo,
-  valor,
-  subtitulo,
-  icon,
-  cor = "default",
-  periodo,
-  destaque,
-}: KPICardProps) => {
+export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", periodo, destaque }: KPICardProps) => {
   const corClasses = {
     default: "text-foreground",
     green: "text-green-600",
@@ -43,13 +35,9 @@ export const KPICard = ({
       {/* HEADER - título colado à borda */}
       <CardHeader className="p-3 pb-1">
         <div className="flex items-start justify-between">
-          <div className="flex flex-col">
-            <CardTitle className="text-sm font-semibold text-left text-muted-foreground leading-tight">
-              {titulo}
-            </CardTitle>
-            {periodo && (
-              <CardDescription className="text-xs mt-0.5 text-left">{periodo}</CardDescription>
-            )}
+          <div className="flex flex-row items-baseline space-x-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground leading-tight">{titulo}</CardTitle>
+            {periodo && <CardDescription className="text-xs text-muted-foreground">{periodo}</CardDescription>}
           </div>
           {icon && <div className="text-muted-foreground text-lg">{icon}</div>}
         </div>
@@ -60,9 +48,7 @@ export const KPICard = ({
         <div className={`text-2xl font-bold ${corClasses[cor]}`}>
           {typeof valor === "number" ? formatCurrency(valor) : valor}
         </div>
-        {subtitulo && (
-          <p className="text-xs text-muted-foreground mt-1 leading-snug">{subtitulo}</p>
-        )}
+        {subtitulo && <p className="text-xs text-muted-foreground mt-1 leading-snug">{subtitulo}</p>}
       </CardContent>
     </Card>
   );
