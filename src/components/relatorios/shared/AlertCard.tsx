@@ -39,7 +39,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
       onClick={onClick}
     >
       {/* AJUSTE AQUI: Padding "justinho" p-2 pb-1 */}
-      <CardHeader className="p-1 pb-1">
+      <CardHeader className="p-2 pb-1">
         <CardTitle className="flex items-center gap-2 text-base">
           {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}
           {titulo}
@@ -47,7 +47,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
       </CardHeader>
 
       {/* AJUSTE AQUI: Padding "justinho" p-2 pt-0 */}
-      <CardContent className="p-2 pt-0">
+      <CardContent className="p-5 pt-0">
         {/* Prioridade 1: Valor (monetário) */}
         {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
         
