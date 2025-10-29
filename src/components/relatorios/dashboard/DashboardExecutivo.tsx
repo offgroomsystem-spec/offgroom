@@ -714,73 +714,75 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
   return (
     // AJUSTE 1: Espaço entre seções reduzido de space-y-3 para space-y-1.5 (6px)
-    <div className="space-y-3">
+    <div className="space-y-1.5">
       {/* KPIs no Topo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch"> {/* Adicionado items-stretch */}
-        <KPICard
-          titulo="Lucro Líquido"
-          valor={kpis.lucroLiquido}
-          icon={<DollarSign className="h-4 w-4" />}
-          periodo={
-            filtros.periodo === "hoje"
-              ? "Hoje"
-              : filtros.periodo === "semana"
-                ? "Esta Semana"
-                : filtros.periodo === "mes"
-                  ? "Este Mês"
-                  : filtros.periodo === "trimestre"
-                    ? "Este Trimestre"
-                    : filtros.periodo === "ano"
-                      ? "Este Ano"
-                      : "Período Customizado"
-          }
-          cor={kpis.lucroLiquido >= 0 ? "green" : "red"}
-          destaque
-        />
-        <KPICard titulo="Ticket Médio" valor={kpis.ticketMedio} icon={<TrendingUp className="h-4 w-4" />} />
-        <KPICard titulo="Agenda do Dia" valor={`${kpis.agendaDia} serviços`} icon={<Calendar className="h-4 w-4" />} />
-        <KPICard
-          titulo="Taxa de Retenção"
-          valor={`${kpis.taxaRetencao.toFixed(1)}%`}
-          icon={<Users className="h-4 w-4" />}
-          cor={kpis.taxaRetencao >= 70 ? "green" : kpis.taxaRetencao >= 50 ? "yellow" : "red"}
-        />
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard
+          titulo="Lucro Líquido"
+          valor={kpis.lucroLiquido}
+          icon={<DollarSign className="h-4 w-4" />}
+          periodo={
+            filtros.periodo === "hoje"
+              ? "Hoje"
+              : filtros.periodo === "semana"
+                ? "Esta Semana"
+                : filtros.periodo === "mes"
+                  ? "Este Mês"
+                  : filtros.periodo === "trimestre"
+                    ? "Este Trimestre"
+                    : filtros.periodo === "ano"
+                      ? "Este Ano"
+                      : "Período Customizado"
+          }
+          cor={kpis.lucroLiquido >= 0 ? "green" : "red"}
+          destaque
+        />
+        <KPICard titulo="Ticket Médio" valor={kpis.ticketMedio} icon={<TrendingUp className="h-4 w-4" />} />
+        <KPICard titulo="Agenda do Dia" valor={`${kpis.agendaDia} serviços`} icon={<Calendar className="h-4 w-4" />} />
+        <KPICard
+          titulo="Taxa de Retenção"
+          valor={`${kpis.taxaRetencao.toFixed(1)}%`}
+          icon={<Users className="h-4 w-4" />}
+          cor={kpis.taxaRetencao >= 70 ? "green" : kpis.taxaRetencao >= 50 ? "yellow" : "red"}
+        />
+      </div>
 
-      {/* Seção de Alertas */}
-      <div>
-        {/* AJUSTE 3: Margem inferior da seção de alertas (para separar da próxima) */}
-        {/* AJUSTE 4: Garantir que o GRID alinhe os itens ao topo e estique a altura de cada célula */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch"> {/* Adicionado items-stretch */}
-          <AlertCard
-            tipo="warning"
-            titulo="Pacotes a Expirar (7 dias)"
-            textoDestaque={
-              `${alertas.pacotesExpirando.length} ${alertas.pacotesExpirando.length === 1 ? 'pacote.' : 'pacotes.'}`
-            }
+      {/* Seção de Alertas */}
+      <div>
+        {/* AJUSTE 2: Margem abaixo do título reduzida de mb-3 para mb-1 (4px) */}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <AlertCard
+            tipo="warning"
+            titulo="Pacotes a Expirar (7 dias)"
+			// A prop 'lista' foi removida daqui
+            textoDestaque={
+              // Lógica para singular/plural
+              `${alertas.pacotesExpirando.length} ${alertas.pacotesExpirando.length === 1 ? 'pacote.' : 'pacotes.'}`
+            }
             icone={<Clock className="h-5 w-5" />}
             onClick={() => onNavigateToReport?.("pacotes-vencimento")}
           />
-          <AlertCard
-            tipo="error"
-            titulo="Inadimplência Total"
-            valor={alertas.valorInadimplencia}
-            icone={<AlertCircle className="h-5 w-5" />}
-          />
-          <AlertCard
-            tipo="warning"
-            titulo="Produtos Próximos ao Vencimento (30 dias)"
-            lista={alertas.produtosVencendo}
-            icone={<Package className="h-5 w-5" />}
-          />
-          <AlertCard
-            tipo="warning"
-            titulo="Clientes em Risco (sem agendamento há 30+ dias)"
-            lista={alertas.clientesEmRisco}
-            icone={<UserX className="h-5 w-5" />}
-          />
-        </div>
-      </div>
+          <AlertCard
+            tipo="error"
+            titulo="Inadimplência Total"
+            valor={alertas.valorInadimplencia}
+            icone={<AlertCircle className="h-5 w-5" />}
+          />
+          <AlertCard
+            tipo="warning"
+            titulo="Produtos Próximos ao Vencimento (30 dias)"
+            lista={alertas.produtosVencendo}
+            icone={<Package className="h-5 w-5" />}
+          />
+          <AlertCard
+            tipo="warning"
+            titulo="Clientes em Risco (sem agendamento há 30+ dias)"
+            lista={alertas.clientesEmRisco}
+            icone={<UserX className="h-5 w-5" />}
+          />
+        </div>
+      </div>
 
       {/* Gráficos Lado a Lado */}
       {/* O espaço aqui agora é controlado pelo 'space-y-1.5' principal */}
