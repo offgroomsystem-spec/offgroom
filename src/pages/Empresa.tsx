@@ -2,10 +2,21 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+interface DiasSemana {
+  segunda: boolean;
+  terca: boolean;
+  quarta: boolean;
+  quinta: boolean;
+  sexta: boolean;
+  sabado: boolean;
+  domingo: boolean;
+}
 
 interface EmpresaConfig {
   id?: string;
@@ -13,6 +24,7 @@ interface EmpresaConfig {
   horarioInicio: string;
   horarioFim: string;
   metaFaturamentoMensal: number;
+  diasFuncionamento: DiasSemana;
 }
 
 interface Groomer {
@@ -27,6 +39,15 @@ const Empresa = () => {
     horarioInicio: "",
     horarioFim: "",
     metaFaturamentoMensal: 10000,
+    diasFuncionamento: {
+      segunda: true,
+      terca: true,
+      quarta: true,
+      quinta: true,
+      sexta: true,
+      sabado: false,
+      domingo: false,
+    },
   });
   const [groomers, setGroomers] = useState<Groomer[]>([]);
   const [novoGroomer, setNovoGroomer] = useState("");
@@ -54,6 +75,15 @@ const Empresa = () => {
           horarioInicio: empresaData.horario_inicio || '',
           horarioFim: empresaData.horario_fim || '',
           metaFaturamentoMensal: empresaData.meta_faturamento_mensal || 10000,
+          diasFuncionamento: empresaData.dias_funcionamento || {
+            segunda: true,
+            terca: true,
+            quarta: true,
+            quinta: true,
+            sexta: true,
+            sabado: false,
+            domingo: false,
+          },
         });
       }
       setLoading(false);
@@ -109,6 +139,7 @@ const Empresa = () => {
           horario_inicio: formData.horarioInicio,
           horario_fim: formData.horarioFim,
           meta_faturamento_mensal: formData.metaFaturamentoMensal,
+          dias_funcionamento: formData.diasFuncionamento as any,
         })
         .eq('id', formData.id)
         .eq('user_id', user.id);
@@ -129,7 +160,8 @@ const Empresa = () => {
           horario_inicio: formData.horarioInicio,
           horario_fim: formData.horarioFim,
           meta_faturamento_mensal: formData.metaFaturamentoMensal,
-        })
+          dias_funcionamento: formData.diasFuncionamento as any,
+        } as any)
         .select()
         .single();
         
@@ -291,6 +323,43 @@ const Empresa = () => {
                     onChange={(e) => setFormData({ ...formData, horarioFim: e.target.value })}
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Dias de Funcionamento da Empresa</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { key: 'segunda', label: 'Segunda-feira' },
+                  { key: 'terca', label: 'Terça-feira' },
+                  { key: 'quarta', label: 'Quarta-feira' },
+                  { key: 'quinta', label: 'Quinta-feira' },
+                  { key: 'sexta', label: 'Sexta-feira' },
+                  { key: 'sabado', label: 'Sábado' },
+                  { key: 'domingo', label: 'Domingo' },
+                ].map((dia) => (
+                  <div key={dia.key} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={dia.key}
+                      checked={formData.diasFuncionamento[dia.key as keyof DiasSemana]}
+                      onCheckedChange={(checked) => {
+                        setFormData({
+                          ...formData,
+                          diasFuncionamento: {
+                            ...formData.diasFuncionamento,
+                            [dia.key]: checked === true,
+                          },
+                        });
+                      }}
+                    />
+                    <Label
+                      htmlFor={dia.key}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {dia.label}
+                    </Label>
+                  </div>
+                ))}
               </div>
             </div>
 
