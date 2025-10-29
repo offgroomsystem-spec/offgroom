@@ -755,10 +755,14 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           <AlertCard
             tipo="warning"
             titulo="Pacotes a Expirar (7 dias)"
-            lista={alertas.pacotesExpirando}
-            icone={<Clock className="h-5 w-5" />}
-            onClick={() => onNavigateToReport?.("pacotes-vencimento")}
-          />
+			// A prop 'lista' foi removida daqui
+            textoDestaque={
+              // Lógica para singular/plural
+              `${alertas.pacotesExpirando.length} ${alertas.pacotesExpirando.length === 1 ? 'pacote.' : 'pacotes.'}`
+            }
+            icone={<Clock className="h-5 w-5" />}
+            onClick={() => onNavigateToReport?.("pacotes-vencimento")}
+          />
           <AlertCard
             tipo="error"
             titulo="Inadimplência Total"
