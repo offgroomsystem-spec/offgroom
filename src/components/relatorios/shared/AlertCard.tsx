@@ -6,7 +6,7 @@ interface AlertCardProps {
   titulo: string;
   lista?: any[];
   valor?: number;
-  textoDestaque?: string;
+  textoDestaque?: string; // Prop que adicionamos
   icone?: ReactNode;
   onClick?: () => void;
 }
@@ -33,30 +33,30 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
 
   return (
     <Card
+      // --- MUDANÇA EXATAMENTE AQUI ---
       className={`border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow hover:border-primary" : ""}`}
+      // --- FIM DA MUDANÇA ---
       onClick={onClick}
     >
-      {/* AJUSTE AQUI: Padding do CardHeader para replicar o KPI Card */}
-      {/* O KPI Card tem mais padding em cima e nas laterais, e menos embaixo do título. */}
-      <CardHeader className="p-3 pt-2 pb-0 flex-row items-center space-x-2"> {/* <-- MUDANÇA AQUI */}
-        {icone && <span className={`${tipoIconColor[tipo]} flex-shrink-0`}>{icone}</span>}
-        <CardTitle className="text-base leading-tight">
+      {/* AJUSTE AQUI: Padding "justinho" p-2 pb-1 */}
+      <CardHeader className="p-2 pb-1">
+        <CardTitle className="flex items-center gap-2 text-base">
+          {icone && <span className={tipoIconColor[tipo]}>{icone}</span>}
           {titulo}
         </CardTitle>
       </CardHeader>
 
-      {/* AJUSTE AQUI: Padding do CardContent para replicar o KPI Card */}
-      {/* Precisa de mais padding embaixo do conteúdo, e um pouco mais em cima do que o 'pt-0' */}
-      <CardContent className="p-3 pt-1"> {/* <-- MUDANÇA AQUI */}
+      {/* AJUSTE AQUI: Padding "justinho" p-2 pt-0 */}
+      <CardContent className="p-2 pt-0">
         {/* Prioridade 1: Valor (monetário) */}
         {valor !== undefined && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{formatCurrency(valor)}</p>}
-        
+        
         {/* Prioridade 2: Texto de Destaque (nosso contador) */}
         {textoDestaque && <p className={`text-2xl font-bold ${tipoIconColor[tipo]}`}>{textoDestaque}</p>}
 
         {/* Prioridade 3: Lista (só mostra se não houver valor nem textoDestaque) */}
         {!valor && !textoDestaque && lista && lista.length > 0 && (
-          <ul className="list-disc list-inside space-y-0.5 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm">
             {lista
               .slice(0, 5)
               .filter((item) => item !== undefined && item !== null)
@@ -70,7 +70,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
             {lista.length > 5 && <li className="text-muted-foreground">+ {lista.length - 5} mais</li>}
           </ul>
         )}
-        
+        
         {/* "Nenhum item" */}
         {!valor && !textoDestaque && lista && lista.length === 0 && <p className="text-sm text-muted-foreground">Nenhum item encontrado</p>}
       </CardContent>
