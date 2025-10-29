@@ -38,29 +38,39 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
       }`}
       onClick={onClick}
     >
-      {/* HEADER */}
-      <CardHeader className="p-3 pb-1">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-muted-foreground leading-tight">
-          {icone && <span className={`${tipoIconColor[tipo]} text-base`}>{icone}</span>}
-          {titulo}
-        </CardTitle>
-      </CardHeader>
+      {/* HEADER - título + destaque dentro do header */}
+      <CardHeader className="p-3 pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-muted-foreground leading-tight">
+              {icone && <span className={`${tipoIconColor[tipo]} text-base`}>{icone}</span>}
+              {titulo}
+            </CardTitle>
 
-      {/* CONTENT */}
-      <CardContent className="p-3 pt-1 space-y-2">
-        {/* Valor ou texto de destaque movido para o topo */}
-        {(valor !== undefined || textoDestaque) && (
-          <div className="text-2xl font-bold leading-tight">
-            {valor !== undefined ? (
-              <span className={tipoIconColor[tipo]}>{formatCurrency(valor)}</span>
-            ) : (
-              <span className={tipoIconColor[tipo]}>{textoDestaque}</span>
+            {/* Aqui colocamos o valor/textoDestaque *logo abaixo* do título */}
+            {(valor !== undefined || textoDestaque) && (
+              <div className="mt-2">
+                {valor !== undefined ? (
+                  <div className={`text-2xl font-bold ${tipoIconColor[tipo]} leading-tight`}>
+                    {formatCurrency(valor)}
+                  </div>
+                ) : (
+                  <div className={`text-2xl font-bold ${tipoIconColor[tipo]} leading-tight`}>{textoDestaque}</div>
+                )}
+              </div>
             )}
           </div>
-        )}
 
-        {/* Lista de itens (se não houver valor nem destaque) */}
-        {!valor && !textoDestaque && lista && lista.length > 0 && (
+          {/* Espaço para ícone à direita (se desejar) */}
+          {/* (se já usou ícone à esquerda, esse bloco pode ficar vazio) */}
+          <div className="text-muted-foreground text-lg" />
+        </div>
+      </CardHeader>
+
+      {/* CONTENT - só lista / complemento (fica abaixo do destaque) */}
+      <CardContent className="p-3 pt-1">
+        {/* Só mostramos a lista se não houver valor/textoDestaque */}
+        {!valor && !textoDestaque && lista && lista.length > 0 ? (
           <ul className="list-disc list-inside space-y-1 text-sm text-left">
             {lista
               .slice(0, 5)
@@ -69,15 +79,15 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
                 <li key={idx}>
                   {typeof item === "string"
                     ? item
-                    : `${item.nomeCliente || item.cliente || ""} - ${item.nomePet || item.pet || ""}`}
+                    : `${item.nomeCliente || item.cliente || ""}${item.nomePet || item.pet ? ` - ${item.nomePet || item.pet}` : ""}`}
                 </li>
               ))}
             {lista.length > 5 && <li className="text-muted-foreground">+ {lista.length - 5} mais</li>}
           </ul>
-        )}
+        ) : null}
 
-        {/* Caso vazio */}
-        {!valor && !textoDestaque && lista && lista.length === 0 && (
+        {/* Caso vazio (sem lista e sem destaque) */}
+        {!valor && !textoDestaque && (!lista || lista.length === 0) && (
           <p className="text-sm text-muted-foreground">Nenhum item encontrado</p>
         )}
       </CardContent>
