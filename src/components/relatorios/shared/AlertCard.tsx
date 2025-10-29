@@ -34,7 +34,7 @@ export const AlertCard = ({ tipo, titulo, lista, valor, icone, onClick, textoDes
   return (
     <Card
       // --- MUDANÇA EXATAMENTE AQUI ---
-      className={`h-full border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow hover:border-primary" : ""}`}
+      className={`border-2 ${tipoClasses[tipo]} ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow
       // --- FIM DA MUDANÇA ---
       onClick={onClick}
     >
