@@ -1706,7 +1706,7 @@ const Agendamentos = () => {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 hidden">
                     <Label htmlFor="horarioTermino" className="text-xs">
                       Horário Término
                     </Label>
