@@ -1684,8 +1684,8 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                {/* Tempo Serviço, Horário Término e Serviço */}
-                <div className="grid grid-cols-[20%_20%_60%] gap-2">
+                {/* Tempo de Serviço e Serviço */}
+                <div className="grid grid-cols-[25%_75%] gap-2">
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço *
@@ -1706,7 +1706,7 @@ const Agendamentos = () => {
                     />
                   </div>
 
-                  <div className="space-y-1 hidden">
+                  <div className="space-y-1">
                     <Label htmlFor="horarioTermino" className="text-xs">
                       Horário Término
                     </Label>
