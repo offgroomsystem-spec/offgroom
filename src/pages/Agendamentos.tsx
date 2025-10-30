@@ -1684,32 +1684,23 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                {/* Tempo de Serviço e Serviço */}
-                <div className="grid grid-cols-[25%_75%] gap-2">
+                {/* Tempo de Serviço e Serviço (Horário Término oculto sem ocupar espaço) */}
+                <div className="grid grid-cols-[28%_72%] gap-2">
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço *
                     </Label>
-                    <TimeInput
+                    <Input
+                      id="tempoServico"
                       value={formData.tempoServico}
-                      onChange={(value) => {
-                        const horarioTermino = calcularHorarioTermino(formData.horario, value);
-                        setFormData({
-                          ...formData,
-                          tempoServico: value,
-                          horarioTermino,
-                        });
-                      }}
+                      readOnly
+                      className="h-8 text-xs bg-secondary cursor-not-allowed"
                       placeholder="0:00"
-                      className="h-8 text-xs"
-                      allowSingleDigitHour={true}
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="horarioTermino" className="text-xs">
-                      Horário Término
-                    </Label>
+                  {/* Campo oculto fora do grid para não ocupar espaço */}
+                  <div className="hidden">
                     <Input
                       id="horarioTermino"
                       value={formData.horarioTermino}
