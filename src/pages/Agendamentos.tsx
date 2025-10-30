@@ -1046,7 +1046,7 @@ const Agendamentos = () => {
       primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
     const primeiroNomePet = pacote.nomePet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
-    const [ano, mes, dia] = servico.data.split("-").map(Number);
+    const [ano, mes, dia] = agendamento.data.split("-").map(Number);
     const dataFormatada = new Date(ano, mes - 1, dia).toLocaleDateString("pt-BR");
     const isUltimoServico = servico.numero.split("/")[0] === servico.numero.split("/")[1];
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
@@ -1080,7 +1080,8 @@ const Agendamentos = () => {
       primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
     const primeiroNomePet = agendamento.pet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
-    const dataFormatada = new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR");
+    const [ano, mes, dia] = servico.data.split("-").map(Number);
+    const dataFormatada = new Date(ano, mes - 1, dia).toLocaleDateString("pt-BR");
 
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
