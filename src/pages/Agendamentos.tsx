@@ -1684,29 +1684,39 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                {/* Tempo de Serviço e Serviço (Horário Término oculto sem ocupar espaço) */}
-                <div className="grid grid-cols-[28%_72%] gap-2">
+                {/* Tempo Serviço, Horário Término e Serviço */}
+                <div className="grid grid-cols-[20%_20%_60%] gap-2">
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço *
                     </Label>
-                    <Input
-                      id="tempoServico"
+                    <TimeInput
                       value={formData.tempoServico}
-                      readOnly
-                      className="h-8 text-xs bg-secondary cursor-not-allowed"
+                      onChange={(value) => {
+                        const horarioTermino = calcularHorarioTermino(formData.horario, value);
+                        setFormData({
+                          ...formData,
+                          tempoServico: value,
+                          horarioTermino,
+                        });
+                      }}
                       placeholder="0:00"
+                      className="h-8 text-xs"
+                      allowSingleDigitHour={true}
                     />
                   </div>
 
-                  {/* Campo oculto fora do grid para não ocupar espaço */}
-                  <div className="hidden">
+                  <div className="space-y-1">
+                    <Label htmlFor="horarioTermino" className="text-xs">
+                      Horário Término
+                    </Label>
                     <Input
-                      id="horarioTermino"
-                      value={formData.horarioTermino}
-                      readOnly
-                      className="h-8 text-xs bg-secondary cursor-not-allowed"
-                      placeholder="--:--"
+                      id="tempoServico"
+                      name="tempoServico"
+                      value={formData.tempoServico}
+                      onChange={handleChange}
+                      className="h-8 text-xs"
+                      placeholder="0:00"
                     />
                   </div>
 
