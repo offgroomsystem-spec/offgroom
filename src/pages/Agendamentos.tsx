@@ -1692,9 +1692,10 @@ const Agendamentos = () => {
                     </Label>
                     <Input
                       id="tempoServico"
+                      name="tempoServico"
                       value={formData.tempoServico}
-                      readOnly
-                      className="h-8 text-xs bg-secondary cursor-not-allowed"
+                      onChange={handleChange}
+                      className="h-8 text-xs"
                       placeholder="0:00"
                     />
                   </div>
