@@ -245,27 +245,27 @@ const Agendamentos = () => {
       if (clientesError) throw clientesError;
 
       // Load pets
-      const { data: petsData, error: petsError } = await supabase
-        .from("pets")
-        .select("*")
-        .eq("user_id", user.id);
+      const { data: petsData, error: petsError } = await supabase.from("pets").select("*").eq("user_id", user.id);
 
       if (petsError) throw petsError;
 
       // Agrupar pets por cliente_id
-      const petsPorCliente = (petsData || []).reduce((acc, pet: any) => {
-        if (!acc[pet.cliente_id]) {
-          acc[pet.cliente_id] = [];
-        }
-        acc[pet.cliente_id].push({
-          id: pet.id,
-          nome: pet.nome_pet,
-          porte: pet.porte,
-          raca: pet.raca,
-          observacao: pet.observacao || "",
-        });
-        return acc;
-      }, {} as Record<string, Pet[]>);
+      const petsPorCliente = (petsData || []).reduce(
+        (acc, pet: any) => {
+          if (!acc[pet.cliente_id]) {
+            acc[pet.cliente_id] = [];
+          }
+          acc[pet.cliente_id].push({
+            id: pet.id,
+            nome: pet.nome_pet,
+            porte: pet.porte,
+            raca: pet.raca,
+            observacao: pet.observacao || "",
+          });
+          return acc;
+        },
+        {} as Record<string, Pet[]>,
+      );
 
       // Montar estrutura final
       const clientesComPets: Cliente[] = (clientesData || []).map((c: any) => ({
@@ -521,9 +521,9 @@ const Agendamentos = () => {
   const handleClienteSelect = (nomeCliente: string) => {
     setClienteSearch(nomeCliente);
     setSearchStartedWith("cliente");
-    
+
     const clienteSelecionado = clientes.find((c) => c.nomeCliente === nomeCliente);
-    
+
     if (clienteSelecionado) {
       setPacoteFormData({
         ...pacoteFormData,
@@ -532,7 +532,7 @@ const Agendamentos = () => {
         raca: "",
         whatsapp: clienteSelecionado.whatsapp,
       });
-      
+
       const petsDoCliente = clienteSelecionado.pets.map((p) => p.nome);
       setFilteredPets(petsDoCliente);
       setFilteredClientes([]);
@@ -543,14 +543,14 @@ const Agendamentos = () => {
   // Atualizar raças disponíveis quando pet é selecionado (Pacotes)
   const handlePetSelect = (nomePet: string) => {
     setPetSearch(nomePet);
-    
+
     if (searchStartedWith === "cliente" || pacoteFormData.nomeCliente) {
       // Se começou pelo cliente, filtrar apenas pets desse cliente
       const clienteSelecionado = clientes.find((c) => c.nomeCliente === pacoteFormData.nomeCliente);
-      
+
       if (clienteSelecionado) {
         const petSelecionado = clienteSelecionado.pets.find((p) => p.nome === nomePet);
-        
+
         if (petSelecionado) {
           setAvailableRacas([petSelecionado.raca]);
           setPacoteFormData({
@@ -564,17 +564,17 @@ const Agendamentos = () => {
     } else {
       // Se começou pelo pet, mostrar clientes que têm esse pet
       setSearchStartedWith("pet");
-      
+
       const clientesComEssePet = clientes.filter((c) => c.pets.some((p) => p.nome === nomePet));
       const nomesClientes = clientesComEssePet.map((c) => c.nomeCliente);
       setFilteredClientes(nomesClientes);
-      
+
       const racasDisponiveis = new Set<string>();
       clientesComEssePet.forEach((c) => {
         const pet = c.pets.find((p) => p.nome === nomePet);
         if (pet) racasDisponiveis.add(pet.raca);
       });
-      
+
       setAvailableRacas(Array.from(racasDisponiveis));
       setPacoteFormData({
         ...pacoteFormData,
@@ -591,20 +591,22 @@ const Agendamentos = () => {
   const handleRacaSelect = (raca: string) => {
     let clienteSelecionado: Cliente | undefined;
     let petSelecionado: Pet | undefined;
-    
+
     if (pacoteFormData.nomeCliente) {
       clienteSelecionado = clientes.find((c) => c.nomeCliente === pacoteFormData.nomeCliente);
       if (clienteSelecionado) {
         petSelecionado = clienteSelecionado.pets.find((p) => p.nome === pacoteFormData.nomePet && p.raca === raca);
       }
     } else if (pacoteFormData.nomePet) {
-      clienteSelecionado = clientes.find((c) => c.pets.some((p) => p.nome === pacoteFormData.nomePet && p.raca === raca));
-      
+      clienteSelecionado = clientes.find((c) =>
+        c.pets.some((p) => p.nome === pacoteFormData.nomePet && p.raca === raca),
+      );
+
       if (clienteSelecionado) {
         petSelecionado = clienteSelecionado.pets.find((p) => p.nome === pacoteFormData.nomePet && p.raca === raca);
       }
     }
-    
+
     if (clienteSelecionado && petSelecionado) {
       setPacoteFormData({
         ...pacoteFormData,
@@ -623,9 +625,9 @@ const Agendamentos = () => {
   const handleSimpleClienteSelect = (nomeCliente: string) => {
     setSimpleClienteSearch(nomeCliente);
     setSimpleSearchStartedWith("cliente");
-    
+
     const clienteSelecionado = clientes.find((c) => c.nomeCliente === nomeCliente);
-    
+
     if (clienteSelecionado) {
       setFormData({
         ...formData,
@@ -634,7 +636,7 @@ const Agendamentos = () => {
         raca: "",
         whatsapp: clienteSelecionado.whatsapp,
       });
-      
+
       const petsDoCliente = clienteSelecionado.pets.map((p) => p.nome);
       setSimpleFilteredPets(petsDoCliente);
       setSimpleFilteredClientes([]);
@@ -645,14 +647,14 @@ const Agendamentos = () => {
   // Atualizar raças disponíveis quando pet é selecionado (Agendamento Simples)
   const handleSimplePetSelect = (nomePet: string) => {
     setSimplePetSearch(nomePet);
-    
+
     if (simpleSearchStartedWith === "cliente" || formData.cliente) {
       // Se começou pelo cliente, filtrar apenas pets desse cliente
       const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.cliente);
-      
+
       if (clienteSelecionado) {
         const petSelecionado = clienteSelecionado.pets.find((p) => p.nome === nomePet);
-        
+
         if (petSelecionado) {
           setSimpleAvailableRacas([petSelecionado.raca]);
           setFormData({
@@ -666,17 +668,17 @@ const Agendamentos = () => {
     } else {
       // Se começou pelo pet, mostrar clientes que têm esse pet
       setSimpleSearchStartedWith("pet");
-      
+
       const clientesComEssePet = clientes.filter((c) => c.pets.some((p) => p.nome === nomePet));
       const nomesClientes = clientesComEssePet.map((c) => c.nomeCliente);
       setSimpleFilteredClientes(nomesClientes);
-      
+
       const racasDisponiveis = new Set<string>();
       clientesComEssePet.forEach((c) => {
         const pet = c.pets.find((p) => p.nome === nomePet);
         if (pet) racasDisponiveis.add(pet.raca);
       });
-      
+
       setSimpleAvailableRacas(Array.from(racasDisponiveis));
       setFormData({
         ...formData,
@@ -693,7 +695,7 @@ const Agendamentos = () => {
   const handleSimpleRacaSelect = (raca: string) => {
     let clienteSelecionado: Cliente | undefined;
     let petSelecionado: Pet | undefined;
-    
+
     if (formData.cliente) {
       clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.cliente);
       if (clienteSelecionado) {
@@ -701,12 +703,12 @@ const Agendamentos = () => {
       }
     } else if (formData.pet) {
       clienteSelecionado = clientes.find((c) => c.pets.some((p) => p.nome === formData.pet && p.raca === raca));
-      
+
       if (clienteSelecionado) {
         petSelecionado = clienteSelecionado.pets.find((p) => p.nome === formData.pet && p.raca === raca);
       }
     }
-    
+
     if (clienteSelecionado && petSelecionado) {
       setFormData({
         ...formData,
@@ -1044,7 +1046,8 @@ const Agendamentos = () => {
       primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
     const primeiroNomePet = pacote.nomePet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
-    const dataFormatada = new Date(servico.data + "T00:00:00").toLocaleDateString("pt-BR");
+    const [ano, mes, dia] = servico.data.split("-").map(Number);
+    const dataFormatada = new Date(ano, mes - 1, dia).toLocaleDateString("pt-BR");
     const isUltimoServico = servico.numero.split("/")[0] === servico.numero.split("/")[1];
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
