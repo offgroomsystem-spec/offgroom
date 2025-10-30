@@ -1692,13 +1692,21 @@ const Agendamentos = () => {
                     </Label>
                     <Input
                       id="tempoServico"
-                      name="tempoServico"
                       value={formData.tempoServico}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const novoTempo = e.target.value;
+                        const horarioTermino = calcularHorarioTermino(formData.horario, novoTempo);
+                        setFormData({
+                          ...formData,
+                          tempoServico: novoTempo,
+                          horarioTermino,
+                        });
+                      }}
                       className="h-8 text-xs"
                       placeholder="0:00"
                     />
                   </div>
+
 
                   {/* Campo oculto fora do grid para não ocupar espaço */}
                   <div className="hidden">
