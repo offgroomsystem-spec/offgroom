@@ -131,9 +131,15 @@ Aguardamos seu retorno.`;
         if (dataVencimento >= hoje) continue;
 
         // Buscar agendamentos do mesmo cliente e pet
-        const agendamentosClientePet = todosAgendamentos?.filter(
-          ag => ag.cliente === pacoteVendido.nome_cliente && ag.pet === pacoteVendido.nome_pet
-        ) || [];
+        const agendamentosClientePet = todosAgendamentos?.filter(ag => {
+          const clienteNormalizado = ag.cliente?.trim().toLowerCase() || '';
+          const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || '';
+          const petNormalizado = ag.pet?.trim().toLowerCase() || '';
+          const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || '';
+          
+          return clienteNormalizado === clientePacoteNormalizado && 
+                 petNormalizado === petPacoteNormalizado;
+        }) || [];
 
         // Verificar se tem agendamento futuro (hoje ou depois)
         const temAgendamentoFuturo = agendamentosClientePet.some(ag => {
