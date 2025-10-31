@@ -433,14 +433,80 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       .sort((a: any, b: any) => a.diasRestantes - b.diasRestantes)
       .map((p: any) => p.texto);
 
-    // Inadimplência no período
-    const valorInadimplencia = lancamentos
-      .filter((l: any) => {
-        if (l.tipo !== "Receita" || l.pago) return false;
-        const dataPag = new Date(l.dataPagamento);
-        return dataPag >= dataInicio && dataPag <= dataFim;
-      })
-      .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
+    // Pacotes Expirados sem Agendamentos Futuros
+    let contadorPacotesExpirados = 0;
+
+    for (const pacoteVendido of agendamentosPacotes) {
+      // 1. Buscar definição do pacote
+      const definicao = pacotes.find((p: any) => p.nome === pacoteVendido.nome_pacote);
+      if (!definicao) continue;
+
+      // 2. Calcular vencimento
+      const dataVenda = new Date(pacoteVendido.data_venda);
+      const validadeDias = parseInt(definicao.validade) || 0;
+      const dataVencimento = new Date(dataVenda);
+      dataVencimento.setDate(dataVencimento.getDate() + validadeDias);
+
+      // 3. Verificar se está vencido
+      if (dataVencimento >= hoje) continue;
+
+      // 4. Buscar agendamentos do mesmo cliente/pet
+      const agendamentosClientePet = agendamentos.filter((ag: any) => {
+        const clienteNorm = ag.cliente?.trim().toLowerCase() || '';
+        const clientePacoteNorm = pacoteVendido.nome_cliente?.trim().toLowerCase() || '';
+        const petNorm = ag.pet?.trim().toLowerCase() || '';
+        const petPacoteNorm = pacoteVendido.nome_pet?.trim().toLowerCase() || '';
+        
+        return clienteNorm === clientePacoteNorm && petNorm === petPacoteNorm;
+      });
+
+      // 5a. Verificar agendamentos na tabela
+      const temAgendamentoNaTabela = agendamentosClientePet.some((ag: any) => {
+        const dataAgendamento = new Date(ag.data);
+        dataAgendamento.setHours(0, 0, 0, 0);
+        return dataAgendamento >= hoje;
+      });
+
+      // 5b. Verificar serviços do próprio pacote
+      const temServicoFuturoNoPacote = (pacoteVendido.servicos as any[])?.some((servico: any) => {
+        const dataServico = new Date(servico.data);
+        dataServico.setHours(0, 0, 0, 0);
+        return dataServico >= hoje;
+      }) || false;
+
+      // 5c. Verificar outros pacotes do mesmo cliente/pet
+      const outrosPacotes = agendamentosPacotes.filter((p: any) => {
+        if (p.id === pacoteVendido.id) return false;
+        
+        const clienteNorm = p.nome_cliente?.trim().toLowerCase() || '';
+        const clientePacoteNorm = pacoteVendido.nome_cliente?.trim().toLowerCase() || '';
+        const petNorm = p.nome_pet?.trim().toLowerCase() || '';
+        const petPacoteNorm = pacoteVendido.nome_pet?.trim().toLowerCase() || '';
+        
+        return clienteNorm === clientePacoteNorm && petNorm === petPacoteNorm;
+      });
+
+      const temServicoFuturoEmOutrosPacotes = outrosPacotes.some((outroPacote: any) => {
+        return (outroPacote.servicos as any[])?.some((servico: any) => {
+          const dataServico = new Date(servico.data);
+          dataServico.setHours(0, 0, 0, 0);
+          return dataServico >= hoje;
+        });
+      });
+
+      // 6. Consolidar verificações
+      const temAgendamentoFuturo = 
+        temAgendamentoNaTabela || 
+        temServicoFuturoNoPacote || 
+        temServicoFuturoEmOutrosPacotes;
+
+      // 7. Se não tem agendamento futuro, contar
+      if (!temAgendamentoFuturo) {
+        contadorPacotesExpirados++;
+      }
+    }
+
+    const pacotesExpiradosSemAgendamento = contadorPacotesExpirados;
 
     // Produtos vencendo no período
     const produtosVencendo = produtos
@@ -489,7 +555,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
 
     return {
       pacotesExpirando,
-      valorInadimplencia,
+      pacotesExpiradosSemAgendamento,
       produtosVencendo,
       clientesEmRisco,
     };
@@ -764,10 +830,13 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
             onClick={() => onNavigateToReport?.("pacotes-vencimento")}
           />
           <AlertCard
-            tipo="error"
-            titulo="Inadimplência Total"
-            valor={alertas.valorInadimplencia}
-            icone={<AlertCircle className="h-5 w-5" />}
+            tipo="warning"
+            titulo="Pacotes Expirados sem agendamentos futuros"
+            textoDestaque={
+              `${alertas.pacotesExpiradosSemAgendamento} ${alertas.pacotesExpiradosSemAgendamento === 1 ? 'pacote' : 'pacotes'}`
+            }
+            icone={<Package className="h-5 w-5" />}
+            onClick={() => onNavigateToReport?.("pacotes-expirados")}
           />
           <AlertCard
             tipo="warning"
