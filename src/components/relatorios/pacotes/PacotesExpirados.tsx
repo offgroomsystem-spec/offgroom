@@ -141,14 +141,50 @@ Aguardamos seu retorno.`;
                  petNormalizado === petPacoteNormalizado;
         }) || [];
 
-        // Verificar se tem agendamento futuro (hoje ou depois)
-        const temAgendamentoFuturo = agendamentosClientePet.some(ag => {
+        // Verificar se tem agendamento futuro na tabela agendamentos
+        const temAgendamentoNaTabela = agendamentosClientePet.some(ag => {
           const dataAgendamento = new Date(ag.data);
           dataAgendamento.setHours(0, 0, 0, 0);
           return dataAgendamento >= hoje;
         });
 
-        // Se não tem agendamento futuro, adicionar à lista
+        // Verificar se tem serviço futuro no próprio pacote (JSON servicos)
+        const servicosFuturosNoPacote = (pacoteVendido.servicos as any[])?.filter(servico => {
+          const dataServico = new Date(servico.data);
+          dataServico.setHours(0, 0, 0, 0);
+          return dataServico >= hoje;
+        }) || [];
+        const temServicoFuturoNoPacote = servicosFuturosNoPacote.length > 0;
+
+        // Buscar outros pacotes do mesmo cliente/pet
+        const outrosPacotesClientePet = agendamentosPacotes?.filter(p => {
+          if (p.id === pacoteVendido.id) return false; // Ignorar o próprio pacote
+          
+          const clienteNormalizado = p.nome_cliente?.trim().toLowerCase() || '';
+          const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || '';
+          const petNormalizado = p.nome_pet?.trim().toLowerCase() || '';
+          const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || '';
+          
+          return clienteNormalizado === clientePacoteNormalizado && 
+                 petNormalizado === petPacoteNormalizado;
+        }) || [];
+
+        // Verificar se algum outro pacote tem serviços futuros
+        const temServicoFuturoEmOutrosPacotes = outrosPacotesClientePet.some(outroPacote => {
+          return (outroPacote.servicos as any[])?.some(servico => {
+            const dataServico = new Date(servico.data);
+            dataServico.setHours(0, 0, 0, 0);
+            return dataServico >= hoje;
+          });
+        });
+
+        // Consolidar todas as verificações
+        const temAgendamentoFuturo = 
+          temAgendamentoNaTabela || 
+          temServicoFuturoNoPacote || 
+          temServicoFuturoEmOutrosPacotes;
+
+        // Se não tem agendamento futuro em NENHUM lugar, adicionar à lista
         if (!temAgendamentoFuturo) {
           // Encontrar data do último agendamento
           const ultimoAgendamento = agendamentosClientePet
