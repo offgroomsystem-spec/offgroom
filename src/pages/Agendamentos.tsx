@@ -1694,34 +1694,40 @@ const Agendamentos = () => {
                       id="tempoServico"
                       type="text"
                       value={formData.tempoServico}
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/\D/g, ""); // remove tudo que não for número
+                      onChange={(event) => {
+                        // Captura o valor digitado no campo
+                        let valorDigitado = event.target.value;
 
-                        // 🔒 Limite máximo: 3 dígitos antes de aplicar a máscara
-                        if (value.length > 3) {
-                          value = value.slice(0, 3);
+                        // Remove todos os caracteres que não sejam números
+                        valorDigitado = valorDigitado.replace(/\D/g, "");
+
+                        // Limita o número total de dígitos a 3 (por exemplo: 130 -> 130, 1234 -> 123)
+                        if (valorDigitado.length > 3) {
+                          valorDigitado = valorDigitado.slice(0, 3);
                         }
 
-                        // Aplica máscara automática h:mm
-                        if (value.length === 0) {
-                          value = "";
-                        } else if (value.length <= 1) {
-                          value = value; // apenas 1 dígito (hora parcial)
-                        } else if (value.length === 2) {
-                          // se 2 dígitos, assume que o segundo é minuto parcial (ex: "12" → "1:2")
-                          value = `${value[0]}:${value[1]}`;
-                        } else if (value.length === 3) {
-                          // se 3 dígitos, separa 1 e 2 últimos como minutos
-                          value = `${value[0]}:${value.slice(1, 3)}`;
+                        // Aplica a máscara automática no formato h:mm
+                        if (valorDigitado.length === 0) {
+                          valorDigitado = "";
+                        } else if (valorDigitado.length === 1) {
+                          // Exemplo: "1" continua "1"
+                          valorDigitado = valorDigitado;
+                        } else if (valorDigitado.length === 2) {
+                          // Exemplo: "12" vira "1:2"
+                          valorDigitado = `${valorDigitado[0]}:${valorDigitado[1]}`;
+                        } else if (valorDigitado.length === 3) {
+                          // Exemplo: "130" vira "1:30"
+                          valorDigitado = `${valorDigitado[0]}:${valorDigitado.slice(1, 3)}`;
                         }
 
-                        // Impede minutos maiores que 59
-                        const parts = value.split(":");
-                        if (parts.length === 2 && parseInt(parts[1], 10) > 59) {
-                          parts[1] = "59";
-                          value = `${parts[0]}:${parts[1]}`;
+                        // Impede que os minutos sejam maiores que 59
+                        const partes = valorDigitado.split(":");
+                        if (partes.length === 2 && parseInt(partes[1], 10) > 59) {
+                          partes[1] = "59";
+                          valorDigitado = `${partes[0]}:${partes[1]}`;
                         }
 
+                        // Atualiza o estado do formulário com o novo valor
                         setFormData({
                           cliente: formData.cliente,
                           pet: formData.pet,
@@ -1729,7 +1735,7 @@ const Agendamentos = () => {
                           whatsapp: formData.whatsapp,
                           data: formData.data,
                           horario: formData.horario,
-                          tempoServico: value,
+                          tempoServico: valorDigitado,
                           horarioTermino: formData.horarioTermino,
                           servico: formData.servico,
                           numeroServicoPacote: formData.numeroServicoPacote,
@@ -1738,17 +1744,18 @@ const Agendamentos = () => {
                           taxiDog: formData.taxiDog,
                         });
                       }}
-                      onBlur={(e) => {
-                        const regexFinal = /^\d{1}:[0-5][0-9]$/;
-                        if (e.target.value && !regexFinal.test(e.target.value)) {
-                          alert("Formato inválido! Use o formato h:mm (ex: 1:30)");
+                      onBlur={(event) => {
+                        // Valida o formato final do campo quando o usuário sai dele
+                        const regexFinal = /^[0-9]{1}:[0-5][0-9]$/;
+                        if (event.target.value && !regexFinal.test(event.target.value)) {
+                          alert("Formato inválido! Use o formato h:mm (exemplo: 1:30)");
                         }
                       }}
                       placeholder="0:00"
                       className="h-8 text-xs"
                       required
                       maxLength={4}
-                      pattern="^\\d{1}:[0-5][0-9]$"
+                      pattern="[0-9]{1}:[0-5][0-9]"
                     />
                   </div>
 
