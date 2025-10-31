@@ -36,7 +36,7 @@ export const PacotesExpirados = () => {
   const [filtros, setFiltros] = useState<Filtros>({
     nomePacote: "",
     diasMinimo: "",
-    diasMaximo: ""
+    diasMaximo: "",
   });
 
   const formatarNome = (nome: string): string => {
@@ -60,7 +60,7 @@ export const PacotesExpirados = () => {
     const primeiroNome = formatarNome(getPrimeiroNome(cliente));
     const nomePet = formatarNome(pet);
     const telefone = whatsapp.replace(/\D/g, "");
-    
+
     const mensagem = `Olá, ${primeiroNome}, como vc está?
 Estamos passando para saber como vocês estão. Notamos que já faz ${dias} dias que ${nomePet} não vem para o banho e estamos com saudades por aqui.
 
@@ -74,7 +74,7 @@ Aguardamos seu retorno.`;
     try {
       await navigator.clipboard.writeText(link);
       toast.success("✅ Link copiado!", {
-        description: "Cole no navegador (Ctrl+V) para abrir o WhatsApp"
+        description: "Cole no navegador (Ctrl+V) para abrir o WhatsApp",
       });
     } catch (error) {
       toast.error("Erro ao copiar link");
@@ -83,7 +83,7 @@ Aguardamos seu retorno.`;
 
   const loadPacotesExpirados = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const hoje = new Date();
@@ -118,7 +118,7 @@ Aguardamos seu retorno.`;
       // 4. Processar cada pacote vendido
       for (const pacoteVendido of agendamentosPacotes || []) {
         // Encontrar definição do pacote para obter validade
-        const definicao = pacotesDefinicao?.find(p => p.nome === pacoteVendido.nome_pacote);
+        const definicao = pacotesDefinicao?.find((p) => p.nome === pacoteVendido.nome_pacote);
         if (!definicao) continue;
 
         // Calcular data de vencimento
@@ -131,47 +131,48 @@ Aguardamos seu retorno.`;
         if (dataVencimento >= hoje) continue;
 
         // Buscar agendamentos do mesmo cliente e pet
-        const agendamentosClientePet = todosAgendamentos?.filter(ag => {
-          const clienteNormalizado = ag.cliente?.trim().toLowerCase() || '';
-          const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || '';
-          const petNormalizado = ag.pet?.trim().toLowerCase() || '';
-          const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || '';
-          
-          return clienteNormalizado === clientePacoteNormalizado && 
-                 petNormalizado === petPacoteNormalizado;
-        }) || [];
+        const agendamentosClientePet =
+          todosAgendamentos?.filter((ag) => {
+            const clienteNormalizado = ag.cliente?.trim().toLowerCase() || "";
+            const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || "";
+            const petNormalizado = ag.pet?.trim().toLowerCase() || "";
+            const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || "";
+
+            return clienteNormalizado === clientePacoteNormalizado && petNormalizado === petPacoteNormalizado;
+          }) || [];
 
         // Verificar se tem agendamento futuro na tabela agendamentos
-        const temAgendamentoNaTabela = agendamentosClientePet.some(ag => {
+        const temAgendamentoNaTabela = agendamentosClientePet.some((ag) => {
           const dataAgendamento = new Date(ag.data);
           dataAgendamento.setHours(0, 0, 0, 0);
           return dataAgendamento >= hoje;
         });
 
         // Verificar se tem serviço futuro no próprio pacote (JSON servicos)
-        const servicosFuturosNoPacote = (pacoteVendido.servicos as any[])?.filter(servico => {
-          const dataServico = new Date(servico.data);
-          dataServico.setHours(0, 0, 0, 0);
-          return dataServico >= hoje;
-        }) || [];
+        const servicosFuturosNoPacote =
+          (pacoteVendido.servicos as any[])?.filter((servico) => {
+            const dataServico = new Date(servico.data);
+            dataServico.setHours(0, 0, 0, 0);
+            return dataServico >= hoje;
+          }) || [];
         const temServicoFuturoNoPacote = servicosFuturosNoPacote.length > 0;
 
         // Buscar outros pacotes do mesmo cliente/pet
-        const outrosPacotesClientePet = agendamentosPacotes?.filter(p => {
-          if (p.id === pacoteVendido.id) return false; // Ignorar o próprio pacote
-          
-          const clienteNormalizado = p.nome_cliente?.trim().toLowerCase() || '';
-          const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || '';
-          const petNormalizado = p.nome_pet?.trim().toLowerCase() || '';
-          const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || '';
-          
-          return clienteNormalizado === clientePacoteNormalizado && 
-                 petNormalizado === petPacoteNormalizado;
-        }) || [];
+        const outrosPacotesClientePet =
+          agendamentosPacotes?.filter((p) => {
+            if (p.id === pacoteVendido.id) return false; // Ignorar o próprio pacote
+
+            const clienteNormalizado = p.nome_cliente?.trim().toLowerCase() || "";
+            const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || "";
+            const petNormalizado = p.nome_pet?.trim().toLowerCase() || "";
+            const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || "";
+
+            return clienteNormalizado === clientePacoteNormalizado && petNormalizado === petPacoteNormalizado;
+          }) || [];
 
         // Verificar se algum outro pacote tem serviços futuros
-        const temServicoFuturoEmOutrosPacotes = outrosPacotesClientePet.some(outroPacote => {
-          return (outroPacote.servicos as any[])?.some(servico => {
+        const temServicoFuturoEmOutrosPacotes = outrosPacotesClientePet.some((outroPacote) => {
+          return (outroPacote.servicos as any[])?.some((servico) => {
             const dataServico = new Date(servico.data);
             dataServico.setHours(0, 0, 0, 0);
             return dataServico >= hoje;
@@ -179,18 +180,18 @@ Aguardamos seu retorno.`;
         });
 
         // Consolidar todas as verificações
-        const temAgendamentoFuturo = 
-          temAgendamentoNaTabela || 
-          temServicoFuturoNoPacote || 
-          temServicoFuturoEmOutrosPacotes;
+        const temAgendamentoFuturo =
+          temAgendamentoNaTabela || temServicoFuturoNoPacote || temServicoFuturoEmOutrosPacotes;
 
         // Se não tem agendamento futuro em NENHUM lugar, adicionar à lista
         if (!temAgendamentoFuturo) {
           // Encontrar data do último agendamento
-          const ultimoAgendamento = agendamentosClientePet
-            .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())[0];
+          const ultimoAgendamento = agendamentosClientePet.sort(
+            (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
+          )[0];
 
-          const dataUltimo = ultimoAgendamento ? new Date(ultimoAgendamento.data) : null;
+          const dataUltimo = ultimoAgendamento ? new Date(ultimoAgendamento.data.split("T")[0] + "T00:00:00") : null;
+
           const diasDesde = calcularDiasDesde(dataUltimo);
 
           pacotesExpiradosLista.push({
@@ -201,7 +202,7 @@ Aguardamos seu retorno.`;
             nomePacote: pacoteVendido.nome_pacote,
             dataUltimoAgendamento: dataUltimo,
             diasDesdeUltimo: diasDesde,
-            whatsapp: pacoteVendido.whatsapp
+            whatsapp: pacoteVendido.whatsapp,
           });
         }
       }
@@ -221,7 +222,7 @@ Aguardamos seu retorno.`;
     }
   }, [user]);
 
-  const pacotesFiltrados = pacotes.filter(pacote => {
+  const pacotesFiltrados = pacotes.filter((pacote) => {
     if (filtros.nomePacote && !pacote.nomePacote.toLowerCase().includes(filtros.nomePacote.toLowerCase())) {
       return false;
     }
@@ -241,16 +242,14 @@ Aguardamos seu retorno.`;
     { key: "nomePacote", label: "Pacote" },
     { key: "dataUltimoAgendamento", label: "Data do último agendamento" },
     { key: "diasDesdeUltimo", label: "Dias desde último agendamento" },
-    { key: "whatsapp", label: "WhatsApp" }
+    { key: "whatsapp", label: "WhatsApp" },
   ];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Pacotes Expirados</CardTitle>
-        <CardDescription>
-          Pacotes vencidos sem agendamentos futuros
-        </CardDescription>
+        <CardDescription>Pacotes vencidos sem agendamentos futuros</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -287,9 +286,9 @@ Aguardamos seu retorno.`;
 
         <div className="flex justify-end">
           <ExportButton
-            data={pacotesFiltrados.map(p => ({
+            data={pacotesFiltrados.map((p) => ({
               ...p,
-              dataUltimoAgendamento: p.dataUltimoAgendamento ? format(p.dataUltimoAgendamento, 'dd/MM/yyyy') : 'N/A'
+              dataUltimoAgendamento: p.dataUltimoAgendamento ? format(p.dataUltimoAgendamento, "dd/MM/yyyy") : "N/A",
             }))}
             filename="pacotes-expirados"
             columns={colunasCsv}
@@ -302,7 +301,7 @@ Aguardamos seu retorno.`;
           </div>
         ) : pacotesFiltrados.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {pacotes.length === 0 
+            {pacotes.length === 0
               ? "Não há pacotes expirados no momento"
               : "Nenhum pacote encontrado com os filtros aplicados"}
           </div>
@@ -329,11 +328,16 @@ Aguardamos seu retorno.`;
                     <TableCell>
                       {pacote.dataUltimoAgendamento ? (
                         <div className="space-y-1">
-                          <div>{format(pacote.dataUltimoAgendamento, 'dd/MM/yyyy')}</div>
-                          <Badge variant={
-                            pacote.diasDesdeUltimo > 30 ? "destructive" :
-                            pacote.diasDesdeUltimo > 20 ? "default" : "secondary"
-                          }>
+                          <div>{format(pacote.dataUltimoAgendamento, "dd/MM/yyyy")}</div>
+                          <Badge
+                            variant={
+                              pacote.diasDesdeUltimo > 30
+                                ? "destructive"
+                                : pacote.diasDesdeUltimo > 20
+                                  ? "default"
+                                  : "secondary"
+                            }
+                          >
                             {pacote.diasDesdeUltimo} dias atrás
                           </Badge>
                         </div>
@@ -345,14 +349,16 @@ Aguardamos seu retorno.`;
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copiarLinkWhatsApp(
-                          gerarLinkWhatsApp(
-                            pacote.nomeCliente,
-                            pacote.nomePet,
-                            pacote.diasDesdeUltimo,
-                            pacote.whatsapp
+                        onClick={() =>
+                          copiarLinkWhatsApp(
+                            gerarLinkWhatsApp(
+                              pacote.nomeCliente,
+                              pacote.nomePet,
+                              pacote.diasDesdeUltimo,
+                              pacote.whatsapp,
+                            ),
                           )
-                        )}
+                        }
                         title="Copiar link do WhatsApp"
                       >
                         <LinkIcon className="h-4 w-4" />
