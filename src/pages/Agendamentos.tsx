@@ -1686,27 +1686,51 @@ const Agendamentos = () => {
 
                 {/* Tempo de Serviço e Serviço (Horário Término oculto sem ocupar espaço) */}
                 <div className="grid grid-cols-[28%_72%] gap-2">
+                  {/* Campo Tempo de Serviço com validação h:mm */}
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço *
                     </Label>
                     <Input
                       id="tempoServico"
+                      type="text"
                       value={formData.tempoServico}
                       onChange={(e) => {
-                        const novoTempo = e.target.value;
-                        const horarioTermino = calcularHorarioTermino(formData.horario, novoTempo);
-                        setFormData({
-                          ...formData,
-                          tempoServico: novoTempo,
-                          horarioTermino,
-                        });
+                        const value = e.target.value;
+                        // Permite apenas números e um ":" durante a digitação (ex: 1:30)
+                        const regex = /^\d{0,2}:?\d{0,2}$/;
+                        if (regex.test(value)) {
+                          setFormData({
+                            cliente: formData.cliente,
+                            pet: formData.pet,
+                            raca: formData.raca,
+                            whatsapp: formData.whatsapp,
+                            data: formData.data,
+                            horario: formData.horario,
+                            tempoServico: value,
+                            horarioTermino: formData.horarioTermino,
+                            servico: formData.servico,
+                            numeroServicoPacote: formData.numeroServicoPacote,
+                            groomer: formData.groomer,
+                            dataVenda: formData.dataVenda,
+                            taxiDog: formData.taxiDog,
+                          });
+                        }
                       }}
-                      className="h-8 text-xs"
+                      onBlur={(e) => {
+                        // Valida o formato h:mm ao sair do campo
+                        const regexFinal = /^\d{1,2}:[0-5][0-9]$/;
+                        if (e.target.value && !regexFinal.test(e.target.value)) {
+                          alert("Formato inválido! Use o formato h:mm (ex: 1:30)");
+                        }
+                      }}
                       placeholder="0:00"
+                      className="h-8 text-xs"
+                      required
+                      maxLength={5}
+                      pattern="^\\d{1,2}:[0-5][0-9]$"
                     />
                   </div>
-
 
                   {/* Campo oculto fora do grid para não ocupar espaço */}
                   <div className="hidden">
