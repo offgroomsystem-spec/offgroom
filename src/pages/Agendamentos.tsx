@@ -1686,7 +1686,7 @@ const Agendamentos = () => {
 
                 {/* Tempo de Serviço e Serviço (Horário Término oculto sem ocupar espaço) */}
                 <div className="grid grid-cols-[28%_72%] gap-2">
-                  {/* Campo Tempo de Serviço com validação h:mm */}
+                  {/* Campo Tempo de Serviço com máscara automática h:mm */}
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço *
@@ -1696,29 +1696,43 @@ const Agendamentos = () => {
                       type="text"
                       value={formData.tempoServico}
                       onChange={(e) => {
-                        const value = e.target.value;
-                        // Permite apenas números e um ":" durante a digitação (ex: 1:30)
-                        const regex = /^\d{0,2}:?\d{0,2}$/;
-                        if (regex.test(value)) {
-                          setFormData({
-                            cliente: formData.cliente,
-                            pet: formData.pet,
-                            raca: formData.raca,
-                            whatsapp: formData.whatsapp,
-                            data: formData.data,
-                            horario: formData.horario,
-                            tempoServico: value,
-                            horarioTermino: formData.horarioTermino,
-                            servico: formData.servico,
-                            numeroServicoPacote: formData.numeroServicoPacote,
-                            groomer: formData.groomer,
-                            dataVenda: formData.dataVenda,
-                            taxiDog: formData.taxiDog,
-                          });
+                        let value = e.target.value.replace(/\D/g, ""); // remove tudo que não for número
+
+                        // Aplica máscara h:mm
+                        if (value.length === 0) {
+                          value = "";
+                        } else if (value.length <= 2) {
+                          value = value.replace(/^(\d{0,2})$/, "$1"); // apenas horas parciais
+                        } else if (value.length === 3) {
+                          value = value.replace(/^(\d{1})(\d{2})$/, "$1:$2");
+                        } else {
+                          value = value.replace(/^(\d{1,2})(\d{2}).*$/, "$1:$2");
                         }
+
+                        // Impede minutos maiores que 59
+                        const parts = value.split(":");
+                        if (parts.length === 2 && parseInt(parts[1], 10) > 59) {
+                          parts[1] = "59";
+                          value = `${parts[0]}:${parts[1]}`;
+                        }
+
+                        setFormData({
+                          cliente: formData.cliente,
+                          pet: formData.pet,
+                          raca: formData.raca,
+                          whatsapp: formData.whatsapp,
+                          data: formData.data,
+                          horario: formData.horario,
+                          tempoServico: value,
+                          horarioTermino: formData.horarioTermino,
+                          servico: formData.servico,
+                          numeroServicoPacote: formData.numeroServicoPacote,
+                          groomer: formData.groomer,
+                          dataVenda: formData.dataVenda,
+                          taxiDog: formData.taxiDog,
+                        });
                       }}
                       onBlur={(e) => {
-                        // Valida o formato h:mm ao sair do campo
                         const regexFinal = /^\d{1,2}:[0-5][0-9]$/;
                         if (e.target.value && !regexFinal.test(e.target.value)) {
                           alert("Formato inválido! Use o formato h:mm (ex: 1:30)");
