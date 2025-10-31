@@ -1686,7 +1686,6 @@ const Agendamentos = () => {
 
                 {/* Tempo de Serviço e Serviço (Horário Término oculto sem ocupar espaço) */}
                 <div className="grid grid-cols-[28%_72%] gap-2">
-                  {/* Campo Tempo de Serviço com máscara automática h:mm */}
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço *
@@ -1698,15 +1697,22 @@ const Agendamentos = () => {
                       onChange={(e) => {
                         let value = e.target.value.replace(/\D/g, ""); // remove tudo que não for número
 
-                        // Aplica máscara h:mm
+                        // 🔒 Limite máximo: 3 dígitos antes de aplicar a máscara
+                        if (value.length > 3) {
+                          value = value.slice(0, 3);
+                        }
+
+                        // Aplica máscara automática h:mm
                         if (value.length === 0) {
                           value = "";
-                        } else if (value.length <= 2) {
-                          value = value.replace(/^(\d{0,2})$/, "$1"); // apenas horas parciais
+                        } else if (value.length <= 1) {
+                          value = value; // apenas 1 dígito (hora parcial)
+                        } else if (value.length === 2) {
+                          // se 2 dígitos, assume que o segundo é minuto parcial (ex: "12" → "1:2")
+                          value = `${value[0]}:${value[1]}`;
                         } else if (value.length === 3) {
-                          value = value.replace(/^(\d{1})(\d{2})$/, "$1:$2");
-                        } else {
-                          value = value.replace(/^(\d{1,2})(\d{2}).*$/, "$1:$2");
+                          // se 3 dígitos, separa 1 e 2 últimos como minutos
+                          value = `${value[0]}:${value.slice(1, 3)}`;
                         }
 
                         // Impede minutos maiores que 59
@@ -1733,7 +1739,7 @@ const Agendamentos = () => {
                         });
                       }}
                       onBlur={(e) => {
-                        const regexFinal = /^\d{1,2}:[0-5][0-9]$/;
+                        const regexFinal = /^\d{1}:[0-5][0-9]$/;
                         if (e.target.value && !regexFinal.test(e.target.value)) {
                           alert("Formato inválido! Use o formato h:mm (ex: 1:30)");
                         }
@@ -1741,8 +1747,8 @@ const Agendamentos = () => {
                       placeholder="0:00"
                       className="h-8 text-xs"
                       required
-                      maxLength={5}
-                      pattern="^\\d{1,2}:[0-5][0-9]$"
+                      maxLength={4}
+                      pattern="^\\d{1}:[0-5][0-9]$"
                     />
                   </div>
 
