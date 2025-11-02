@@ -10,6 +10,7 @@ import { DRE } from "@/components/relatorios/financeiros/DRE";
 import { Inadimplencia } from "@/components/relatorios/financeiros/InadimplenciaDisabled";
 import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/PacotesProximosVencimento";
 import { PacotesExpirados } from "@/components/relatorios/pacotes/PacotesExpirados";
+import ControleFinanceiro from "@/pages/ControleFinanceiro";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -21,9 +22,16 @@ const Relatorios = () => {
 
   const [relatorioAtivo, setRelatorioAtivo] = useState<string | null>(null);
   const [versaoFiltro, setVersaoFiltro] = useState(0);
+  const [filtrosControleFinanceiro, setFiltrosControleFinanceiro] = useState<any>(null);
 
-  const handleCardClick = (nomeRelatorio: string) => {
+  const handleCardClick = (nomeRelatorio: string, filtrosIniciais?: any) => {
     setRelatorioAtivo(nomeRelatorio);
+    
+    if (nomeRelatorio === "controle-financeiro" && filtrosIniciais) {
+      setFiltrosControleFinanceiro(filtrosIniciais);
+    } else {
+      setFiltrosControleFinanceiro(null);
+    }
   };
 
   const handleVoltar = () => {
@@ -60,13 +68,16 @@ const Relatorios = () => {
             onNavigateToReport={handleCardClick}
           />
         )}
+        {relatorioAtivo === "controle-financeiro" && (
+          <ControleFinanceiro filtrosIniciais={filtrosControleFinanceiro} />
+        )}
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
         
-        {!["dashboard", "fluxo-caixa", "dre", "inadimplencia", "pacotes-vencimento", "pacotes-expirados"].includes(relatorioAtivo) && (
+        {!["dashboard", "controle-financeiro", "fluxo-caixa", "dre", "inadimplencia", "pacotes-vencimento", "pacotes-expirados"].includes(relatorioAtivo) && (
           <Card>
             <CardHeader>
               <CardTitle>Relatório em Desenvolvimento</CardTitle>

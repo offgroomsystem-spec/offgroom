@@ -9,6 +9,7 @@ interface KPICardProps {
   cor?: "default" | "green" | "red" | "yellow";
   periodo?: string;
   destaque?: boolean;
+  onClick?: () => void;
 }
 
 const formatCurrency = (value: number): string => {
@@ -18,7 +19,7 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", periodo, destaque }: KPICardProps) => {
+export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", periodo, destaque, onClick }: KPICardProps) => {
   const corClasses = {
     default: "text-foreground",
     green: "text-green-600",
@@ -30,7 +31,8 @@ export const KPICard = ({ titulo, valor, subtitulo, icon, cor = "default", perio
     <Card
       className={`flex flex-col justify-between rounded-2xl shadow-sm border border-gray-200 ${
         destaque ? "border-2 border-primary" : ""
-      }`}
+      } ${onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+      onClick={onClick}
     >
       {/* HEADER - título colado à borda */}
       <CardHeader className="p-3 pb-1">

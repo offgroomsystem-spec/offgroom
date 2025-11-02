@@ -28,7 +28,7 @@ interface Filtros {
 
 interface DashboardExecutivoProps {
   filtros: Filtros;
-  onNavigateToReport?: (reportId: string) => void;
+  onNavigateToReport?: (reportId: string, filtrosIniciais?: any) => void;
 }
 
 interface DadosAtendimentos {
@@ -229,42 +229,27 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           .lte("data", dataFim.toISOString().split("T")[0]);
         setAgendamentos(agendamentosData || []);
 
-        // Carregar Receitas e Despesas
-        const { data: receitasData } = await supabase
-          .from("receitas")
-          .select("*")
-          .eq("user_id", user.id)
-          .gte("data", dataInicio.toISOString().split("T")[0])
-          .lte("data", dataFim.toISOString().split("T")[0]);
+        // Carregar Lançamentos Financeiros
+        const { data: lancamentosFinanceirosData } = await supabase
+          .from("lancamentos_financeiros")
+          .select(`
+            *,
+            lancamentos_financeiros_itens(*)
+          `)
+          .eq("user_id", user.id);
 
-        const { data: despesasData } = await supabase
-          .from("despesas")
-          .select("*")
-          .eq("user_id", user.id)
-          .gte("data", dataInicio.toISOString().split("T")[0])
-          .lte("data", dataFim.toISOString().split("T")[0]);
-
-        // Combinar em formato de lançamentos
-        const lancamentosCombinados = [
-          ...(receitasData || []).map((r) => ({
-            id: r.id,
-            tipo: "Receita",
-            descricao: r.descricao,
-            valorTotal: Number(r.valor),
-            dataPagamento: r.data,
-            pago: true,
-            categoria: r.categoria,
-          })),
-          ...(despesasData || []).map((d) => ({
-            id: d.id,
-            tipo: "Despesa",
-            descricao: d.descricao,
-            valorTotal: Number(d.valor),
-            dataPagamento: d.data,
-            pago: true,
-            categoria: d.categoria,
-          })),
-        ];
+        // Converter para formato compatível
+        const lancamentosCombinados = (lancamentosFinanceirosData || []).map((l) => ({
+          id: l.id,
+          tipo: l.tipo,
+          descricao: l.descricao1,
+          valorTotal: Number(l.valor_total),
+          dataPagamento: l.data_pagamento,
+          pago: l.pago,
+          categoria: null,
+          clienteId: l.cliente_id,
+          contaId: l.conta_id,
+        }));
 
         setLancamentos(lancamentosCombinados);
       } catch (error) {
@@ -283,24 +268,33 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     const hoje = new Date();
     const { dataInicio, dataFim } = calcularIntervaloFiltro;
 
-    // Lucro Líquido do Período
-    const receitasMes = lancamentos
+    // Lucro Líquido APENAS DO MÊS ATUAL (independente do filtro de período)
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth(); // 0-11
+
+    const primeiroDiaMesAtual = new Date(anoAtual, mesAtual, 1);
+    primeiroDiaMesAtual.setHours(0, 0, 0, 0);
+
+    const ultimoDiaMesAtual = new Date(anoAtual, mesAtual + 1, 0);
+    ultimoDiaMesAtual.setHours(23, 59, 59, 999);
+
+    const receitasMesAtual = lancamentos
       .filter((l: any) => {
         if (l.tipo !== "Receita" || !l.pago) return false;
         const dataPag = new Date(l.dataPagamento);
-        return dataPag >= dataInicio && dataPag <= dataFim;
+        return dataPag >= primeiroDiaMesAtual && dataPag <= ultimoDiaMesAtual;
       })
       .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
-    const despesasMes = lancamentos
+    const despesasMesAtual = lancamentos
       .filter((l: any) => {
         if (l.tipo !== "Despesa" || !l.pago) return false;
         const dataPag = new Date(l.dataPagamento);
-        return dataPag >= dataInicio && dataPag <= dataFim;
+        return dataPag >= primeiroDiaMesAtual && dataPag <= ultimoDiaMesAtual;
       })
       .reduce((acc: number, l: any) => acc + (l.valorTotal || 0), 0);
 
-    const lucroLiquido = receitasMes - despesasMes;
+    const lucroLiquido = receitasMesAtual - despesasMesAtual;
 
     // Ticket Médio = Faturamento Total / Número de Atendimentos (Avulsos + Pacotes)
 
@@ -325,7 +319,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     });
 
     const totalAtendimentos = atendimentosAvulsosConcluidos + servicosPacotesConcluidos;
-    const ticketMedio = totalAtendimentos > 0 ? receitasMes / totalAtendimentos : 0;
+    const ticketMedio = totalAtendimentos > 0 ? receitasMesAtual / totalAtendimentos : 0;
 
     // Agenda do Dia (serviços avulsos + pacotes)
     const hojeStr = format(hoje, "yyyy-MM-dd");
@@ -787,21 +781,24 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
           titulo="Lucro Líquido"
           valor={kpis.lucroLiquido}
           icon={<DollarSign className="h-4 w-4" />}
-          periodo={
-            filtros.periodo === "hoje"
-              ? "Hoje"
-              : filtros.periodo === "semana"
-                ? "Esta Semana"
-                : filtros.periodo === "mes"
-                  ? "Este Mês"
-                  : filtros.periodo === "trimestre"
-                    ? "Este Trimestre"
-                    : filtros.periodo === "ano"
-                      ? "Este Ano"
-                      : "Período Customizado"
-          }
+          periodo="Este Mês"
           cor={kpis.lucroLiquido >= 0 ? "green" : "red"}
           destaque
+          onClick={() => {
+            if (onNavigateToReport) {
+              const hoje = new Date();
+              const anoAtual = hoje.getFullYear();
+              const mesAtual = hoje.getMonth() + 1; // 1-12
+              const ultimoDia = new Date(anoAtual, mesAtual, 0).getDate();
+              
+              onNavigateToReport("controle-financeiro", {
+                ano: anoAtual.toString(),
+                dataInicio: `${anoAtual}-${String(mesAtual).padStart(2, '0')}-01`,
+                dataFim: `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`,
+                foiPago: "sim"
+              });
+            }
+          }}
         />
         <KPICard titulo="Ticket Médio" valor={kpis.ticketMedio} icon={<TrendingUp className="h-4 w-4" />} />
         <KPICard titulo="Agenda do Dia" valor={`${kpis.agendaDia} serviços`} icon={<Calendar className="h-4 w-4" />} />

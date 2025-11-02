@@ -309,7 +309,16 @@ const ItemLancamentoForm = ({
   );
 };
 
-const ControleFinanceiro = () => {
+interface ControleFinanceiroProps {
+  filtrosIniciais?: {
+    ano?: string;
+    dataInicio?: string;
+    dataFim?: string;
+    foiPago?: string;
+  };
+}
+
+const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
@@ -512,6 +521,34 @@ const ControleFinanceiro = () => {
 
   const [filtroDataAtivo, setFiltroDataAtivo] = useState<"periodo" | "mesano" | null>(null);
   const [filtrosAplicados, setFiltrosAplicados] = useState(false);
+
+  // Aplicar filtros iniciais quando fornecidos
+  useEffect(() => {
+    if (filtrosIniciais) {
+      const novosFiltros: any = { ...filtros };
+      
+      if (filtrosIniciais.ano) {
+        novosFiltros.ano = filtrosIniciais.ano;
+      }
+      if (filtrosIniciais.dataInicio) {
+        novosFiltros.dataInicio = filtrosIniciais.dataInicio;
+        setFiltroDataAtivo("periodo");
+      }
+      if (filtrosIniciais.dataFim) {
+        novosFiltros.dataFim = filtrosIniciais.dataFim;
+        setFiltroDataAtivo("periodo");
+      }
+      if (filtrosIniciais.foiPago === "sim") {
+        novosFiltros.pago = true;
+      } else if (filtrosIniciais.foiPago === "nao") {
+        novosFiltros.pago = false;
+      }
+      
+      setFiltros(novosFiltros);
+      setFiltrosAplicados(true);
+      setMostrarFiltros(true);
+    }
+  }, [filtrosIniciais]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
