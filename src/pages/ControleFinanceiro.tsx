@@ -546,7 +546,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       
       setFiltros(novosFiltros);
       setFiltrosAplicados(true);
-      setMostrarFiltros(true);
+      setMostrarFiltros(false);
     }
   }, [filtrosIniciais]);
 
