@@ -145,7 +145,7 @@ Aguardamos seu retorno.`;
         const temAgendamentoNaTabela = agendamentosClientePet.some((ag) => {
           const dataAgendamento = new Date(ag.data);
           dataAgendamento.setHours(0, 0, 0, 0);
-          return dataAgendamento >= hoje;
+          return dataAgendamento > hoje;
         });
 
         // Verificar se tem serviço futuro no próprio pacote (JSON servicos)
@@ -153,7 +153,7 @@ Aguardamos seu retorno.`;
           (pacoteVendido.servicos as any[])?.filter((servico) => {
             const dataServico = new Date(servico.data);
             dataServico.setHours(0, 0, 0, 0);
-            return dataServico >= hoje;
+            return dataServico > hoje;
           }) || [];
         const temServicoFuturoNoPacote = servicosFuturosNoPacote.length > 0;
 
@@ -175,7 +175,7 @@ Aguardamos seu retorno.`;
           return (outroPacote.servicos as any[])?.some((servico) => {
             const dataServico = new Date(servico.data);
             dataServico.setHours(0, 0, 0, 0);
-            return dataServico >= hoje;
+            return dataServico > hoje;
           });
         });
 
@@ -185,12 +185,54 @@ Aguardamos seu retorno.`;
 
         // Se não tem agendamento futuro em NENHUM lugar, adicionar à lista
         if (!temAgendamentoFuturo) {
-          // Encontrar data do último agendamento
-          const ultimoAgendamento = agendamentosClientePet.sort(
-            (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
-          )[0];
+          // 1. Buscar último agendamento da tabela agendamentos
+          const ultimoAgendamentoTabela = agendamentosClientePet.length > 0
+            ? agendamentosClientePet
+                .map(ag => new Date(ag.data))
+                .sort((a, b) => b.getTime() - a.getTime())[0]
+            : null;
 
-          const dataUltimo = ultimoAgendamento ? new Date(ultimoAgendamento.data.split("T")[0] + "T00:00:00") : null;
+          // 2. Buscar último serviço de TODOS os pacotes do cliente/pet
+          const todosPacotesClientePet = agendamentosPacotes?.filter((p) => {
+            const clienteNormalizado = p.nome_cliente?.trim().toLowerCase() || "";
+            const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || "";
+            const petNormalizado = p.nome_pet?.trim().toLowerCase() || "";
+            const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || "";
+
+            return clienteNormalizado === clientePacoteNormalizado && 
+                   petNormalizado === petPacoteNormalizado;
+          }) || [];
+
+          const todasDatasServicos: Date[] = [];
+          todosPacotesClientePet.forEach(pacote => {
+            (pacote.servicos as any[])?.forEach(servico => {
+              if (servico.data) {
+                todasDatasServicos.push(new Date(servico.data));
+              }
+            });
+          });
+
+          const ultimoServicoData = todasDatasServicos.length > 0
+            ? todasDatasServicos.sort((a, b) => b.getTime() - a.getTime())[0]
+            : null;
+
+          // 3. Comparar e pegar a mais recente
+          let dataUltimo: Date | null = null;
+
+          if (ultimoAgendamentoTabela && ultimoServicoData) {
+            dataUltimo = ultimoAgendamentoTabela > ultimoServicoData 
+              ? ultimoAgendamentoTabela 
+              : ultimoServicoData;
+          } else if (ultimoAgendamentoTabela) {
+            dataUltimo = ultimoAgendamentoTabela;
+          } else if (ultimoServicoData) {
+            dataUltimo = ultimoServicoData;
+          }
+
+          // Normalizar para evitar problemas de timezone
+          if (dataUltimo) {
+            dataUltimo.setHours(0, 0, 0, 0);
+          }
 
           const diasDesde = calcularDiasDesde(dataUltimo);
 

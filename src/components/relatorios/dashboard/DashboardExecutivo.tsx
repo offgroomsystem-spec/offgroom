@@ -458,14 +458,14 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
       const temAgendamentoNaTabela = agendamentosClientePet.some((ag: any) => {
         const dataAgendamento = new Date(ag.data);
         dataAgendamento.setHours(0, 0, 0, 0);
-        return dataAgendamento >= hoje;
+        return dataAgendamento > hoje;
       });
 
       // 5b. Verificar serviços do próprio pacote
       const temServicoFuturoNoPacote = (pacoteVendido.servicos as any[])?.some((servico: any) => {
         const dataServico = new Date(servico.data);
         dataServico.setHours(0, 0, 0, 0);
-        return dataServico >= hoje;
+        return dataServico > hoje;
       }) || false;
 
       // 5c. Verificar outros pacotes do mesmo cliente/pet
@@ -484,7 +484,7 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         return (outroPacote.servicos as any[])?.some((servico: any) => {
           const dataServico = new Date(servico.data);
           dataServico.setHours(0, 0, 0, 0);
-          return dataServico >= hoje;
+          return dataServico > hoje;
         });
       });
 
