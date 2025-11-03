@@ -577,13 +577,15 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       // Se não há pet selecionado, retorna todos os clientes
       return [...new Set(clientes.map((c) => c.nomeCliente))];
     }
-    // Encontrar o pet selecionado
-    const petSelecionado = pets.find((p) => p.nomePet === formData.nomePet);
-    if (!petSelecionado) return [];
+    // Encontrar TODOS os pets com o nome selecionado
+    const petsSelecionados = pets.filter((p) => p.nomePet === formData.nomePet);
+    if (petsSelecionados.length === 0) return [];
 
-    // Retornar apenas o cliente dono deste pet
-    const clienteDonoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
-    return clienteDonoPet ? [clienteDonoPet.nomeCliente] : [];
+    // Retornar TODOS os clientes que têm pets com este nome
+    const clientesDoPet = clientes
+      .filter((c) => petsSelecionados.some((p) => p.clienteId === c.id))
+      .map((c) => c.nomeCliente);
+    return clientesDoPet;
   }, [formData.nomePet, clientes, pets]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -962,7 +964,13 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             <Filter className="h-3 w-3" />
             {mostrarFiltros ? "Ocultar Filtros" : "Aplicar Filtros"}
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            // Limpar formulário ao fechar o dialog
+            if (!open) {
+              resetForm();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2 h-8 text-xs bg-green-600 hover:bg-green-700">
                 <Plus className="h-3 w-3" />
@@ -1083,17 +1091,32 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     <ComboboxField
                       value={formData.nomePet}
                       onChange={(value) => {
-                        // Ao mudar pet, atualizar cliente automaticamente
-                        const petSelecionado = pets.find((p) => p.nomePet === value);
-                        if (petSelecionado) {
-                          const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
-                          if (clienteDoPet) {
-                            setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente });
+                        // Ao mudar pet, atualizar cliente automaticamente APENAS se não houver cliente já selecionado
+                        if (!formData.nomeCliente) {
+                          // Se não há cliente selecionado, pegar o primeiro cliente que tem este pet
+                          const petSelecionado = pets.find((p) => p.nomePet === value);
+                          if (petSelecionado) {
+                            const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
+                            if (clienteDoPet) {
+                              setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente });
+                            } else {
+                              setFormData({ ...formData, nomePet: value });
+                            }
                           } else {
                             setFormData({ ...formData, nomePet: value });
                           }
                         } else {
-                          setFormData({ ...formData, nomePet: value });
+                          // Se já há cliente selecionado, verificar se o pet pertence a ele
+                          const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+                          const petSelecionado = pets.find((p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id);
+                          
+                          if (petSelecionado) {
+                            // Pet pertence ao cliente selecionado, manter o cliente
+                            setFormData({ ...formData, nomePet: value });
+                          } else {
+                            // Pet não pertence ao cliente selecionado, limpar cliente para que usuário escolha
+                            setFormData({ ...formData, nomePet: value, nomeCliente: "" });
+                          }
                         }
                       }}
                       options={petsFormulario}
@@ -1612,7 +1635,13 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       </Card>
 
       {/* Dialog de Edição */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        // Limpar formulário ao fechar o dialog
+        if (!open) {
+          resetForm();
+        }
+      }}>
         <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base">Editar Lançamento</DialogTitle>
@@ -1700,7 +1729,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 <ComboboxField
                   value={formData.nomeCliente}
                   onChange={(value) => {
-                    setFormData({ ...formData, nomeCliente: value, nomePet: "" });
+                    // Ao mudar cliente, limpar pet apenas se o pet atual não pertencer ao novo cliente
+                    const novoCliente = clientes.find((c) => c.nomeCliente === value);
+                    if (novoCliente && formData.nomePet) {
+                      const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
+                      if (petAtual && petAtual.clienteId !== novoCliente.id) {
+                        setFormData({ ...formData, nomeCliente: value, nomePet: "" });
+                      } else {
+                        setFormData({ ...formData, nomeCliente: value });
+                      }
+                    } else {
+                      setFormData({ ...formData, nomeCliente: value });
+                    }
                   }}
                   options={clientesFormulario}
                   placeholder="Selecione o cliente"
@@ -1713,7 +1753,35 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 <Label className="text-[10px] font-semibold">Nome do Pet *</Label>
                 <ComboboxField
                   value={formData.nomePet}
-                  onChange={(value) => setFormData({ ...formData, nomePet: value })}
+                  onChange={(value) => {
+                    // Ao mudar pet, atualizar cliente automaticamente APENAS se não houver cliente já selecionado
+                    if (!formData.nomeCliente) {
+                      // Se não há cliente selecionado, pegar o primeiro cliente que tem este pet
+                      const petSelecionado = pets.find((p) => p.nomePet === value);
+                      if (petSelecionado) {
+                        const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
+                        if (clienteDoPet) {
+                          setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente });
+                        } else {
+                          setFormData({ ...formData, nomePet: value });
+                        }
+                      } else {
+                        setFormData({ ...formData, nomePet: value });
+                      }
+                    } else {
+                      // Se já há cliente selecionado, verificar se o pet pertence a ele
+                      const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+                      const petSelecionado = pets.find((p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id);
+                      
+                      if (petSelecionado) {
+                        // Pet pertence ao cliente selecionado, manter o cliente
+                        setFormData({ ...formData, nomePet: value });
+                      } else {
+                        // Pet não pertence ao cliente selecionado, limpar cliente para que usuário escolha
+                        setFormData({ ...formData, nomePet: value, nomeCliente: "" });
+                      }
+                    }
+                  }}
                   options={petsFormulario}
                   placeholder="Selecione o pet"
                   searchPlaceholder="Buscar pet..."
