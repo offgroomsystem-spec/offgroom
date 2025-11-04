@@ -1098,7 +1098,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         }
                       }}
                       options={clientesFormulario}
-                      placeholder={formData.tipo === "Receita" ? "Não aplicável" : "Selecione o cliente"}
+                      placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o cliente"}
                       searchPlaceholder="Buscar cliente..."
                       id="form-cliente"
                     />
@@ -1140,7 +1140,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         }
                       }}
                       options={petsFormulario}
-                      placeholder={formData.tipo === "Receita" ? "Não aplicável" : "Selecione o pet"}
+                      placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o pet"}
                       searchPlaceholder="Buscar pet..."
                       id="form-pet"
                     />
