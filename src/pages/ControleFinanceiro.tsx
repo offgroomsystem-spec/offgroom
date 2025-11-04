@@ -136,7 +136,7 @@ const meses = [
   { value: "12", label: "Dezembro" },
 ];
 
-// Componente ComboboxField
+// Componente ComboboxField (corrigido para suportar "disabled")
 interface ComboboxFieldProps {
   value: string;
   onChange: (value: string) => void;
@@ -144,19 +144,45 @@ interface ComboboxFieldProps {
   placeholder: string;
   searchPlaceholder: string;
   id: string;
+  disabled?: boolean; // <-- adicionada
 }
 
-const ComboboxField = ({ value, onChange, options, placeholder, searchPlaceholder, id }: ComboboxFieldProps) => {
+const ComboboxField = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+  searchPlaceholder,
+  id,
+  disabled = false,
+}: ComboboxFieldProps) => {
   const [open, setOpen] = useState(false);
 
+  // Evita abrir o popover quando estiver desabilitado
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (disabled) {
+      setOpen(false);
+      return;
+    }
+    setOpen(nextOpen);
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-7 text-xs">
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn("w-full justify-between h-7 text-xs", disabled ? "opacity-50 cursor-not-allowed" : "")}
+          disabled={disabled}
+        >
           {value || placeholder}
           <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
+
+      {/* Conteúdo do popover — só poderá abrir se !disabled */}
       <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput placeholder={searchPlaceholder} className="text-xs" />
@@ -167,6 +193,7 @@ const ComboboxField = ({ value, onChange, options, placeholder, searchPlaceholde
                 key={option}
                 value={option}
                 onSelect={() => {
+                  if (disabled) return; // segurança extra
                   onChange(option);
                   setOpen(false);
                 }}
@@ -526,7 +553,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
   useEffect(() => {
     if (filtrosIniciais) {
       const novosFiltros: any = { ...filtros };
-      
+
       if (filtrosIniciais.ano) {
         novosFiltros.ano = filtrosIniciais.ano;
       }
@@ -543,7 +570,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       } else if (filtrosIniciais.foiPago === "nao") {
         novosFiltros.pago = false;
       }
-      
+
       setFiltros(novosFiltros);
       setFiltrosAplicados(true);
       setMostrarFiltros(false);
@@ -980,13 +1007,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             <Filter className="h-3 w-3" />
             {mostrarFiltros ? "Ocultar Filtros" : "Aplicar Filtros"}
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            // Limpar formulário ao fechar o dialog
-            if (!open) {
-              resetForm();
-            }
-          }}>
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              // Limpar formulário ao fechar o dialog
+              if (!open) {
+                resetForm();
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2 h-8 text-xs bg-green-600 hover:bg-green-700">
                 <Plus className="h-3 w-3" />
@@ -1076,130 +1106,115 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   </div>
                 </div>
 
-<div className="grid grid-cols-2 gap-2">
-  {/* Nome do Cliente */}
-  <div className="space-y-0.5">
-    <Label className="text-[10px] font-semibold">
-      Nome do Cliente {formData.tipo !== "Despesa" && "*"}
-    </Label>
-    <ComboboxField
-      value={
-        formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente
-      }
-      onChange={(value) => {
-        if (formData.tipo === "Despesa") return;
-        const novoCliente = clientes.find((c) => c.nomeCliente === value);
-        if (novoCliente && formData.nomePet) {
-          const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
-          if (petAtual && petAtual.clienteId !== novoCliente.id) {
-            setFormData({ ...formData, nomeCliente: value, nomePet: "" });
-          } else {
-            setFormData({ ...formData, nomeCliente: value });
-          }
-        } else {
-          setFormData({ ...formData, nomeCliente: value });
-        }
-      }}
-      options={clientesFormulario}
-      placeholder={
-        formData.tipo === "Despesa"
-          ? "Não aplicável"
-          : "Selecione o cliente"
-      }
-      searchPlaceholder="Buscar cliente..."
-      id="form-cliente"
-      disabled={formData.tipo === "Despesa"}
-    />
-  </div>
-
-  {/* Nome do Pet */}
-  <div className="space-y-0.5">
-    <Label className="text-[10px] font-semibold">
-      Nome do Pet {formData.tipo !== "Despesa" && "*"}
-    </Label>
-    <ComboboxField
-      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomePet}
-      onChange={(value) => {
-        if (formData.tipo === "Despesa") return;
-
-        if (!formData.nomeCliente) {
-          const petSelecionado = pets.find((p) => p.nomePet === value);
-          if (petSelecionado) {
-            const clienteDoPet = clientes.find(
-              (c) => c.id === petSelecionado.clienteId
-            );
-            if (clienteDoPet) {
-              setFormData({
-                ...formData,
-                nomePet: value,
-                nomeCliente: clienteDoPet.nomeCliente,
-              });
-            } else {
-              setFormData({ ...formData, nomePet: value });
-            }
-          } else {
-            setFormData({ ...formData, nomePet: value });
-          }
-        } else {
-          const clienteSelecionado = clientes.find(
-            (c) => c.nomeCliente === formData.nomeCliente
-          );
-          const petSelecionado = pets.find(
-            (p) =>
-              p.nomePet === value &&
-              p.clienteId === clienteSelecionado?.id
-          );
-
-          if (petSelecionado) {
-            setFormData({ ...formData, nomePet: value });
-          } else {
-            setFormData({ ...formData, nomePet: value, nomeCliente: "" });
-          }
-        }
-      }}
-      options={petsFormulario}
-      placeholder={
-        formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o pet"
-      }
-      searchPlaceholder="Buscar pet..."
-      id="form-pet"
-      disabled={formData.tipo === "Despesa"}
-    />
-  </div>
-</div>
-
-
-                  {itensLancamento.map((item, index) => (
-                    <ItemLancamentoForm
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      formData={formData}
-                      servicos={servicos}
-                      pacotes={pacotes}
-                      produtos={produtos}
-                      onChange={(novoItem) => {
-                        setItensLancamento(itensLancamento.map((i) => (i.id === item.id ? novoItem : i)));
-                      }}
-                      onRemove={() => {
-                        if (itensLancamento.length > 1) {
-                          setItensLancamento(itensLancamento.filter((i) => i.id !== item.id));
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Nome do Cliente */}
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">
+                      Nome do Cliente {formData.tipo !== "Despesa" && "*"}
+                    </Label>
+                    <ComboboxField
+                      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente}
+                      onChange={(value) => {
+                        if (formData.tipo === "Despesa") return;
+                        const novoCliente = clientes.find((c) => c.nomeCliente === value);
+                        if (novoCliente && formData.nomePet) {
+                          const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
+                          if (petAtual && petAtual.clienteId !== novoCliente.id) {
+                            setFormData({ ...formData, nomeCliente: value, nomePet: "" });
+                          } else {
+                            setFormData({ ...formData, nomeCliente: value });
+                          }
                         } else {
-                          toast.error("É necessário ter pelo menos 1 item");
+                          setFormData({ ...formData, nomeCliente: value });
                         }
                       }}
-                      canRemove={itensLancamento.length > 1}
+                      options={clientesFormulario}
+                      placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o cliente"}
+                      searchPlaceholder="Buscar cliente..."
+                      id="form-cliente"
+                      disabled={formData.tipo === "Despesa"}
                     />
-                  ))}
-
-                  <div className="pt-2 border-t">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-xs font-semibold">Valor Total:</Label>
-                      <span className="text-base font-bold text-primary">
-                        {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
-                      </span>
-                    </div>
                   </div>
+
+                  {/* Nome do Pet */}
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">
+                      Nome do Pet {formData.tipo !== "Despesa" && "*"}
+                    </Label>
+                    <ComboboxField
+                      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomePet}
+                      onChange={(value) => {
+                        if (formData.tipo === "Despesa") return;
+
+                        if (!formData.nomeCliente) {
+                          const petSelecionado = pets.find((p) => p.nomePet === value);
+                          if (petSelecionado) {
+                            const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
+                            if (clienteDoPet) {
+                              setFormData({
+                                ...formData,
+                                nomePet: value,
+                                nomeCliente: clienteDoPet.nomeCliente,
+                              });
+                            } else {
+                              setFormData({ ...formData, nomePet: value });
+                            }
+                          } else {
+                            setFormData({ ...formData, nomePet: value });
+                          }
+                        } else {
+                          const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+                          const petSelecionado = pets.find(
+                            (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
+                          );
+
+                          if (petSelecionado) {
+                            setFormData({ ...formData, nomePet: value });
+                          } else {
+                            setFormData({ ...formData, nomePet: value, nomeCliente: "" });
+                          }
+                        }
+                      }}
+                      options={petsFormulario}
+                      placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o pet"}
+                      searchPlaceholder="Buscar pet..."
+                      id="form-pet"
+                      disabled={formData.tipo === "Despesa"}
+                    />
+                  </div>
+                </div>
+
+                {itensLancamento.map((item, index) => (
+                  <ItemLancamentoForm
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    formData={formData}
+                    servicos={servicos}
+                    pacotes={pacotes}
+                    produtos={produtos}
+                    onChange={(novoItem) => {
+                      setItensLancamento(itensLancamento.map((i) => (i.id === item.id ? novoItem : i)));
+                    }}
+                    onRemove={() => {
+                      if (itensLancamento.length > 1) {
+                        setItensLancamento(itensLancamento.filter((i) => i.id !== item.id));
+                      } else {
+                        toast.error("É necessário ter pelo menos 1 item");
+                      }
+                    }}
+                    canRemove={itensLancamento.length > 1}
+                  />
+                ))}
+
+                <div className="pt-2 border-t">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs font-semibold">Valor Total:</Label>
+                    <span className="text-base font-bold text-primary">
+                      {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
+                    </span>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-0.5">
@@ -1654,13 +1669,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       </Card>
 
       {/* Dialog de Edição */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-        setIsEditDialogOpen(open);
-        // Limpar formulário ao fechar o dialog
-        if (!open) {
-          resetForm();
-        }
-      }}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          // Limpar formulário ao fechar o dialog
+          if (!open) {
+            resetForm();
+          }
+        }}
+      >
         <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base">Editar Lançamento</DialogTitle>
@@ -1771,9 +1789,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               </div>
 
               <div className="space-y-0.5">
-                <Label className="text-[10px] font-semibold">
-                  Nome do Pet {formData.tipo === "Despesa" && "*"}
-                </Label>
+                <Label className="text-[10px] font-semibold">Nome do Pet {formData.tipo === "Despesa" && "*"}</Label>
                 <ComboboxField
                   value={formData.nomePet}
                   onChange={(value) => {
@@ -1794,8 +1810,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     } else {
                       // Se já há cliente selecionado, verificar se o pet pertence a ele
                       const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                      const petSelecionado = pets.find((p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id);
-                      
+                      const petSelecionado = pets.find(
+                        (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
+                      );
+
                       if (petSelecionado) {
                         // Pet pertence ao cliente selecionado, manter o cliente
                         setFormData({ ...formData, nomePet: value });
