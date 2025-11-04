@@ -1077,13 +1077,17 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
+                  {/* === NOME DO CLIENTE === */}
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">
-                      Nome do Cliente {formData.tipo === "Despesa" && "*"}
+                      Nome do Cliente {formData.tipo === "Receita" && "*"}
                     </Label>
                     <ComboboxField
-                      value={formData.nomeCliente}
+                      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente}
                       onChange={(value) => {
+                        // Só permite alterar se NÃO for Despesa
+                        if (formData.tipo === "Despesa") return;
+                
                         // Ao mudar cliente, limpar pet apenas se o pet atual não pertencer ao novo cliente
                         const novoCliente = clientes.find((c) => c.nomeCliente === value);
                         if (novoCliente && formData.nomePet) {
@@ -1101,19 +1105,23 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o cliente"}
                       searchPlaceholder="Buscar cliente..."
                       id="form-cliente"
+                      disabled={formData.tipo === "Despesa"} // 👈 DESABILITA O CAMPO
                     />
                   </div>
-
+                
+                  {/* === NOME DO PET === */}
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">
-                      Nome do Pet {formData.tipo === "Despesa" && "*"}
+                      Nome do Pet {formData.tipo === "Receita" && "*"}
                     </Label>
                     <ComboboxField
-                      value={formData.nomePet}
+                      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomePet}
                       onChange={(value) => {
+                        // Só permite alterar se NÃO for Despesa
+                        if (formData.tipo === "Despesa") return;
+                
                         // Ao mudar pet, atualizar cliente automaticamente APENAS se não houver cliente já selecionado
                         if (!formData.nomeCliente) {
-                          // Se não há cliente selecionado, pegar o primeiro cliente que tem este pet
                           const petSelecionado = pets.find((p) => p.nomePet === value);
                           if (petSelecionado) {
                             const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
@@ -1126,15 +1134,14 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                             setFormData({ ...formData, nomePet: value });
                           }
                         } else {
-                          // Se já há cliente selecionado, verificar se o pet pertence a ele
                           const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                          const petSelecionado = pets.find((p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id);
-                          
+                          const petSelecionado = pets.find(
+                            (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id
+                          );
+                
                           if (petSelecionado) {
-                            // Pet pertence ao cliente selecionado, manter o cliente
                             setFormData({ ...formData, nomePet: value });
                           } else {
-                            // Pet não pertence ao cliente selecionado, limpar cliente para que usuário escolha
                             setFormData({ ...formData, nomePet: value, nomeCliente: "" });
                           }
                         }
@@ -1143,31 +1150,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o pet"}
                       searchPlaceholder="Buscar pet..."
                       id="form-pet"
+                      disabled={formData.tipo === "Despesa"} // 👈 DESABILITA O CAMPO
                     />
                   </div>
                 </div>
 
-                <div className="border rounded-md p-2 space-y-2 bg-secondary/20">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold">Itens do Lançamento</Label>
-                    {itensLancamento.length < 5 && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setItensLancamento([
-                            ...itensLancamento,
-                            { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
-                          ]);
-                        }}
-                        className="h-6 text-[10px] gap-1"
-                      >
-                        <Plus className="h-3 w-3" />
-                        Adicionar Item
-                      </Button>
-                    )}
-                  </div>
 
                   {itensLancamento.map((item, index) => (
                     <ItemLancamentoForm
