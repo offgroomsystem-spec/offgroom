@@ -677,6 +677,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
     const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
 
+    try {
 let clienteId = null;
 
 // Só validar cliente/pet se houver item de tipo "Serviços" ou "Venda"
@@ -695,7 +696,7 @@ if (clientePetObrigatorios) {
 
   clienteId = cliente.id;
 }
-
+      }
 
       const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
       if (!conta) {
