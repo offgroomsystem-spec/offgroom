@@ -1200,7 +1200,6 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       </span>
                     </div>
                   </div>
-                </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-0.5">
