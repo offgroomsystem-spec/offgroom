@@ -1046,7 +1046,10 @@ const Agendamentos = () => {
       primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
     const primeiroNomePet = pacote.nomePet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
-    const dataFormatada = servico.data.split("-").reverse().join("/");
+    const dataFormatada = new Date(servico.data + "T00:00:00").toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+    });
+
     const isUltimoServico = servico.numero.split("/")[0] === servico.numero.split("/")[1];
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
@@ -1079,7 +1082,9 @@ const Agendamentos = () => {
       primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
     const primeiroNomePet = agendamento.pet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
-    const dataFormatada = agendamento.data.split("-").reverse().join("/");
+    const dataFormatada = new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+    });
 
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
     mensagem += `*Dia:* ${dataFormatada}\n`;
@@ -1142,7 +1147,10 @@ const Agendamentos = () => {
     const primeiroNome = obterPrimeiroNome(agendamento.cliente);
     const nomePet = capitalizarPrimeiraLetra(agendamento.pet);
     const nomeServico = capitalizarPrimeiraLetra(agendamento.servico);
-    const dataFormatada = agendamento.data.split("-").reverse().join("/");
+    const dataFormatada = new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+    });
+
     const horarioFormatado = agendamento.horario.substring(0, 5); // HH:MM
     const numeroPacote = formatarNumeroPacote(agendamento.numeroServicoPacote);
     const taxiDog = agendamento.taxiDog === "Sim" ? "Sim" : "Não";
@@ -1172,7 +1180,10 @@ const Agendamentos = () => {
     const primeiroNome = obterPrimeiroNome(pacote.nomeCliente);
     const nomePet = capitalizarPrimeiraLetra(pacote.nomePet);
     const nomePacote = capitalizarPrimeiraLetra(pacote.nomePacote);
-    const dataFormatada = servico.data.split("-").reverse().join("/");
+    const dataFormatada = new Date(servico.data + "T00:00:00").toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+    });
+
     const horarioFormatado = servico.horarioInicio.substring(0, 5); // HH:MM
     const numeroPacote = servico.numero; // Ex: "03/04"
     const taxiDog = pacote.taxiDog === "Sim" ? "Sim" : "Não";
