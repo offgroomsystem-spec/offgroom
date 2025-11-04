@@ -639,14 +639,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    if (formData.tipo === "Despesa") {
-      if (!formData.nomePet) {
-        toast.error("Favor selecionar o nome do Pet!");
+    // Só exigir Cliente e Pet se houver itens de tipo "Serviços" ou "Venda"
+    const clientePetObrigatorios = itensLancamento.some(
+      (item) => item.descricao2 === "Serviços" || item.descricao2 === "Venda",
+    );
+
+    if (clientePetObrigatorios) {
+      if (!formData.nomeCliente || formData.nomeCliente === "Não aplicável") {
+        toast.error("Favor selecionar o nome do Cliente!");
         return;
       }
-
-      if (!formData.nomeCliente) {
-        toast.error("Favor selecionar o nome do Cliente!");
+      if (!formData.nomePet || formData.nomePet === "Não aplicável") {
+        toast.error("Favor selecionar o nome do Pet!");
         return;
       }
     }
