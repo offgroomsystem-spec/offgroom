@@ -569,12 +569,34 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
     if (agruparPorMes) {
       // Meta por mês (valor completo)
       metaProporcional = metaFaturamento;
-    } else if (filtros.periodo === "semana") {
-      // Meta semanal = (Meta Mensal / 30 dias) * 7 dias
-      metaProporcional = (metaFaturamento / 30) * 7;
     } else {
-      // Meta por dia
-      metaProporcional = metaFaturamento / 30;
+      // Calcular dias de funcionamento do mês atual
+      const hoje = new Date();
+      const anoAtual = hoje.getFullYear();
+      const mesAtual = hoje.getMonth();
+      
+      const diasFuncMes = calcularDiasFuncionamento(
+        anoAtual, 
+        mesAtual, 
+        diasFuncionamento
+      );
+      
+      // Meta diária baseada nos dias de funcionamento reais
+      const metaDiaria = diasFuncMes > 0 
+        ? metaFaturamento / diasFuncMes 
+        : metaFaturamento / 30; // fallback se não houver config
+      
+      if (filtros.periodo === "semana") {
+        // Meta semanal = meta diária * dias úteis na semana
+        const diasUteisSemana = [
+          'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'
+        ].filter(dia => diasFuncionamento[dia] === true).length;
+        
+        metaProporcional = metaDiaria * Math.min(diasUteisSemana, 7);
+      } else {
+        // Meta por dia
+        metaProporcional = metaDiaria;
+      }
     }
 
     if (agruparPorMes) {
@@ -606,11 +628,24 @@ export const DashboardExecutivo = ({ filtros, onNavigateToReport }: DashboardExe
         const chaveMs = format(dataAtual, "MM/yyyy");
         const dadosMes = meses[chaveMs] || { receita: 0, despesa: 0 };
 
+        // Calcular meta específica para este mês baseado nos dias de funcionamento
+        const [mes, ano] = chaveMs.split('/').map(Number);
+        const diasFuncMes = calcularDiasFuncionamento(
+          Number(ano), 
+          mes - 1, // Mês é 0-indexed
+          diasFuncionamento
+        );
+        
+        // Meta proporcional aos dias de funcionamento do mês
+        const metaMes = diasFuncMes > 0 
+          ? metaFaturamento 
+          : metaFaturamento; // Se não há config específica, usar valor completo
+
         dados.push({
           periodo: chaveMs,
           receita: dadosMes.receita,
           despesa: dadosMes.despesa,
-          meta: metaProporcional, // Meta mensal completa
+          meta: metaMes, // Meta específica do mês
         });
 
         // Avançar para o próximo mês
