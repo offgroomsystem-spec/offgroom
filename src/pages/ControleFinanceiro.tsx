@@ -639,18 +639,14 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    // Só exigir Cliente e Pet se houver itens de tipo "Serviços" ou "Venda"
-    const clientePetObrigatorios = itensLancamento.some(
-      (item) => item.descricao2 === "Serviços" || item.descricao2 === "Venda",
-    );
-
-    if (clientePetObrigatorios) {
-      if (!formData.nomeCliente || formData.nomeCliente === "Não aplicável") {
-        toast.error("Favor selecionar o nome do Cliente!");
+    if (formData.tipo === "Despesa") {
+      if (!formData.nomePet) {
+        toast.error("Favor selecionar o nome do Pet!");
         return;
       }
-      if (!formData.nomePet || formData.nomePet === "Não aplicável") {
-        toast.error("Favor selecionar o nome do Pet!");
+
+      if (!formData.nomeCliente) {
+        toast.error("Favor selecionar o nome do Cliente!");
         return;
       }
     }
@@ -681,20 +677,25 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
     const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
 
-    try {
-      let clienteId = null;
+let clienteId = null;
 
-      // Only validate cliente/pet for Despesa
-      if (formData.tipo === "Despesa") {
-        const pet = pets.find((p) => p.nomePet === formData.nomePet);
-        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+// Só validar cliente/pet se houver item de tipo "Serviços" ou "Venda"
+const clientePetObrigatorios = itensLancamento.some(
+  (item) => item.descricao2 === "Serviços" || item.descricao2 === "Venda"
+);
 
-        if (!pet || !cliente || pet.clienteId !== cliente.id) {
-          toast.error("Cliente/Pet não encontrado ou não correspondem!");
-          return;
-        }
-        clienteId = cliente.id;
-      }
+if (clientePetObrigatorios) {
+  const pet = pets.find((p) => p.nomePet === formData.nomePet);
+  const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+
+  if (!pet || !cliente || pet.clienteId !== cliente.id) {
+    toast.error("Cliente/Pet não encontrado ou não correspondem!");
+    return;
+  }
+
+  clienteId = cliente.id;
+}
+
 
       const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
       if (!conta) {
