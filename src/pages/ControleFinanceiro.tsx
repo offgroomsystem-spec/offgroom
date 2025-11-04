@@ -639,14 +639,15 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    if (formData.tipo === "Despesa") {
-      if (!formData.nomePet) {
-        toast.error("Favor selecionar o nome do Pet!");
+    // Validação condicional de Cliente/Pet
+    if (["Serviços", "Venda"].includes(formData.descricao2)) {
+      if (!formData.nomeCliente) {
+        toast.error("Favor selecionar o nome do Cliente!");
         return;
       }
 
-      if (!formData.nomeCliente) {
-        toast.error("Favor selecionar o nome do Cliente!");
+      if (!formData.nomePet) {
+        toast.error("Favor selecionar o nome do Pet!");
         return;
       }
     }
@@ -680,8 +681,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     try {
       let clienteId = null;
 
-      // Validar Cliente/Pet apenas se Descrição 2 for "Serviços" ou "Venda"
-      if (["Serviços", "Venda"].includes(formData.descricao2)) {
+      // Only validate cliente/pet for Despesa
+      if (formData.tipo === "Despesa") {
         const pet = pets.find((p) => p.nomePet === formData.nomePet);
         const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
 
@@ -689,7 +690,6 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           toast.error("Cliente/Pet não encontrado ou não correspondem!");
           return;
         }
-
         clienteId = cliente.id;
       }
 
@@ -699,7 +699,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         return;
       }
 
-      // Inserir registro principal
+      // Insert main record
       const { data: lancamentoData, error: lancamentoError } = await supabase
         .from("lancamentos_financeiros")
         .insert([
@@ -722,7 +722,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
       if (lancamentoError) throw lancamentoError;
 
-      // Inserir itens
+      // Insert items
       const { error: itensError } = await supabase.from("lancamentos_financeiros_itens").insert(
         itensLancamento.map((item) => ({
           lancamento_id: lancamentoData.id,
