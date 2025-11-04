@@ -678,24 +678,19 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
 
     try {
-let clienteId = null;
+      let clienteId = null;
 
-// Só validar cliente/pet se houver item de tipo "Serviços" ou "Venda"
-const clientePetObrigatorios = itensLancamento.some(
-  (item) => item.descricao2 === "Serviços" || item.descricao2 === "Venda"
-);
+      // Validar Cliente/Pet apenas se Descrição 2 for "Serviços" ou "Venda"
+      if (["Serviços", "Venda"].includes(formData.descricao2)) {
+        const pet = pets.find((p) => p.nomePet === formData.nomePet);
+        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
 
-if (clientePetObrigatorios) {
-  const pet = pets.find((p) => p.nomePet === formData.nomePet);
-  const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+        if (!pet || !cliente || pet.clienteId !== cliente.id) {
+          toast.error("Cliente/Pet não encontrado ou não correspondem!");
+          return;
+        }
 
-  if (!pet || !cliente || pet.clienteId !== cliente.id) {
-    toast.error("Cliente/Pet não encontrado ou não correspondem!");
-    return;
-  }
-
-  clienteId = cliente.id;
-}
+        clienteId = cliente.id;
       }
 
       const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
@@ -704,7 +699,7 @@ if (clientePetObrigatorios) {
         return;
       }
 
-      // Insert main record
+      // Inserir registro principal
       const { data: lancamentoData, error: lancamentoError } = await supabase
         .from("lancamentos_financeiros")
         .insert([
@@ -727,7 +722,7 @@ if (clientePetObrigatorios) {
 
       if (lancamentoError) throw lancamentoError;
 
-      // Insert items
+      // Inserir itens
       const { error: itensError } = await supabase.from("lancamentos_financeiros_itens").insert(
         itensLancamento.map((item) => ({
           lancamento_id: lancamentoData.id,
