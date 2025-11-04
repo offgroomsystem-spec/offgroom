@@ -1076,84 +1076,97 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  {/* === NOME DO CLIENTE === */}
-                  <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">
-                      Nome do Cliente {formData.tipo === "Receita" && "*"}
-                    </Label>
-                    <ComboboxField
-                      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente}
-                      onChange={(value) => {
-                        // Só permite alterar se NÃO for Despesa
-                        if (formData.tipo === "Despesa") return;
-                
-                        // Ao mudar cliente, limpar pet apenas se o pet atual não pertencer ao novo cliente
-                        const novoCliente = clientes.find((c) => c.nomeCliente === value);
-                        if (novoCliente && formData.nomePet) {
-                          const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
-                          if (petAtual && petAtual.clienteId !== novoCliente.id) {
-                            setFormData({ ...formData, nomeCliente: value, nomePet: "" });
-                          } else {
-                            setFormData({ ...formData, nomeCliente: value });
-                          }
-                        } else {
-                          setFormData({ ...formData, nomeCliente: value });
-                        }
-                      }}
-                      options={clientesFormulario}
-                      placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o cliente"}
-                      searchPlaceholder="Buscar cliente..."
-                      id="form-cliente"
-                      disabled={formData.tipo === "Despesa"} // 👈 DESABILITA O CAMPO
-                    />
-                  </div>
-                
-                  {/* === NOME DO PET === */}
-                  <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">
-                      Nome do Pet {formData.tipo === "Receita" && "*"}
-                    </Label>
-                    <ComboboxField
-                      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomePet}
-                      onChange={(value) => {
-                        // Só permite alterar se NÃO for Despesa
-                        if (formData.tipo === "Despesa") return;
-                
-                        // Ao mudar pet, atualizar cliente automaticamente APENAS se não houver cliente já selecionado
-                        if (!formData.nomeCliente) {
-                          const petSelecionado = pets.find((p) => p.nomePet === value);
-                          if (petSelecionado) {
-                            const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
-                            if (clienteDoPet) {
-                              setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente });
-                            } else {
-                              setFormData({ ...formData, nomePet: value });
-                            }
-                          } else {
-                            setFormData({ ...formData, nomePet: value });
-                          }
-                        } else {
-                          const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                          const petSelecionado = pets.find(
-                            (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id
-                          );
-                
-                          if (petSelecionado) {
-                            setFormData({ ...formData, nomePet: value });
-                          } else {
-                            setFormData({ ...formData, nomePet: value, nomeCliente: "" });
-                          }
-                        }
-                      }}
-                      options={petsFormulario}
-                      placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o pet"}
-                      searchPlaceholder="Buscar pet..."
-                      id="form-pet"
-                      disabled={formData.tipo === "Despesa"} // 👈 DESABILITA O CAMPO
-                    />
-                  </div>
-                </div>
+<div className="grid grid-cols-2 gap-2">
+  {/* Nome do Cliente */}
+  <div className="space-y-0.5">
+    <Label className="text-[10px] font-semibold">
+      Nome do Cliente {formData.tipo !== "Despesa" && "*"}
+    </Label>
+    <ComboboxField
+      value={
+        formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente
+      }
+      onChange={(value) => {
+        if (formData.tipo === "Despesa") return;
+        const novoCliente = clientes.find((c) => c.nomeCliente === value);
+        if (novoCliente && formData.nomePet) {
+          const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
+          if (petAtual && petAtual.clienteId !== novoCliente.id) {
+            setFormData({ ...formData, nomeCliente: value, nomePet: "" });
+          } else {
+            setFormData({ ...formData, nomeCliente: value });
+          }
+        } else {
+          setFormData({ ...formData, nomeCliente: value });
+        }
+      }}
+      options={clientesFormulario}
+      placeholder={
+        formData.tipo === "Despesa"
+          ? "Não aplicável"
+          : "Selecione o cliente"
+      }
+      searchPlaceholder="Buscar cliente..."
+      id="form-cliente"
+      disabled={formData.tipo === "Despesa"}
+    />
+  </div>
+
+  {/* Nome do Pet */}
+  <div className="space-y-0.5">
+    <Label className="text-[10px] font-semibold">
+      Nome do Pet {formData.tipo !== "Despesa" && "*"}
+    </Label>
+    <ComboboxField
+      value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomePet}
+      onChange={(value) => {
+        if (formData.tipo === "Despesa") return;
+
+        if (!formData.nomeCliente) {
+          const petSelecionado = pets.find((p) => p.nomePet === value);
+          if (petSelecionado) {
+            const clienteDoPet = clientes.find(
+              (c) => c.id === petSelecionado.clienteId
+            );
+            if (clienteDoPet) {
+              setFormData({
+                ...formData,
+                nomePet: value,
+                nomeCliente: clienteDoPet.nomeCliente,
+              });
+            } else {
+              setFormData({ ...formData, nomePet: value });
+            }
+          } else {
+            setFormData({ ...formData, nomePet: value });
+          }
+        } else {
+          const clienteSelecionado = clientes.find(
+            (c) => c.nomeCliente === formData.nomeCliente
+          );
+          const petSelecionado = pets.find(
+            (p) =>
+              p.nomePet === value &&
+              p.clienteId === clienteSelecionado?.id
+          );
+
+          if (petSelecionado) {
+            setFormData({ ...formData, nomePet: value });
+          } else {
+            setFormData({ ...formData, nomePet: value, nomeCliente: "" });
+          }
+        }
+      }}
+      options={petsFormulario}
+      placeholder={
+        formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o pet"
+      }
+      searchPlaceholder="Buscar pet..."
+      id="form-pet"
+      disabled={formData.tipo === "Despesa"}
+    />
+  </div>
+</div>
 
 
                   {itensLancamento.map((item, index) => (
