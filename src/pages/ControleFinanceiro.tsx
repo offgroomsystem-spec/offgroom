@@ -612,14 +612,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    if (!formData.nomePet) {
-      toast.error("Favor selecionar o nome do Pet!");
-      return;
-    }
+    if (formData.tipo === "Despesa") {
+      if (!formData.nomePet) {
+        toast.error("Favor selecionar o nome do Pet!");
+        return;
+      }
 
-    if (!formData.nomeCliente) {
-      toast.error("Favor selecionar o nome do Cliente!");
-      return;
+      if (!formData.nomeCliente) {
+        toast.error("Favor selecionar o nome do Cliente!");
+        return;
+      }
     }
 
     for (let i = 0; i < itensLancamento.length; i++) {
@@ -649,15 +651,21 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
 
     try {
-      // Find cliente_id and conta_id
-      const pet = pets.find((p) => p.nomePet === formData.nomePet);
-      const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-      const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
+      let clienteId = null;
 
-      if (!pet || !cliente || pet.clienteId !== cliente.id) {
-        toast.error("Cliente/Pet não encontrado ou não correspondem!");
-        return;
+      // Only validate cliente/pet for Despesa
+      if (formData.tipo === "Despesa") {
+        const pet = pets.find((p) => p.nomePet === formData.nomePet);
+        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+
+        if (!pet || !cliente || pet.clienteId !== cliente.id) {
+          toast.error("Cliente/Pet não encontrado ou não correspondem!");
+          return;
+        }
+        clienteId = cliente.id;
       }
+
+      const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
       if (!conta) {
         toast.error("Conta bancária não encontrada!");
         return;
@@ -673,7 +681,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             mes_competencia: formData.mesCompetencia,
             tipo: formData.tipo,
             descricao1: formData.descricao1,
-            cliente_id: cliente.id,
+            cliente_id: clienteId,
             valor_total: valorTotal,
             data_pagamento: formData.dataPagamento,
             conta_id: conta.id,
@@ -746,15 +754,13 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     if (!lancamentoSelecionado || !user) return;
 
     // Validations...
-    if (
-      !formData.ano ||
-      !formData.mesCompetencia ||
-      !formData.tipo ||
-      !formData.descricao1 ||
-      !formData.nomePet ||
-      !formData.nomeCliente
-    ) {
+    if (!formData.ano || !formData.mesCompetencia || !formData.tipo || !formData.descricao1) {
       toast.error("Favor preencher todos os campos obrigatórios!");
+      return;
+    }
+
+    if (formData.tipo === "Despesa" && (!formData.nomePet || !formData.nomeCliente)) {
+      toast.error("Favor preencher Cliente e Pet para lançamentos de Despesa!");
       return;
     }
 
@@ -769,12 +775,22 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
 
     try {
-      const pet = pets.find((p) => p.nomePet === formData.nomePet);
-      const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-      const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
+      let clienteId = null;
 
-      if (!pet || !cliente || pet.clienteId !== cliente.id || !conta) {
-        toast.error("Cliente/Pet ou Conta bancária não encontrados!");
+      if (formData.tipo === "Despesa") {
+        const pet = pets.find((p) => p.nomePet === formData.nomePet);
+        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+
+        if (!pet || !cliente || pet.clienteId !== cliente.id) {
+          toast.error("Cliente/Pet não encontrados ou não correspondem!");
+          return;
+        }
+        clienteId = cliente.id;
+      }
+
+      const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
+      if (!conta) {
+        toast.error("Conta bancária não encontrada!");
         return;
       }
 
@@ -785,7 +801,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           mes_competencia: formData.mesCompetencia,
           tipo: formData.tipo,
           descricao1: formData.descricao1,
-          cliente_id: cliente.id,
+          cliente_id: clienteId,
           valor_total: valorTotal,
           data_pagamento: formData.dataPagamento,
           conta_id: conta.id,
@@ -1062,7 +1078,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">Nome do Cliente *</Label>
+                    <Label className="text-[10px] font-semibold">
+                      Nome do Cliente {formData.tipo === "Despesa" && "*"}
+                    </Label>
                     <ComboboxField
                       value={formData.nomeCliente}
                       onChange={(value) => {
@@ -1080,14 +1098,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         }
                       }}
                       options={clientesFormulario}
-                      placeholder="Selecione o cliente"
+                      placeholder={formData.tipo === "Receita" ? "Não aplicável" : "Selecione o cliente"}
                       searchPlaceholder="Buscar cliente..."
                       id="form-cliente"
                     />
                   </div>
 
                   <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">Nome do Pet *</Label>
+                    <Label className="text-[10px] font-semibold">
+                      Nome do Pet {formData.tipo === "Despesa" && "*"}
+                    </Label>
                     <ComboboxField
                       value={formData.nomePet}
                       onChange={(value) => {
@@ -1120,7 +1140,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         }
                       }}
                       options={petsFormulario}
-                      placeholder="Selecione o pet"
+                      placeholder={formData.tipo === "Receita" ? "Não aplicável" : "Selecione o pet"}
                       searchPlaceholder="Buscar pet..."
                       id="form-pet"
                     />
@@ -1725,7 +1745,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-0.5">
-                <Label className="text-[10px] font-semibold">Nome do Cliente *</Label>
+                <Label className="text-[10px] font-semibold">
+                  Nome do Cliente {formData.tipo === "Despesa" && "*"}
+                </Label>
                 <ComboboxField
                   value={formData.nomeCliente}
                   onChange={(value) => {
@@ -1743,14 +1765,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     }
                   }}
                   options={clientesFormulario}
-                  placeholder="Selecione o cliente"
+                  placeholder={formData.tipo === "Receita" ? "Não aplicável" : "Selecione o cliente"}
                   searchPlaceholder="Buscar cliente..."
                   id="edit-form-cliente"
                 />
               </div>
 
               <div className="space-y-0.5">
-                <Label className="text-[10px] font-semibold">Nome do Pet *</Label>
+                <Label className="text-[10px] font-semibold">
+                  Nome do Pet {formData.tipo === "Despesa" && "*"}
+                </Label>
                 <ComboboxField
                   value={formData.nomePet}
                   onChange={(value) => {
@@ -1783,7 +1807,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     }
                   }}
                   options={petsFormulario}
-                  placeholder="Selecione o pet"
+                  placeholder={formData.tipo === "Receita" ? "Não aplicável" : "Selecione o pet"}
                   searchPlaceholder="Buscar pet..."
                   id="edit-form-pet"
                 />
