@@ -1,18 +1,18 @@
-// src/components/relatorios/clientes/ClientesEmRisco.tsx
 import { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
-import { format, parseISO, differenceInDays, isValid } from "date-fns";
-import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
-import { ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Eye, Loader2, LinkIcon } from "lucide-react";
+import { format, differenceInDays, parseISO, isValid } from "date-fns";
+import { toast } from "sonner";
+import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
+import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
+import { ExportButton } from "../shared/ExportButton";
 
-interface ClienteEmRisco {
+interface ClienteRisco {
   id: string;
   nomeCliente: string;
   nomePet: string;
@@ -22,7 +22,7 @@ interface ClienteEmRisco {
   faixaRisco: string;
 }
 
-function determinarFaixa(dias: number) {
+const classificarFaixaRisco = (dias: number): string => {
   if (dias >= 7 && dias <= 10) return "7-10";
   if (dias >= 11 && dias <= 15) return "11-15";
   if (dias >= 16 && dias <= 20) return "16-20";
@@ -31,27 +31,117 @@ function determinarFaixa(dias: number) {
   if (dias >= 46 && dias <= 90) return "46-90";
   if (dias > 90) return "perdido";
   return "sem-risco";
-}
+};
 
-export function ClientesEmRisco() {
+const obterVarianteBadge = (faixa: string) => {
+  switch (faixa) {
+    case "7-10":
+      return "default";
+    case "11-15":
+    case "16-20":
+    case "21-30":
+    case "31-45":
+      return "secondary";
+    case "46-90":
+    case "perdido":
+      return "destructive";
+    default:
+      return "outline";
+  }
+};
+
+const obterLabelFaixa = (faixa: string): string => {
+  if (faixa === "perdido") return "Mais de 90 dias";
+  return `${faixa} dias`;
+};
+
+const obterCorCard = (faixa: string) => {
+  switch (faixa) {
+    case "7-10":
+      return "bg-green-50 border-green-200";
+    case "11-15":
+    case "16-20":
+      return "bg-yellow-50 border-yellow-200";
+    case "21-30":
+    case "31-45":
+      return "bg-orange-50 border-orange-200";
+    case "46-90":
+    case "perdido":
+      return "bg-red-50 border-red-200";
+    default:
+      return "";
+  }
+};
+
+// Gera a mensagem personalizada conforme a faixa de dias
+const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
+  const { nomeCliente, nomePet, diasSemAgendar } = cliente;
+
+  if (diasSemAgendar >= 7 && diasSemAgendar <= 10)
+    return `Olá, ${nomeCliente}!  
+Como vc está?
+
+Notamos que faz ${diasSemAgendar} dias do último banho de ${nomePet}. Está quase na hora do próximo banho. Vamos marcar o próximo para manter os cuidados em dia?`;
+
+  if (diasSemAgendar >= 11 && diasSemAgendar <= 15)
+    return `Oii, ${nomeCliente}.  
+Como vc está?
+
+Já faz um tempinho desde o último banho de ${nomePet}. Vamos marcar o próximo para ele continuar sempre bem cuidado?`;
+
+  if (diasSemAgendar >= 16 && diasSemAgendar <= 20)
+    return `Olá, ${nomeCliente}.  
+Como vc está?
+
+Já faz um bom tempo que o ${nomePet} não vem nos visitar. Vamos agendar o próximo banho e colocar os cuidados em dia?`;
+
+  if (diasSemAgendar >= 21 && diasSemAgendar <= 30)
+    return `Olá, ${nomeCliente}.  
+Como vc está?
+
+Já faz quase um mês desde o último banho de ${nomePet}. Que tal agendar um novo e deixar ele limpo e confortável?`;
+
+  if (diasSemAgendar >= 31 && diasSemAgendar <= 45)
+    return `Oii, ${nomeCliente}!  
+Como vc está?
+
+O ${nomePet} está há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana. Vamos marcar?`;
+
+  if (diasSemAgendar >= 46 && diasSemAgendar <= 90)
+    return `Olá, ${nomeCliente}.  
+Já faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta dele. Que tal agendar um novo banho e colocá-lo em dia com um cuidado especial?`;
+
+  return `Olá, ${nomeCliente}! Tudo bem?`;
+};
+
+// Copia o link formatado com a mensagem
+const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
+  if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
+
+  const numeroLimpo = cliente.whatsapp.toString().replace(/\D/g, "");
+  const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
+
+  const mensagem = encodeURIComponent(gerarMensagemWhatsApp(cliente));
+  const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
+
+  navigator.clipboard.writeText(link).then(() => {
+    toast.success("Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
+  });
+};
+
+export const ClientesEmRisco = () => {
   const { user } = useAuth();
-  const [clientes, setClientes] = useState<ClienteEmRisco[]>([]);
-  const [clientesFiltrados, setClientesFiltrados] = useState<ClienteEmRisco[]>([]);
+  const [clientes, setClientes] = useState<ClienteRisco[]>([]);
+  const [clientesFiltrados, setClientesFiltrados] = useState<ClienteRisco[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Filtros (recolhíveis)
-  const [filtroAberto, setFiltroAberto] = useState(false);
-  const [filtroDias, setFiltroDias] = useState("");
-  const [busca, setBusca] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
-
-  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteEmRisco | null>(null);
-
-  useEffect(() => {
-    carregarClientesEmRisco();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  const [filtros, setFiltros] = useState({
+    faixaDias: "todos",
+    busca: "",
+    dataInicio: "",
+    dataFim: "",
+  });
+  const [modalAberto, setModalAberto] = useState(false);
+  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteRisco | null>(null);
 
   const carregarClientesEmRisco = async () => {
     if (!user) return;
@@ -61,24 +151,22 @@ export function ClientesEmRisco() {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
-      // Agendamentos regulares
       const { data: agendamentos, error: errorAg } = await supabase
         .from("agendamentos")
-        .select("id, cliente, pet, data, whatsapp")
+        .select("cliente_id, cliente, data, pet, whatsapp")
         .eq("user_id", user.id)
         .order("data", { ascending: false });
 
       if (errorAg) throw errorAg;
 
-      // Pacotes (contêm um JSON/texto com várias datas dos serviços)
       const { data: pacotes, error: errorPac } = await supabase
         .from("agendamentos_pacotes")
-        .select("id, nome_cliente, nome_pet, whatsapp, servicos, data_venda")
+        .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
         .eq("user_id", user.id);
 
       if (errorPac) throw errorPac;
 
-      const mapa = new Map<string, ClienteEmRisco>();
+      const mapa = new Map<string, ClienteRisco>();
 
       const adicionarOuAtualizar = (
         chave: string,
@@ -88,212 +176,168 @@ export function ClientesEmRisco() {
         dataStr: string,
       ) => {
         if (!dataStr) return;
-        const parsed = parseISO(dataStr);
-        if (!isValid(parsed)) return;
+        const data = parseISO(dataStr);
+        if (!isValid(data)) return;
 
-        const existente = mapa.get(chave);
-        if (!existente) {
+        if (!mapa.has(chave)) {
           mapa.set(chave, {
             id: chave,
             nomeCliente,
             nomePet,
             whatsapp: whatsapp ? whatsapp.toString() : "",
-            ultimoAgendamento: parsed,
-            diasSemAgendar: differenceInDays(hoje, parsed),
-            faixaRisco: determinarFaixa(differenceInDays(hoje, parsed)),
+            ultimoAgendamento: data,
+            diasSemAgendar: 0,
+            faixaRisco: "sem-risco",
           });
         } else {
-          if (parsed > existente.ultimoAgendamento) {
-            existente.ultimoAgendamento = parsed;
-            existente.diasSemAgendar = differenceInDays(hoje, parsed);
-            existente.faixaRisco = determinarFaixa(existente.diasSemAgendar);
+          const existente = mapa.get(chave)!;
+          if (data > existente.ultimoAgendamento) {
+            existente.ultimoAgendamento = data;
           }
         }
       };
 
-      // Processa agendamentos regulares
-      agendamentos?.forEach((a: any) => {
+      agendamentos?.forEach((a) => {
         const chave = `${a.cliente}_${a.pet}`;
         adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
       });
 
-      // Processa pacotes: extrair as datas dentro do campo `servicos` (JSON) e pegar a maior (última) data
-      pacotes?.forEach((p: any) => {
+      pacotes?.forEach((p) => {
         const chave = `${p.nome_cliente}_${p.nome_pet}`;
         let ultimaDataServico: Date | null = null;
 
         try {
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
           if (Array.isArray(servicos)) {
-            const datasValidas = servicos.map((s: any) => parseISO(s.data)).filter((d: Date) => isValid(d));
+            const datasValidas = servicos.map((s) => parseISO(s.data)).filter((d) => isValid(d));
             if (datasValidas.length > 0) {
-              ultimaDataServico = new Date(Math.max(...datasValidas.map((d: Date) => d.getTime())));
+              ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
             }
           }
-        } catch (err) {
-          // se JSON inválido, ignore e use data_venda abaixo como fallback
-          console.error("Erro ao parsear servicos do pacote:", err);
-        }
+        } catch {}
 
-        const dataFinalStr = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
-        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinalStr);
+        const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
+        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
       });
 
-      // Converter mapa para array e filtrar somente quem tem > = 7 dias sem agendar e sem agendamento futuro
-      const lista = Array.from(mapa.values());
-
-      // Remover clientes que possuam agendamento FUTURO (verificando ambos os conjuntos)
-      const temAgendamentoFuturo = (cliente: ClienteEmRisco) => {
-        const temReg = agendamentos?.some(
-          (a: any) =>
-            a.cliente === cliente.nomeCliente &&
-            a.pet === cliente.nomePet &&
-            isValid(parseISO(a.data)) &&
-            parseISO(a.data) >= hoje,
-        );
-        const temPac = pacotes?.some((p: any) => {
-          if (p.nome_cliente !== cliente.nomeCliente || p.nome_pet !== cliente.nomePet) return false;
-          try {
-            const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
-            if (Array.isArray(servicos)) {
-              return servicos.some((s: any) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+      const listaRisco: ClienteRisco[] = [];
+      mapa.forEach((cli) => {
+        const dias = differenceInDays(hoje, cli.ultimoAgendamento);
+        const temAgendamentoFuturo =
+          agendamentos?.some(
+            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje,
+          ) ||
+          pacotes?.some((p) => {
+            if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
+            try {
+              const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+              if (Array.isArray(servicos)) {
+                return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+              }
+            } catch {
+              return false;
             }
-          } catch {
-            // fallback para data_venda
-            return isValid(parseISO(p.data_venda)) && parseISO(p.data_venda) >= hoje;
-          }
-          return false;
-        });
+            return parseISO(p.data_venda) >= hoje;
+          });
 
-        return !!temReg || !!temPac;
-      };
+        if (!temAgendamentoFuturo && dias >= 7) {
+          cli.diasSemAgendar = dias;
+          cli.faixaRisco = classificarFaixaRisco(dias);
+          listaRisco.push(cli);
+        }
+      });
 
-      const hojeZero = new Date();
-      hojeZero.setHours(0, 0, 0, 0);
-
-      const clientesEmRisco = lista
-        .filter((c) => !temAgendamentoFuturo(c) && c.diasSemAgendar >= 7)
-        .sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
-
-      setClientes(clientesEmRisco);
-      setClientesFiltrados(clientesEmRisco);
-    } catch (error) {
-      console.error("Erro ao carregar clientes em risco:", error);
+      listaRisco.sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
+      setClientes(listaRisco);
+      aplicarFiltros(listaRisco);
+    } catch (err) {
+      console.error("Erro ao carregar clientes em risco:", err);
       toast.error("Erro ao carregar dados dos clientes");
     } finally {
       setLoading(false);
     }
   };
 
-  const aplicarFiltros = () => {
-    let resultado = [...clientes];
-
-    if (filtroDias) {
-      const diasNum = Number(filtroDias);
-      if (!Number.isNaN(diasNum)) resultado = resultado.filter((c) => c.diasSemAgendar >= diasNum);
-    }
-
-    if (busca.trim()) {
-      const termo = busca.toLowerCase();
+  const aplicarFiltros = (base: ClienteRisco[] = clientes) => {
+    let resultado = [...base];
+    if (filtros.faixaDias !== "todos") resultado = resultado.filter((c) => c.faixaRisco === filtros.faixaDias);
+    if (filtros.busca.trim()) {
+      const termo = filtros.busca.toLowerCase();
       resultado = resultado.filter(
         (c) => c.nomeCliente.toLowerCase().includes(termo) || c.nomePet.toLowerCase().includes(termo),
       );
     }
-
-    if (dataInicio) {
-      const inicio = parseISO(dataInicio);
-      if (isValid(inicio)) resultado = resultado.filter((c) => c.ultimoAgendamento >= inicio);
-    }
-
-    if (dataFim) {
-      const fim = parseISO(dataFim);
-      if (isValid(fim)) resultado = resultado.filter((c) => c.ultimoAgendamento <= fim);
-    }
-
+    if (filtros.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= parseISO(filtros.dataInicio));
+    if (filtros.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= parseISO(filtros.dataFim));
     setClientesFiltrados(resultado);
-    setFiltroAberto(false); // recolhe após aplicar
   };
 
-  const limparFiltros = () => {
-    setFiltroDias("");
-    setBusca("");
-    setDataInicio("");
-    setDataFim("");
-    setClientesFiltrados(clientes);
-    setFiltroAberto(false); // recolhe também ao limpar
+  const handleFiltrar = () => aplicarFiltros();
+  const abrirModalDetalhes = (c: ClienteRisco) => {
+    setClienteSelecionado(c);
+    setModalAberto(true);
   };
 
-  if (loading) {
+  useEffect(() => {
+    carregarClientesEmRisco();
+  }, [user]);
+
+  const contadores = {
+    "7-10": clientes.filter((c) => c.faixaRisco === "7-10").length,
+    "11-15": clientes.filter((c) => c.faixaRisco === "11-15").length,
+    "16-20": clientes.filter((c) => c.faixaRisco === "16-20").length,
+    "21-30": clientes.filter((c) => c.faixaRisco === "21-30").length,
+    "31-45": clientes.filter((c) => c.faixaRisco === "31-45").length,
+    "46-90": clientes.filter((c) => c.faixaRisco === "46-90").length,
+    perdido: clientes.filter((c) => c.faixaRisco === "perdido").length,
+  };
+
+  const dadosExportacao = clientesFiltrados.map((c) => ({
+    Cliente: c.nomeCliente,
+    Pet: c.nomePet,
+    Telefone: c.whatsapp,
+    "Último Agendamento": format(c.ultimoAgendamento, "dd/MM/yyyy"),
+    "Dias sem Agendar": c.diasSemAgendar,
+    "Faixa de Risco": obterLabelFaixa(c.faixaRisco),
+  }));
+
+  const colunasExportacao = [
+    { key: "Cliente", label: "Cliente" },
+    { key: "Pet", label: "Pet" },
+    { key: "Telefone", label: "Telefone" },
+    { key: "Último Agendamento", label: "Último Agendamento" },
+    { key: "Dias sem Agendar", label: "Dias sem Agendar" },
+    { key: "Faixa de Risco", label: "Faixa de Risco" },
+  ];
+
+  if (loading)
     return (
       <div className="flex items-center justify-center h-64">
-        <LoaderPlaceholder />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {Object.keys(contadores).map((key) => (
+          <Card key={key} className={obterCorCard(key)}>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-center">{contadores[key as keyof typeof contadores]}</div>
+              <div className="text-xs text-center text-muted-foreground">{obterLabelFaixa(key)}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <FiltrosClientesRisco filtros={filtros} setFiltros={setFiltros} onFiltrar={handleFiltrar} />
+
       <Card>
         <CardHeader className="flex items-center justify-between">
           <CardTitle>Clientes em Risco ({clientesFiltrados.length})</CardTitle>
-          <div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setFiltroAberto((s) => !s)}
-              className="flex items-center gap-2"
-            >
-              {filtroAberto ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              {filtroAberto ? "Ocultar Filtros" : "Mostrar Filtros"}
-            </Button>
-          </div>
+          <ExportButton data={dadosExportacao} filename="clientes-em-risco" columns={colunasExportacao} />
         </CardHeader>
 
-        {filtroAberto && (
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="text-sm text-muted-foreground">Intervalo de Dias (mínimo)</label>
-                <Input
-                  type="number"
-                  value={filtroDias}
-                  onChange={(e) => setFiltroDias(e.target.value)}
-                  placeholder="Ex: 7"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-muted-foreground">Buscar Cliente ou Pet</label>
-                <Input
-                  type="text"
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Nome cliente ou pet"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-muted-foreground">Data Início (Opcional)</label>
-                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-              </div>
-
-              <div>
-                <label className="text-sm text-muted-foreground">Data Fim (Opcional)</label>
-                <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-4">
-              <Button onClick={aplicarFiltros}>Filtrar</Button>
-              <Button variant="outline" onClick={limparFiltros}>
-                Limpar Filtros
-              </Button>
-            </div>
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
         <CardContent>
           {clientesFiltrados.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado com os filtros aplicados</p>
@@ -321,26 +365,26 @@ export function ClientesEmRisco() {
                       <TableCell>{format(c.ultimoAgendamento, "dd/MM/yyyy")}</TableCell>
                       <TableCell>{c.diasSemAgendar} dias</TableCell>
                       <TableCell>
-                        <Badge variant={c.faixaRisco === "perdido" ? "destructive" : "secondary"}>{c.faixaRisco}</Badge>
+                        <Badge variant={obterVarianteBadge(c.faixaRisco)}>{obterLabelFaixa(c.faixaRisco)}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2 justify-center">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setClienteSelecionado(c)}
+                            onClick={() => abrirModalDetalhes(c)}
                             title="Ver Detalhes"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* Quando quiser trocar o ícone por LinkIcon ou outro, altere aqui */}
+
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => copiarLinkParaClipboard(c)}
-                            title="Copiar link do WhatsApp"
+                            onClick={() => copiarLinkWhatsApp(c)}
+                            title="Copiar Link do WhatsApp"
                           >
-                            <span className="text-lg">🔗</span>
+                            <LinkIcon className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -353,38 +397,7 @@ export function ClientesEmRisco() {
         </CardContent>
       </Card>
 
-      {clienteSelecionado && (
-        <ModalDetalhesCliente aberto={true} cliente={clienteSelecionado} onFechar={() => setClienteSelecionado(null)} />
-      )}
+      <ModalDetalhesCliente aberto={modalAberto} cliente={clienteSelecionado} onFechar={() => setModalAberto(false)} />
     </div>
   );
-}
-
-// helper: copiar link com mensagem (padrão simples)
-function copiarLinkParaClipboard(cliente: ClienteEmRisco) {
-  if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
-  const numeroLimpo = cliente.whatsapp.toString().replace(/\D/g, "");
-  const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
-
-  const mensagem = encodeURIComponent(
-    `Olá ${cliente.nomeCliente}! Notamos que faz ${cliente.diasSemAgendar} dias desde o último banho de ${cliente.nomePet}.`,
-  );
-  const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
-
-  navigator.clipboard
-    .writeText(link)
-    .then(() => {
-      toast.success("✅ Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
-    })
-    .catch(() => {
-      toast.error("Erro ao copiar link para a área de transferência");
-    });
-}
-
-// simples placeholder do loader (import separado pode causar problemas dependendo do seu setup)
-function LoaderPlaceholder() {
-  return <div className="h-8 w-8 rounded border-t-2 border-primary animate-spin" />;
-}
-
-// Exporte também como default para evitar erros de importação nomeada/defaul
-export default ClientesEmRisco;
+};
