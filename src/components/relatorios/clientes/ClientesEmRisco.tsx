@@ -10,7 +10,6 @@ import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { toast } from "sonner";
 import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
 import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
-import { ExportButton } from "../shared/ExportButton";
 
 interface ClienteRisco {
   id: string;
@@ -73,7 +72,6 @@ const obterCorCard = (faixa: string) => {
   }
 };
 
-// Gera a mensagem personalizada conforme a faixa de dias
 const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
   const { nomeCliente, nomePet, diasSemAgendar } = cliente;
 
@@ -114,7 +112,6 @@ Já faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta 
   return `Olá, ${nomeCliente}! Tudo bem?`;
 };
 
-// Copia o link formatado com a mensagem
 const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
   if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
 
@@ -292,24 +289,6 @@ export const ClientesEmRisco = () => {
     perdido: clientes.filter((c) => c.faixaRisco === "perdido").length,
   };
 
-  const dadosExportacao = clientesFiltrados.map((c) => ({
-    Cliente: c.nomeCliente,
-    Pet: c.nomePet,
-    Telefone: c.whatsapp,
-    "Último Agendamento": format(c.ultimoAgendamento, "dd/MM/yyyy"),
-    "Dias sem Agendar": c.diasSemAgendar,
-    "Faixa de Risco": obterLabelFaixa(c.faixaRisco),
-  }));
-
-  const colunasExportacao = [
-    { key: "Cliente", label: "Cliente" },
-    { key: "Pet", label: "Pet" },
-    { key: "Telefone", label: "Telefone" },
-    { key: "Último Agendamento", label: "Último Agendamento" },
-    { key: "Dias sem Agendar", label: "Dias sem Agendar" },
-    { key: "Faixa de Risco", label: "Faixa de Risco" },
-  ];
-
   if (loading)
     return (
       <div className="flex items-center justify-center h-64">
@@ -333,9 +312,8 @@ export const ClientesEmRisco = () => {
       <FiltrosClientesRisco filtros={filtros} setFiltros={setFiltros} onFiltrar={handleFiltrar} />
 
       <Card>
-        <CardHeader className="flex items-center justify-between">
+        <CardHeader>
           <CardTitle>Clientes em Risco ({clientesFiltrados.length})</CardTitle>
-          <ExportButton data={dadosExportacao} filename="clientes-em-risco" columns={colunasExportacao} />
         </CardHeader>
 
         <CardContent>
