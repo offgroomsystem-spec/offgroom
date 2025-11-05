@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Loader2 } from "lucide-react";
+import { Eye, Loader2, LinkIcon } from "lucide-react";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { toast } from "sonner";
 import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
@@ -125,7 +125,7 @@ const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
   const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
 
   navigator.clipboard.writeText(link).then(() => {
-    toast.success("✅ Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
+    toast.success("Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
   });
 };
 
@@ -319,7 +319,6 @@ export const ClientesEmRisco = () => {
 
   return (
     <div className="space-y-4">
-      {/* Contadores */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {Object.keys(contadores).map((key) => (
           <Card key={key} className={obterCorCard(key)}>
@@ -385,10 +384,7 @@ export const ClientesEmRisco = () => {
                             onClick={() => copiarLinkWhatsApp(c)}
                             title="Copiar Link do WhatsApp"
                           >
-                            <span
-                              className="text-lg"
-                              dangerouslySetInnerHTML={{ __html: '<i class="fi fi-rr-link-alt"></i>' }}
-                            />
+                            <LinkIcon className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
