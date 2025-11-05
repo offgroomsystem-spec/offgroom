@@ -10,6 +10,7 @@ import { DRE } from "@/components/relatorios/financeiros/DRE";
 import { Inadimplencia } from "@/components/relatorios/financeiros/InadimplenciaDisabled";
 import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/PacotesProximosVencimento";
 import { PacotesExpirados } from "@/components/relatorios/pacotes/PacotesExpirados";
+import { ClientesEmRisco } from "@/components/relatorios/clientes/ClientesEmRisco";
 import ControleFinanceiro from "@/pages/ControleFinanceiro";
 
 const Relatorios = () => {
@@ -76,8 +77,9 @@ const Relatorios = () => {
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
+        {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
         
-        {!["dashboard", "controle-financeiro", "fluxo-caixa", "dre", "inadimplencia", "pacotes-vencimento", "pacotes-expirados"].includes(relatorioAtivo) && (
+        {!["dashboard", "controle-financeiro", "fluxo-caixa", "dre", "inadimplencia", "pacotes-vencimento", "pacotes-expirados", "clientes-risco"].includes(relatorioAtivo) && (
           <Card>
             <CardHeader>
               <CardTitle>Relatório em Desenvolvimento</CardTitle>
@@ -184,6 +186,14 @@ const Relatorios = () => {
 
         <TabsContent value="clientes" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card 
+              key="clientes-risco" 
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("clientes-risco")}
+            >
+              <CardHeader><CardTitle className="text-sm">Clientes em Risco (Sem Agendamento)</CardTitle></CardHeader>
+              <CardContent><p className="text-xs text-muted-foreground">Clientes sem agendamentos ativos, classificados por tempo de inatividade</p></CardContent>
+            </Card>
             {["Pacotes Ativos", "Taxa de Renovação", "Clientes Top (Por Receita)", "Valor de Vida do Cliente (CLV)", "Clientes em Risco (Churn Proativo)"].map(titulo => (
               <Card key={titulo} className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary">
                 <CardHeader><CardTitle className="text-sm">{titulo}</CardTitle></CardHeader>
