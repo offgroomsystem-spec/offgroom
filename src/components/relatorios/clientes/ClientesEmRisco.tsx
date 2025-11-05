@@ -1,370 +1,209 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, Loader2, LinkIcon, Filter } from "lucide-react";
-import { format, differenceInDays, parseISO, isValid } from "date-fns";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
 import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
 
-interface ClienteRisco {
-  id: string;
-  nomeCliente: string;
-  nomePet: string;
-  whatsapp: string;
-  ultimoAgendamento: Date;
-  diasSemAgendar: number;
-  faixaRisco: string;
-}
-
-const classificarFaixaRisco = (dias: number): string => {
-  if (dias >= 7 && dias <= 10) return "7-10";
-  if (dias >= 11 && dias <= 15) return "11-15";
-  if (dias >= 16 && dias <= 20) return "16-20";
-  if (dias >= 21 && dias <= 30) return "21-30";
-  if (dias >= 31 && dias <= 45) return "31-45";
-  if (dias >= 46 && dias <= 90) return "46-90";
-  if (dias > 90) return "perdido";
-  return "sem-risco";
-};
-
-const obterVarianteBadge = (faixa: string) => {
-  switch (faixa) {
-    case "7-10":
-      return "default";
-    case "11-15":
-    case "16-20":
-    case "21-30":
-    case "31-45":
-      return "secondary";
-    case "46-90":
-    case "perdido":
-      return "destructive";
-    default:
-      return "outline";
-  }
-};
-
-const obterLabelFaixa = (faixa: string): string => {
-  if (faixa === "perdido") return "Mais de 90 dias";
-  return `${faixa} dias`;
-};
-
-const obterCorCard = (faixa: string) => {
-  switch (faixa) {
-    case "7-10":
-      return "bg-green-50 border-green-200";
-    case "11-15":
-    case "16-20":
-      return "bg-yellow-50 border-yellow-200";
-    case "21-30":
-    case "31-45":
-      return "bg-orange-50 border-orange-200";
-    case "46-90":
-    case "perdido":
-      return "bg-red-50 border-red-200";
-    default:
-      return "";
-  }
-};
-
-const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
-  const { nomeCliente, nomePet, diasSemAgendar } = cliente;
-
-  if (diasSemAgendar >= 7 && diasSemAgendar <= 10)
-    return `Olá, ${nomeCliente}! Notamos que faz ${diasSemAgendar} dias do último banho de ${nomePet}. Vamos agendar o próximo?`;
-
-  if (diasSemAgendar >= 11 && diasSemAgendar <= 15)
-    return `Oii, ${nomeCliente}. Já faz um tempinho desde o último banho de ${nomePet}. Vamos marcar o próximo?`;
-
-  if (diasSemAgendar >= 16 && diasSemAgendar <= 20)
-    return `Olá, ${nomeCliente}. Já faz um bom tempo que ${nomePet} não vem nos visitar. Vamos agendar o banho?`;
-
-  if (diasSemAgendar >= 21 && diasSemAgendar <= 30)
-    return `Olá, ${nomeCliente}. Já faz quase um mês desde o último banho de ${nomePet}. Que tal marcar um novo?`;
-
-  if (diasSemAgendar >= 31 && diasSemAgendar <= 45)
-    return `Oii, ${nomeCliente}! O ${nomePet} está há bastante tempo sem vir. Temos horários disponíveis nesta semana. Vamos marcar?`;
-
-  if (diasSemAgendar >= 46 && diasSemAgendar <= 90)
-    return `Olá, ${nomeCliente}. Já faz bastante tempo que ${nomePet} não vem. Sentimos falta dele. Que tal agendar um novo banho?`;
-
-  return `Olá, ${nomeCliente}! Tudo bem?`;
-};
-
-const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
-  if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
-
-  const numeroLimpo = cliente.whatsapp.toString().replace(/\D/g, "");
-  const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
-  const mensagem = encodeURIComponent(gerarMensagemWhatsApp(cliente));
-  const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
-
-  navigator.clipboard.writeText(link).then(() => {
-    toast.success("Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
-  });
-};
-
-export const ClientesEmRisco = () => {
+export default function ClientesEmRisco() {
   const { user } = useAuth();
-  const [clientes, setClientes] = useState<ClienteRisco[]>([]);
-  const [clientesFiltrados, setClientesFiltrados] = useState<ClienteRisco[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [filtros, setFiltros] = useState({
-    faixaDias: "todos",
-    busca: "",
-    dataInicio: "",
-    dataFim: "",
-  });
-  const [modalAberto, setModalAberto] = useState(false);
-  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteRisco | null>(null);
 
-  const carregarClientesEmRisco = async () => {
-    if (!user) return;
+  const [dados, setDados] = useState<any[]>([]);
+  const [busca, setBusca] = useState("");
+  const [intervaloDias, setIntervaloDias] = useState(90);
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [filtroAberto, setFiltroAberto] = useState(false);
+  const [clienteSelecionado, setClienteSelecionado] = useState<any | null>(null);
+
+  const carregarDados = async () => {
     setLoading(true);
 
     try {
+      const { data: agendamentos, error: errorAg } = await supabase.from("agendamentos").select("*");
+      const { data: pacotes, error: errorPac } = await supabase.from("agendamentos_pacotes").select("*");
+
+      if (errorAg) throw errorAg;
+      if (errorPac) throw errorPac;
+
       const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
+      const dataLimite = new Date();
+      dataLimite.setDate(hoje.getDate() - intervaloDias);
 
-      const { data: agendamentos } = await supabase
-        .from("agendamentos")
-        .select("cliente_id, cliente, data, pet, whatsapp")
-        .eq("user_id", user.id)
-        .order("data", { ascending: false });
+      const todosAgendamentos = [...(agendamentos || []), ...(pacotes || [])];
 
-      const { data: pacotes } = await supabase
-        .from("agendamentos_pacotes")
-        .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
-        .eq("user_id", user.id);
+      // Agrupar por cliente
+      const clientesMap = new Map<string, any>();
 
-      const mapa = new Map<string, ClienteRisco>();
+      todosAgendamentos.forEach((item) => {
+        const nomeCliente = item.nomeCliente?.trim();
+        const nomePet = item.nomePet?.trim();
+        const dataServico = new Date(item.data);
+        if (!nomeCliente || isNaN(dataServico.getTime())) return;
 
-      const adicionarOuAtualizar = (
-        chave: string,
-        nomeCliente: string,
-        nomePet: string,
-        whatsapp: any,
-        dataStr: string,
-      ) => {
-        if (!dataStr) return;
-        const data = parseISO(dataStr);
-        if (!isValid(data)) return;
-
-        if (!mapa.has(chave)) {
-          mapa.set(chave, {
-            id: chave,
+        if (!clientesMap.has(nomeCliente)) {
+          clientesMap.set(nomeCliente, {
             nomeCliente,
             nomePet,
-            whatsapp: whatsapp ? whatsapp.toString() : "",
-            ultimoAgendamento: data,
-            diasSemAgendar: 0,
-            faixaRisco: "sem-risco",
+            ultimoAgendamento: dataServico,
+            telefone: item.telefone || "",
           });
         } else {
-          const existente = mapa.get(chave)!;
-          if (data > existente.ultimoAgendamento) existente.ultimoAgendamento = data;
-        }
-      };
-
-      agendamentos?.forEach((a) => {
-        const chave = `${a.cliente}_${a.pet}`;
-        adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
-      });
-
-      pacotes?.forEach((p) => {
-        const chave = `${p.nome_cliente}_${p.nome_pet}`;
-        let ultimaDataServico: Date | null = null;
-
-        try {
-          const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
-          if (Array.isArray(servicos)) {
-            const datasValidas = servicos.map((s) => parseISO(s.data)).filter((d) => isValid(d));
-            if (datasValidas.length > 0)
-              ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
+          const existente = clientesMap.get(nomeCliente);
+          if (dataServico > existente.ultimoAgendamento) {
+            existente.ultimoAgendamento = dataServico;
           }
-        } catch {}
-
-        const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
-        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
-      });
-
-      const listaRisco: ClienteRisco[] = [];
-      mapa.forEach((cli) => {
-        const dias = differenceInDays(hoje, cli.ultimoAgendamento);
-        const temAgendamentoFuturo =
-          agendamentos?.some(
-            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje,
-          ) ||
-          pacotes?.some((p) => {
-            if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
-            try {
-              const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
-              if (Array.isArray(servicos))
-                return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
-            } catch {
-              return false;
-            }
-            return parseISO(p.data_venda) >= hoje;
-          });
-
-        if (!temAgendamentoFuturo && dias >= 7) {
-          cli.diasSemAgendar = dias;
-          cli.faixaRisco = classificarFaixaRisco(dias);
-          listaRisco.push(cli);
         }
       });
 
-      listaRisco.sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
-      setClientes(listaRisco);
-      aplicarFiltros(listaRisco);
-    } catch (err) {
-      console.error("Erro ao carregar clientes em risco:", err);
-      toast.error("Erro ao carregar dados dos clientes");
+      // Clientes que não aparecem há X dias
+      const clientesEmRisco = Array.from(clientesMap.values()).filter((c) => {
+        return c.ultimoAgendamento < dataLimite;
+      });
+
+      setDados(clientesEmRisco);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao carregar os dados");
     } finally {
       setLoading(false);
     }
   };
 
-  const aplicarFiltros = (base: ClienteRisco[] = clientes) => {
-    let resultado = [...base];
-    if (filtros.faixaDias !== "todos") resultado = resultado.filter((c) => c.faixaRisco === filtros.faixaDias);
-    if (filtros.busca.trim()) {
-      const termo = filtros.busca.toLowerCase();
-      resultado = resultado.filter(
-        (c) => c.nomeCliente.toLowerCase().includes(termo) || c.nomePet.toLowerCase().includes(termo),
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const dadosFiltrados = useMemo(() => {
+    let filtrados = dados;
+
+    if (busca.trim() !== "") {
+      filtrados = filtrados.filter(
+        (item) =>
+          item.nomeCliente?.toLowerCase().includes(busca.toLowerCase()) ||
+          item.nomePet?.toLowerCase().includes(busca.toLowerCase()),
       );
     }
-    if (filtros.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= parseISO(filtros.dataInicio));
-    if (filtros.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= parseISO(filtros.dataFim));
-    setClientesFiltrados(resultado);
+
+    if (dataInicio) {
+      const inicio = new Date(dataInicio);
+      filtrados = filtrados.filter((item) => item.ultimoAgendamento >= inicio);
+    }
+
+    if (dataFim) {
+      const fim = new Date(dataFim);
+      filtrados = filtrados.filter((item) => item.ultimoAgendamento <= fim);
+    }
+
+    return filtrados.sort((a, b) => a.ultimoAgendamento.getTime() - b.ultimoAgendamento.getTime());
+  }, [dados, busca, dataInicio, dataFim]);
+
+  const limparFiltros = () => {
+    setBusca("");
+    setDataInicio("");
+    setDataFim("");
+    setIntervaloDias(90);
+    setFiltroAberto(false);
+    carregarDados();
   };
 
-  const handleFiltrar = () => {
-    aplicarFiltros();
-    setMostrarFiltros(false);
+  const aplicarFiltros = () => {
+    setFiltroAberto(false);
+    carregarDados();
   };
-
-  const handleLimparFiltros = () => {
-    setFiltros({ faixaDias: "todos", busca: "", dataInicio: "", dataFim: "" });
-    aplicarFiltros();
-    setMostrarFiltros(false);
-  };
-
-  const abrirModalDetalhes = (c: ClienteRisco) => {
-    setClienteSelecionado(c);
-    setModalAberto(true);
-  };
-
-  useEffect(() => {
-    carregarClientesEmRisco();
-  }, [user]);
-
-  const contadores = {
-    "7-10": clientes.filter((c) => c.faixaRisco === "7-10").length,
-    "11-15": clientes.filter((c) => c.faixaRisco === "11-15").length,
-    "16-20": clientes.filter((c) => c.faixaRisco === "16-20").length,
-    "21-30": clientes.filter((c) => c.faixaRisco === "21-30").length,
-    "31-45": clientes.filter((c) => c.faixaRisco === "31-45").length,
-    "46-90": clientes.filter((c) => c.faixaRisco === "46-90").length,
-    perdido: clientes.filter((c) => c.faixaRisco === "perdido").length,
-  };
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {Object.keys(contadores).map((key) => (
-          <Card key={key} className={obterCorCard(key)}>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-center">{contadores[key as keyof typeof contadores]}</div>
-              <div className="text-xs text-center text-muted-foreground">{obterLabelFaixa(key)}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={() => setMostrarFiltros((v) => !v)}>
-          <Filter className="h-4 w-4 mr-2" />
-          {mostrarFiltros ? "Ocultar Filtros" : "Mostrar Filtros"}
-        </Button>
-      </div>
-
-      {mostrarFiltros && (
-        <FiltrosClientesRisco
-          filtros={filtros}
-          setFiltros={setFiltros}
-          onFiltrar={handleFiltrar}
-          onLimpar={handleLimparFiltros}
-        />
-      )}
-
       <Card>
-        <CardHeader>
-          <CardTitle>Clientes em Risco ({clientesFiltrados.length})</CardTitle>
+        <CardHeader className="flex justify-between items-center">
+          <CardTitle>Clientes em Risco</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setFiltroAberto(!filtroAberto)}>
+              {filtroAberto ? "Recolher Filtros" : "Filtrar"}
+            </Button>
+          </div>
         </CardHeader>
 
-        <CardContent>
-          {clientesFiltrados.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado com os filtros aplicados</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Pet</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Último Agendamento</TableHead>
-                    <TableHead>Dias sem Agendar</TableHead>
-                    <TableHead>Faixa de Risco</TableHead>
-                    <TableHead className="text-center">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
+        {filtroAberto && (
+          <CardContent className="border-t pt-4 space-y-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Intervalo de Dias</label>
+                <Input
+                  type="number"
+                  value={intervaloDias}
+                  onChange={(e) => setIntervaloDias(Number(e.target.value))}
+                  placeholder="Ex: 90"
+                />
+              </div>
 
-                <TableBody>
-                  {clientesFiltrados.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.nomeCliente}</TableCell>
-                      <TableCell>{c.nomePet}</TableCell>
-                      <TableCell>{c.whatsapp}</TableCell>
-                      <TableCell>{format(c.ultimoAgendamento, "dd/MM/yyyy")}</TableCell>
-                      <TableCell>{c.diasSemAgendar} dias</TableCell>
-                      <TableCell>
-                        <Badge variant={obterVarianteBadge(c.faixaRisco)}>{obterLabelFaixa(c.faixaRisco)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2 justify-center">
-                          <Button size="sm" variant="outline" onClick={() => abrirModalDetalhes(c)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => copiarLinkWhatsApp(c)}>
-                            <LinkIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div>
+                <label className="block text-sm font-medium mb-1">Buscar Cliente ou Pet</label>
+                <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Digite o nome" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Data Início (Opcional)</label>
+                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Data Fim (Opcional)</label>
+                <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+              </div>
             </div>
+
+            <div className="flex justify-end gap-2">
+              <Button onClick={aplicarFiltros}>Filtrar</Button>
+              <Button variant="outline" onClick={limparFiltros}>
+                Limpar Filtros
+              </Button>
+            </div>
+          </CardContent>
+        )}
+
+        <CardContent>
+          {loading ? (
+            <p>Carregando...</p>
+          ) : dadosFiltrados.length === 0 ? (
+            <p>Nenhum cliente em risco encontrado.</p>
+          ) : (
+            <table className="w-full text-sm border">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 text-left">Cliente</th>
+                  <th className="p-2 text-left">Pet</th>
+                  <th className="p-2 text-left">Último Agendamento</th>
+                  <th className="p-2 text-left">Telefone</th>
+                  <th className="p-2 text-left">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dadosFiltrados.map((item, i) => (
+                  <tr key={i} className="border-t">
+                    <td className="p-2">{item.nomeCliente}</td>
+                    <td className="p-2">{item.nomePet}</td>
+                    <td className="p-2">{item.ultimoAgendamento.toLocaleDateString("pt-BR")}</td>
+                    <td className="p-2">{item.telefone}</td>
+                    <td className="p-2">
+                      <Button size="sm" variant="outline" onClick={() => setClienteSelecionado(item)}>
+                        Ver Detalhes
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </CardContent>
       </Card>
 
-      <ModalDetalhesCliente aberto={modalAberto} cliente={clienteSelecionado} onFechar={() => setModalAberto(false)} />
+      {clienteSelecionado && (
+        <ModalDetalhesCliente cliente={clienteSelecionado} onClose={() => setClienteSelecionado(null)} />
+      )}
     </div>
   );
-};
+}
