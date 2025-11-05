@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 import { toast } from "sonner";
 
 interface ClienteRisco {
@@ -35,21 +35,15 @@ interface Agendamento {
 }
 
 const abrirWhatsApp = (whatsapp: string, nomeCliente: string) => {
-  const numeroLimpo = whatsapp.replace(/\D/g, '');
-  const numeroCompleto = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
-  
+  const numeroLimpo = whatsapp.replace(/\D/g, "");
+  const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
   const mensagem = encodeURIComponent(
-    `Olá ${nomeCliente}! Notamos que faz um tempo que não nos visita. Gostaríamos de saber como você e seu pet estão! 🐾`
+    `Olá ${nomeCliente}! Notamos que faz um tempo que não nos visita. Gostaríamos de saber como você e seu pet estão!`,
   );
-  
-  window.open(`https://wa.me/${numeroCompleto}?text=${mensagem}`, '_blank');
+  window.open(`https://wa.me/${numeroCompleto}?text=${mensagem}`, "_blank");
 };
 
-export const ModalDetalhesCliente = ({
-  aberto,
-  cliente,
-  onFechar
-}: ModalDetalhesClienteProps) => {
+export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhesClienteProps) => {
   const { user } = useAuth();
   const [historico, setHistorico] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,66 +61,70 @@ export const ModalDetalhesCliente = ({
     try {
       // Buscar agendamentos regulares
       const { data: agendamentosRegulares, error: errorRegulares } = await supabase
-        .from('agendamentos')
-        .select('data, servico, status')
-        .eq('user_id', user.id)
-        .eq('cliente', cliente.nomeCliente)
-        .eq('pet', cliente.nomePet)
-        .order('data', { ascending: false })
-        .limit(20);
+        .from("agendamentos")
+        .select("data, servico, status")
+        .eq("user_id", user.id)
+        .eq("cliente", cliente.nomeCliente)
+        .eq("pet", cliente.nomePet)
+        .order("data", { ascending: false });
 
       if (errorRegulares) throw errorRegulares;
 
       // Buscar agendamentos de pacotes
       const { data: agendamentosPacotes, error: errorPacotes } = await supabase
-        .from('agendamentos_pacotes')
-        .select('data_venda, nome_pacote, servicos')
-        .eq('user_id', user.id)
-        .eq('nome_cliente', cliente.nomeCliente)
-        .eq('nome_pet', cliente.nomePet)
-        .order('data_venda', { ascending: false })
-        .limit(20);
+        .from("agendamentos_pacotes")
+        .select("data_venda, nome_pacote, servicos")
+        .eq("user_id", user.id)
+        .eq("nome_cliente", cliente.nomeCliente)
+        .eq("nome_pet", cliente.nomePet);
 
       if (errorPacotes) throw errorPacotes;
 
       // Combinar e formatar histórico
       const historicoCompleto: Agendamento[] = [];
 
-      agendamentosRegulares?.forEach(ag => {
-        historicoCompleto.push({
-          data: parseISO(ag.data),
-          servico: ag.servico,
-          status: ag.status,
-          tipo: "regular"
-        });
-      });
-
-      agendamentosPacotes?.forEach(ag => {
-        let servicosStr = "Pacote";
-        try {
-          const servicosArray = JSON.parse(ag.servicos as any);
-          if (Array.isArray(servicosArray) && servicosArray.length > 0) {
-            servicosStr = `${ag.nome_pacote} (${servicosArray.length} serviços)`;
-          }
-        } catch {
-          servicosStr = ag.nome_pacote;
+      // Agendamentos normais
+      agendamentosRegulares?.forEach((ag) => {
+        if (isValid(parseISO(ag.data))) {
+          historicoCompleto.push({
+            data: parseISO(ag.data),
+            servico: ag.servico,
+            status: ag.status,
+            tipo: "regular",
+          });
         }
-
-        historicoCompleto.push({
-          data: parseISO(ag.data_venda),
-          servico: servicosStr,
-          status: "Concluído",
-          tipo: "pacote"
-        });
       });
 
-      // Ordenar por data
+      // Agendamentos de pacotes — inclui as datas reais de cada serviço
+      agendamentosPacotes?.forEach((p) => {
+        try {
+          const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+          if (Array.isArray(servicos)) {
+            servicos.forEach((s) => {
+              const dataServico = parseISO(s.data);
+              if (isValid(dataServico)) {
+                historicoCompleto.push({
+                  data: dataServico,
+                  servico: s.servico || p.nome_pacote || "Serviço de Pacote",
+                  status: s.status || "Concluído",
+                  tipo: "pacote",
+                });
+              }
+            });
+          }
+        } catch (err) {
+          console.error("Erro ao processar JSON de serviços:", err);
+        }
+      });
+
+      // Ordenar por data (mais recentes primeiro)
       historicoCompleto.sort((a, b) => b.data.getTime() - a.data.getTime());
 
-      setHistorico(historicoCompleto);
+      // Exibir apenas os 4 últimos
+      setHistorico(historicoCompleto.slice(0, 4));
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
-      toast.error('Erro ao carregar histórico de agendamentos');
+      console.error("Erro ao carregar histórico:", error);
+      toast.error("Erro ao carregar histórico de agendamentos");
     } finally {
       setLoading(false);
     }
@@ -157,36 +155,26 @@ export const ModalDetalhesCliente = ({
               <p className="font-medium">{cliente.whatsapp}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">
-                Dias sem Agendar
-              </Label>
-              <p className="font-medium text-red-600">
-                {cliente.diasSemAgendar} dias
-              </p>
+              <Label className="text-xs text-muted-foreground">Dias sem Agendar</Label>
+              <p className="font-medium text-red-600">{cliente.diasSemAgendar} dias</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">
-                Último Agendamento
-              </Label>
-              <p className="font-medium">
-                {format(cliente.ultimoAgendamento, "dd/MM/yyyy")}
-              </p>
+              <Label className="text-xs text-muted-foreground">Último Agendamento</Label>
+              <p className="font-medium">{format(cliente.ultimoAgendamento, "dd/MM/yyyy")}</p>
             </div>
           </div>
 
           <Separator />
 
-          {/* Histórico de Agendamentos */}
+          {/* Histórico de Últimos Agendamentos */}
           <div>
-            <h3 className="font-semibold mb-3">Histórico de Agendamentos</h3>
+            <h3 className="font-semibold mb-3">Histórico de Últimos Agendamentos</h3>
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : historico.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">
-                Nenhum agendamento encontrado
-              </p>
+              <p className="text-center text-muted-foreground py-4">Nenhum agendamento encontrado</p>
             ) : (
               <div className="border rounded-lg overflow-hidden">
                 <Table>
