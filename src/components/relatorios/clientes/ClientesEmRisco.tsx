@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { format, differenceInDays, parseISO } from "date-fns";
-import { Copy } from "lucide-react";
 
 interface Agendamento {
   nomeCliente: string;
@@ -23,7 +22,7 @@ interface ClienteRisco {
   faixaRisco: string;
 }
 
-export default function RelatorioClientesInativos() {
+export function ClientesEmRisco() {
   const { toast } = useToast();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [clientesRisco, setClientesRisco] = useState<ClienteRisco[]>([]);
