@@ -1,19 +1,19 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import { format, differenceInDays, parseISO } from "date-fns";
-
-interface Agendamento {
-  nomeCliente: string;
-  nomePet: string;
-  whatsapp: string;
-  dataAgendada: string;
-}
+import { Eye, Loader2, LinkIcon } from "lucide-react";
+import { format, differenceInDays, parseISO, isValid } from "date-fns";
+import { toast } from "sonner";
+import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
+import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
+import { ExportButton } from "../shared/ExportButton";
 
 interface ClienteRisco {
+  id: string;
   nomeCliente: string;
   nomePet: string;
   whatsapp: string;
@@ -22,192 +22,382 @@ interface ClienteRisco {
   faixaRisco: string;
 }
 
-export function ClientesEmRisco() {
-  const { toast } = useToast();
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-  const [clientesRisco, setClientesRisco] = useState<ClienteRisco[]>([]);
-  const [filtroRisco, setFiltroRisco] = useState<string>("todos");
-  const [filtroNome, setFiltroNome] = useState<string>("");
-  const [mostrarFiltros, setMostrarFiltros] = useState<boolean>(false);
+const classificarFaixaRisco = (dias: number): string => {
+  if (dias >= 7 && dias <= 10) return "7-10";
+  if (dias >= 11 && dias <= 15) return "11-15";
+  if (dias >= 16 && dias <= 20) return "16-20";
+  if (dias >= 21 && dias <= 30) return "21-30";
+  if (dias >= 31 && dias <= 45) return "31-45";
+  if (dias >= 46 && dias <= 90) return "46-90";
+  if (dias > 90) return "perdido";
+  return "sem-risco";
+};
+
+const obterVarianteBadge = (faixa: string) => {
+  switch (faixa) {
+    case "7-10":
+      return "default";
+    case "11-15":
+    case "16-20":
+    case "21-30":
+    case "31-45":
+      return "secondary";
+    case "46-90":
+    case "perdido":
+      return "destructive";
+    default:
+      return "outline";
+  }
+};
+
+const obterLabelFaixa = (faixa: string): string => {
+  if (faixa === "perdido") return "Mais de 90 dias";
+  return `${faixa} dias`;
+};
+
+const obterCorCard = (faixa: string) => {
+  switch (faixa) {
+    case "7-10":
+      return "bg-green-50 border-green-200";
+    case "11-15":
+    case "16-20":
+      return "bg-yellow-50 border-yellow-200";
+    case "21-30":
+    case "31-45":
+      return "bg-orange-50 border-orange-200";
+    case "46-90":
+    case "perdido":
+      return "bg-red-50 border-red-200";
+    default:
+      return "";
+  }
+};
+
+// Gera a mensagem personalizada conforme a faixa de dias
+const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
+  const { nomeCliente, nomePet, diasSemAgendar } = cliente;
+
+  if (diasSemAgendar >= 7 && diasSemAgendar <= 10)
+    return `Olá, ${nomeCliente}!  
+Como vc está?
+
+Notamos que faz ${diasSemAgendar} dias do último banho de ${nomePet}. Está quase na hora do próximo banho. Vamos marcar o próximo para manter os cuidados em dia?`;
+
+  if (diasSemAgendar >= 11 && diasSemAgendar <= 15)
+    return `Oii, ${nomeCliente}.  
+Como vc está?
+
+Já faz um tempinho desde o último banho de ${nomePet}. Vamos marcar o próximo para ele continuar sempre bem cuidado?`;
+
+  if (diasSemAgendar >= 16 && diasSemAgendar <= 20)
+    return `Olá, ${nomeCliente}.  
+Como vc está?
+
+Já faz um bom tempo que o ${nomePet} não vem nos visitar. Vamos agendar o próximo banho e colocar os cuidados em dia?`;
+
+  if (diasSemAgendar >= 21 && diasSemAgendar <= 30)
+    return `Olá, ${nomeCliente}.  
+Como vc está?
+
+Já faz quase um mês desde o último banho de ${nomePet}. Que tal agendar um novo e deixar ele limpo e confortável?`;
+
+  if (diasSemAgendar >= 31 && diasSemAgendar <= 45)
+    return `Oii, ${nomeCliente}!  
+Como vc está?
+
+O ${nomePet} está há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana. Vamos marcar?`;
+
+  if (diasSemAgendar >= 46 && diasSemAgendar <= 90)
+    return `Olá, ${nomeCliente}.  
+Já faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta dele. Que tal agendar um novo banho e colocá-lo em dia com um cuidado especial?`;
+
+  return `Olá, ${nomeCliente}! Tudo bem?`;
+};
+
+// Copia o link formatado com a mensagem
+const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
+  if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
+
+  const numeroLimpo = cliente.whatsapp.toString().replace(/\D/g, "");
+  const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
+
+  const mensagem = encodeURIComponent(gerarMensagemWhatsApp(cliente));
+  const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
+
+  navigator.clipboard.writeText(link).then(() => {
+    toast.success("Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
+  });
+};
+
+export const ClientesEmRisco = () => {
+  const { user } = useAuth();
+  const [clientes, setClientes] = useState<ClienteRisco[]>([]);
+  const [clientesFiltrados, setClientesFiltrados] = useState<ClienteRisco[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filtros, setFiltros] = useState({
+    faixaDias: "todos",
+    busca: "",
+    dataInicio: "",
+    dataFim: "",
+  });
+  const [modalAberto, setModalAberto] = useState(false);
+  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteRisco | null>(null);
+
+  const carregarClientesEmRisco = async () => {
+    if (!user) return;
+    setLoading(true);
+
+    try {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const { data: agendamentos, error: errorAg } = await supabase
+        .from("agendamentos")
+        .select("cliente_id, cliente, data, pet, whatsapp")
+        .eq("user_id", user.id)
+        .order("data", { ascending: false });
+
+      if (errorAg) throw errorAg;
+
+      const { data: pacotes, error: errorPac } = await supabase
+        .from("agendamentos_pacotes")
+        .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
+        .eq("user_id", user.id);
+
+      if (errorPac) throw errorPac;
+
+      const mapa = new Map<string, ClienteRisco>();
+
+      const adicionarOuAtualizar = (
+        chave: string,
+        nomeCliente: string,
+        nomePet: string,
+        whatsapp: any,
+        dataStr: string,
+      ) => {
+        if (!dataStr) return;
+        const data = parseISO(dataStr);
+        if (!isValid(data)) return;
+
+        if (!mapa.has(chave)) {
+          mapa.set(chave, {
+            id: chave,
+            nomeCliente,
+            nomePet,
+            whatsapp: whatsapp ? whatsapp.toString() : "",
+            ultimoAgendamento: data,
+            diasSemAgendar: 0,
+            faixaRisco: "sem-risco",
+          });
+        } else {
+          const existente = mapa.get(chave)!;
+          if (data > existente.ultimoAgendamento) {
+            existente.ultimoAgendamento = data;
+          }
+        }
+      };
+
+      agendamentos?.forEach((a) => {
+        const chave = `${a.cliente}_${a.pet}`;
+        adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
+      });
+
+      pacotes?.forEach((p) => {
+        const chave = `${p.nome_cliente}_${p.nome_pet}`;
+        let ultimaDataServico: Date | null = null;
+
+        try {
+          const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+          if (Array.isArray(servicos)) {
+            const datasValidas = servicos.map((s) => parseISO(s.data)).filter((d) => isValid(d));
+            if (datasValidas.length > 0) {
+              ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
+            }
+          }
+        } catch {}
+
+        const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
+        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
+      });
+
+      const listaRisco: ClienteRisco[] = [];
+      mapa.forEach((cli) => {
+        const dias = differenceInDays(hoje, cli.ultimoAgendamento);
+        const temAgendamentoFuturo =
+          agendamentos?.some(
+            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje,
+          ) ||
+          pacotes?.some((p) => {
+            if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
+            try {
+              const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+              if (Array.isArray(servicos)) {
+                return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+              }
+            } catch {
+              return false;
+            }
+            return parseISO(p.data_venda) >= hoje;
+          });
+
+        if (!temAgendamentoFuturo && dias >= 7) {
+          cli.diasSemAgendar = dias;
+          cli.faixaRisco = classificarFaixaRisco(dias);
+          listaRisco.push(cli);
+        }
+      });
+
+      listaRisco.sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
+      setClientes(listaRisco);
+      aplicarFiltros(listaRisco);
+    } catch (err) {
+      console.error("Erro ao carregar clientes em risco:", err);
+      toast.error("Erro ao carregar dados dos clientes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const aplicarFiltros = (base: ClienteRisco[] = clientes) => {
+    let resultado = [...base];
+    if (filtros.faixaDias !== "todos") resultado = resultado.filter((c) => c.faixaRisco === filtros.faixaDias);
+    if (filtros.busca.trim()) {
+      const termo = filtros.busca.toLowerCase();
+      resultado = resultado.filter(
+        (c) => c.nomeCliente.toLowerCase().includes(termo) || c.nomePet.toLowerCase().includes(termo),
+      );
+    }
+    if (filtros.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= parseISO(filtros.dataInicio));
+    if (filtros.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= parseISO(filtros.dataFim));
+    setClientesFiltrados(resultado);
+  };
+
+  const handleFiltrar = () => aplicarFiltros();
+  const abrirModalDetalhes = (c: ClienteRisco) => {
+    setClienteSelecionado(c);
+    setModalAberto(true);
+  };
 
   useEffect(() => {
-    async function carregarDados() {
-      try {
-        const resAg = await fetch("/api/agendamentos");
-        const agendamentosData: Agendamento[] = await resAg.json();
+    carregarClientesEmRisco();
+  }, [user]);
 
-        const resPac = await fetch("/api/agendamentos_pacotes");
-        const pacotesData: Agendamento[] = await resPac.json();
-
-        const todosAgendamentos = [...agendamentosData, ...pacotesData];
-        setAgendamentos(todosAgendamentos);
-
-        const clientes = calcularClientesEmRisco(todosAgendamentos);
-        setClientesRisco(clientes);
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-      }
-    }
-
-    carregarDados();
-  }, []);
-
-  const calcularClientesEmRisco = (agendamentos: Agendamento[]): ClienteRisco[] => {
-    const clientesMap = new Map<string, Agendamento[]>();
-
-    agendamentos.forEach((ag) => {
-      const chave = `${ag.nomeCliente}_${ag.nomePet}`;
-      if (!clientesMap.has(chave)) {
-        clientesMap.set(chave, []);
-      }
-      clientesMap.get(chave)?.push(ag);
-    });
-
-    const clientesRisco: ClienteRisco[] = [];
-
-    clientesMap.forEach((lista, chave) => {
-      const ultimoAgendamento = lista.map((a) => parseISO(a.dataAgendada)).sort((a, b) => b.getTime() - a.getTime())[0];
-
-      const diasSemAgendar = differenceInDays(new Date(), ultimoAgendamento);
-      const faixaRisco = obterFaixaDeRisco(diasSemAgendar);
-      const [nomeCliente, nomePet] = chave.split("_");
-
-      clientesRisco.push({
-        nomeCliente,
-        nomePet,
-        whatsapp: lista[0].whatsapp,
-        ultimoAgendamento,
-        diasSemAgendar,
-        faixaRisco,
-      });
-    });
-
-    return clientesRisco.sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
+  const contadores = {
+    "7-10": clientes.filter((c) => c.faixaRisco === "7-10").length,
+    "11-15": clientes.filter((c) => c.faixaRisco === "11-15").length,
+    "16-20": clientes.filter((c) => c.faixaRisco === "16-20").length,
+    "21-30": clientes.filter((c) => c.faixaRisco === "21-30").length,
+    "31-45": clientes.filter((c) => c.faixaRisco === "31-45").length,
+    "46-90": clientes.filter((c) => c.faixaRisco === "46-90").length,
+    perdido: clientes.filter((c) => c.faixaRisco === "perdido").length,
   };
 
-  const obterFaixaDeRisco = (dias: number): string => {
-    if (dias <= 30) return "baixo";
-    if (dias <= 60) return "moderado";
-    if (dias <= 90) return "alto";
-    return "crítico";
-  };
+  const dadosExportacao = clientesFiltrados.map((c) => ({
+    Cliente: c.nomeCliente,
+    Pet: c.nomePet,
+    Telefone: c.whatsapp,
+    "Último Agendamento": format(c.ultimoAgendamento, "dd/MM/yyyy"),
+    "Dias sem Agendar": c.diasSemAgendar,
+    "Faixa de Risco": obterLabelFaixa(c.faixaRisco),
+  }));
 
-  const obterLabelFaixa = (faixa: string): string => {
-    const labels: Record<string, string> = {
-      baixo: "Baixo (até 30 dias)",
-      moderado: "Moderado (31 a 60 dias)",
-      alto: "Alto (61 a 90 dias)",
-      crítico: "Crítico (acima de 90 dias)",
-    };
-    return labels[faixa] || faixa;
-  };
+  const colunasExportacao = [
+    { key: "Cliente", label: "Cliente" },
+    { key: "Pet", label: "Pet" },
+    { key: "Telefone", label: "Telefone" },
+    { key: "Último Agendamento", label: "Último Agendamento" },
+    { key: "Dias sem Agendar", label: "Dias sem Agendar" },
+    { key: "Faixa de Risco", label: "Faixa de Risco" },
+  ];
 
-  const clientesFiltrados = clientesRisco.filter(
-    (c) =>
-      (filtroRisco === "todos" || c.faixaRisco === filtroRisco) &&
-      (filtroNome === "" ||
-        c.nomeCliente.toLowerCase().includes(filtroNome.toLowerCase()) ||
-        c.nomePet.toLowerCase().includes(filtroNome.toLowerCase())),
-  );
-
-  const copiarLink = (whatsapp: string, nomeCliente: string) => {
-    const numeroLimpo = whatsapp.replace(/\D/g, "");
-    const mensagem = `Olá ${nomeCliente}, tudo bem? Notamos que faz um tempinho desde o último atendimento do seu pet. Que tal agendar um novo banho ou tosa com a gente?`;
-    const url = `https://wa.me/55${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Link copiado",
-      description: "Cole o link no navegador para abrir o WhatsApp.",
-    });
-  };
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {Object.keys(contadores).map((key) => (
+          <Card key={key} className={obterCorCard(key)}>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-center">{contadores[key as keyof typeof contadores]}</div>
+              <div className="text-xs text-center text-muted-foreground">{obterLabelFaixa(key)}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <FiltrosClientesRisco filtros={filtros} setFiltros={setFiltros} onFiltrar={handleFiltrar} />
+
       <Card>
         <CardHeader className="flex items-center justify-between">
           <CardTitle>Clientes em Risco ({clientesFiltrados.length})</CardTitle>
-          <Button variant="outline" size="sm" onClick={() => setMostrarFiltros(!mostrarFiltros)}>
-            {mostrarFiltros ? "Ocultar filtros" : "Mostrar filtros"}
-          </Button>
+          <ExportButton data={dadosExportacao} filename="clientes-em-risco" columns={colunasExportacao} />
         </CardHeader>
 
-        {mostrarFiltros && (
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Input
-              placeholder="Buscar por nome do cliente ou pet"
-              value={filtroNome}
-              onChange={(e) => setFiltroNome(e.target.value)}
-            />
-            <Select value={filtroRisco} onValueChange={setFiltroRisco}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por risco" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="baixo">Baixo</SelectItem>
-                <SelectItem value="moderado">Moderado</SelectItem>
-                <SelectItem value="alto">Alto</SelectItem>
-                <SelectItem value="crítico">Crítico</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        )}
-
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="p-2 border">Cliente</th>
-                  <th className="p-2 border">Pet</th>
-                  <th className="p-2 border">WhatsApp</th>
-                  <th className="p-2 border">Último Agendamento</th>
-                  <th className="p-2 border">Dias sem Agendar</th>
-                  <th className="p-2 border">Faixa de Risco</th>
-                  <th className="p-2 border">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientesFiltrados.map((c, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="p-2 border">{c.nomeCliente}</td>
-                    <td className="p-2 border">{c.nomePet}</td>
-                    <td className="p-2 border">{c.whatsapp}</td>
-                    <td className="p-2 border">{format(c.ultimoAgendamento, "dd/MM/yyyy")}</td>
-                    <td className="p-2 border text-center">{c.diasSemAgendar}</td>
-                    <td
-                      className={`p-2 border text-center font-semibold ${
-                        c.faixaRisco === "baixo"
-                          ? "text-green-600"
-                          : c.faixaRisco === "moderado"
-                            ? "text-yellow-600"
-                            : c.faixaRisco === "alto"
-                              ? "text-orange-600"
-                              : "text-red-600"
-                      }`}
-                    >
-                      {obterLabelFaixa(c.faixaRisco)}
-                    </td>
-                    <td className="p-2 border text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copiarLink(c.whatsapp, c.nomeCliente)}
-                        title="Copiar link do WhatsApp"
-                      >
-                        <i className="fi fi-rr-link-alt text-lg" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {clientesFiltrados.length === 0 && (
-              <p className="text-center text-gray-500 py-4">Nenhum cliente encontrado com os filtros atuais.</p>
-            )}
-          </div>
+          {clientesFiltrados.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado com os filtros aplicados</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Pet</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Último Agendamento</TableHead>
+                    <TableHead>Dias sem Agendar</TableHead>
+                    <TableHead>Faixa de Risco</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {clientesFiltrados.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.nomeCliente}</TableCell>
+                      <TableCell>{c.nomePet}</TableCell>
+                      <TableCell>{c.whatsapp}</TableCell>
+                      <TableCell>{format(c.ultimoAgendamento, "dd/MM/yyyy")}</TableCell>
+                      <TableCell>{c.diasSemAgendar} dias</TableCell>
+                      <TableCell>
+                        <Badge variant={obterVarianteBadge(c.faixaRisco)}>{obterLabelFaixa(c.faixaRisco)}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2 justify-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => abrirModalDetalhes(c)}
+                            title="Ver Detalhes"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copiarLinkWhatsApp(c)}
+                            title="Copiar Link do WhatsApp"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <ModalDetalhesCliente aberto={modalAberto} cliente={clienteSelecionado} onFechar={() => setModalAberto(false)} />
     </div>
   );
-}
+};
