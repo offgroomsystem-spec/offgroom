@@ -115,9 +115,9 @@ export const ClientesEmRisco = () => {
 
 const { data: pacotes, error: errorPac } = await supabase
   .from("agendamentos_pacotes")
-  .select("nome_cliente, data_venda, nome_pet, whatsapp, servicos")
-  .eq("user_id", user.id)
-  .order("data_venda", { ascending: false });
+  .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
+  .eq("user_id", user.id);
+
 
 
       if (errorPac) throw errorPac;
@@ -160,41 +160,54 @@ const { data: pacotes, error: errorPac } = await supabase
 
 pacotes?.forEach((p) => {
   const chave = `${p.nome_cliente}_${p.nome_pet}`;
-
-  // Extrair a data mais recente do campo "servicos"
-  let ultimaDataServico: string | null = null;
+  let ultimaDataServico: Date | null = null;
 
   try {
-    const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : [];
-    if (Array.isArray(servicos) && servicos.length > 0) {
-      const datas = servicos.map((s) => new Date(s.data)).filter((d) => !isNaN(d.getTime()));
-      if (datas.length > 0) {
-        const ultimaData = new Date(Math.max(...datas.map((d) => d.getTime())));
-        ultimaDataServico = ultimaData.toISOString().split("T")[0];
+    // o campo servicos é um JSON armazenado como texto
+    const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+    if (Array.isArray(servicos)) {
+      const datasValidas = servicos
+        .map((s) => parseISO(s.data))
+        .filter((d) => isValid(d));
+
+      if (datasValidas.length > 0) {
+        // pega a MAIOR data (último agendamento do pacote)
+        ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
       }
     }
   } catch (err) {
-    console.error("Erro ao processar servicos do pacote:", err);
+    console.error("Erro ao processar JSON de servicos:", err);
   }
 
-  // Se não encontrou datas dentro de "servicos", usa data_venda como fallback
-  const dataFinal = ultimaDataServico || p.data_venda;
+  // Se não encontrar data dentro do JSON, usa a data_venda como fallback
+  const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
 
   adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
 });
+
 
 
       const listaRisco: ClienteRisco[] = [];
 
       mapa.forEach((cli) => {
         const dias = differenceInDays(hoje, cli.ultimoAgendamento);
-        const temAgendamentoFuturo =
-          agendamentos?.some(
-            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje,
-          ) ||
-          pacotes?.some(
-            (p) => p.nome_cliente === cli.nomeCliente && p.nome_pet === cli.nomePet && parseISO(p.data_venda) >= hoje,
-          );
+const temAgendamentoFuturo =
+  agendamentos?.some(
+    (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje
+  ) ||
+  pacotes?.some((p) => {
+    if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
+    try {
+      const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+      if (Array.isArray(servicos)) {
+        return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+      }
+    } catch {
+      return false;
+    }
+    return parseISO(p.data_venda) >= hoje;
+  });
+
 
         if (!temAgendamentoFuturo && dias >= 7) {
           cli.diasSemAgendar = dias;
