@@ -107,7 +107,7 @@ export const ClientesEmRisco = () => {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
-      // Buscar todos os agendamentos (regulares e de pacotes)
+      // Buscar todos os agendamentos regulares
       const { data: agendamentos, error: errorAgendamentos } = await supabase
         .from('agendamentos')
         .select('cliente_id, cliente, data, pet, whatsapp')
@@ -116,10 +116,19 @@ export const ClientesEmRisco = () => {
 
       if (errorAgendamentos) throw errorAgendamentos;
 
+      // Buscar todos os agendamentos de pacotes
+      const { data: agendamentosPacotes, error: errorPacotes } = await supabase
+        .from('agendamentos_pacotes')
+        .select('nome_cliente, data_venda, nome_pet, whatsapp')
+        .eq('user_id', user.id)
+        .order('data_venda', { ascending: false });
+
+      if (errorPacotes) throw errorPacotes;
+
       // Processar dados e identificar clientes em risco
       const clientesMap = new Map<string, ClienteRisco>();
 
-      // Processar todos os agendamentos
+      // Processar agendamentos regulares
       agendamentos?.forEach(ag => {
         const dataAgendamento = parseISO(ag.data);
         const chaveCliente = `${ag.cliente}_${ag.pet}`;
@@ -129,6 +138,29 @@ export const ClientesEmRisco = () => {
             id: ag.cliente_id || chaveCliente,
             nomeCliente: ag.cliente,
             nomePet: ag.pet,
+            whatsapp: ag.whatsapp,
+            ultimoAgendamento: dataAgendamento,
+            diasSemAgendar: 0,
+            faixaRisco: "sem-risco"
+          });
+        } else {
+          const clienteExistente = clientesMap.get(chaveCliente)!;
+          if (dataAgendamento > clienteExistente.ultimoAgendamento) {
+            clienteExistente.ultimoAgendamento = dataAgendamento;
+          }
+        }
+      });
+
+      // Processar agendamentos de pacotes
+      agendamentosPacotes?.forEach(ag => {
+        const dataAgendamento = parseISO(ag.data_venda);
+        const chaveCliente = `${ag.nome_cliente}_${ag.nome_pet}`;
+        
+        if (!clientesMap.has(chaveCliente)) {
+          clientesMap.set(chaveCliente, {
+            id: chaveCliente,
+            nomeCliente: ag.nome_cliente,
+            nomePet: ag.nome_pet,
             whatsapp: ag.whatsapp,
             ultimoAgendamento: dataAgendamento,
             diasSemAgendar: 0,
