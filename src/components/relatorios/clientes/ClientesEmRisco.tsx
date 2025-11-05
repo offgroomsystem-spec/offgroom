@@ -77,9 +77,11 @@ const obterCorCard = (faixa: string) => {
 const abrirWhatsApp = (whatsapp: string, nomeCliente: string) => {
   const numeroLimpo = whatsapp.replace(/\D/g, "");
   const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
+
   const mensagem = encodeURIComponent(
     `Olá ${nomeCliente}! Notamos que faz um tempo que não nos visita. Gostaríamos de saber como você e seu pet estão!`,
   );
+
   window.open(`https://wa.me/${numeroCompleto}?text=${mensagem}`, "_blank");
 };
 
@@ -99,13 +101,13 @@ export const ClientesEmRisco = () => {
 
   const carregarClientesEmRisco = async () => {
     if (!user) return;
-    setLoading(true);
 
+    setLoading(true);
     try {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
-      // Buscar agendamentos AVULSOS — usar coluna "data"
+      // Buscar agendamentos regulares
       const { data: agendamentos, error: errorAgendamentos } = await supabase
         .from("agendamentos")
         .select("cliente_id, cliente, data, pet, whatsapp")
@@ -114,22 +116,24 @@ export const ClientesEmRisco = () => {
 
       if (errorAgendamentos) throw errorAgendamentos;
 
-      // Buscar agendamentos de PACOTES — ler campo `servicos`
+      // Buscar agendamentos de pacotes
       const { data: agendamentosPacotes, error: errorPacotes } = await supabase
         .from("agendamentos_pacotes")
-        .select("nome_cliente, servicos, nome_pet, whatsapp")
+        .select("id, nome_cliente, nome_pet, whatsapp, servicos")
         .eq("user_id", user.id);
 
       if (errorPacotes) throw errorPacotes;
 
+      // --- Mapa de clientes (únicos) ---
       const clientesMap = new Map<string, ClienteRisco>();
 
-      // Processar agendamentos AVULSOS
+      // --- Agendamentos regulares ---
       agendamentos?.forEach((ag) => {
         const dataAgendamento = parseISO(ag.data);
         const chave = `${ag.cliente}_${ag.pet}`;
 
-        if (!clientesMap.has(chave)) {
+        const existente = clientesMap.get(chave);
+        if (!existente || dataAgendamento > existente.ultimoAgendamento) {
           clientesMap.set(chave, {
             id: ag.cliente_id || chave,
             nomeCliente: ag.cliente,
@@ -139,85 +143,78 @@ export const ClientesEmRisco = () => {
             diasSemAgendar: 0,
             faixaRisco: "sem-risco",
           });
-        } else {
-          const existente = clientesMap.get(chave)!;
-          if (dataAgendamento > existente.ultimoAgendamento) {
-            existente.ultimoAgendamento = dataAgendamento;
-          }
         }
       });
 
-      // Processar agendamentos de PACOTES — extrair última data do JSON `servicos`
+      // --- Agendamentos de pacotes ---
       agendamentosPacotes?.forEach((ag) => {
-        let ultimaDataPacote: Date | null = null;
+        if (!ag.servicos) return;
 
+        let servicosArray: any[] = [];
+
+        // Tenta corrigir JSON escapado
         try {
-          const servicosArray = JSON.parse(ag.servicos || "[]");
-          if (Array.isArray(servicosArray)) {
-            const datas = servicosArray.map((s: any) => new Date(s.data)).filter((d) => !isNaN(d.getTime()));
-            if (datas.length > 0) {
-              ultimaDataPacote = new Date(Math.max(...datas.map((d) => d.getTime())));
+          const texto = ag.servicos.replace(/""/g, '"').replace(/^"|"$/g, "");
+          servicosArray = JSON.parse(texto);
+        } catch (e) {
+          console.warn("Erro ao interpretar servicos do pacote:", e, ag.servicos);
+        }
+
+        if (Array.isArray(servicosArray)) {
+          const datasValidas = servicosArray.map((s) => new Date(s.data)).filter((d) => !isNaN(d.getTime()));
+
+          if (datasValidas.length > 0) {
+            const ultimaData = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
+            const chave = `${ag.nome_cliente}_${ag.nome_pet}`;
+            const existente = clientesMap.get(chave);
+
+            if (!existente || ultimaData > existente.ultimoAgendamento) {
+              clientesMap.set(chave, {
+                id: ag.id || chave,
+                nomeCliente: ag.nome_cliente,
+                nomePet: ag.nome_pet,
+                whatsapp: ag.whatsapp,
+                ultimoAgendamento: ultimaData,
+                diasSemAgendar: 0,
+                faixaRisco: "sem-risco",
+              });
             }
           }
-        } catch (e) {
-          console.warn("Erro ao interpretar servicos do pacote:", e);
-        }
-
-        if (!ultimaDataPacote) return;
-        const chave = `${ag.nome_cliente}_${ag.nome_pet}`;
-
-        if (!clientesMap.has(chave)) {
-          clientesMap.set(chave, {
-            id: chave,
-            nomeCliente: ag.nome_cliente,
-            nomePet: ag.nome_pet,
-            whatsapp: ag.whatsapp,
-            ultimoAgendamento: ultimaDataPacote,
-            diasSemAgendar: 0,
-            faixaRisco: "sem-risco",
-          });
-        } else {
-          const existente = clientesMap.get(chave)!;
-          if (ultimaDataPacote > existente.ultimoAgendamento) {
-            existente.ultimoAgendamento = ultimaDataPacote;
-          }
         }
       });
 
-      // Criar mapa de datas de pacotes (para verificar futuros)
-      const pacotesPorChave = new Map<string, Date[]>();
-      agendamentosPacotes?.forEach((ag) => {
-        try {
-          const servicosArray = JSON.parse(ag.servicos || "[]");
-          const datas = (servicosArray || []).map((s: any) => new Date(s.data)).filter((d) => !isNaN(d.getTime()));
-          const chave = `${ag.nome_cliente}_${ag.nome_pet}`;
-          if (datas.length) pacotesPorChave.set(chave, datas);
-        } catch (e) {
-          console.warn("Erro ao interpretar datas de pacote:", e);
-        }
-      });
-
-      // Filtrar clientes em risco
+      // --- Verificar agendamentos futuros (regulares + pacotes) ---
       const clientesEmRisco: ClienteRisco[] = [];
 
       clientesMap.forEach((cliente) => {
-        // Verificar agendamento futuro (avulso OU pacote)
-        const temAgendamentoFuturo =
-          agendamentos?.some(
-            (ag) => ag.cliente === cliente.nomeCliente && ag.pet === cliente.nomePet && parseISO(ag.data) >= hoje,
-          ) || pacotesPorChave.get(`${cliente.nomeCliente}_${cliente.nomePet}`)?.some((data) => data >= hoje);
+        const temAgendamentoFuturoRegular = agendamentos?.some(
+          (ag) => ag.cliente === cliente.nomeCliente && ag.pet === cliente.nomePet && parseISO(ag.data) >= hoje,
+        );
 
-        if (!temAgendamentoFuturo) {
-          const diasSemAgendar = differenceInDays(hoje, cliente.ultimoAgendamento);
-          if (diasSemAgendar >= 7) {
-            cliente.diasSemAgendar = diasSemAgendar;
-            cliente.faixaRisco = classificarFaixaRisco(diasSemAgendar);
-            clientesEmRisco.push(cliente);
+        const temAgendamentoFuturoPacote = agendamentosPacotes?.some((ag) => {
+          if (ag.nome_cliente !== cliente.nomeCliente || ag.nome_pet !== cliente.nomePet) return false;
+          try {
+            const texto = ag.servicos.replace(/""/g, '"').replace(/^"|"$/g, "");
+            const servicosArray = JSON.parse(texto);
+            return servicosArray.some((s: any) => new Date(s.data) >= hoje);
+          } catch {
+            return false;
           }
+        });
+
+        const temFuturo = temAgendamentoFuturoRegular || temAgendamentoFuturoPacote;
+        if (temFuturo) return;
+
+        const diasSemAgendar = differenceInDays(hoje, cliente.ultimoAgendamento);
+        if (diasSemAgendar >= 7) {
+          cliente.diasSemAgendar = diasSemAgendar;
+          cliente.faixaRisco = classificarFaixaRisco(diasSemAgendar);
+          clientesEmRisco.push(cliente);
         }
       });
 
       clientesEmRisco.sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
+
       setClientes(clientesEmRisco);
       aplicarFiltros(clientesEmRisco);
     } catch (error) {
@@ -230,23 +227,28 @@ export const ClientesEmRisco = () => {
 
   const aplicarFiltros = (clientesBase: ClienteRisco[] = clientes) => {
     let resultado = [...clientesBase];
+
     if (filtros.faixaDias !== "todos") {
       resultado = resultado.filter((c) => c.faixaRisco === filtros.faixaDias);
     }
+
     if (filtros.busca.trim()) {
       const buscaLower = filtros.busca.toLowerCase();
       resultado = resultado.filter(
         (c) => c.nomeCliente.toLowerCase().includes(buscaLower) || c.nomePet.toLowerCase().includes(buscaLower),
       );
     }
+
     if (filtros.dataInicio) {
       const dataInicio = parseISO(filtros.dataInicio);
       resultado = resultado.filter((c) => c.ultimoAgendamento >= dataInicio);
     }
+
     if (filtros.dataFim) {
       const dataFim = parseISO(filtros.dataFim);
       resultado = resultado.filter((c) => c.ultimoAgendamento <= dataFim);
     }
+
     setClientesFiltrados(resultado);
   };
 
@@ -261,65 +263,33 @@ export const ClientesEmRisco = () => {
     carregarClientesEmRisco();
   }, [user]);
 
-  const contadores = {
-    "7-10": clientes.filter((c) => c.faixaRisco === "7-10").length,
-    "11-15": clientes.filter((c) => c.faixaRisco === "11-15").length,
-    "16-20": clientes.filter((c) => c.faixaRisco === "16-20").length,
-    "21-30": clientes.filter((c) => c.faixaRisco === "21-30").length,
-    "31-45": clientes.filter((c) => c.faixaRisco === "31-45").length,
-    "46-90": clientes.filter((c) => c.faixaRisco === "46-90").length,
-    perdido: clientes.filter((c) => c.faixaRisco === "perdido").length,
-  };
-
-  const dadosExportacao = clientesFiltrados.map((c) => ({
-    Cliente: c.nomeCliente,
-    Pet: c.nomePet,
-    Telefone: c.whatsapp,
-    "Último Agendamento": format(c.ultimoAgendamento, "dd/MM/yyyy"),
-    "Dias sem Agendar": c.diasSemAgendar,
-    "Faixa de Risco": obterLabelFaixa(c.faixaRisco),
-  }));
-
-  const colunasExportacao = [
-    { key: "Cliente", label: "Cliente" },
-    { key: "Pet", label: "Pet" },
-    { key: "Telefone", label: "Telefone" },
-    { key: "Último Agendamento", label: "Último Agendamento" },
-    { key: "Dias sem Agendar", label: "Dias sem Agendar" },
-    { key: "Faixa de Risco", label: "Faixa de Risco" },
-  ];
-
-  if (loading) {
+  if (loading)
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
 
   return (
     <div className="space-y-4">
-      {/* Contadores */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {Object.entries(contadores).map(([faixa, valor]) => (
-          <Card key={faixa} className={obterCorCard(faixa)}>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-center">{valor}</div>
-              <div className="text-xs text-muted-foreground text-center">{obterLabelFaixa(faixa)}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Filtros */}
       <FiltrosClientesRisco filtros={filtros} setFiltros={setFiltros} onFiltrar={handleFiltrar} />
 
-      {/* Tabela */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Clientes em Risco ({clientesFiltrados.length})</CardTitle>
-          <ExportButton data={dadosExportacao} filename="clientes-em-risco" columns={colunasExportacao} />
+          <ExportButton
+            data={clientesFiltrados.map((c) => ({
+              Cliente: c.nomeCliente,
+              Pet: c.nomePet,
+              Telefone: c.whatsapp,
+              "Último Agendamento": format(c.ultimoAgendamento, "dd/MM/yyyy"),
+              "Dias sem Agendar": c.diasSemAgendar,
+              "Faixa de Risco": obterLabelFaixa(c.faixaRisco),
+            }))}
+            filename="clientes-em-risco"
+          />
         </CardHeader>
+
         <CardContent>
           {clientesFiltrados.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado com os filtros aplicados</p>
@@ -340,7 +310,7 @@ export const ClientesEmRisco = () => {
                 <TableBody>
                   {clientesFiltrados.map((cliente) => (
                     <TableRow key={cliente.id}>
-                      <TableCell>{cliente.nomeCliente}</TableCell>
+                      <TableCell className="font-medium">{cliente.nomeCliente}</TableCell>
                       <TableCell>{cliente.nomePet}</TableCell>
                       <TableCell>{cliente.whatsapp}</TableCell>
                       <TableCell>{format(cliente.ultimoAgendamento, "dd/MM/yyyy")}</TableCell>
@@ -352,13 +322,19 @@ export const ClientesEmRisco = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2 justify-center">
-                          <Button size="sm" variant="outline" onClick={() => abrirModalDetalhes(cliente)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => abrirModalDetalhes(cliente)}
+                            title="Ver Detalhes"
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => abrirWhatsApp(cliente.whatsapp, cliente.nomeCliente)}
+                            title="Abrir WhatsApp"
                           >
                             <MessageSquare className="h-4 w-4" />
                           </Button>
