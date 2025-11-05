@@ -31,7 +31,7 @@ interface Agendamento {
   data: Date;
   servico: string;
   status: string;
-  tipo: "regular" | "pacote";
+  numeroPacote: string | null;
 }
 
 const abrirWhatsApp = (whatsapp: string, nomeCliente: string) => {
@@ -65,63 +65,25 @@ export const ModalDetalhesCliente = ({
 
     setLoading(true);
     try {
-      // Buscar agendamentos regulares
-      const { data: agendamentosRegulares, error: errorRegulares } = await supabase
+      // Buscar todos os agendamentos (regulares e de pacotes)
+      const { data: agendamentos, error } = await supabase
         .from('agendamentos')
-        .select('data, servico, status')
+        .select('data, servico, status, numero_servico_pacote')
         .eq('user_id', user.id)
         .eq('cliente', cliente.nomeCliente)
         .eq('pet', cliente.nomePet)
         .order('data', { ascending: false })
-        .limit(20);
+        .limit(50);
 
-      if (errorRegulares) throw errorRegulares;
+      if (error) throw error;
 
-      // Buscar agendamentos de pacotes
-      const { data: agendamentosPacotes, error: errorPacotes } = await supabase
-        .from('agendamentos_pacotes')
-        .select('data_venda, nome_pacote, servicos')
-        .eq('user_id', user.id)
-        .eq('nome_cliente', cliente.nomeCliente)
-        .eq('nome_pet', cliente.nomePet)
-        .order('data_venda', { ascending: false })
-        .limit(20);
-
-      if (errorPacotes) throw errorPacotes;
-
-      // Combinar e formatar histórico
-      const historicoCompleto: Agendamento[] = [];
-
-      agendamentosRegulares?.forEach(ag => {
-        historicoCompleto.push({
-          data: parseISO(ag.data),
-          servico: ag.servico,
-          status: ag.status,
-          tipo: "regular"
-        });
-      });
-
-      agendamentosPacotes?.forEach(ag => {
-        let servicosStr = "Pacote";
-        try {
-          const servicosArray = JSON.parse(ag.servicos as any);
-          if (Array.isArray(servicosArray) && servicosArray.length > 0) {
-            servicosStr = `${ag.nome_pacote} (${servicosArray.length} serviços)`;
-          }
-        } catch {
-          servicosStr = ag.nome_pacote;
-        }
-
-        historicoCompleto.push({
-          data: parseISO(ag.data_venda),
-          servico: servicosStr,
-          status: "Concluído",
-          tipo: "pacote"
-        });
-      });
-
-      // Ordenar por data
-      historicoCompleto.sort((a, b) => b.data.getTime() - a.data.getTime());
+      // Formatar histórico
+      const historicoCompleto: Agendamento[] = (agendamentos || []).map(ag => ({
+        data: parseISO(ag.data),
+        servico: ag.servico,
+        status: ag.status,
+        numeroPacote: ag.numero_servico_pacote
+      }));
 
       setHistorico(historicoCompleto);
     } catch (error) {
@@ -207,8 +169,8 @@ export const ModalDetalhesCliente = ({
                           <Badge variant="outline">{ag.status}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={ag.tipo === "pacote" ? "secondary" : "default"}>
-                            {ag.tipo === "pacote" ? "Pacote" : "Regular"}
+                          <Badge variant={ag.numeroPacote ? "secondary" : "default"}>
+                            {ag.numeroPacote ? `Pacote ${ag.numeroPacote}` : "Avulso"}
                           </Badge>
                         </TableCell>
                       </TableRow>
