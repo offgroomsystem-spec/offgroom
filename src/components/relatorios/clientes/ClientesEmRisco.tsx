@@ -113,11 +113,12 @@ export const ClientesEmRisco = () => {
 
       if (errorAg) throw errorAg;
 
-      const { data: pacotes, error: errorPac } = await supabase
-        .from("agendamentos_pacotes")
-        .select("nome_cliente, data_venda, nome_pet, whatsapp")
-        .eq("user_id", user.id)
-        .order("data_venda", { ascending: false });
+const { data: pacotes, error: errorPac } = await supabase
+  .from("agendamentos_pacotes")
+  .select("nome_cliente, data_venda, nome_pet, whatsapp, servicos")
+  .eq("user_id", user.id)
+  .order("data_venda", { ascending: false });
+
 
       if (errorPac) throw errorPac;
 
@@ -157,10 +158,31 @@ export const ClientesEmRisco = () => {
         adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
       });
 
-      pacotes?.forEach((p) => {
-        const chave = `${p.nome_cliente}_${p.nome_pet}`;
-        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, p.data_venda);
-      });
+pacotes?.forEach((p) => {
+  const chave = `${p.nome_cliente}_${p.nome_pet}`;
+
+  // Extrair a data mais recente do campo "servicos"
+  let ultimaDataServico: string | null = null;
+
+  try {
+    const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : [];
+    if (Array.isArray(servicos) && servicos.length > 0) {
+      const datas = servicos.map((s) => new Date(s.data)).filter((d) => !isNaN(d.getTime()));
+      if (datas.length > 0) {
+        const ultimaData = new Date(Math.max(...datas.map((d) => d.getTime())));
+        ultimaDataServico = ultimaData.toISOString().split("T")[0];
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao processar servicos do pacote:", err);
+  }
+
+  // Se não encontrou datas dentro de "servicos", usa data_venda como fallback
+  const dataFinal = ultimaDataServico || p.data_venda;
+
+  adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
+});
+
 
       const listaRisco: ClienteRisco[] = [];
 
