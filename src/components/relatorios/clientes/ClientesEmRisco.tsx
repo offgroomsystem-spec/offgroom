@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, MessageSquare, Loader2 } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { toast } from "sonner";
 import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
@@ -73,14 +73,60 @@ const obterCorCard = (faixa: string) => {
   }
 };
 
-const abrirWhatsApp = (whatsapp: string, nomeCliente: string) => {
-  if (!whatsapp) return toast.error("Número de WhatsApp não informado");
-  const numeroLimpo = whatsapp.toString().replace(/\D/g, "");
+// Gera a mensagem personalizada conforme a faixa de dias
+const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
+  const { nomeCliente, nomePet, diasSemAgendar } = cliente;
+
+  if (diasSemAgendar >= 7 && diasSemAgendar <= 10)
+    return `Olá, ${nomeCliente}!  
+Como vc está?
+
+Notamos que faz ${diasSemAgendar} dias do último banho de ${nomePet}. Está quase na hora do próximo banho. Vamos marcar o próximo para manter os cuidados em dia?`;
+
+  if (diasSemAgendar >= 11 && diasSemAgendar <= 15)
+    return `Oii, ${nomeCliente}.  
+Como vc está?
+
+Já faz um tempinho desde o último banho de ${nomePet}. Vamos marcar o próximo para ele continuar sempre bem cuidado?`;
+
+  if (diasSemAgendar >= 16 && diasSemAgendar <= 20)
+    return `Olá, ${nomeCliente}.  
+Como vc está?
+
+Já faz um bom tempo que o ${nomePet} não vem nos visitar. Vamos agendar o próximo banho e colocar os cuidados em dia?`;
+
+  if (diasSemAgendar >= 21 && diasSemAgendar <= 30)
+    return `Olá, ${nomeCliente}.  
+Como vc está?
+
+Já faz quase um mês desde o último banho de ${nomePet}. Que tal agendar um novo e deixar ele limpo e confortável?`;
+
+  if (diasSemAgendar >= 31 && diasSemAgendar <= 45)
+    return `Oii, ${nomeCliente}!  
+Como vc está?
+
+O ${nomePet} está há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana. Vamos marcar?`;
+
+  if (diasSemAgendar >= 46 && diasSemAgendar <= 90)
+    return `Olá, ${nomeCliente}.  
+Já faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta dele. Que tal agendar um novo banho e colocá-lo em dia com um cuidado especial?`;
+
+  return `Olá, ${nomeCliente}! Tudo bem?`;
+};
+
+// Copia o link formatado com a mensagem
+const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
+  if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
+
+  const numeroLimpo = cliente.whatsapp.toString().replace(/\D/g, "");
   const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
-  const mensagem = encodeURIComponent(
-    `Olá ${nomeCliente}! Notamos que faz um tempo que não nos visita. Gostaríamos de saber como você e seu pet estão!`,
-  );
-  window.open(`https://wa.me/${numeroCompleto}?text=${mensagem}`, "_blank");
+
+  const mensagem = encodeURIComponent(gerarMensagemWhatsApp(cliente));
+  const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
+
+  navigator.clipboard.writeText(link).then(() => {
+    toast.success("✅ Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
+  });
 };
 
 export const ClientesEmRisco = () => {
@@ -113,12 +159,10 @@ export const ClientesEmRisco = () => {
 
       if (errorAg) throw errorAg;
 
-const { data: pacotes, error: errorPac } = await supabase
-  .from("agendamentos_pacotes")
-  .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
-  .eq("user_id", user.id);
-
-
+      const { data: pacotes, error: errorPac } = await supabase
+        .from("agendamentos_pacotes")
+        .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
+        .eq("user_id", user.id);
 
       if (errorPac) throw errorPac;
 
@@ -158,56 +202,43 @@ const { data: pacotes, error: errorPac } = await supabase
         adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
       });
 
-pacotes?.forEach((p) => {
-  const chave = `${p.nome_cliente}_${p.nome_pet}`;
-  let ultimaDataServico: Date | null = null;
+      pacotes?.forEach((p) => {
+        const chave = `${p.nome_cliente}_${p.nome_pet}`;
+        let ultimaDataServico: Date | null = null;
 
-  try {
-    // o campo servicos é um JSON armazenado como texto
-    const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
-    if (Array.isArray(servicos)) {
-      const datasValidas = servicos
-        .map((s) => parseISO(s.data))
-        .filter((d) => isValid(d));
+        try {
+          const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+          if (Array.isArray(servicos)) {
+            const datasValidas = servicos.map((s) => parseISO(s.data)).filter((d) => isValid(d));
+            if (datasValidas.length > 0) {
+              ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
+            }
+          }
+        } catch {}
 
-      if (datasValidas.length > 0) {
-        // pega a MAIOR data (último agendamento do pacote)
-        ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
-      }
-    }
-  } catch (err) {
-    console.error("Erro ao processar JSON de servicos:", err);
-  }
-
-  // Se não encontrar data dentro do JSON, usa a data_venda como fallback
-  const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
-
-  adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
-});
-
-
+        const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
+        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
+      });
 
       const listaRisco: ClienteRisco[] = [];
-
       mapa.forEach((cli) => {
         const dias = differenceInDays(hoje, cli.ultimoAgendamento);
-const temAgendamentoFuturo =
-  agendamentos?.some(
-    (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje
-  ) ||
-  pacotes?.some((p) => {
-    if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
-    try {
-      const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
-      if (Array.isArray(servicos)) {
-        return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
-      }
-    } catch {
-      return false;
-    }
-    return parseISO(p.data_venda) >= hoje;
-  });
-
+        const temAgendamentoFuturo =
+          agendamentos?.some(
+            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje,
+          ) ||
+          pacotes?.some((p) => {
+            if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
+            try {
+              const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+              if (Array.isArray(servicos)) {
+                return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+              }
+            } catch {
+              return false;
+            }
+            return parseISO(p.data_venda) >= hoje;
+          });
 
         if (!temAgendamentoFuturo && dias >= 7) {
           cli.diasSemAgendar = dias;
@@ -217,7 +248,6 @@ const temAgendamentoFuturo =
       });
 
       listaRisco.sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
-
       setClientes(listaRisco);
       aplicarFiltros(listaRisco);
     } catch (err) {
@@ -230,20 +260,15 @@ const temAgendamentoFuturo =
 
   const aplicarFiltros = (base: ClienteRisco[] = clientes) => {
     let resultado = [...base];
-
     if (filtros.faixaDias !== "todos") resultado = resultado.filter((c) => c.faixaRisco === filtros.faixaDias);
-
     if (filtros.busca.trim()) {
       const termo = filtros.busca.toLowerCase();
       resultado = resultado.filter(
         (c) => c.nomeCliente.toLowerCase().includes(termo) || c.nomePet.toLowerCase().includes(termo),
       );
     }
-
     if (filtros.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= parseISO(filtros.dataInicio));
-
     if (filtros.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= parseISO(filtros.dataFim));
-
     setClientesFiltrados(resultado);
   };
 
@@ -294,6 +319,7 @@ const temAgendamentoFuturo =
 
   return (
     <div className="space-y-4">
+      {/* Contadores */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {Object.keys(contadores).map((key) => (
           <Card key={key} className={obterCorCard(key)}>
@@ -352,13 +378,17 @@ const temAgendamentoFuturo =
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => abrirWhatsApp(c.whatsapp, c.nomeCliente)}
-                            title="Abrir WhatsApp"
+                            onClick={() => copiarLinkWhatsApp(c)}
+                            title="Copiar Link do WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <span
+                              className="text-lg"
+                              dangerouslySetInnerHTML={{ __html: '<i class="fi fi-rr-link-alt"></i>' }}
+                            />
                           </Button>
                         </div>
                       </TableCell>
