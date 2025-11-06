@@ -266,7 +266,7 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
       return;
     }
     
-    const saldoAtual = contaSelecionada.saldo;
+    const saldoAtual = saldosPorBanco[contaSelecionada.nomeBanco] || 0;
     const novoSaldo = saldosEditados[bancoParaAtualizar];
     
     if (novoSaldo === undefined || novoSaldo === saldoAtual) {
@@ -280,41 +280,51 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
     const diferenca = novoSaldo - saldoAtual;
     
     try {
-      // 1. Atualizar saldo da conta no Supabase
-      const { error: updateError } = await supabase
-        .from('contas_bancarias')
-        .update({ saldo: novoSaldo })
-        .eq('id', contaSelecionada.id)
-        .eq('user_id', user.id);
-      
-      if (updateError) throw updateError;
-      
-      // 2. Criar lançamento de ajuste no Supabase
+      // 1. Criar lançamento de ajuste no Supabase
       const hoje = new Date();
-      const tipoLancamento = diferenca > 0 ? 'receitas' : 'despesas';
-      const descricao = diferenca > 0 
-        ? 'Atualização de Saldo Bancário - Receita Não Operacional'
-        : 'Atualização de Saldo Bancário - Despesa Variável';
+      const anoAtual = hoje.getFullYear().toString();
+      const mesAtual = hoje.toLocaleString('pt-BR', { month: 'long' });
+      const tipoLancamento = diferenca > 0 ? 'Receita' : 'Despesa';
       
-      const { error: insertError } = await supabase
-        .from(tipoLancamento)
-        .insert({
-          user_id: user.id,
-          descricao: descricao,
-          valor: Math.abs(diferenca),
-          data: hoje.toISOString().split('T')[0],
-          categoria: diferenca > 0 ? 'Outras Receitas Não Operacionais' : 'Outras Despesas Variáveis',
-          conta_id: contaSelecionada.id
-        });
+      // Dados do lançamento principal
+      const dadosLancamento = {
+        user_id: user.id,
+        ano: anoAtual,
+        mes_competencia: mesAtual,
+        tipo: tipoLancamento,
+        descricao1: diferenca > 0 ? 'Receita Não Operacional' : 'Despesa Não Operacional',
+        observacao: 'Atualização de Saldo Manual',
+        valor_total: Math.abs(diferenca),
+        data_pagamento: hoje.toISOString().split('T')[0],
+        conta_id: contaSelecionada.id,
+        pago: true
+      };
+      
+      // Inserir lançamento principal
+      const { data: lancamentoCriado, error: insertError } = await supabase
+        .from('lancamentos_financeiros')
+        .insert(dadosLancamento)
+        .select()
+        .single();
       
       if (insertError) throw insertError;
       
-      // 3. Atualizar estado local
-      setContas(contas.map(c => 
-        c.id === contaSelecionada.id 
-          ? { ...c, saldo: novoSaldo }
-          : c
-      ));
+      // Inserir item do lançamento
+      const { error: itemError } = await supabase
+        .from('lancamentos_financeiros_itens')
+        .insert({
+          lancamento_id: lancamentoCriado.id,
+          descricao2: diferenca > 0 
+            ? 'Outras Receitas Não Operacionais' 
+            : 'Outras Despesas Não Operacionais',
+          produto_servico: null,
+          valor: Math.abs(diferenca)
+        });
+      
+      if (itemError) throw itemError;
+      
+      // 2. Recarregar dados
+      window.location.reload();
       
       const tipoMensagem = diferenca > 0 ? "Receita" : "Despesa";
       toast.success(
