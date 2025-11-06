@@ -118,39 +118,41 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
 
   useEffect(() => {
     const loadLancamentos = async () => {
-      if (!user) return;
+      if (!user || contas.length === 0) return;
       
       try {
         setLoading(true);
         
-        const { data: receitasData } = await supabase
-          .from('receitas')
-          .select('*')
-          .eq('user_id', user.id);
+        // Buscar lançamentos financeiros com seus itens
+        const { data: lancamentosData, error } = await supabase
+          .from('lancamentos_financeiros')
+          .select(`
+            *,
+            lancamentos_financeiros_itens (*)
+          `)
+          .eq('user_id', user.id)
+          .order('data_pagamento', { ascending: true });
         
-        const { data: despesasData } = await supabase
-          .from('despesas')
-          .select('*')
-          .eq('user_id', user.id);
+        if (error) throw error;
         
-        const lancamentosCombinados = [
-          ...(receitasData || []).map(r => ({
-            tipo: 'Receita',
-            descricao: r.descricao,
-            valorTotal: Number(r.valor),
-            dataPagamento: r.data,
-            pago: true,
-            nomeBanco: '' // TODO: Adicionar quando tiver relação
-          })),
-          ...(despesasData || []).map(d => ({
-            tipo: 'Despesa',
-            descricao: d.descricao,
-            valorTotal: Number(d.valor),
-            dataPagamento: d.data,
-            pago: true,
-            nomeBanco: ''
-          }))
-        ];
+        // Processar lançamentos com itens
+        const lancamentosCombinados = (lancamentosData || []).map(lanc => {
+          // Buscar nome do banco pela conta_id
+          const conta = contas.find(c => c.id === lanc.conta_id);
+          const nomeBanco = conta?.nomeBanco || '';
+          
+          return {
+            id: lanc.id,
+            tipo: lanc.tipo, // "Receita" ou "Despesa"
+            descricao1: lanc.descricao1,
+            valorTotal: Number(lanc.valor_total) || 0,
+            dataPagamento: lanc.data_pagamento,
+            pago: lanc.pago,
+            nomeBanco: nomeBanco,
+            cliente_id: lanc.cliente_id,
+            itens: lanc.lancamentos_financeiros_itens || []
+          };
+        });
         
         setLancamentos(lancamentosCombinados);
         
@@ -163,7 +165,7 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
     };
     
     loadLancamentos();
-  }, [user]);
+  }, [user, contas]);
 
   const linhasFluxo = useMemo(() => {
     const lancamentosFiltrados = lancamentos
@@ -179,10 +181,11 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
       
       return {
         data: l.dataPagamento,
-        descricao: `${l.descricao1} - ${l.nomeCliente || ''} ${l.nomePet ? '/ ' + l.nomePet : ''}`,
+        descricao: l.descricao1 || 'Sem descrição',
         entrada,
         saida,
-        saldo: saldoAcumulado
+        saldo: saldoAcumulado,
+        nomeBanco: l.nomeBanco
       };
     });
   }, [lancamentos, filtros]);
@@ -479,6 +482,27 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
           destaque
         />
       </div>
+
+      {/* Saldos por Conta */}
+      {contas.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-1 text-sm text-muted-foreground">
+          {contas.map((conta, index) => {
+            const saldo = saldosPorBanco[conta.nomeBanco] || conta.saldo || 0;
+            return (
+              <span key={conta.id} className="whitespace-nowrap">
+                <span className="font-medium text-foreground">{conta.nomeBanco}</span>
+                {": "}
+                <span className={saldo >= 0 ? "text-green-600" : "text-red-600"}>
+                  {formatCurrency(saldo)}
+                </span>
+                {index < contas.length - 1 && (
+                  <span className="mx-2 text-muted-foreground/50">|</span>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
