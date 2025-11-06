@@ -38,7 +38,7 @@ interface Filtros {
 }
 
 interface FluxoDeCaixaProps {
-  filtros: Filtros;const handleConfirmarAtualizacao = async () => {
+  filtros: Filtros;
 }
 
 const formatCurrency = (value: number): string => {
@@ -268,82 +268,82 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
     return total;
   };
 
-const handleConfirmarAtualizacao = async () => {
-  if (!user || !bancoParaAtualizar) return;
+  const handleConfirmarAtualizacao = async () => {
+    if (!user || !bancoParaAtualizar) return;
 
-  const contaSelecionada = contas.find((c) => c.nomeBanco === bancoParaAtualizar);
-  if (!contaSelecionada) {
-    toast.error("Conta bancária não encontrada");
-    return;
-  }
+    const contaSelecionada = contas.find((c) => c.nomeBanco === bancoParaAtualizar);
+    if (!contaSelecionada) {
+      toast.error("Conta bancária não encontrada");
+      return;
+    }
 
-  const saldoAtual = saldosPorBanco[contaSelecionada.nomeBanco] || 0;
-  const novoSaldo = saldosEditados[bancoParaAtualizar];
+    const saldoAtual = saldosPorBanco[contaSelecionada.nomeBanco] || 0;
+    const novoSaldo = saldosEditados[bancoParaAtualizar];
 
-  if (novoSaldo === undefined || novoSaldo === saldoAtual) {
-    setIsConfirmDialogOpen(false);
-    setIsAtualizarSaldoOpen(false);
-    setBancoParaAtualizar(null);
-    setSaldosEditados({});
-    return;
-  }
+    if (novoSaldo === undefined || novoSaldo === saldoAtual) {
+      setIsConfirmDialogOpen(false);
+      setIsAtualizarSaldoOpen(false);
+      setBancoParaAtualizar(null);
+      setSaldosEditados({});
+      return;
+    }
 
-  const diferenca = novoSaldo - saldoAtual;
+    const diferenca = novoSaldo - saldoAtual;
 
-  try {
-    const hoje = new Date();
-    const anoAtual = hoje.getFullYear().toString();
-    const mesAtual = hoje.toLocaleString("pt-BR", { month: "long" });
-    const tipoLancamento = diferenca > 0 ? "Receita" : "Despesa";
+    try {
+      const hoje = new Date();
+      const anoAtual = hoje.getFullYear().toString();
+      const mesAtual = hoje.toLocaleString("pt-BR", { month: "long" });
+      const tipoLancamento = diferenca > 0 ? "Receita" : "Despesa";
 
-    const dadosLancamento = {
-      user_id: user?.id || "",
-      ano: anoAtual,
-      mes_competencia: mesAtual,
-      tipo: tipoLancamento,
-      descricao1: diferenca > 0 ? "Receita Não Operacional" : "Despesa Não Operacional",
-      observacao: "Atualização de Saldo Manual",
-      valor_total: Math.abs(diferenca),
-      data_pagamento: hoje.toISOString().split("T")[0],
-      conta_id: contaSelecionada.id,
-      pago: true,
-    };
+      const dadosLancamento = {
+        user_id: user?.id || "",
+        ano: anoAtual,
+        mes_competencia: mesAtual,
+        tipo: tipoLancamento,
+        descricao1: diferenca > 0 ? "Receita Não Operacional" : "Despesa Não Operacional",
+        observacao: "Atualização de Saldo Manual",
+        valor_total: Math.abs(diferenca),
+        data_pagamento: hoje.toISOString().split("T")[0],
+        conta_id: contaSelecionada.id,
+        pago: true,
+      };
 
-    const { data: lancamentoCriado, error: insertError } = await supabase
-      .from("lancamentos_financeiros")
-      .insert(dadosLancamento)
-      .select()
-      .single();
+      const { data: lancamentoCriado, error: insertError } = await supabase
+        .from("lancamentos_financeiros")
+        .insert(dadosLancamento)
+        .select()
+        .single();
 
-    if (insertError) throw insertError;
+      if (insertError) throw insertError;
 
-    const { error: itemError } = await supabase.from("lancamentos_financeiros_itens").insert({
-      lancamento_id: lancamentoCriado.id,
-      descricao2: diferenca > 0 ? "Outras Receitas Não Operacionais" : "Outras Despesas Não Operacionais",
-      produto_servico: null,
-      valor: Math.abs(diferenca),
-    });
+      const { error: itemError } = await supabase.from("lancamentos_financeiros_itens").insert({
+        lancamento_id: lancamentoCriado.id,
+        descricao2: diferenca > 0 ? "Outras Receitas Não Operacionais" : "Outras Despesas Não Operacionais",
+        produto_servico: null,
+        valor: Math.abs(diferenca),
+      });
 
-    if (itemError) throw itemError;
+      if (itemError) throw itemError;
 
-    // ✅ Atualiza apenas os dados, sem recarregar a página e sem duplicar chamadas
-    await Promise.all([loadContas(), loadLancamentos()]);
+      // ✅ Atualiza apenas os dados, sem recarregar a página e sem duplicar chamadas
+      await Promise.all([loadContas(), loadLancamentos()]);
 
-    toast.success(
-      `Saldo do ${bancoParaAtualizar} atualizado com sucesso! Lançamento de ${tipoLancamento} de ${formatCurrency(
-        Math.abs(diferenca)
-      )} criado.`
-    );
-  } catch (error) {
-    console.error("Erro ao atualizar saldo:", error);
-    toast.error("Erro ao atualizar saldo bancário");
-  } finally {
-    setIsConfirmDialogOpen(false);
-    setIsAtualizarSaldoOpen(false);
-    setBancoParaAtualizar(null);
-    setSaldosEditados({});
-  }
-};
+      toast.success(
+        `Saldo do ${bancoParaAtualizar} atualizado com sucesso! Lançamento de ${tipoLancamento} de ${formatCurrency(
+          Math.abs(diferenca),
+        )} criado.`,
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar saldo:", error);
+      toast.error("Erro ao atualizar saldo bancário");
+    } finally {
+      setIsConfirmDialogOpen(false);
+      setIsAtualizarSaldoOpen(false);
+      setBancoParaAtualizar(null);
+      setSaldosEditados({});
+    }
+  };
 
   const handleCancelarAtualizacao = () => {
     setIsConfirmDialogOpen(false);
