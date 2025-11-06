@@ -297,7 +297,7 @@ const handleConfirmarAtualizacao = async () => {
     const tipoLancamento = diferenca > 0 ? "Receita" : "Despesa";
 
     const dadosLancamento = {
-      user_id: user.id,
+      user_id: user?.id || "",
       ano: anoAtual,
       mes_competencia: mesAtual,
       tipo: tipoLancamento,
@@ -344,7 +344,6 @@ const handleConfirmarAtualizacao = async () => {
     setSaldosEditados({});
   }
 };
-
 
   const handleCancelarAtualizacao = () => {
     setIsConfirmDialogOpen(false);
