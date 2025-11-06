@@ -323,17 +323,23 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
       
       if (itemError) throw itemError;
       
-      // 2. Recarregar dados
-      window.location.reload();
+      // 🔹 Recarrega apenas os dados, sem sair da página
+      await loadContas();
+      await loadLancamentos();
+
       
       const tipoMensagem = diferenca > 0 ? "Receita" : "Despesa";
       toast.success(
-        `Saldo do ${bancoParaAtualizar} atualizado com sucesso! ` +
-        `Lançamento de ${tipoMensagem} de ${formatCurrency(Math.abs(diferenca))} criado.`
+        `Saldo do ${bancoParaAtualizar} atualizado com sucesso! Lançamento de ${tipoLancamento} de ${formatCurrency(
+          Math.abs(diferenca)
+        )} criado.`
       );
       
-      // Recarregar página para atualizar todos os dados
-      window.location.reload();
+      // 🔹 Recarrega apenas os dados, sem sair da página
+      await loadContas();
+      await loadLancamentos();
+
+
       
     } catch (error) {
       console.error('Erro ao atualizar saldo:', error);
