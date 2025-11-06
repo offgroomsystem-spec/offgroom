@@ -1,271 +1,133 @@
-import { useMemo, useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { KPICard } from "../shared/KPICard";
-import { ExportButton } from "../shared/ExportButton";
-import { format } from "date-fns";
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from "@/lib/supabaseClient";
+import { Plus, RefreshCw, Wallet } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
-interface Filtros {
-  periodo: string;
-  dataInicio: string;
-  dataFim: string;
-  bancosSelecionados: string[];
+interface ContaBancaria {
+  id: string;
+  nomeBanco: string;
+  saldo: number;
 }
 
-interface FluxoDeCaixaProps {
-  filtros: Filtros;
+interface Lancamento {
+  id: string;
+  tipo: string;
+  descricao1: string;
+  valorTotal: number;
+  dataPagamento: string;
+  pago: boolean;
+  nomeBanco: string;
+  cliente_id?: string;
+  itens?: any[];
 }
 
-const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
+const formatCurrency = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const aplicarFiltros = (item: any, filtros: Filtros): boolean => {
-  // Filtro por banco
-  if (filtros.bancosSelecionados && filtros.bancosSelecionados.length > 0) {
-    if (!filtros.bancosSelecionados.includes(item.nomeBanco)) {
-      return false;
-    }
-  }
+export default function FluxoDeCaixa() {
+  const user = useUser();
+  const { toast } = useToast();
 
-  if (!filtros.periodo || filtros.periodo === "todos") return true;
-
-  const dataItem = new Date(item.dataPagamento);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  switch (filtros.periodo) {
-    case "hoje":
-      return dataItem.toDateString() === hoje.toDateString();
-    case "semana":
-      const inicioSemana = new Date(hoje);
-      inicioSemana.setDate(hoje.getDate() - hoje.getDay());
-      return dataItem >= inicioSemana;
-    case "mes":
-      return dataItem.getMonth() === hoje.getMonth() && dataItem.getFullYear() === hoje.getFullYear();
-    case "trimestre":
-      const trimestreAtual = Math.floor(hoje.getMonth() / 3);
-      const trimestreItem = Math.floor(dataItem.getMonth() / 3);
-      return trimestreItem === trimestreAtual && dataItem.getFullYear() === hoje.getFullYear();
-    case "ano":
-      return dataItem.getFullYear() === hoje.getFullYear();
-    case "customizado":
-      if (!filtros.dataInicio && !filtros.dataFim) return true;
-      if (filtros.dataInicio && !filtros.dataFim) {
-        return dataItem >= new Date(filtros.dataInicio);
-      }
-      if (!filtros.dataInicio && filtros.dataFim) {
-        return dataItem <= new Date(filtros.dataFim);
-      }
-      return dataItem >= new Date(filtros.dataInicio) && dataItem <= new Date(filtros.dataFim);
-    default:
-      return true;
-  }
-};
-
-export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
-  const { user } = useAuth();
-  const [contas, setContas] = useState<{ id: string; nomeBanco: string; saldo: number }[]>([]);
-  const [lancamentos, setLancamentos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [contas, setContas] = useState<ContaBancaria[]>([]);
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saldosEditados, setSaldosEditados] = useState<Record<string, number>>({});
   const [isAtualizarSaldoOpen, setIsAtualizarSaldoOpen] = useState(false);
-  const [saldosEditados, setSaldosEditados] = useState<{ [nomeBanco: string]: number }>({});
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [bancoParaAtualizar, setBancoParaAtualizar] = useState<string | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+
+  // =====================================================
+  // 🔹 Funções globais reutilizáveis
+  // =====================================================
+
+  const loadContas = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.from("contas_bancarias").select("*").eq("user_id", user.id);
+      if (error) throw error;
+      const contasFormatadas = (data || []).map((c) => ({
+        id: c.id,
+        nomeBanco: c.nome,
+        saldo: Number(c.saldo) || 0,
+      }));
+      setContas(contasFormatadas);
+    } catch (error) {
+      console.error("Erro ao carregar contas:", error);
+      toast.error("Erro ao carregar contas bancárias");
+    }
+  };
+
+  const loadLancamentos = async () => {
+    if (!user || contas.length === 0) return;
+    try {
+      setLoading(true);
+      const { data: lancamentosData, error } = await supabase
+        .from("lancamentos_financeiros")
+        .select(`*, lancamentos_financeiros_itens (*)`)
+        .eq("user_id", user.id)
+        .order("data_pagamento", { ascending: true });
+
+      if (error) throw error;
+
+      const lancamentosCombinados = (lancamentosData || []).map((lanc) => {
+        const conta = contas.find((c) => c.id === lanc.conta_id);
+        const nomeBanco = conta?.nomeBanco || "";
+        return {
+          id: lanc.id,
+          tipo: lanc.tipo,
+          descricao1: lanc.descricao1,
+          valorTotal: Number(lanc.valor_total) || 0,
+          dataPagamento: lanc.data_pagamento,
+          pago: lanc.pago,
+          nomeBanco,
+          cliente_id: lanc.cliente_id,
+          itens: lanc.lancamentos_financeiros_itens || [],
+        };
+      });
+
+      setLancamentos(lancamentosCombinados);
+    } catch (error) {
+      console.error("Erro ao carregar lançamentos:", error);
+      toast.error("Erro ao carregar lançamentos financeiros");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // =====================================================
+  // 🔹 Efeitos de inicialização
+  // =====================================================
 
   useEffect(() => {
-    const loadContas = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase.from("contas_bancarias").select("*").eq("user_id", user.id);
-
-        if (error) throw error;
-
-        const contasFormatadas = (data || []).map((c) => ({
-          id: c.id,
-          nomeBanco: c.nome,
-          saldo: Number(c.saldo) || 0,
-        }));
-
-        setContas(contasFormatadas);
-      } catch (error) {
-        console.error("Erro ao carregar contas:", error);
-        toast.error("Erro ao carregar contas bancárias");
-      }
-    };
-
     loadContas();
   }, [user]);
 
   useEffect(() => {
-    const loadLancamentos = async () => {
-      if (!user || contas.length === 0) return;
-
-      try {
-        setLoading(true);
-
-        // Buscar lançamentos financeiros com seus itens
-        const { data: lancamentosData, error } = await supabase
-          .from("lancamentos_financeiros")
-          .select(
-            `
-            *,
-            lancamentos_financeiros_itens (*)
-          `,
-          )
-          .eq("user_id", user.id)
-          .order("data_pagamento", { ascending: true });
-
-        if (error) throw error;
-
-        // Processar lançamentos com itens
-        const lancamentosCombinados = (lancamentosData || []).map((lanc) => {
-          // Buscar nome do banco pela conta_id
-          const conta = contas.find((c) => c.id === lanc.conta_id);
-          const nomeBanco = conta?.nomeBanco || "";
-
-          return {
-            id: lanc.id,
-            tipo: lanc.tipo, // "Receita" ou "Despesa"
-            descricao1: lanc.descricao1,
-            valorTotal: Number(lanc.valor_total) || 0,
-            dataPagamento: lanc.data_pagamento,
-            pago: lanc.pago,
-            nomeBanco: nomeBanco,
-            cliente_id: lanc.cliente_id,
-            itens: lanc.lancamentos_financeiros_itens || [],
-          };
-        });
-
-        setLancamentos(lancamentosCombinados);
-      } catch (error) {
-        console.error("Erro ao carregar lançamentos:", error);
-        toast.error("Erro ao carregar lançamentos financeiros");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadLancamentos();
   }, [user, contas]);
 
-  const linhasFluxo = useMemo(() => {
-    const lancamentosFiltrados = lancamentos
-      .filter((l: any) => l.pago && aplicarFiltros(l, filtros))
-      .sort((a: any, b: any) => new Date(a.dataPagamento).getTime() - new Date(b.dataPagamento).getTime());
+  // =====================================================
+  // 🔹 Manipulação de saldo manual
+  // =====================================================
 
-    let saldoAcumulado = 0;
-
-    return lancamentosFiltrados.map((l: any) => {
-      const entrada = l.tipo === "Receita" ? l.valorTotal || 0 : 0;
-      const saida = l.tipo === "Despesa" ? l.valorTotal || 0 : 0;
-      saldoAcumulado += entrada - saida;
-
-      return {
-        data: l.dataPagamento,
-        descricao: l.descricao1 || "Sem descrição",
-        entrada,
-        saida,
-        saldo: saldoAcumulado,
-        nomeBanco: l.nomeBanco,
-      };
-    });
-  }, [lancamentos, filtros]);
-
-  const resumo = useMemo(() => {
-    const saldoInicial = 0; // Pode ser configurável
-    const totalEntradas = linhasFluxo.reduce((acc, l) => acc + l.entrada, 0);
-    const totalSaidas = linhasFluxo.reduce((acc, l) => acc + l.saida, 0);
-    const saldoFinal = saldoInicial + totalEntradas - totalSaidas;
-
-    return {
-      saldoInicial,
-      totalEntradas,
-      totalSaidas,
-      saldoFinal,
-    };
-  }, [linhasFluxo]);
-
-  const dadosExportacao = linhasFluxo.map((l) => ({
-    data: format(new Date(l.data), "dd/MM/yyyy"),
-    descricao: l.descricao,
-    entrada: l.entrada,
-    saida: l.saida,
-    saldo: l.saldo,
-  }));
-
-  // Calcular saldo atual de cada banco baseado nos lançamentos
-  const saldosPorBanco = useMemo(() => {
-    const saldos: { [nomeBanco: string]: number } = {};
-
-    // Inicializar com saldos iniciais das contas
-    contas.forEach((conta) => {
-      saldos[conta.nomeBanco] = conta.saldo || 0;
-    });
-
-    // Calcular movimentações
-    lancamentos.forEach((l: any) => {
-      if (l.pago && l.nomeBanco) {
-        if (!saldos[l.nomeBanco]) saldos[l.nomeBanco] = 0;
-
-        if (l.tipo === "Receita") {
-          saldos[l.nomeBanco] += l.valorTotal || 0;
-        } else if (l.tipo === "Despesa") {
-          saldos[l.nomeBanco] -= l.valorTotal || 0;
-        }
-      }
-    });
-
-    return saldos;
-  }, [lancamentos, contas]);
-
-  const saldoTotalAtual = useMemo(() => {
-    return Object.values(saldosPorBanco).reduce((acc, valor) => acc + valor, 0);
-  }, [saldosPorBanco]);
-
-  const handleEditarSaldo = (nomeBanco: string, novoSaldo: number) => {
-    setSaldosEditados((prev) => ({
-      ...prev,
-      [nomeBanco]: novoSaldo,
-    }));
-  };
-
-  const calcularNovoSaldoFinal = () => {
-    let total = 0;
-    Object.entries(saldosPorBanco).forEach(([nomeBanco, saldoAtual]) => {
-      const saldoEditado = saldosEditados[nomeBanco];
-      total += saldoEditado !== undefined ? saldoEditado : saldoAtual;
-    });
-    return total;
+  const handleOpenAtualizarSaldo = (banco: string) => {
+    setBancoParaAtualizar(banco);
+    setIsAtualizarSaldoOpen(true);
   };
 
   const handleConfirmarAtualizacao = async () => {
@@ -277,7 +139,7 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
       return;
     }
 
-    const saldoAtual = saldosPorBanco[contaSelecionada.nomeBanco] || 0;
+    const saldoAtual = contaSelecionada.saldo;
     const novoSaldo = saldosEditados[bancoParaAtualizar];
 
     if (novoSaldo === undefined || novoSaldo === saldoAtual) {
@@ -291,13 +153,11 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
     const diferenca = novoSaldo - saldoAtual;
 
     try {
-      // 1. Criar lançamento de ajuste no Supabase
       const hoje = new Date();
       const anoAtual = hoje.getFullYear().toString();
       const mesAtual = hoje.toLocaleString("pt-BR", { month: "long" });
       const tipoLancamento = diferenca > 0 ? "Receita" : "Despesa";
 
-      // Dados do lançamento principal
       const dadosLancamento = {
         user_id: user.id,
         ano: anoAtual,
@@ -311,7 +171,6 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
         pago: true,
       };
 
-      // Inserir lançamento principal
       const { data: lancamentoCriado, error: insertError } = await supabase
         .from("lancamentos_financeiros")
         .insert(dadosLancamento)
@@ -320,7 +179,6 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
 
       if (insertError) throw insertError;
 
-      // Inserir item do lançamento
       const { error: itemError } = await supabase.from("lancamentos_financeiros_itens").insert({
         lancamento_id: lancamentoCriado.id,
         descricao2: diferenca > 0 ? "Outras Receitas Não Operacionais" : "Outras Despesas Não Operacionais",
@@ -330,20 +188,34 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
 
       if (itemError) throw itemError;
 
-      // 🔹 Recarrega apenas os dados, sem sair da página
+      // ✅ Atualiza saldo localmente
+      const novasContas = contas.map((c) => (c.id === contaSelecionada.id ? { ...c, saldo: novoSaldo } : c));
+      setContas(novasContas);
+
+      // ✅ Atualiza lista de lançamentos
+      setLancamentos((prev) => [
+        ...prev,
+        {
+          id: lancamentoCriado.id,
+          tipo: tipoLancamento,
+          descricao1: dadosLancamento.descricao1,
+          valorTotal: Math.abs(diferenca),
+          dataPagamento: dadosLancamento.data_pagamento,
+          pago: true,
+          nomeBanco: contaSelecionada.nomeBanco,
+          itens: [],
+        },
+      ]);
+
+      // ✅ Recarrega dados sem sair da página
       await loadContas();
       await loadLancamentos();
 
-      const tipoMensagem = diferenca > 0 ? "Receita" : "Despesa";
       toast.success(
         `Saldo do ${bancoParaAtualizar} atualizado com sucesso! Lançamento de ${tipoLancamento} de ${formatCurrency(
           Math.abs(diferenca),
         )} criado.`,
       );
-
-      // 🔹 Recarrega apenas os dados, sem sair da página
-      await loadContas();
-      await loadLancamentos();
     } catch (error) {
       console.error("Erro ao atualizar saldo:", error);
       toast.error("Erro ao atualizar saldo bancário");
@@ -355,219 +227,98 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
     }
   };
 
-  const handleCancelarAtualizacao = () => {
-    setIsConfirmDialogOpen(false);
-    setBancoParaAtualizar(null);
-  };
+  // =====================================================
+  // 🔹 Renderização
+  // =====================================================
 
-  const handleFecharDialog = () => {
-    setIsAtualizarSaldoOpen(false);
-    setSaldosEditados({});
-  };
+  const saldosPorBanco = contas.reduce<Record<string, number>>((acc, conta) => {
+    acc[conta.nomeBanco] = conta.saldo;
+    return acc;
+  }, {});
 
   return (
-    <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-2xl font-bold">Fluxo de Caixa</h2>
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Wallet className="w-5 h-5" />
+          Fluxo de Caixa
+        </CardTitle>
+        <CardDescription>Controle de entradas, saídas e saldos bancários.</CardDescription>
+      </CardHeader>
 
-          <div className="flex items-center gap-2">
-            {/* Botão Atualizar Saldo */}
-            <Dialog open={isAtualizarSaldoOpen} onOpenChange={setIsAtualizarSaldoOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="h-8 text-xs gap-2">
-                  <DollarSign className="h-3 w-3" />
-                  Atualizar Saldo
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Atualizar Saldo das Contas</DialogTitle>
-                  <DialogDescription className="text-xs">
-                    O saldo atual total é de {formatCurrency(saldoTotalAtual)}
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-3 py-2">
-                  {contas.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">Nenhuma conta bancária cadastrada</p>
-                  ) : (
-                    contas.map((conta) => {
-                      const saldoAtual = saldosPorBanco[conta.nomeBanco] || 0;
-                      const saldoEditado = saldosEditados[conta.nomeBanco];
-                      const valorExibido = saldoEditado !== undefined ? saldoEditado : saldoAtual;
-
-                      return (
-                        <div key={conta.id} className="space-y-1.5">
-                          <Label className="text-xs font-medium">{conta.nomeBanco}</Label>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground min-w-[80px]">
-                              Atual: {formatCurrency(saldoAtual)}
-                            </span>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={valorExibido}
-                              onChange={(e) => handleEditarSaldo(conta.nomeBanco, parseFloat(e.target.value) || 0)}
-                              className="h-8 text-xs"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-
-                  {/* Mostrar mensagem do novo saldo final se houver edições */}
-                  {Object.keys(saldosEditados).length > 0 && (
-                    <div className="pt-3 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        Com a atualização de saldo da conta o saldo final da conta será de{" "}
-                        <span className="font-semibold text-foreground">
-                          {formatCurrency(calcularNovoSaldoFinal())}
-                        </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Botão Atualizar Saldo */}
-                {Object.keys(saldosEditados).length > 0 && (
-                  <div className="flex justify-end gap-2 pt-2 border-t">
-                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleFecharDialog}>
-                      Cancelar
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => {
-                        const bancosEditados = Object.keys(saldosEditados);
-                        if (bancosEditados.length > 0) {
-                          setBancoParaAtualizar(bancosEditados[0]);
-                          setIsConfirmDialogOpen(true);
-                        }
-                      }}
-                    >
-                      Atualizar Saldo
-                    </Button>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-
-            <ExportButton
-              data={dadosExportacao}
-              filename="fluxo_caixa"
-              columns={[
-                { key: "data", label: "Data" },
-                { key: "descricao", label: "Descrição" },
-                { key: "entrada", label: "Entrada" },
-                { key: "saida", label: "Saída" },
-                { key: "saldo", label: "Saldo" },
-              ]}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <KPICard titulo="Saldo Inicial" valor={resumo.saldoInicial} icon={<DollarSign className="h-4 w-4" />} />
-          <KPICard
-            titulo="Total Entradas"
-            valor={resumo.totalEntradas}
-            icon={<TrendingUp className="h-4 w-4" />}
-            cor="green"
-          />
-          <KPICard
-            titulo="Total Saídas"
-            valor={resumo.totalSaidas}
-            icon={<TrendingDown className="h-4 w-4" />}
-            cor="red"
-          />
-          <KPICard
-            titulo="Saldo Final"
-            valor={resumo.saldoFinal}
-            icon={<DollarSign className="h-4 w-4" />}
-            cor={resumo.saldoFinal >= 0 ? "green" : "red"}
-            destaque
-          />
-        </div>
-
-        {/* Saldos por Conta */}
-        {contas.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-1 text-sm text-muted-foreground">
-            {contas.map((conta, index) => {
-              const saldo = saldosPorBanco[conta.nomeBanco] || conta.saldo || 0;
-              return (
-                <span key={conta.id} className="whitespace-nowrap">
-                  <span className="font-medium text-foreground">{conta.nomeBanco}</span>
-                  {": "}
-                  <span className={saldo >= 0 ? "text-green-600" : "text-red-600"}>{formatCurrency(saldo)}</span>
-                  {index < contas.length - 1 && <span className="mx-2 text-muted-foreground/50">|</span>}
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Movimentações</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Entrada</TableHead>
-                    <TableHead className="text-right">Saída</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
+      <CardContent>
+        {loading ? (
+          <p>Carregando...</p>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Banco</TableHead>
+                  <TableHead className="text-right">Saldo Atual</TableHead>
+                  <TableHead className="text-center">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contas.map((conta) => (
+                  <TableRow key={conta.id}>
+                    <TableCell>{conta.nomeBanco}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(conta.saldo)}</TableCell>
+                    <TableCell className="text-center">
+                      <Button size="sm" variant="outline" onClick={() => handleOpenAtualizarSaldo(conta.nomeBanco)}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Atualizar Saldo
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {linhasFluxo.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        Nenhuma movimentação encontrada no período
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    linhasFluxo.map((linha, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>{format(new Date(linha.data), "dd/MM/yyyy")}</TableCell>
-                        <TableCell>{linha.descricao}</TableCell>
-                        <TableCell className="text-right text-green-600 dark:text-green-400">
-                          {linha.entrada > 0 ? formatCurrency(linha.entrada) : "-"}
-                        </TableCell>
-                        <TableCell className="text-right text-red-600 dark:text-red-400">
-                          {linha.saida > 0 ? formatCurrency(linha.saida) : "-"}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(linha.saldo)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                ))}
+              </TableBody>
+            </Table>
+          </>
+        )}
+      </CardContent>
 
-      {/* AlertDialog de Confirmação */}
+      {/* Dialog Atualizar Saldo */}
+      <Dialog open={isAtualizarSaldoOpen} onOpenChange={setIsAtualizarSaldoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atualizar Saldo</DialogTitle>
+          </DialogHeader>
+          {bancoParaAtualizar && (
+            <>
+              <p className="text-sm text-muted-foreground mb-2">
+                Informe o novo saldo para <strong>{bancoParaAtualizar}</strong>:
+              </p>
+              <Input
+                type="number"
+                value={saldosEditados[bancoParaAtualizar] ?? ""}
+                onChange={(e) =>
+                  setSaldosEditados({
+                    ...saldosEditados,
+                    [bancoParaAtualizar]: parseFloat(e.target.value),
+                  })
+                }
+              />
+              <Button onClick={() => setIsConfirmDialogOpen(true)} className="mt-4 w-full">
+                Confirmar Atualização
+              </Button>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação */}
       <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Atualização</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que gostaria de atualizar o saldo do {bancoParaAtualizar}?
-            </AlertDialogDescription>
+            <AlertDialogTitle>Confirmar atualização do saldo?</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelarAtualizacao}>Não</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmarAtualizacao}>Sim</AlertDialogAction>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmarAtualizacao}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </Card>
   );
-};
+}
