@@ -269,7 +269,7 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
   };
 
   const handleConfirmarAtualizacao = async () => {
-    if (!bancoParaAtualizar) return;
+    if (!user || !bancoParaAtualizar) return;
 
     const contaSelecionada = contas.find((c) => c.nomeBanco === bancoParaAtualizar);
     if (!contaSelecionada) {
@@ -297,6 +297,7 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
       const tipoLancamento = diferenca > 0 ? "Receita" : "Despesa";
 
       const dadosLancamento = {
+        user_id: user?.id || "",
         ano: anoAtual,
         mes_competencia: mesAtual,
         tipo: tipoLancamento,
@@ -325,14 +326,8 @@ export const FluxoDeCaixa = ({ filtros }: FluxoDeCaixaProps) => {
 
       if (itemError) throw itemError;
 
-      // ✅ Atualiza as contas e recalcula os saldos exibidos
-      const [contasAtualizadas, lancamentosAtualizados] = await Promise.all([loadContas(), loadLancamentos()]);
-
-      const novosSaldos: Record<string, number> = {};
-      contasAtualizadas.forEach((conta) => {
-        novosSaldos[conta.nomeBanco] = conta.saldo_atual ?? 0;
-      });
-      setSaldosPorBanco(novosSaldos);
+      // ✅ Atualiza apenas os dados, sem recarregar a página e sem duplicar chamadas
+      await Promise.all([loadContas(), loadLancamentos()]);
 
       toast.success(
         `Saldo do ${bancoParaAtualizar} atualizado com sucesso! Lançamento de ${tipoLancamento} de ${formatCurrency(
