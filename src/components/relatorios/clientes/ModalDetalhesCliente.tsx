@@ -34,12 +34,33 @@ interface Agendamento {
   tipo: "regular" | "pacote";
 }
 
-const abrirWhatsApp = (whatsapp: string, nomeCliente: string) => {
-  const numeroLimpo = whatsapp.replace(/\D/g, "");
+/** Função que gera mensagem personalizada conforme os dias sem agendar */
+const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
+  const { nomeCliente, nomePet, diasSemAgendar } = cliente;
+  const nomeFormatado = nomeCliente.split(" ")[0]; // usa apenas o primeiro nome
+
+  if (diasSemAgendar >= 7 && diasSemAgendar <= 10) {
+    return `🟢 Olá, ${nomeFormatado}! Como vc está?\nNotamos que faz ${diasSemAgendar} dias desde o último banho de ${nomePet}. Está quase na hora do próximo banho. Vamos marcar para manter os cuidados em dia?`;
+  } else if (diasSemAgendar >= 11 && diasSemAgendar <= 15) {
+    return `🟡 Oii, ${nomeFormatado}. Como vc está?\nJá faz um tempinho desde o último banho de ${nomePet}. Vamos marcar o próximo para ele continuar sempre bem cuidado?`;
+  } else if (diasSemAgendar >= 16 && diasSemAgendar <= 20) {
+    return `🟠 Olá, ${nomeFormatado}. Como vc está?\nJá faz um bom tempo que o ${nomePet} não vem nos visitar. Vamos agendar o próximo banho e colocar os cuidados em dia?`;
+  } else if (diasSemAgendar >= 21 && diasSemAgendar <= 30) {
+    return `🟠 Olá, ${nomeFormatado}. Como vc está?\nJá faz quase um mês desde o último banho de ${nomePet}. Que tal agendar um novo e deixar ele limpo e confortável?`;
+  } else if (diasSemAgendar >= 31 && diasSemAgendar <= 45) {
+    return `🔴 Oii, ${nomeFormatado}! Como vc está?\nO ${nomePet} está há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana. Vamos marcar?`;
+  } else if (diasSemAgendar >= 46 && diasSemAgendar <= 90) {
+    return `🔴 Olá, ${nomeFormatado}.\nJá faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta dele ❤️ Que tal agendar um novo banho e colocá-lo em dia com um cuidado especial?`;
+  } else {
+    return `Olá, ${nomeFormatado}! Tudo bem?\nPercebemos que faz um tempo que ${nomePet} não vem para o banho. Vamos agendar um horário?`;
+  }
+};
+
+/** Função que abre o WhatsApp com o número e mensagem */
+const abrirWhatsApp = (cliente: ClienteRisco) => {
+  const numeroLimpo = cliente.whatsapp.replace(/\D/g, "");
   const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
-  const mensagem = encodeURIComponent(
-    `Olá ${nomeCliente}! Notamos que faz um tempo que não nos visita. Gostaríamos de saber como você e seu pet estão!`,
-  );
+  const mensagem = encodeURIComponent(gerarMensagemWhatsApp(cliente));
   window.open(`https://wa.me/${numeroCompleto}?text=${mensagem}`, "_blank");
 };
 
@@ -83,7 +104,6 @@ export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhe
       // Combinar e formatar histórico
       const historicoCompleto: Agendamento[] = [];
 
-      // Agendamentos normais
       agendamentosRegulares?.forEach((ag) => {
         if (isValid(parseISO(ag.data))) {
           historicoCompleto.push({
@@ -95,7 +115,6 @@ export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhe
         }
       });
 
-      // Agendamentos de pacotes — inclui as datas reais de cada serviço
       agendamentosPacotes?.forEach((p) => {
         try {
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
@@ -117,10 +136,7 @@ export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhe
         }
       });
 
-      // Ordenar por data (mais recentes primeiro)
       historicoCompleto.sort((a, b) => b.data.getTime() - a.data.getTime());
-
-      // Exibir apenas os 4 últimos
       setHistorico(historicoCompleto.slice(0, 4));
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
@@ -212,7 +228,7 @@ export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhe
             <Button variant="outline" onClick={onFechar}>
               Fechar
             </Button>
-            <Button onClick={() => abrirWhatsApp(cliente.whatsapp, cliente.nomeCliente)}>
+            <Button onClick={() => abrirWhatsApp(cliente)}>
               <MessageSquare className="h-4 w-4 mr-2" />
               Abrir WhatsApp
             </Button>
