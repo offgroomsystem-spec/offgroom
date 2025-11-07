@@ -49,9 +49,17 @@ export default function Clientes() {
   const [whatsapp, setWhatsapp] = useState("");
   const [endereco, setEndereco] = useState("");
   const [observacaoCliente, setObservacaoCliente] = useState("");
-  const [pets, setPets] = useState<Pet[]>([
-    { nome_pet: "", porte: "", raca: "", observacao: "" }
-  ]);
+  const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+
+  // Função para formatar nomes com apenas a primeira letra de cada palavra em maiúsculo
+  const formatarNome = (texto: string) => {
+    return texto
+      .toLowerCase()
+      .split(" ")
+      .filter((p) => p.trim() !== "")
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ");
+  };
 
   useEffect(() => {
     if (user) {
@@ -62,11 +70,8 @@ export default function Clientes() {
 
   const fetchRacas = async () => {
     if (!user) return;
-    
-    const { data: racasPadrao } = await supabase
-      .from("racas_padrao")
-      .select("*")
-      .order("nome", { ascending: true });
+
+    const { data: racasPadrao } = await supabase.from("racas_padrao").select("*").order("nome", { ascending: true });
 
     const { data: racasCustom } = await supabase
       .from("racas")
@@ -74,9 +79,9 @@ export default function Clientes() {
       .eq("user_id", user.id)
       .order("nome", { ascending: true });
 
-    const racasPadraoFormatted = racasPadrao?.map(r => ({ ...r, isPadrao: true })) || [];
-    const racasCustomFormatted = racasCustom?.map(r => ({ ...r, isPadrao: false })) || [];
-    
+    const racasPadraoFormatted = racasPadrao?.map((r) => ({ ...r, isPadrao: true })) || [];
+    const racasCustomFormatted = racasCustom?.map((r) => ({ ...r, isPadrao: false })) || [];
+
     setRacas([...racasPadraoFormatted, ...racasCustomFormatted]);
   };
 
@@ -108,9 +113,9 @@ export default function Clientes() {
     }
 
     // Agrupar pets por cliente
-    const clientesComPets = clientesData.map(cliente => ({
+    const clientesComPets = clientesData.map((cliente) => ({
       ...cliente,
-      pets: petsData.filter(pet => pet.cliente_id === cliente.id)
+      pets: petsData.filter((pet) => pet.cliente_id === cliente.id),
     }));
 
     setClientes(clientesComPets);
@@ -136,12 +141,10 @@ export default function Clientes() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja deletar este cliente? Todos os pets associados também serão deletados.")) return;
+    if (!confirm("Tem certeza que deseja deletar este cliente? Todos os pets associados também serão deletados."))
+      return;
 
-    const { error } = await supabase
-      .from("clientes")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("clientes").delete().eq("id", id);
 
     if (error) {
       toast.error("Erro ao deletar cliente");
@@ -191,21 +194,15 @@ export default function Clientes() {
         if (clienteError) throw clienteError;
 
         // Buscar pets existentes
-        const { data: petsExistentes } = await supabase
-          .from("pets")
-          .select("id")
-          .eq("cliente_id", editingId);
+        const { data: petsExistentes } = await supabase.from("pets").select("id").eq("cliente_id", editingId);
 
-        const idsExistentes = petsExistentes?.map(p => p.id) || [];
-        const idsNoFormulario = pets.filter(p => p.id).map(p => p.id);
+        const idsExistentes = petsExistentes?.map((p) => p.id) || [];
+        const idsNoFormulario = pets.filter((p) => p.id).map((p) => p.id);
 
         // Deletar pets removidos
-        const idsParaDeletar = idsExistentes.filter(id => !idsNoFormulario.includes(id));
+        const idsParaDeletar = idsExistentes.filter((id) => !idsNoFormulario.includes(id));
         if (idsParaDeletar.length > 0) {
-          await supabase
-            .from("pets")
-            .delete()
-            .in("id", idsParaDeletar);
+          await supabase.from("pets").delete().in("id", idsParaDeletar);
         }
 
         // Atualizar e inserir pets
@@ -223,16 +220,14 @@ export default function Clientes() {
               .eq("id", pet.id);
           } else {
             // INSERT novo pet
-            await supabase
-              .from("pets")
-              .insert({
-                user_id: user.id,
-                cliente_id: editingId,
-                nome_pet: pet.nome_pet,
-                porte: pet.porte,
-                raca: pet.raca,
-                observacao: pet.observacao || "",
-              });
+            await supabase.from("pets").insert({
+              user_id: user.id,
+              cliente_id: editingId,
+              nome_pet: pet.nome_pet,
+              porte: pet.porte,
+              raca: pet.raca,
+              observacao: pet.observacao || "",
+            });
           }
         }
 
@@ -254,7 +249,7 @@ export default function Clientes() {
         if (clienteError) throw clienteError;
 
         // INSERT Pets
-        const petsParaInserir = pets.map(pet => ({
+        const petsParaInserir = pets.map((pet) => ({
           user_id: user.id,
           cliente_id: novoCliente.id,
           nome_pet: pet.nome_pet,
@@ -263,9 +258,7 @@ export default function Clientes() {
           observacao: pet.observacao || "",
         }));
 
-        const { error: petsError } = await supabase
-          .from("pets")
-          .insert(petsParaInserir);
+        const { error: petsError } = await supabase.from("pets").insert(petsParaInserir);
 
         if (petsError) throw petsError;
 
@@ -299,10 +292,11 @@ export default function Clientes() {
     setPets(newPets);
   };
 
-  const filteredClientes = clientes.filter(cliente =>
-    cliente.nome_cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.whatsapp.includes(searchTerm) ||
-    cliente.pets.some(pet => pet.nome_pet.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredClientes = clientes.filter(
+    (cliente) =>
+      cliente.nome_cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.whatsapp.includes(searchTerm) ||
+      cliente.pets.some((pet) => pet.nome_pet.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   return (
@@ -314,10 +308,13 @@ export default function Clientes() {
               <CardTitle className="text-2xl">Clientes e Pets</CardTitle>
               <CardDescription>Gerencie seus clientes e seus pets</CardDescription>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={(open) => {
-              setDialogOpen(open);
-              if (!open) resetForm();
-            }}>
+            <Dialog
+              open={dialogOpen}
+              onOpenChange={(open) => {
+                setDialogOpen(open);
+                if (!open) resetForm();
+              }}
+            >
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" /> Novo Cliente
@@ -325,23 +322,19 @@ export default function Clientes() {
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>
-                    {editingId ? "Editar Cliente" : "Novo Cliente"}
-                  </DialogTitle>
+                  <DialogTitle>{editingId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Dados do Cliente */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      📝 Dados do Cliente
-                    </h3>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">📝 Dados do Cliente</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="nome_cliente">Nome do Cliente *</Label>
                         <Input
                           id="nome_cliente"
                           value={nomeCliente}
-                          onChange={(e) => setNomeCliente(e.target.value)}
+                          onChange={(e) => setNomeCliente(formatarNome(e.target.value))}
                           required
                         />
                       </div>
@@ -358,11 +351,7 @@ export default function Clientes() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="endereco">Endereço</Label>
-                      <Input
-                        id="endereco"
-                        value={endereco}
-                        onChange={(e) => setEndereco(e.target.value)}
-                      />
+                      <Input id="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="observacao_cliente">Observação</Label>
@@ -380,9 +369,7 @@ export default function Clientes() {
                   {/* Pets do Cliente */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
-                        🐾 Pets do Cliente
-                      </h3>
+                      <h3 className="text-lg font-semibold flex items-center gap-2">🐾 Pets do Cliente</h3>
                       <Button type="button" onClick={addPet} variant="outline" size="sm">
                         <Plus className="mr-2 h-4 w-4" /> Adicionar Pet
                       </Button>
@@ -397,32 +384,24 @@ export default function Clientes() {
                               Pet #{index + 1}
                             </h4>
                             {pets.length > 1 && (
-                              <Button
-                                type="button"
-                                onClick={() => removePet(index)}
-                                variant="ghost"
-                                size="sm"
-                              >
+                              <Button type="button" onClick={() => removePet(index)} variant="ghost" size="sm">
                                 <X className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>Nome do Pet *</Label>
                               <Input
                                 value={pet.nome_pet}
-                                onChange={(e) => updatePet(index, "nome_pet", e.target.value)}
+                                onChange={(e) => updatePet(index, "nome_pet", formatarNome(e.target.value))}
                                 required
                               />
                             </div>
                             <div className="space-y-2">
                               <Label>Porte *</Label>
-                              <Select
-                                value={pet.porte}
-                                onValueChange={(value) => updatePet(index, "porte", value)}
-                              >
+                              <Select value={pet.porte} onValueChange={(value) => updatePet(index, "porte", value)}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Selecione o porte" />
                                 </SelectTrigger>
@@ -437,10 +416,7 @@ export default function Clientes() {
 
                           <div className="space-y-2">
                             <Label>Raça *</Label>
-                            <Select
-                              value={pet.raca}
-                              onValueChange={(value) => updatePet(index, "raca", value)}
-                            >
+                            <Select value={pet.raca} onValueChange={(value) => updatePet(index, "raca", value)}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecione a raça" />
                               </SelectTrigger>
@@ -478,9 +454,7 @@ export default function Clientes() {
                     >
                       Cancelar
                     </Button>
-                    <Button type="submit">
-                      {editingId ? "Atualizar" : "Cadastrar"}
-                    </Button>
+                    <Button type="submit">{editingId ? "Atualizar" : "Cadastrar"}</Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
@@ -525,30 +499,20 @@ export default function Clientes() {
                                 <PawPrint className="h-3 w-3" />
                                 {pet.nome_pet}
                                 <span className="text-muted-foreground">
-                                  ({pet.porte === 'pequeno' ? 'P' : pet.porte === 'medio' ? 'M' : 'G'})
+                                  ({pet.porte === "pequeno" ? "P" : pet.porte === "medio" ? "M" : "G"})
                                 </span>
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="p-3">{cliente.whatsapp}</td>
-                        <td className="p-3 text-sm text-muted-foreground">
-                          {cliente.endereco || "-"}
-                        </td>
+                        <td className="p-3 text-sm text-muted-foreground">{cliente.endereco || "-"}</td>
                         <td className="p-3">
                           <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(cliente)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(cliente)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(cliente.id)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(cliente.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
