@@ -692,10 +692,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       );
 
       if (clientePetObrigatorios) {
-        const pet = pets.find((p) => p.nomePet === formData.nomePet);
         const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
 
-        if (!pet || !cliente || pet.clienteId !== cliente.id) {
+        if (!pet || !cliente) {
           toast.error("Cliente/Pet não encontrado ou não correspondem!");
           return;
         }
@@ -821,10 +821,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       );
 
       if (clientePetObrigatorios) {
-        const pet = pets.find((p) => p.nomePet === formData.nomePet);
         const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
 
-        if (!pet || !cliente || pet.clienteId !== cliente.id) {
+        if (!pet || !cliente) {
           toast.error("Cliente/Pet não encontrado ou não correspondem!");
           return;
         }
