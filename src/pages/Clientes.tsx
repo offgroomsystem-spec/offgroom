@@ -51,18 +51,17 @@ export default function Clientes() {
   const [observacaoCliente, setObservacaoCliente] = useState("");
   const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
 
-  // Função para formatar nomes com apenas a primeira letra de cada palavra em maiúsculo
+  // ✅ Formata nomes automaticamente, respeitando espaços durante a digitação
   const formatarNome = (texto: string) => {
-    // apenas retorna o texto original enquanto o usuário digita
-    return texto;
-  };
-
-  const aplicarCapitalizacao = (texto: string) => {
+    // Mantém os espaços enquanto digita e formata cada palavra dinamicamente
     return texto
-      .trim()
-      .toLowerCase()
-      .split(/\s+/)
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .split(" ")
+      .map((palavra) => {
+        if (palavra.length === 0) return "";
+        const primeiraLetra = palavra.charAt(0).toUpperCase();
+        const resto = palavra.slice(1).toLowerCase();
+        return primeiraLetra + resto;
+      })
       .join(" ");
   };
 
@@ -340,7 +339,6 @@ export default function Clientes() {
                           id="nome_cliente"
                           value={nomeCliente}
                           onChange={(e) => setNomeCliente(formatarNome(e.target.value))}
-                          onBlur={(e) => setNomeCliente(aplicarCapitalizacao(e.target.value))}
                           required
                         />
                       </div>
@@ -402,7 +400,6 @@ export default function Clientes() {
                               <Input
                                 value={pet.nome_pet}
                                 onChange={(e) => updatePet(index, "nome_pet", formatarNome(e.target.value))}
-                                onBlur={(e) => updatePet(index, "nome_pet", aplicarCapitalizacao(e.target.value))}
                                 required
                               />
                             </div>
