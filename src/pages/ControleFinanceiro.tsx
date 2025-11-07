@@ -221,6 +221,9 @@ interface ItemLancamentoFormProps {
   onChange: (item: ItemLancamento) => void;
   onRemove: () => void;
   canRemove: boolean;
+  onAdd?: () => void;
+  isLast?: boolean;
+  canAdd?: boolean;
 }
 
 const ItemLancamentoForm = ({
@@ -233,6 +236,9 @@ const ItemLancamentoForm = ({
   onChange,
   onRemove,
   canRemove,
+  onAdd,
+  isLast,
+  canAdd,
 }: ItemLancamentoFormProps) => {
   const opcoesDescricao2 = formData.descricao1 ? categoriasDescricao2[formData.descricao1] || [] : [];
 
@@ -322,15 +328,31 @@ const ItemLancamentoForm = ({
       </div>
 
       <div className="col-span-3 space-y-0.5">
-        <Label className="text-[10px] font-semibold">Valor *</Label>
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
-          value={item.valor}
-          onChange={(e) => onChange({ ...item, valor: parseFloat(e.target.value) || 0 })}
-          className="h-7 text-xs"
-        />
+        <div className="flex items-end justify-between gap-1">
+          <div className="flex-1">
+            <Label className="text-[10px] font-semibold">Valor *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={item.valor}
+              onChange={(e) => onChange({ ...item, valor: parseFloat(e.target.value) || 0 })}
+              className="h-7 text-xs"
+            />
+          </div>
+          {isLast && canAdd && onAdd && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onAdd}
+              className="h-7 px-2 text-[10px] text-primary hover:text-primary hover:bg-primary/10"
+              title="Adicionar novo item"
+            >
+              + Item
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1221,6 +1243,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       }
                     }}
                     canRemove={itensLancamento.length > 1}
+                    onAdd={() => {
+                      if (itensLancamento.length < 10) {
+                        setItensLancamento([
+                          ...itensLancamento,
+                          { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
+                        ]);
+                      } else {
+                        toast.error("Limite máximo de 10 itens atingido");
+                      }
+                    }}
+                    isLast={index === itensLancamento.length - 1}
+                    canAdd={itensLancamento.length < 10}
                   />
                 ))}
 
@@ -1898,6 +1932,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     }
                   }}
                   canRemove={itensLancamento.length > 1}
+                  onAdd={() => {
+                    if (itensLancamento.length < 10) {
+                      setItensLancamento([
+                        ...itensLancamento,
+                        { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
+                      ]);
+                    } else {
+                      toast.error("Limite máximo de 10 itens atingido");
+                    }
+                  }}
+                  isLast={index === itensLancamento.length - 1}
+                  canAdd={itensLancamento.length < 10}
                 />
               ))}
 
