@@ -1597,11 +1597,13 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             <table className="w-full">
               <thead>
                 <tr className="border-b">
+                  <th className="text-left py-2 px-2 font-semibold text-xs">Data do Pagamento</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Ano/Mês</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Tipo</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Cliente</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Pet</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Descrição 1</th>
+                  <th className="text-left py-2 px-2 font-semibold text-xs">Descrição 2</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Itens</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Valor Total</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Banco</th>
@@ -1612,7 +1614,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               <tbody>
                 {lancamentosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="text-center py-8 text-muted-foreground text-xs">
+                    <td colSpan={12} className="text-center py-8 text-muted-foreground text-xs">
                       Nenhum lançamento cadastrado
                     </td>
                   </tr>
@@ -1623,6 +1625,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       className="border-b hover:bg-secondary/50 transition-colors cursor-pointer"
                       onClick={() => abrirEdicao(lancamento)}
                     >
+                      <td className="py-2 px-2 text-xs">
+                        {new Date(lancamento.dataPagamento).toLocaleDateString("pt-BR")}
+                      </td>
                       <td className="py-2 px-2 text-xs">
                         {lancamento.ano}/{lancamento.mesCompetencia}
                       </td>
@@ -1637,6 +1642,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       <td className="py-2 px-2 text-xs">{lancamento.nomeCliente}</td>
                       <td className="py-2 px-2 text-xs">{lancamento.nomePet}</td>
                       <td className="py-2 px-2 text-xs">{lancamento.descricao1}</td>
+                      <td className="py-2 px-2 text-xs">
+                        {lancamento.itens.map((item: any) => item.descricao2).join(", ")}
+                      </td>
                       <td className="py-2 px-2 text-xs">
                         {lancamento.itens.length} item{lancamento.itens.length > 1 ? "s" : ""}
                       </td>
