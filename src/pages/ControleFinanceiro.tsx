@@ -1626,7 +1626,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       onClick={() => abrirEdicao(lancamento)}
                     >
                       <td className="py-2 px-2 text-xs">
-                        {new Date(lancamento.dataPagamento).toLocaleDateString("pt-BR")}
+                        {new Date(lancamento.dataPagamento + "T00:00:00").toLocaleDateString("pt-BR")}
                       </td>
                       <td className="py-2 px-2 text-xs">
                         {lancamento.ano}/{lancamento.mesCompetencia}
