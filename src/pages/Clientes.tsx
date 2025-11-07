@@ -53,10 +53,15 @@ export default function Clientes() {
 
   // Função para formatar nomes com apenas a primeira letra de cada palavra em maiúsculo
   const formatarNome = (texto: string) => {
+    // apenas retorna o texto original enquanto o usuário digita
+    return texto;
+  };
+
+  const aplicarCapitalizacao = (texto: string) => {
     return texto
+      .trim()
       .toLowerCase()
-      .split(" ")
-      .filter((p) => p.trim() !== "")
+      .split(/\s+/)
       .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
       .join(" ");
   };
@@ -335,6 +340,7 @@ export default function Clientes() {
                           id="nome_cliente"
                           value={nomeCliente}
                           onChange={(e) => setNomeCliente(formatarNome(e.target.value))}
+                          onBlur={(e) => setNomeCliente(aplicarCapitalizacao(e.target.value))}
                           required
                         />
                       </div>
@@ -396,6 +402,7 @@ export default function Clientes() {
                               <Input
                                 value={pet.nome_pet}
                                 onChange={(e) => updatePet(index, "nome_pet", formatarNome(e.target.value))}
+                                onBlur={(e) => updatePet(index, "nome_pet", aplicarCapitalizacao(e.target.value))}
                                 required
                               />
                             </div>
