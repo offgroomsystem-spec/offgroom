@@ -64,6 +64,8 @@ interface LancamentoFinanceiro {
   nomeBanco: string;
   pago: boolean;
   dataCadastro: string;
+  valorDeducao: number;
+  tipoDeducao: string;
 }
 
 interface Cliente {
@@ -416,6 +418,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         nomeBanco: "", // Will be handled via lookup
         pago: l.pago,
         dataCadastro: l.data_cadastro || l.created_at,
+        valorDeducao: Number(l.valor_deducao) || 0,
+        tipoDeducao: l.tipo_deducao || "",
       }));
 
       // Map cliente_id and conta_id to names
@@ -548,6 +552,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     dataPagamento: "",
     nomeBanco: "",
     pago: false,
+    valorDeducao: 0,
+    tipoDeducao: "",
   });
 
   const [itensLancamento, setItensLancamento] = useState<ItemLancamento[]>([
@@ -702,7 +708,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
+    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
@@ -747,6 +753,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             conta_id: conta.id,
             pago: formData.pago,
             observacao: null,
+            valor_deducao: formData.valorDeducao || 0,
+            tipo_deducao: formData.tipoDeducao || null,
           },
         ])
         .select()
@@ -786,6 +794,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       dataPagamento: "",
       nomeBanco: "",
       pago: false,
+      valorDeducao: 0,
+      tipoDeducao: "",
     });
     setItensLancamento([{ id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }]);
     setIsDialogOpen(false);
@@ -804,6 +814,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       dataPagamento: lancamento.dataPagamento,
       nomeBanco: lancamento.nomeBanco,
       pago: lancamento.pago,
+      valorDeducao: lancamento.valorDeducao || 0,
+      tipoDeducao: lancamento.tipoDeducao || "",
     });
     setItensLancamento(lancamento.itens);
     setIsEditDialogOpen(true);
@@ -832,7 +844,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
     }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
+    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
@@ -872,6 +884,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           data_pagamento: formData.dataPagamento,
           conta_id: conta.id,
           pago: formData.pago,
+          valor_deducao: formData.valorDeducao || 0,
+          tipo_deducao: formData.tipoDeducao || null,
         })
         .eq("id", lancamentoSelecionado.id);
 
@@ -1258,13 +1272,66 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   />
                 ))}
 
+                {/* Seção de Deduções */}
+                <div className="pt-2 border-t space-y-2">
+                  <Label className="text-xs font-semibold">Deduções</Label>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px]">Valor da Dedução</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="R$ 0,00"
+                        value={formData.valorDeducao || ""}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          valorDeducao: parseFloat(e.target.value) || 0 
+                        })}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px]">Tipo de Dedução</Label>
+                      <Select
+                        value={formData.tipoDeducao}
+                        onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Tarifa Bancária" className="text-xs">
+                            Tarifa Bancária
+                          </SelectItem>
+                          <SelectItem value="Desconto" className="text-xs">
+                            Desconto
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seção de Valor Total */}
                 <div className="pt-2 border-t">
-                  <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
                     <Label className="text-xs font-semibold">Valor Total:</Label>
                     <span className="text-base font-bold text-primary">
-                      {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
+                      {formatCurrency(
+                        itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
+                      )}
                     </span>
                   </div>
+                  
+                  {formData.valorDeducao > 0 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - 
+                      Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -1947,13 +2014,66 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 />
               ))}
 
+              {/* Seção de Deduções */}
+              <div className="pt-2 border-t space-y-2">
+                <Label className="text-xs font-semibold">Deduções</Label>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px]">Valor da Dedução</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="R$ 0,00"
+                      value={formData.valorDeducao || ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        valorDeducao: parseFloat(e.target.value) || 0 
+                      })}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px]">Tipo de Dedução</Label>
+                    <Select
+                      value={formData.tipoDeducao}
+                      onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}
+                    >
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Tarifa Bancária" className="text-xs">
+                          Tarifa Bancária
+                        </SelectItem>
+                        <SelectItem value="Desconto" className="text-xs">
+                          Desconto
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção de Valor Total */}
               <div className="pt-2 border-t">
-                <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
                   <Label className="text-xs font-semibold">Valor Total:</Label>
                   <span className="text-base font-bold text-primary">
-                    {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
+                    {formatCurrency(
+                      itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
+                    )}
                   </span>
                 </div>
+                
+                {formData.valorDeducao > 0 && (
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - 
+                    Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                  </div>
+                )}
               </div>
             </div>
 

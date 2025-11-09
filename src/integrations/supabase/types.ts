@@ -311,8 +311,10 @@ export type Database = {
           observacao: string | null
           pago: boolean
           tipo: string
+          tipo_deducao: string | null
           updated_at: string | null
           user_id: string
+          valor_deducao: number | null
           valor_total: number
         }
         Insert: {
@@ -328,8 +330,10 @@ export type Database = {
           observacao?: string | null
           pago?: boolean
           tipo: string
+          tipo_deducao?: string | null
           updated_at?: string | null
           user_id: string
+          valor_deducao?: number | null
           valor_total?: number
         }
         Update: {
@@ -345,8 +349,10 @@ export type Database = {
           observacao?: string | null
           pago?: boolean
           tipo?: string
+          tipo_deducao?: string | null
           updated_at?: string | null
           user_id?: string
+          valor_deducao?: number | null
           valor_total?: number
         }
         Relationships: [
