@@ -2017,7 +2017,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 Atualizar
               </Button>
             </div>
-          </form>
+            </form>
         </DialogContent>
       </Dialog>
 
