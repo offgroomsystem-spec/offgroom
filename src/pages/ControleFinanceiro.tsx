@@ -1259,12 +1259,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 ))}
 
 <div className="pt-2 border-t">
-  <div className="flex items-center">
-    <span className="text-xs font-semibold">
-      Valor Total:{" "}
-      <span className="text-base font-bold text-primary">
-        {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
-      </span>
+  <div className="flex items-center gap-2">
+    <span className="text-xs font-semibold">Valor Total:</span>
+    <span className="text-base font-bold text-primary">
+      {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
     </span>
   </div>
 </div>
@@ -1951,12 +1949,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               ))}
 
 <div className="pt-2 border-t">
-  <div className="flex items-center">
-    <span className="text-xs font-semibold">
-      Valor Total:{" "}
-      <span className="text-base font-bold text-primary">
-        {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
-      </span>
+  <div className="flex items-center gap-2">
+    <span className="text-xs font-semibold">Valor Total:</span>
+    <span className="text-base font-bold text-primary">
+      {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
     </span>
   </div>
 </div>
