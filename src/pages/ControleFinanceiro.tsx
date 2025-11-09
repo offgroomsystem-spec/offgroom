@@ -2015,9 +2015,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               </Button>
               <Button type="submit" className="h-7 text-xs">
                 Atualizar
-              </Button>
-            </div>
-            </form>
+</Button>
+</div>
+</form>
         </DialogContent>
       </Dialog>
 
