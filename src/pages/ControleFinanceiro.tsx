@@ -1258,14 +1258,17 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   />
                 ))}
 
-                <div className="pt-2 border-t">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-xs font-semibold">Valor Total:</Label>
-                    <span className="text-base font-bold text-primary">
-                      {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
-                    </span>
-                  </div>
-                </div>
+<div className="pt-2 border-t">
+  <div className="flex items-center">
+    <span className="text-xs font-semibold">
+      Valor Total:{" "}
+      <span className="text-base font-bold text-primary">
+        {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
+      </span>
+    </span>
+  </div>
+</div>
+
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-0.5">
@@ -1947,15 +1950,17 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 />
               ))}
 
-              <div className="pt-2 border-t">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs font-semibold">Valor Total:</Label>
-                  <span className="text-base font-bold text-primary">
-                    {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
-                  </span>
-                </div>
-              </div>
-            </div>
+<div className="pt-2 border-t">
+  <div className="flex items-center">
+    <span className="text-xs font-semibold">
+      Valor Total:{" "}
+      <span className="text-base font-bold text-primary">
+        {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
+      </span>
+    </span>
+  </div>
+</div>
+
 
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-0.5">
