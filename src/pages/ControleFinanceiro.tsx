@@ -1272,11 +1272,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   />
                 ))}
 
-                {/* Seção de Deduções */}
-                <div className="pt-2 border-t space-y-2">
-                  <Label className="text-xs font-semibold">Deduções</Label>
-                  
-                  <div className="grid grid-cols-2 gap-2">
+                {/* Deduções e Valor Total - Tudo em uma linha */}
+                <div className="pt-2 border-t">
+                  <div className="grid grid-cols-3 gap-2 items-end">
+                    {/* Valor da Dedução */}
                     <div className="space-y-0.5">
                       <Label className="text-[10px]">Valor da Dedução</Label>
                       <Input
@@ -1293,6 +1292,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       />
                     </div>
                     
+                    {/* Tipo de Dedução */}
                     <div className="space-y-0.5">
                       <Label className="text-[10px]">Tipo de Dedução</Label>
                       <Select
@@ -1312,20 +1312,19 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                </div>
-
-                {/* Seção de Valor Total */}
-                <div className="pt-2 border-t">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs font-semibold">Valor Total:</Label>
-                    <span className="text-base font-bold text-primary">
-                      {formatCurrency(
-                        itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
-                      )}
-                    </span>
+                    
+                    {/* Valor Total */}
+                    <div className="flex items-center gap-2 h-7">
+                      <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
+                      <span className="text-base font-bold text-primary">
+                        {formatCurrency(
+                          itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
+                        )}
+                      </span>
+                    </div>
                   </div>
                   
+                  {/* Detalhamento quando houver dedução */}
                   {formData.valorDeducao > 0 && (
                     <div className="text-[10px] text-muted-foreground mt-1">
                       Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - 
@@ -2014,11 +2013,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 />
               ))}
 
-              {/* Seção de Deduções */}
-              <div className="pt-2 border-t space-y-2">
-                <Label className="text-xs font-semibold">Deduções</Label>
-                
-                <div className="grid grid-cols-2 gap-2">
+              {/* Deduções e Valor Total - Tudo em uma linha */}
+              <div className="pt-2 border-t">
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  {/* Valor da Dedução */}
                   <div className="space-y-0.5">
                     <Label className="text-[10px]">Valor da Dedução</Label>
                     <Input
@@ -2035,6 +2033,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     />
                   </div>
                   
+                  {/* Tipo de Dedução */}
                   <div className="space-y-0.5">
                     <Label className="text-[10px]">Tipo de Dedução</Label>
                     <Select
@@ -2054,20 +2053,19 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              </div>
-
-              {/* Seção de Valor Total */}
-              <div className="pt-2 border-t">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs font-semibold">Valor Total:</Label>
-                  <span className="text-base font-bold text-primary">
-                    {formatCurrency(
-                      itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
-                    )}
-                  </span>
+                  
+                  {/* Valor Total */}
+                  <div className="flex items-center gap-2 h-7">
+                    <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
+                    <span className="text-base font-bold text-primary">
+                      {formatCurrency(
+                        itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
+                      )}
+                    </span>
+                  </div>
                 </div>
                 
+                {/* Detalhamento quando houver dedução */}
                 {formData.valorDeducao > 0 && (
                   <div className="text-[10px] text-muted-foreground mt-1">
                     Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - 
