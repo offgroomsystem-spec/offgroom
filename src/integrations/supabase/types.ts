@@ -310,6 +310,7 @@ export type Database = {
           mes_competencia: string
           observacao: string | null
           pago: boolean
+          pet_ids: Json | null
           tipo: string
           tipo_deducao: string | null
           updated_at: string | null
@@ -329,6 +330,7 @@ export type Database = {
           mes_competencia: string
           observacao?: string | null
           pago?: boolean
+          pet_ids?: Json | null
           tipo: string
           tipo_deducao?: string | null
           updated_at?: string | null
@@ -348,6 +350,7 @@ export type Database = {
           mes_competencia?: string
           observacao?: string | null
           pago?: boolean
+          pet_ids?: Json | null
           tipo?: string
           tipo_deducao?: string | null
           updated_at?: string | null
