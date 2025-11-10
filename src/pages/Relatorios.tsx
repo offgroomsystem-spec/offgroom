@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, BarChart3, TrendingUp, Calendar, Users, Package, ArrowLeft } from "lucide-react";
 import { FilterPanel } from "@/components/relatorios/filters/FilterPanel";
 import { DashboardExecutivo } from "@/components/relatorios/dashboard/DashboardExecutivo";
-import { FluxoDeCaixa } from "@/components/relatorios/financeiros/FluxoDeCaixa";
+import FluxoDeCaixa from "@/components/relatorios/financeiros/FluxoDeCaixa";
 import { DRE } from "@/components/relatorios/financeiros/DRE";
 import { Inadimplencia } from "@/components/relatorios/financeiros/InadimplenciaDisabled";
 import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/PacotesProximosVencimento";
