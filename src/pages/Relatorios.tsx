@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, BarChart3, TrendingUp, Calendar, Users, Package, ArrowLeft } from "lucide-react";
 import { FilterPanel } from "@/components/relatorios/filters/FilterPanel";
 import { DashboardExecutivo } from "@/components/relatorios/dashboard/DashboardExecutivo";
-import { FluxoDeCaixa } from "@/components/relatorios/financeiros/FluxoDeCaixa";
+import FluxoDeCaixa from "@/components/relatorios/financeiros/FluxoDeCaixa";
 import { DRE } from "@/components/relatorios/financeiros/DRE";
 import { Inadimplencia } from "@/components/relatorios/financeiros/InadimplenciaDisabled";
 import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/PacotesProximosVencimento";
@@ -69,7 +69,7 @@ const Relatorios = () => {
           <DashboardExecutivo key={versaoFiltro} filtros={filtros} onNavigateToReport={handleCardClick} />
         )}
         {relatorioAtivo === "controle-financeiro" && <ControleFinanceiro filtrosIniciais={filtrosControleFinanceiro} />}
-        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} key={versaoFiltro} />}
+        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
