@@ -69,7 +69,7 @@ const Relatorios = () => {
           <DashboardExecutivo key={versaoFiltro} filtros={filtros} onNavigateToReport={handleCardClick} />
         )}
         {relatorioAtivo === "controle-financeiro" && <ControleFinanceiro filtrosIniciais={filtrosControleFinanceiro} />}
-        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa filtros={filtros} key={versaoFiltro} />}
+        {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
