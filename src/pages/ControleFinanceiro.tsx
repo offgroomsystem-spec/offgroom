@@ -1017,7 +1017,17 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     }
 
     if (filtros.nomePet) {
-      resultado = resultado.filter((l) => l.nomePet === filtros.nomePet);
+      resultado = resultado.filter((l) => {
+        // Buscar no pet principal
+        if (l.nomePet === filtros.nomePet) return true;
+        
+        // Buscar nos pets adicionais
+        if (l.pets && l.pets.length > 0) {
+          return l.pets.some(p => p.nomePet === filtros.nomePet);
+        }
+        
+        return false;
+      });
     }
     if (filtros.nomeCliente) {
       resultado = resultado.filter((l) => l.nomeCliente === filtros.nomeCliente);
