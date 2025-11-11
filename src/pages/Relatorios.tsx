@@ -55,15 +55,7 @@ const Relatorios = () => {
           Voltar
         </Button>
 
-        {/* Exibir o painel de filtros apenas para relatórios que não têm filtros próprios */}
-        {relatorioAtivo !== "clientes-risco" && relatorioAtivo !== "dre" && (
-          <FilterPanel
-            filtros={filtros}
-            setFiltros={setFiltros}
-            onAplicar={handleAplicarFiltros}
-            onLimpar={handleLimparFiltros}
-          />
-        )}
+        {/* Filtros agora são integrados em cada relatório */}
 
         {relatorioAtivo === "dashboard" && (
           <DashboardExecutivo key={versaoFiltro} filtros={filtros} onNavigateToReport={handleCardClick} />
