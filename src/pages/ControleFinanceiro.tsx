@@ -108,7 +108,7 @@ interface Produto {
 // Categorias
 const categoriasDescricao1 = {
   Receita: ["Receita Operacional", "Receita Não Operacional"],
-  Despesa: ["Despesa Fixa", "Despesa Variável", "Despesa Não Operacional"],
+  Despesa: ["Despesa Fixa", "Despesa Variável", "Despesa Operacional", "Despesa Não Operacional"],
 };
 
 const categoriasDescricao2: { [key: string]: string[] } = {
@@ -435,7 +435,12 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
       if (clientesData.data && petsData.data && contasData.data) {
         const clientesMap = new Map(clientesData.data.map((c: any) => [c.id, c.nome_cliente]));
-        const petsMapById = new Map(petsData.data.map((p: any) => [p.id, { nomePet: p.nome_pet, raca: p.raca, porte: p.porte, clienteId: p.cliente_id, id: p.id }]));
+        const petsMapById = new Map(
+          petsData.data.map((p: any) => [
+            p.id,
+            { nomePet: p.nome_pet, raca: p.raca, porte: p.porte, clienteId: p.cliente_id, id: p.id },
+          ]),
+        );
         const petsMap = new Map(petsData.data.map((p: any) => [p.cliente_id, p.nome_pet]));
         const contasMap = new Map(contasData.data.map((c: any) => [c.id, c.nome]));
 
@@ -445,13 +450,13 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             l.nomeCliente = clientesMap.get(lancOriginal.cliente_id) || "";
             l.nomePet = petsMap.get(lancOriginal.cliente_id) || "";
             l.nomeBanco = contasMap.get(lancOriginal.conta_id) || "";
-            
+
             // Carregar array de pets a partir de pet_ids
             if (lancOriginal.pet_ids && Array.isArray(lancOriginal.pet_ids)) {
               l.pets = lancOriginal.pet_ids
                 .map((petId: string) => petsMapById.get(petId))
                 .filter((pet: any) => pet !== undefined);
-              
+
               // Definir o primeiro pet como principal
               if (l.pets.length > 0) {
                 l.nomePet = l.pets[0].nomePet;
@@ -762,7 +767,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       // Preparar array de pet IDs (pet principal + pets adicionais)
       const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
       const petPrincipal = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
-      const petIds = petPrincipal ? [petPrincipal.id, ...formData.petsSelecionados.map(p => p.id)] : [];
+      const petIds = petPrincipal ? [petPrincipal.id, ...formData.petsSelecionados.map((p) => p.id)] : [];
 
       // Insert main record
       const { data: lancamentoData, error: lancamentoError } = await supabase
@@ -833,11 +838,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
   const abrirEdicao = (lancamento: LancamentoFinanceiro) => {
     setLancamentoSelecionado(lancamento);
-    
+
     // Separar o primeiro pet como principal e os demais como selecionados
     const petPrincipal = lancamento.pets && lancamento.pets.length > 0 ? lancamento.pets[0] : null;
     const petsAdicionais = lancamento.pets && lancamento.pets.length > 1 ? lancamento.pets.slice(1) : [];
-    
+
     setFormData({
       ano: lancamento.ano,
       mesCompetencia: lancamento.mesCompetencia,
@@ -910,7 +915,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       // Preparar array de pet IDs (pet principal + pets adicionais)
       const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
       const petPrincipal = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
-      const petIds = petPrincipal ? [petPrincipal.id, ...formData.petsSelecionados.map(p => p.id)] : [];
+      const petIds = petPrincipal ? [petPrincipal.id, ...formData.petsSelecionados.map((p) => p.id)] : [];
 
       await supabase
         .from("lancamentos_financeiros")
@@ -1020,12 +1025,12 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       resultado = resultado.filter((l) => {
         // Buscar no pet principal
         if (l.nomePet === filtros.nomePet) return true;
-        
+
         // Buscar nos pets adicionais
         if (l.pets && l.pets.length > 0) {
-          return l.pets.some(p => p.nomePet === filtros.nomePet);
+          return l.pets.some((p) => p.nomePet === filtros.nomePet);
         }
-        
+
         return false;
       });
     }
@@ -1238,154 +1243,158 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       id="form-cliente"
                       disabled={formData.tipo === "Despesa"}
                     />
-                </div>
-
-                {/* Nome do Pet - com suporte para múltiplos pets */}
-                <div className="space-y-0.5">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <Label className="text-[10px] font-semibold">
-                      {formData.tipo !== "Despesa" ? "Pets *" : "Pets"}
-                    </Label>
-                    {formData.tipo !== "Despesa" && formData.nomeCliente && formData.nomePet && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-5 text-[10px] px-2 gap-1"
-                          >
-                            <Plus className="h-3 w-3" />
-                            Pet
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-2">
-                          <div className="space-y-2">
-                            <Label className="text-xs font-semibold">Adicionar Pet</Label>
-                            <div className="max-h-48 overflow-y-auto space-y-1">
-                              {(() => {
-                                // Filtrar pets: mesmo cliente e mesmo porte do primeiro pet
-                                const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                                const primeiroPet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === clienteSelecionado?.id);
-                                
-                                if (!clienteSelecionado || !primeiroPet) return <div className="text-xs text-muted-foreground">Nenhum pet disponível</div>;
-                                
-                                const petsDisponiveis = pets.filter(p => 
-                                  p.clienteId === clienteSelecionado.id && 
-                                  p.porte === primeiroPet.porte &&
-                                  p.nomePet !== formData.nomePet && // Não mostrar o pet já selecionado
-                                  !formData.petsSelecionados.some(ps => ps.id === p.id) // Não mostrar pets já adicionados
-                                );
-                                
-                                if (petsDisponiveis.length === 0) {
-                                  return <div className="text-xs text-muted-foreground p-2">Nenhum pet adicional disponível com o mesmo porte</div>;
-                                }
-                                
-                                return petsDisponiveis.map(pet => (
-                                  <Button
-                                    key={pet.id}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full justify-start text-xs h-8"
-                                    onClick={() => {
-                                      if (!formData.petsSelecionados.some(p => p.id === pet.id)) {
-                                        setFormData({
-                                          ...formData,
-                                          petsSelecionados: [...formData.petsSelecionados, pet]
-                                        });
-                                        toast.success(`${pet.nomePet} adicionado!`);
-                                      }
-                                    }}
-                                  >
-                                    <div className="flex flex-col items-start">
-                                      <span className="font-medium">{pet.nomePet}</span>
-                                      <span className="text-[10px] text-muted-foreground">{pet.raca} - {pet.porte}</span>
-                                    </div>
-                                  </Button>
-                                ));
-                              })()}
-                            </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
                   </div>
-                  
-                  {formData.tipo === "Despesa" ? (
-                    <div className="h-7 flex items-center px-3 text-xs border rounded-md bg-muted text-muted-foreground">
-                      Não aplicável
+
+                  {/* Nome do Pet - com suporte para múltiplos pets */}
+                  <div className="space-y-0.5">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <Label className="text-[10px] font-semibold">
+                        {formData.tipo !== "Despesa" ? "Pets *" : "Pets"}
+                      </Label>
+                      {formData.tipo !== "Despesa" && formData.nomeCliente && formData.nomePet && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-5 text-[10px] px-2 gap-1">
+                              <Plus className="h-3 w-3" />
+                              Pet
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-2">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-semibold">Adicionar Pet</Label>
+                              <div className="max-h-48 overflow-y-auto space-y-1">
+                                {(() => {
+                                  // Filtrar pets: mesmo cliente e mesmo porte do primeiro pet
+                                  const clienteSelecionado = clientes.find(
+                                    (c) => c.nomeCliente === formData.nomeCliente,
+                                  );
+                                  const primeiroPet = pets.find(
+                                    (p) => p.nomePet === formData.nomePet && p.clienteId === clienteSelecionado?.id,
+                                  );
+
+                                  if (!clienteSelecionado || !primeiroPet)
+                                    return <div className="text-xs text-muted-foreground">Nenhum pet disponível</div>;
+
+                                  const petsDisponiveis = pets.filter(
+                                    (p) =>
+                                      p.clienteId === clienteSelecionado.id &&
+                                      p.porte === primeiroPet.porte &&
+                                      p.nomePet !== formData.nomePet && // Não mostrar o pet já selecionado
+                                      !formData.petsSelecionados.some((ps) => ps.id === p.id), // Não mostrar pets já adicionados
+                                  );
+
+                                  if (petsDisponiveis.length === 0) {
+                                    return (
+                                      <div className="text-xs text-muted-foreground p-2">
+                                        Nenhum pet adicional disponível com o mesmo porte
+                                      </div>
+                                    );
+                                  }
+
+                                  return petsDisponiveis.map((pet) => (
+                                    <Button
+                                      key={pet.id}
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full justify-start text-xs h-8"
+                                      onClick={() => {
+                                        if (!formData.petsSelecionados.some((p) => p.id === pet.id)) {
+                                          setFormData({
+                                            ...formData,
+                                            petsSelecionados: [...formData.petsSelecionados, pet],
+                                          });
+                                          toast.success(`${pet.nomePet} adicionado!`);
+                                        }
+                                      }}
+                                    >
+                                      <div className="flex flex-col items-start">
+                                        <span className="font-medium">{pet.nomePet}</span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                          {pet.raca} - {pet.porte}
+                                        </span>
+                                      </div>
+                                    </Button>
+                                  ));
+                                })()}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <ComboboxField
-                        value={formData.nomePet}
-                        onChange={(value) => {
-                          if (!formData.nomeCliente) {
-                            const petSelecionado = pets.find((p) => p.nomePet === value);
-                            if (petSelecionado) {
-                              const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
-                              if (clienteDoPet) {
-                                setFormData({
-                                  ...formData,
-                                  nomePet: value,
-                                  nomeCliente: clienteDoPet.nomeCliente,
-                                  petsSelecionados: [], // Reset pets adicionais
-                                });
+
+                    {formData.tipo === "Despesa" ? (
+                      <div className="h-7 flex items-center px-3 text-xs border rounded-md bg-muted text-muted-foreground">
+                        Não aplicável
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <ComboboxField
+                          value={formData.nomePet}
+                          onChange={(value) => {
+                            if (!formData.nomeCliente) {
+                              const petSelecionado = pets.find((p) => p.nomePet === value);
+                              if (petSelecionado) {
+                                const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
+                                if (clienteDoPet) {
+                                  setFormData({
+                                    ...formData,
+                                    nomePet: value,
+                                    nomeCliente: clienteDoPet.nomeCliente,
+                                    petsSelecionados: [], // Reset pets adicionais
+                                  });
+                                } else {
+                                  setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
+                                }
                               } else {
                                 setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
                               }
                             } else {
-                              setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
-                            }
-                          } else {
-                            const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                            const petSelecionado = pets.find(
-                              (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
-                            );
+                              const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+                              const petSelecionado = pets.find(
+                                (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
+                              );
 
-                            if (petSelecionado) {
-                              setFormData({ ...formData, nomePet: value, petsSelecionados: [] }); // Reset pets adicionais
-                            } else {
-                              setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                              if (petSelecionado) {
+                                setFormData({ ...formData, nomePet: value, petsSelecionados: [] }); // Reset pets adicionais
+                              } else {
+                                setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                              }
                             }
-                          }
-                        }}
-                        options={petsFormulario}
-                        placeholder="Selecione o pet principal"
-                        searchPlaceholder="Buscar pet..."
-                        id="form-pet"
-                        disabled={false}
-                      />
-                      
-                      {/* Badges dos pets adicionais */}
-                      {formData.petsSelecionados.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {formData.petsSelecionados.map((pet) => (
-                            <Badge
-                              key={pet.id}
-                              variant="secondary"
-                              className="text-[10px] px-2 py-0.5 gap-1"
-                            >
-                              {pet.nomePet}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFormData({
-                                    ...formData,
-                                    petsSelecionados: formData.petsSelecionados.filter(p => p.id !== pet.id)
-                                  });
-                                  toast.success(`${pet.nomePet} removido`);
-                                }}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <X className="h-2.5 w-2.5" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                          }}
+                          options={petsFormulario}
+                          placeholder="Selecione o pet principal"
+                          searchPlaceholder="Buscar pet..."
+                          id="form-pet"
+                          disabled={false}
+                        />
+
+                        {/* Badges dos pets adicionais */}
+                        {formData.petsSelecionados.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {formData.petsSelecionados.map((pet) => (
+                              <Badge key={pet.id} variant="secondary" className="text-[10px] px-2 py-0.5 gap-1">
+                                {pet.nomePet}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({
+                                      ...formData,
+                                      petsSelecionados: formData.petsSelecionados.filter((p) => p.id !== pet.id),
+                                    });
+                                    toast.success(`${pet.nomePet} removido`);
+                                  }}
+                                  className="ml-1 hover:text-destructive"
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {itensLancamento.map((item, index) => (
@@ -1435,14 +1444,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         min="0"
                         placeholder="R$ 0,00"
                         value={formData.valorDeducao || ""}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          valorDeducao: parseFloat(e.target.value) || 0 
-                        })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            valorDeducao: parseFloat(e.target.value) || 0,
+                          })
+                        }
                         className="h-7 text-xs"
                       />
                     </div>
-                    
+
                     {/* Tipo de Dedução */}
                     <div className="space-y-0.5">
                       <Label className="text-[10px]">Tipo de Dedução</Label>
@@ -1463,23 +1474,23 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     {/* Valor Total */}
                     <div className="flex items-center gap-2 h-7">
                       <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
                       <span className="text-base font-bold text-primary">
                         {formatCurrency(
-                          itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
+                          itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0),
                         )}
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Detalhamento quando houver dedução */}
                   {formData.valorDeducao > 0 && (
                     <div className="text-[10px] text-muted-foreground mt-1">
-                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - 
-                      Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - Dedução (
+                      {formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
                     </div>
                   )}
                 </div>
@@ -2067,17 +2078,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             {/* Nome do Pet - com suporte para múltiplos pets */}
             <div className="space-y-0.5">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <Label className="text-[10px] font-semibold">
-                  {formData.tipo === "Despesa" ? "Pets *" : "Pets"}
-                </Label>
+                <Label className="text-[10px] font-semibold">{formData.tipo === "Despesa" ? "Pets *" : "Pets"}</Label>
                 {formData.tipo === "Despesa" && formData.nomeCliente && formData.nomePet && (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-5 text-[10px] px-2 gap-1"
-                      >
+                      <Button variant="outline" size="sm" className="h-5 text-[10px] px-2 gap-1">
                         <Plus className="h-3 w-3" />
                         Pet
                       </Button>
@@ -2088,32 +2093,40 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                         <div className="max-h-48 overflow-y-auto space-y-1">
                           {(() => {
                             const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                            const primeiroPet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === clienteSelecionado?.id);
-                            
-                            if (!clienteSelecionado || !primeiroPet) return <div className="text-xs text-muted-foreground">Nenhum pet disponível</div>;
-                            
-                            const petsDisponiveis = pets.filter(p => 
-                              p.clienteId === clienteSelecionado.id && 
-                              p.porte === primeiroPet.porte &&
-                              p.nomePet !== formData.nomePet &&
-                              !formData.petsSelecionados.some(ps => ps.id === p.id)
+                            const primeiroPet = pets.find(
+                              (p) => p.nomePet === formData.nomePet && p.clienteId === clienteSelecionado?.id,
                             );
-                            
+
+                            if (!clienteSelecionado || !primeiroPet)
+                              return <div className="text-xs text-muted-foreground">Nenhum pet disponível</div>;
+
+                            const petsDisponiveis = pets.filter(
+                              (p) =>
+                                p.clienteId === clienteSelecionado.id &&
+                                p.porte === primeiroPet.porte &&
+                                p.nomePet !== formData.nomePet &&
+                                !formData.petsSelecionados.some((ps) => ps.id === p.id),
+                            );
+
                             if (petsDisponiveis.length === 0) {
-                              return <div className="text-xs text-muted-foreground p-2">Nenhum pet adicional disponível com o mesmo porte</div>;
+                              return (
+                                <div className="text-xs text-muted-foreground p-2">
+                                  Nenhum pet adicional disponível com o mesmo porte
+                                </div>
+                              );
                             }
-                            
-                            return petsDisponiveis.map(pet => (
+
+                            return petsDisponiveis.map((pet) => (
                               <Button
                                 key={pet.id}
                                 variant="ghost"
                                 size="sm"
                                 className="w-full justify-start text-xs h-8"
                                 onClick={() => {
-                                  if (!formData.petsSelecionados.some(p => p.id === pet.id)) {
+                                  if (!formData.petsSelecionados.some((p) => p.id === pet.id)) {
                                     setFormData({
                                       ...formData,
-                                      petsSelecionados: [...formData.petsSelecionados, pet]
+                                      petsSelecionados: [...formData.petsSelecionados, pet],
                                     });
                                     toast.success(`${pet.nomePet} adicionado!`);
                                   }
@@ -2121,7 +2134,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                               >
                                 <div className="flex flex-col items-start">
                                   <span className="font-medium">{pet.nomePet}</span>
-                                  <span className="text-[10px] text-muted-foreground">{pet.raca} - {pet.porte}</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {pet.raca} - {pet.porte}
+                                  </span>
                                 </div>
                               </Button>
                             ));
@@ -2132,7 +2147,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   </Popover>
                 )}
               </div>
-              
+
               <ComboboxField
                 value={formData.nomePet}
                 onChange={(value) => {
@@ -2141,7 +2156,12 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     if (petSelecionado) {
                       const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
                       if (clienteDoPet) {
-                        setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente, petsSelecionados: [] });
+                        setFormData({
+                          ...formData,
+                          nomePet: value,
+                          nomeCliente: clienteDoPet.nomeCliente,
+                          petsSelecionados: [],
+                        });
                       } else {
                         setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
                       }
@@ -2166,23 +2186,19 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 searchPlaceholder="Buscar pet..."
                 id="edit-form-pet"
               />
-              
+
               {/* Badges dos pets adicionais */}
               {formData.petsSelecionados.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
                   {formData.petsSelecionados.map((pet) => (
-                    <Badge
-                      key={pet.id}
-                      variant="secondary"
-                      className="text-[10px] px-2 py-0.5 gap-1"
-                    >
+                    <Badge key={pet.id} variant="secondary" className="text-[10px] px-2 py-0.5 gap-1">
                       {pet.nomePet}
                       <button
                         type="button"
                         onClick={() => {
                           setFormData({
                             ...formData,
-                            petsSelecionados: formData.petsSelecionados.filter(p => p.id !== pet.id)
+                            petsSelecionados: formData.petsSelecionados.filter((p) => p.id !== pet.id),
                           });
                           toast.success(`${pet.nomePet} removido`);
                         }}
@@ -2265,14 +2281,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       min="0"
                       placeholder="R$ 0,00"
                       value={formData.valorDeducao || ""}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        valorDeducao: parseFloat(e.target.value) || 0 
-                      })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          valorDeducao: parseFloat(e.target.value) || 0,
+                        })
+                      }
                       className="h-7 text-xs"
                     />
                   </div>
-                  
+
                   {/* Tipo de Dedução */}
                   <div className="space-y-0.5">
                     <Label className="text-[10px]">Tipo de Dedução</Label>
@@ -2293,23 +2311,23 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {/* Valor Total */}
                   <div className="flex items-center gap-2 h-7">
                     <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
                     <span className="text-base font-bold text-primary">
                       {formatCurrency(
-                        itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0)
+                        itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0),
                       )}
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Detalhamento quando houver dedução */}
                 {formData.valorDeducao > 0 && (
                   <div className="text-[10px] text-muted-foreground mt-1">
-                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - 
-                    Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - Dedução (
+                    {formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
                   </div>
                 )}
               </div>
