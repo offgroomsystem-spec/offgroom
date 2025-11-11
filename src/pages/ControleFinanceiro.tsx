@@ -108,7 +108,7 @@ interface Produto {
 // Categorias
 const categoriasDescricao1 = {
   Receita: ["Receita Operacional", "Receita Não Operacional"],
-  Despesa: ["Despesa Fixa", "Despesa Operacional", "Despesa Operacional", "Despesa Não Operacional"],
+  Despesa: ["Despesa Fixa", "Despesa Operacional", "Despesa Não Operacional"],
 };
 
 const categoriasDescricao2: { [key: string]: string[] } = {
