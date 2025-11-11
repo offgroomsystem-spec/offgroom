@@ -689,26 +689,6 @@ export const DRE = ({ filtros }: DREProps) => {
         </CardContent>
       </Card>
 
-      {/* Descrição do Saldo das Contas */}
-      {contas.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Saldo Atual das Contas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {contas.map(conta => (
-                <div key={conta.id} className="flex justify-between items-center p-2 border rounded">
-                  <span className="text-sm font-medium">{conta.nome}</span>
-                  <span className={`text-sm font-bold ${Number(conta.saldo) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(Number(conta.saldo))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
