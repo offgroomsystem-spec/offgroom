@@ -55,8 +55,8 @@ const Relatorios = () => {
           Voltar
         </Button>
 
-        {/* Exibir o painel de filtros apenas se não for o relatório de Clientes em Risco */}
-        {relatorioAtivo !== "clientes-risco" && (
+        {/* Exibir o painel de filtros apenas para relatórios que não têm filtros próprios */}
+        {relatorioAtivo !== "clientes-risco" && relatorioAtivo !== "dre" && (
           <FilterPanel
             filtros={filtros}
             setFiltros={setFiltros}
