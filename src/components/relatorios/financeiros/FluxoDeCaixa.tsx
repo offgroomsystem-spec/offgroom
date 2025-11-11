@@ -725,7 +725,7 @@ const FluxoDeCaixa = () => {
       const lancamentosConta = lancamentos.filter((l) => l.nomeBanco === conta.nomeBanco && l.pago);
       const receitas = lancamentosConta.filter((l) => l.tipo === "Receita").reduce((acc, l) => acc + l.valorTotal, 0);
       const despesas = lancamentosConta.filter((l) => l.tipo === "Despesa").reduce((acc, l) => acc + l.valorTotal, 0);
-      const saldoAtual = conta.saldo + receitas - despesas;
+      const saldoAtual = receitas - despesas;
 
       return {
         nome: conta.nomeBanco,

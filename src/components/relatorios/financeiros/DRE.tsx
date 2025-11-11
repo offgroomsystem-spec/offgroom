@@ -150,10 +150,13 @@ export const DRE = ({ filtros }: DREProps) => {
       // Filtrar por bancos selecionados
       let lancamentosFiltrados = lancamentosComBanco;
       if (filtrosLocais.bancosSelecionados.length > 0) {
+        // Se há filtro de banco, incluir apenas lançamentos dos bancos selecionados
+        // E incluir "Sem conta" apenas se explicitamente selecionado
         lancamentosFiltrados = lancamentosComBanco.filter(l => 
           filtrosLocais.bancosSelecionados.includes(l.nomeBanco)
         );
       }
+      // Se não há filtro de banco, incluir TODOS os lançamentos (com e sem conta)
       
       setLancamentos(lancamentosFiltrados);
       setContas(contasData || []);
