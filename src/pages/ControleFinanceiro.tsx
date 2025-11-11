@@ -116,6 +116,14 @@ const categoriasDescricao2: { [key: string]: string[] } = {
   "Receita Não Operacional": ["Venda de Ativo", "Outras Receitas Não Operacionais"],
   "Despesa Fixa": ["Aluguel", "Salários", "Impostos Fixos", "Outras Despesas Fixas"],
   "Despesa Variável": [
+    "Contador",
+    "Telefonia e internet",
+    "Energia elétrica",
+    "Água e esgoto",
+    "Publicidade e marketing",
+    "Outras Despesas Variáveis",
+  ],
+  "Despesa Variável": [
     "Produtos para Banho",
     "Material de Limpeza",
     "Energia Elétrica",
