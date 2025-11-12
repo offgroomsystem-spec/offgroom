@@ -88,10 +88,10 @@ export const ReceitaOperacional = () => {
   const [filtros, setFiltros] = useState({
     dataInicio: "",
     dataFim: "",
-    descricao2: "",
-    nomeBanco: "",
+    descricao2: "all",
+    nomeBanco: "all",
     busca: "",
-    pago: "" as "" | "true" | "false",
+    pago: "all" as "all" | "true" | "false",
   });
 
   const loadLancamentos = async () => {
@@ -244,10 +244,10 @@ export const ReceitaOperacional = () => {
     setFiltros({
       dataInicio: "",
       dataFim: "",
-      descricao2: "",
-      nomeBanco: "",
+      descricao2: "all",
+      nomeBanco: "all",
       busca: "",
-      pago: "",
+      pago: "all",
     });
     toast.success("Filtros limpos!");
   };
@@ -259,13 +259,13 @@ export const ReceitaOperacional = () => {
       if (filtros.dataFim && l.dataPagamento > filtros.dataFim) return false;
 
       // Filtro de descrição 2
-      if (filtros.descricao2) {
+      if (filtros.descricao2 && filtros.descricao2 !== "all") {
         const temDescricao2 = l.itens.some((item) => item.descricao2 === filtros.descricao2);
         if (!temDescricao2) return false;
       }
 
       // Filtro de banco
-      if (filtros.nomeBanco && l.nomeBanco !== filtros.nomeBanco) return false;
+      if (filtros.nomeBanco && filtros.nomeBanco !== "all" && l.nomeBanco !== filtros.nomeBanco) return false;
 
       // Filtro de busca (cliente ou pet)
       if (filtros.busca) {
@@ -504,7 +504,7 @@ export const ReceitaOperacional = () => {
                     <SelectValue placeholder="Todas as subcategorias" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="" className="text-xs">Todas</SelectItem>
+                    <SelectItem value="all" className="text-xs">Todas</SelectItem>
                     <SelectItem value="Serviços" className="text-xs">Serviços</SelectItem>
                     <SelectItem value="Venda" className="text-xs">Venda</SelectItem>
                     <SelectItem value="Outras Receitas Operacionais" className="text-xs">Outras Receitas Operacionais</SelectItem>
@@ -519,7 +519,7 @@ export const ReceitaOperacional = () => {
                     <SelectValue placeholder="Todos os bancos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="" className="text-xs">Todos</SelectItem>
+                    <SelectItem value="all" className="text-xs">Todos</SelectItem>
                     {contas.map((conta) => (
                       <SelectItem key={conta.id} value={conta.nome} className="text-xs">
                         {conta.nome}
@@ -542,12 +542,12 @@ export const ReceitaOperacional = () => {
 
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Status</Label>
-                <Select value={filtros.pago} onValueChange={(value) => setFiltros({ ...filtros, pago: value as "" | "true" | "false" })}>
+                <Select value={filtros.pago} onValueChange={(value) => setFiltros({ ...filtros, pago: value as "all" | "true" | "false" })}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="" className="text-xs">Todos</SelectItem>
+                    <SelectItem value="all" className="text-xs">Todos</SelectItem>
                     <SelectItem value="true" className="text-xs">Recebido</SelectItem>
                     <SelectItem value="false" className="text-xs">A Receber</SelectItem>
                   </SelectContent>
