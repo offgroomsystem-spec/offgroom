@@ -15,6 +15,7 @@ import ControleFinanceiro from "@/pages/ControleFinanceiro";
 import { ReceitaOperacional } from "@/components/relatorios/financeiros/ReceitaOperacional";
 import { ReceitaNaoOperacional } from "@/components/relatorios/financeiros/ReceitaNaoOperacional";
 import { DespesasFixas } from "@/components/relatorios/financeiros/DespesasFixas";
+import { DespesasOperacionais } from "@/components/relatorios/financeiros/DespesasOperacionais";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -70,6 +71,7 @@ const Relatorios = () => {
       {relatorioAtivo === "receita-operacional" && <ReceitaOperacional />}
       {relatorioAtivo === "receita-nao-operacional" && <ReceitaNaoOperacional />}
       {relatorioAtivo === "despesas-fixas" && <DespesasFixas />}
+      {relatorioAtivo === "despesas-operacionais" && <DespesasOperacionais />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
@@ -82,8 +84,9 @@ const Relatorios = () => {
         "inadimplencia",
         "receita-operacional",
         "receita-nao-operacional",
-        "despesas-fixas",
-        "pacotes-vencimento",
+    "despesas-fixas",
+    "despesas-operacionais",
+    "pacotes-vencimento",
         "pacotes-expirados",
         "clientes-risco",
       ].includes(relatorioAtivo) && (
@@ -171,6 +174,7 @@ const Relatorios = () => {
               { id: "receita-operacional", titulo: "Receita Operacional", desc: "Análise detalhada de receitas operacionais" },
               { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Análise detalhada de receitas não operacionais" },
               { id: "despesas-fixas", titulo: "Despesas Fixas", desc: "Análise detalhada de despesas fixas mensais" },
+              { id: "despesas-operacionais", titulo: "Despesas Operacionais", desc: "Análise detalhada de despesas operacionais do negócio" },
               { id: "despesas-variaveis", titulo: "Despesas Variáveis", desc: "Em desenvolvimento" },
               { id: "despesa-nao-operacional", titulo: "Despesa Não Operacional", desc: "Em desenvolvimento" },
               { id: "movimentacoes-bancarias", titulo: "Movimentações Bancárias", desc: "Em desenvolvimento" },
