@@ -13,6 +13,7 @@ import { PacotesExpirados } from "@/components/relatorios/pacotes/PacotesExpirad
 import { ClientesEmRisco } from "@/components/relatorios/clientes/ClientesEmRisco";
 import ControleFinanceiro from "@/pages/ControleFinanceiro";
 import { ReceitaOperacional } from "@/components/relatorios/financeiros/ReceitaOperacional";
+import { ReceitaNaoOperacional } from "@/components/relatorios/financeiros/ReceitaNaoOperacional";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -65,22 +66,24 @@ const Relatorios = () => {
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
-        {relatorioAtivo === "receita-operacional" && <ReceitaOperacional />}
+      {relatorioAtivo === "receita-operacional" && <ReceitaOperacional />}
+      {relatorioAtivo === "receita-nao-operacional" && <ReceitaNaoOperacional />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
 
-        {![
-          "dashboard",
-          "controle-financeiro",
-          "fluxo-caixa",
-          "dre",
-          "inadimplencia",
-          "receita-operacional",
-          "pacotes-vencimento",
-          "pacotes-expirados",
-          "clientes-risco",
-        ].includes(relatorioAtivo) && (
+      {![
+        "dashboard",
+        "controle-financeiro",
+        "fluxo-caixa",
+        "dre",
+        "inadimplencia",
+        "receita-operacional",
+        "receita-nao-operacional",
+        "pacotes-vencimento",
+        "pacotes-expirados",
+        "clientes-risco",
+      ].includes(relatorioAtivo) && (
           <Card>
             <CardHeader>
               <CardTitle>Relatório em Desenvolvimento</CardTitle>
@@ -163,7 +166,7 @@ const Relatorios = () => {
               },
               { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio", desc: "Em desenvolvimento" },
               { id: "receita-operacional", titulo: "Receita Operacional", desc: "Análise detalhada de receitas operacionais" },
-              { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Em desenvolvimento" },
+              { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Análise detalhada de receitas não operacionais" },
               { id: "despesas-fixas", titulo: "Despesas Fixas", desc: "Em desenvolvimento" },
               { id: "despesas-variaveis", titulo: "Despesas Variáveis", desc: "Em desenvolvimento" },
               { id: "despesa-nao-operacional", titulo: "Despesa Não Operacional", desc: "Em desenvolvimento" },
