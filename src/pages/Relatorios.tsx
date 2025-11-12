@@ -12,6 +12,7 @@ import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/Pacot
 import { PacotesExpirados } from "@/components/relatorios/pacotes/PacotesExpirados";
 import { ClientesEmRisco } from "@/components/relatorios/clientes/ClientesEmRisco";
 import ControleFinanceiro from "@/pages/ControleFinanceiro";
+import { ReceitaOperacional } from "@/components/relatorios/financeiros/ReceitaOperacional";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -64,6 +65,7 @@ const Relatorios = () => {
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
+        {relatorioAtivo === "receita-operacional" && <ReceitaOperacional />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
@@ -74,6 +76,7 @@ const Relatorios = () => {
           "fluxo-caixa",
           "dre",
           "inadimplencia",
+          "receita-operacional",
           "pacotes-vencimento",
           "pacotes-expirados",
           "clientes-risco",
@@ -159,7 +162,7 @@ const Relatorios = () => {
                 desc: "Análise de receitas, custos e lucro líquido",
               },
               { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio", desc: "Em desenvolvimento" },
-              { id: "receita-operacional", titulo: "Receita Operacional", desc: "Em desenvolvimento" },
+              { id: "receita-operacional", titulo: "Receita Operacional", desc: "Análise detalhada de receitas operacionais" },
               { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Em desenvolvimento" },
               { id: "despesas-fixas", titulo: "Despesas Fixas", desc: "Em desenvolvimento" },
               { id: "despesas-variaveis", titulo: "Despesas Variáveis", desc: "Em desenvolvimento" },
