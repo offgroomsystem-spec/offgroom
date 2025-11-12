@@ -81,7 +81,7 @@ export const ReceitaOperacional = () => {
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
-  const [mostrarFiltros, setMostrarFiltros] = useState(true);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [lancamentoSelecionado, setLancamentoSelecionado] = useState<LancamentoFinanceiro | null>(null);
 

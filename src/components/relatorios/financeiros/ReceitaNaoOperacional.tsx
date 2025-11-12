@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
-import { TrendingUp, Calendar, Tag, Briefcase, Filter, Download, Edit2, Trash2 } from "lucide-react";
+import { TrendingUp, Calendar, Tag, Briefcase, Filter, Download, Edit2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subDays, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -61,6 +61,7 @@ export const ReceitaNaoOperacional = () => {
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [lancamentoParaExcluir, setLancamentoParaExcluir] = useState<string | null>(null);
 
   const [filtros, setFiltros] = useState({
@@ -442,15 +443,24 @@ export const ReceitaNaoOperacional = () => {
         </Button>
       </div>
 
-      {/* Filtros */}
+      {/* Painel de Filtros Colapsável */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filtros
-          </CardTitle>
+        <CardHeader className="pb-3">
+          <Button
+            variant="ghost"
+            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <span className="font-semibold">Filtros</span>
+            </div>
+            {mostrarFiltros ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
+
+        {mostrarFiltros && (
+          <CardContent className="space-y-4">
           {/* Período */}
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Período</Label>
@@ -560,6 +570,7 @@ export const ReceitaNaoOperacional = () => {
             </Button>
           </div>
         </CardContent>
+        )}
       </Card>
 
       {/* Cards KPI */}
