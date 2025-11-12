@@ -50,6 +50,29 @@ export function DespesasFixas() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [lancamentoParaExcluir, setLancamentoParaExcluir] = useState<string | null>(null);
+  
+  // Estados para edição
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [lancamentoSelecionado, setLancamentoSelecionado] = useState<LancamentoFinanceiro | null>(null);
+  
+  // Estados do formulário de edição
+  const [formData, setFormData] = useState({
+    ano: "",
+    mesCompetencia: "",
+    tipo: "Despesa",
+    descricao1: "Despesa Fixa",
+    dataPagamento: "",
+    nomeCliente: "",
+    nomePet: "",
+    nomeBanco: "",
+    pago: false,
+    valorDeducao: 0,
+    tipoDeducao: "",
+  });
+  
+  const [itensLancamento, setItensLancamento] = useState<ItemLancamento[]>([
+    { id: Date.now().toString(), descricao2: "", valor: 0 }
+  ]);
 
   const [filtros, setFiltros] = useState({
     dataInicio: format(startOfMonth(new Date()), "yyyy-MM-dd"),
@@ -384,6 +407,124 @@ export function DespesasFixas() {
     } finally {
       setIsDeleteDialogOpen(false);
       setLancamentoParaExcluir(null);
+    }
+  };
+
+  const abrirEdicao = (lancamento: LancamentoFinanceiro) => {
+    setLancamentoSelecionado(lancamento);
+    
+    setFormData({
+      ano: lancamento.ano,
+      mesCompetencia: lancamento.mesCompetencia,
+      tipo: "Despesa",
+      descricao1: "Despesa Fixa",
+      dataPagamento: lancamento.dataPagamento,
+      nomeCliente: lancamento.nomeCliente || "",
+      nomePet: lancamento.nomePet || "",
+      nomeBanco: lancamento.nomeBanco || "",
+      pago: lancamento.pago,
+      valorDeducao: 0,
+      tipoDeducao: "",
+    });
+    
+    setItensLancamento(
+      lancamento.itens.map((item) => ({
+        id: item.id,
+        descricao2: item.descricao2,
+        valor: item.valor,
+        observacao: item.observacao || "",
+      }))
+    );
+    
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleEditar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!lancamentoSelecionado) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Usuário não autenticado",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Calcular valor total
+      const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
+      
+      // Buscar IDs das entidades
+      const { data: contaData } = await supabase
+        .from("contas_bancarias")
+        .select("id")
+        .eq("nome", formData.nomeBanco)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      const { data: clienteData } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("nome_cliente", formData.nomeCliente)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      // Atualizar lançamento principal
+      const { error: updateError } = await supabase
+        .from("lancamentos_financeiros")
+        .update({
+          ano: formData.ano,
+          mes_competencia: formData.mesCompetencia,
+          tipo: "Despesa",
+          descricao1: "Despesa Fixa",
+          data_pagamento: formData.dataPagamento,
+          conta_id: contaData?.id || null,
+          cliente_id: clienteData?.id || null,
+          pago: formData.pago,
+          valor_total: valorTotal,
+        })
+        .eq("id", lancamentoSelecionado.id);
+      
+      if (updateError) throw updateError;
+      
+      // Deletar itens antigos
+      await supabase
+        .from("lancamentos_financeiros_itens")
+        .delete()
+        .eq("lancamento_id", lancamentoSelecionado.id);
+      
+      // Inserir novos itens
+      const itensParaInserir = itensLancamento.map((item) => ({
+        lancamento_id: lancamentoSelecionado.id,
+        descricao2: item.descricao2,
+        valor: item.valor,
+        observacao: item.observacao || null,
+      }));
+      
+      const { error: itensError } = await supabase
+        .from("lancamentos_financeiros_itens")
+        .insert(itensParaInserir);
+      
+      if (itensError) throw itensError;
+      
+      toast({
+        title: "Sucesso",
+        description: "Lançamento atualizado com sucesso!",
+      });
+      
+      setIsEditDialogOpen(false);
+      loadData();
+    } catch (error) {
+      console.error("Erro ao editar lançamento:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar lançamento",
+        variant: "destructive",
+      });
     }
   };
 
@@ -779,20 +920,25 @@ export function DespesasFixas() {
                           {lancamento.pago ? "Pago" : "Pendente"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button size="sm" variant="ghost">
-                            <Edit2 className="h-3 w-3 text-blue-600" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(lancamento.id)}
-                          >
-                            <Trash2 className="h-3 w-3 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => abrirEdicao(lancamento)}
+                        title="Editar Lançamento"
+                      >
+                        <Edit2 className="h-3 w-3 text-blue-600" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(lancamento.id)}
+                      >
+                        <Trash2 className="h-3 w-3 text-red-600" />
+                      </Button>
+                    </div>
+                  </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -869,6 +1015,268 @@ export function DespesasFixas() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de Edição */}
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setLancamentoSelecionado(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Lançamento de Despesa Fixa</DialogTitle>
+            <DialogDescription>
+              Atualize os dados do lançamento financeiro
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleEditar} className="space-y-4">
+            {/* Linha 1: Ano, Mês, Data Pagamento, Status */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-ano">Ano *</Label>
+                <Select
+                  value={formData.ano}
+                  onValueChange={(value) => setFormData({ ...formData, ano: value })}
+                >
+                  <SelectTrigger id="edit-ano">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 11 }, (_, i) => 2025 + i).map((ano) => (
+                      <SelectItem key={ano} value={ano.toString()}>
+                        {ano}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-mes">Mês *</Label>
+                <Select
+                  value={formData.mesCompetencia}
+                  onValueChange={(value) => setFormData({ ...formData, mesCompetencia: value })}
+                >
+                  <SelectTrigger id="edit-mes">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((mes) => (
+                      <SelectItem key={mes} value={mes.toString().padStart(2, "0")}>
+                        {mes.toString().padStart(2, "0")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-data-pagamento">Data do Pagamento *</Label>
+                <Input
+                  id="edit-data-pagamento"
+                  type="date"
+                  value={formData.dataPagamento}
+                  onChange={(e) => setFormData({ ...formData, dataPagamento: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-pago">Status *</Label>
+                <Select
+                  value={formData.pago ? "true" : "false"}
+                  onValueChange={(value) => setFormData({ ...formData, pago: value === "true" })}
+                >
+                  <SelectTrigger id="edit-pago">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Pago</SelectItem>
+                    <SelectItem value="false">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Linha 2: Cliente, Pet, Banco */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-cliente">Cliente</Label>
+                <Input
+                  id="edit-cliente"
+                  value={formData.nomeCliente}
+                  onChange={(e) => setFormData({ ...formData, nomeCliente: e.target.value })}
+                  placeholder="Nome do cliente (opcional)"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-pet">Pet</Label>
+                <Input
+                  id="edit-pet"
+                  value={formData.nomePet}
+                  onChange={(e) => setFormData({ ...formData, nomePet: e.target.value })}
+                  placeholder="Nome do pet (opcional)"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-banco">Banco</Label>
+                <Select
+                  value={formData.nomeBanco}
+                  onValueChange={(value) => setFormData({ ...formData, nomeBanco: value })}
+                >
+                  <SelectTrigger id="edit-banco">
+                    <SelectValue placeholder="Selecione o banco" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contas.map((conta) => (
+                      <SelectItem key={conta.id} value={conta.nome}>
+                        {conta.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Seção de Itens */}
+            <div className="space-y-2">
+              <Label className="font-semibold">Itens da Despesa</Label>
+              {itensLancamento.map((item, index) => (
+                <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-5 space-y-1">
+                    <Label htmlFor={`edit-descricao2-${index}`} className="text-xs">
+                      Descrição 2 *
+                    </Label>
+                    <Select
+                      value={item.descricao2}
+                      onValueChange={(value) => {
+                        const novosItens = [...itensLancamento];
+                        novosItens[index].descricao2 = value;
+                        setItensLancamento(novosItens);
+                      }}
+                    >
+                      <SelectTrigger id={`edit-descricao2-${index}`}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Aluguel">Aluguel</SelectItem>
+                        <SelectItem value="Salários">Salários</SelectItem>
+                        <SelectItem value="Impostos Fixos">Impostos Fixos</SelectItem>
+                        <SelectItem value="Outras Despesas Fixas">Outras Despesas Fixas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="col-span-4 space-y-1">
+                    <Label htmlFor={`edit-observacao-${index}`} className="text-xs">
+                      Observação
+                    </Label>
+                    <Input
+                      id={`edit-observacao-${index}`}
+                      value={item.observacao || ""}
+                      onChange={(e) => {
+                        const novosItens = [...itensLancamento];
+                        novosItens[index].observacao = e.target.value;
+                        setItensLancamento(novosItens);
+                      }}
+                      placeholder="Observação (opcional)"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2 space-y-1">
+                    <Label htmlFor={`edit-valor-${index}`} className="text-xs">
+                      Valor (R$) *
+                    </Label>
+                    <Input
+                      id={`edit-valor-${index}`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={item.valor}
+                      onChange={(e) => {
+                        const novosItens = [...itensLancamento];
+                        novosItens[index].valor = parseFloat(e.target.value) || 0;
+                        setItensLancamento(novosItens);
+                      }}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="col-span-1 flex items-end">
+                    {itensLancamento.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setItensLancamento(itensLancamento.filter((_, i) => i !== index));
+                        }}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {/* Botão Adicionar Item */}
+              {itensLancamento.length < 10 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setItensLancamento([
+                      ...itensLancamento,
+                      {
+                        id: Date.now().toString(),
+                        descricao2: "",
+                        valor: 0,
+                        observacao: "",
+                      },
+                    ]);
+                  }}
+                  className="text-xs"
+                >
+                  + Adicionar Item
+                </Button>
+              )}
+            </div>
+            
+            {/* Total */}
+            <div className="flex justify-end">
+              <div className="text-right">
+                <Label className="text-sm font-semibold">Valor Total:</Label>
+                <p className="text-2xl font-bold text-red-600">
+                  {formatarMoeda(itensLancamento.reduce((acc, item) => acc + item.valor, 0))}
+                </p>
+              </div>
+            </div>
+            
+            {/* Botões de Ação */}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                Salvar Alterações
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de Confirmação de Exclusão */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
