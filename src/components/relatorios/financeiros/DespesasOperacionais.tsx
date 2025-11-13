@@ -97,17 +97,8 @@ export function DespesasOperacionais() {
       const { data: lancamentosData, error: lancamentosError } = await supabase
         .from("lancamentos_financeiros")
         .select(`
-          id,
-          ano,
-          mes_competencia,
-          tipo,
-          descricao1,
-          data_pagamento,
-          pago,
-          valor_total,
-          contas_bancarias (nome),
-          clientes (nome_cliente),
-          pets (nome_pet)
+          *,
+          lancamentos_financeiros_itens (*)
         `)
         .eq("user_id", user.id)
         .eq("tipo", "Despesa")
@@ -116,42 +107,52 @@ export function DespesasOperacionais() {
 
       if (lancamentosError) throw lancamentosError;
 
-      // Carregar itens de cada lançamento
-      const lancamentosComItens = await Promise.all(
-        (lancamentosData || []).map(async (lanc: any) => {
-          const { data: itensData } = await supabase
-            .from("lancamentos_financeiros_itens")
-            .select("id, descricao2, valor, produto_servico")
-            .eq("lancamento_id", lanc.id);
+      // Carregar dados relacionados (clientes, pets, contas)
+      const [clientesData, petsData, contasData] = await Promise.all([
+        supabase.from("clientes").select("*").eq("user_id", user.id),
+        supabase.from("pets").select("*").eq("user_id", user.id),
+        supabase.from("contas_bancarias").select("*").eq("user_id", user.id),
+      ]);
 
-          return {
-            id: lanc.id,
-            ano: lanc.ano,
-            mesCompetencia: lanc.mes_competencia,
-            tipo: lanc.tipo,
-            descricao1: lanc.descricao1,
-            dataPagamento: lanc.data_pagamento,
-            nomeCliente: lanc.clientes?.nome_cliente || null,
-            nomePet: lanc.pets?.nome_pet || null,
-            nomeBanco: lanc.contas_bancarias?.nome || null,
-            pago: lanc.pago,
-            valorTotal: lanc.valor_total,
-            itens: itensData || [],
-          };
-        })
-      );
+      const clientes = clientesData.data || [];
+      const pets = petsData.data || [];
+      const contas = contasData.data || [];
+
+      // Mapear lançamentos com dados relacionados
+      const lancamentosComItens = (lancamentosData || []).map((lanc: any) => {
+        const cliente = clientes.find((c: any) => c.id === lanc.cliente_id);
+        const conta = contas.find((c: any) => c.id === lanc.conta_id);
+        
+        // Para pets, precisamos buscar pelos IDs no campo pet_ids (jsonb)
+        let nomePet = null;
+        if (lanc.pet_ids && Array.isArray(lanc.pet_ids) && lanc.pet_ids.length > 0) {
+          const petPrincipal = pets.find((p: any) => p.id === lanc.pet_ids[0]);
+          nomePet = petPrincipal?.nome_pet || null;
+        }
+
+        return {
+          id: lanc.id,
+          ano: lanc.ano,
+          mesCompetencia: lanc.mes_competencia,
+          tipo: lanc.tipo,
+          descricao1: lanc.descricao1,
+          dataPagamento: lanc.data_pagamento,
+          nomeCliente: cliente?.nome_cliente || null,
+          nomePet: nomePet,
+          nomeBanco: conta?.nome || null,
+          pago: lanc.pago,
+          valorTotal: Number(lanc.valor_total),
+          itens: (lanc.lancamentos_financeiros_itens || []).map((item: any) => ({
+            id: item.id,
+            descricao2: item.descricao2,
+            valor: Number(item.valor),
+            observacao: item.produto_servico || "",
+          })),
+        };
+      });
 
       setLancamentos(lancamentosComItens);
-
-      // Carregar contas bancárias
-      const { data: contasData, error: contasError } = await supabase
-        .from("contas_bancarias")
-        .select("id, nome")
-        .eq("user_id", user.id)
-        .order("nome");
-
-      if (contasError) throw contasError;
-      setContas(contasData || []);
+      setContas(contas);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       toast({
