@@ -696,10 +696,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    // 🔹 Validação condicional: Cliente e Pet só obrigatórios se algum item for "Serviços" ou "Venda"
-    const clientePetObrigatorios = itensLancamento.some(
-      (item) => item.descricao2 === "Serviços" || item.descricao2 === "Venda",
-    );
+    // 🔹 Validação condicional: Cliente e Pet obrigatórios apenas para Receita Operacional
+    const clientePetObrigatorios = formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional";
 
     if (clientePetObrigatorios) {
       if (!formData.nomeCliente || formData.nomeCliente === "Não aplicável") {
@@ -742,11 +740,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     try {
       let clienteId = null;
 
-      // Only validate cliente/pet for Despesa
-      // 🔹 Só validar Cliente/Pet se algum item for "Serviços" ou "Venda"
-      const clientePetObrigatorios = itensLancamento.some(
-        (item) => item.descricao2 === "Serviços" || item.descricao2 === "Venda",
-      );
+      // 🔹 Só validar Cliente/Pet para Receita Operacional
+      const clientePetObrigatorios = formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional";
 
       if (clientePetObrigatorios) {
         const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
@@ -758,6 +753,14 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         }
 
         clienteId = cliente.id;
+      } else if (formData.nomeCliente && formData.nomePet) {
+        // Para Receita Não Operacional, se preencheu, deve validar
+        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+        
+        if (cliente && pet) {
+          clienteId = cliente.id;
+        }
       }
 
       const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
@@ -873,8 +876,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    if (formData.tipo === "Despesa" && (!formData.nomePet || !formData.nomeCliente)) {
-      toast.error("Favor preencher Cliente e Pet para lançamentos de Despesa!");
+    // 🔹 Validação condicional: Cliente e Pet obrigatórios apenas para Receita Operacional
+    const clientePetObrigatorios = formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional";
+    
+    if (clientePetObrigatorios && (!formData.nomePet || !formData.nomeCliente)) {
+      toast.error("Favor preencher Cliente e Pet para Receita Operacional!");
       return;
     }
 
@@ -891,10 +897,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     try {
       let clienteId = null;
 
-      // 🔹 Só validar Cliente/Pet se algum item for "Serviços" ou "Venda"
-      const clientePetObrigatorios = itensLancamento.some(
-        (item) => item.descricao2 === "Serviços" || item.descricao2 === "Venda",
-      );
+      // 🔹 Só validar Cliente/Pet para Receita Operacional
+      const clientePetObrigatorios = formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional";
 
       if (clientePetObrigatorios) {
         const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
@@ -906,6 +910,14 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         }
 
         clienteId = cliente.id;
+      } else if (formData.nomeCliente && formData.nomePet) {
+        // Para Receita Não Operacional ou Despesa, se preencheu, deve validar
+        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+        
+        if (cliente && pet) {
+          clienteId = cliente.id;
+        }
       }
 
       const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
@@ -1221,7 +1233,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   {/* Nome do Cliente */}
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">
-                      Nome do Cliente {formData.tipo !== "Despesa" && "*"}
+                      Nome do Cliente {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}
                     </Label>
                     <ComboboxField
                       value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente}
@@ -1251,9 +1263,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <Label className="text-[10px] font-semibold">
-                        {formData.tipo !== "Despesa" ? "Pets *" : "Pets"}
+                        Pets {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}
                       </Label>
-                      {formData.tipo !== "Despesa" && formData.nomeCliente && formData.nomePet && (
+                      {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && (
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant="outline" size="sm" className="h-5 text-[10px] px-2 gap-1">
@@ -2052,11 +2064,12 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-0.5">
                 <Label className="text-[10px] font-semibold">
-                  Nome do Cliente {formData.tipo === "Despesa" && "*"}
+                  Nome do Cliente {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}
                 </Label>
                 <ComboboxField
-                  value={formData.nomeCliente}
+                  value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente}
                   onChange={(value) => {
+                    if (formData.tipo === "Despesa") return;
                     const novoCliente = clientes.find((c) => c.nomeCliente === value);
                     if (novoCliente && formData.nomePet) {
                       const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
@@ -2070,9 +2083,10 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     }
                   }}
                   options={clientesFormulario}
-                  placeholder={formData.tipo === "Receita" ? "Não aplicável" : "Selecione o cliente"}
+                  placeholder={formData.tipo === "Despesa" ? "Não aplicável" : "Selecione o cliente"}
                   searchPlaceholder="Buscar cliente..."
                   id="edit-form-cliente"
+                  disabled={formData.tipo === "Despesa"}
                 />
               </div>
             </div>
@@ -2080,8 +2094,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             {/* Nome do Pet - com suporte para múltiplos pets */}
             <div className="space-y-0.5">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <Label className="text-[10px] font-semibold">{formData.tipo === "Despesa" ? "Pets *" : "Pets"}</Label>
-                {formData.tipo === "Despesa" && formData.nomeCliente && formData.nomePet && (
+                <Label className="text-[10px] font-semibold">Pets {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}</Label>
+                {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className="h-5 text-[10px] px-2 gap-1">
@@ -2150,44 +2164,51 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 )}
               </div>
 
-              <ComboboxField
-                value={formData.nomePet}
-                onChange={(value) => {
-                  if (!formData.nomeCliente) {
-                    const petSelecionado = pets.find((p) => p.nomePet === value);
-                    if (petSelecionado) {
-                      const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
-                      if (clienteDoPet) {
-                        setFormData({
-                          ...formData,
-                          nomePet: value,
-                          nomeCliente: clienteDoPet.nomeCliente,
-                          petsSelecionados: [],
-                        });
+              {formData.tipo === "Despesa" ? (
+                <div className="h-7 flex items-center px-3 text-xs border rounded-md bg-muted text-muted-foreground">
+                  Não aplicável
+                </div>
+              ) : (
+                <ComboboxField
+                  value={formData.nomePet}
+                  onChange={(value) => {
+                    if (!formData.nomeCliente) {
+                      const petSelecionado = pets.find((p) => p.nomePet === value);
+                      if (petSelecionado) {
+                        const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
+                        if (clienteDoPet) {
+                          setFormData({
+                            ...formData,
+                            nomePet: value,
+                            nomeCliente: clienteDoPet.nomeCliente,
+                            petsSelecionados: [],
+                          });
+                        } else {
+                          setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
+                        }
                       } else {
                         setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
                       }
                     } else {
-                      setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
-                    }
-                  } else {
-                    const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                    const petSelecionado = pets.find(
-                      (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
-                    );
+                      const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
+                      const petSelecionado = pets.find(
+                        (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
+                      );
 
-                    if (petSelecionado) {
-                      setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
-                    } else {
-                      setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                      if (petSelecionado) {
+                        setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
+                      } else {
+                        setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                      }
                     }
-                  }
-                }}
-                options={petsFormulario}
-                placeholder="Selecione o pet principal"
-                searchPlaceholder="Buscar pet..."
-                id="edit-form-pet"
-              />
+                  }}
+                  options={petsFormulario}
+                  placeholder="Selecione o pet principal"
+                  searchPlaceholder="Buscar pet..."
+                  id="edit-form-pet"
+                  disabled={false}
+                />
+              )}
 
               {/* Badges dos pets adicionais */}
               {formData.petsSelecionados.length > 0 && (
