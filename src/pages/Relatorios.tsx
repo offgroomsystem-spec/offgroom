@@ -121,7 +121,7 @@ const Relatorios = () => {
       </div>
 
       <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-auto">
+        <TabsList className="grid w-full grid-cols-4 h-auto">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard Executivo</span>
@@ -131,11 +131,6 @@ const Relatorios = () => {
             <TrendingUp className="h-4 w-4" />
             <span className="hidden sm:inline">Relatórios Financeiros</span>
             <span className="sm:hidden">Financeiro</span>
-          </TabsTrigger>
-          <TabsTrigger value="servicos" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Serviços e Agendamentos</span>
-            <span className="sm:hidden">Serviços</span>
           </TabsTrigger>
           <TabsTrigger value="clientes" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -202,33 +197,23 @@ const Relatorios = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="servicos" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { id: "atendimentos-realizados", titulo: "Atendimentos Realizados", desc: "Análise completa de todos os atendimentos: avulsos e pacotes" },
-              { id: "servicos-agendados", titulo: "Serviços Agendados vs. Capacidade", desc: "Em desenvolvimento" },
-              { id: "desempenho-funcionario", titulo: "Desempenho por Funcionário", desc: "Em desenvolvimento" },
-              { id: "servicos-avulsos", titulo: "Serviços Avulsos", desc: "Em desenvolvimento" },
-              { id: "servicos-mais-vendidos", titulo: "Serviços Mais Vendidos", desc: "Em desenvolvimento" },
-            ].map((rel) => (
-              <Card
-                key={rel.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
-                onClick={() => handleCardClick(rel.id)}
-              >
-                <CardHeader>
-                  <CardTitle className="text-sm">{rel.titulo}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{rel.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
 
         <TabsContent value="clientes" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card
+              key="atendimentos-realizados"
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("atendimentos-realizados")}
+            >
+              <CardHeader>
+                <CardTitle className="text-sm">Atendimentos Realizados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Análise completa de todos os atendimentos: avulsos e pacotes
+                </p>
+              </CardContent>
+            </Card>
             <Card
               key="clientes-risco"
               className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
