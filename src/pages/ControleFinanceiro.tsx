@@ -2089,10 +2089,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   disabled={formData.tipo === "Despesa"}
                 />
               </div>
-            </div>
 
-            {/* Nome do Pet - com suporte para múltiplos pets */}
-            <div className="space-y-0.5">
+              {/* Nome do Pet - com suporte para múltiplos pets */}
+              <div className="space-y-0.5">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <Label className="text-[10px] font-semibold">Pets {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}</Label>
                 {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && (
@@ -2233,6 +2232,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   ))}
                 </div>
               )}
+              </div>
             </div>
 
             <div className="border rounded-md p-2 space-y-2 bg-secondary/20">
