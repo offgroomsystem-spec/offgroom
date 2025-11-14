@@ -18,6 +18,7 @@ import { DespesasFixas } from "@/components/relatorios/financeiros/DespesasFixas
 import { DespesasOperacionais } from "@/components/relatorios/financeiros/DespesasOperacionais";
 import { DespesasNaoOperacionais } from "@/components/relatorios/financeiros/DespesasNaoOperacionais";
 import { PontoEquilibrio } from "@/components/relatorios/financeiros/PontoEquilibrio";
+import { AtendimentosRealizados } from "@/components/relatorios/servicos/AtendimentosRealizados";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -76,6 +77,7 @@ const Relatorios = () => {
       {relatorioAtivo === "despesas-operacionais" && <DespesasOperacionais />}
       {relatorioAtivo === "despesas-nao-operacionais" && <DespesasNaoOperacionais />}
       {relatorioAtivo === "ponto-equilibrio" && <PontoEquilibrio />}
+      {relatorioAtivo === "atendimentos-realizados" && <AtendimentosRealizados />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
@@ -203,18 +205,22 @@ const Relatorios = () => {
         <TabsContent value="servicos" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              "Atendimentos Realizados",
-              "Serviços Agendados vs. Capacidade",
-              "Desempenho por Funcionário",
-              "Serviços Avulsos",
-              "Serviços Mais Vendidos",
-            ].map((titulo) => (
-              <Card key={titulo} className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary">
+              { id: "atendimentos-realizados", titulo: "Atendimentos Realizados", desc: "Análise completa de todos os atendimentos: avulsos e pacotes" },
+              { id: "servicos-agendados", titulo: "Serviços Agendados vs. Capacidade", desc: "Em desenvolvimento" },
+              { id: "desempenho-funcionario", titulo: "Desempenho por Funcionário", desc: "Em desenvolvimento" },
+              { id: "servicos-avulsos", titulo: "Serviços Avulsos", desc: "Em desenvolvimento" },
+              { id: "servicos-mais-vendidos", titulo: "Serviços Mais Vendidos", desc: "Em desenvolvimento" },
+            ].map((rel) => (
+              <Card
+                key={rel.id}
+                className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+                onClick={() => handleCardClick(rel.id)}
+              >
                 <CardHeader>
-                  <CardTitle className="text-sm">{titulo}</CardTitle>
+                  <CardTitle className="text-sm">{rel.titulo}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
+                  <p className="text-xs text-muted-foreground">{rel.desc}</p>
                 </CardContent>
               </Card>
             ))}
