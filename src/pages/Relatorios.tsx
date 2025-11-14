@@ -7,7 +7,7 @@ import { FilterPanel } from "@/components/relatorios/filters/FilterPanel";
 import { DashboardExecutivo } from "@/components/relatorios/dashboard/DashboardExecutivo";
 import FluxoDeCaixa from "@/components/relatorios/financeiros/FluxoDeCaixa";
 import { DRE } from "@/components/relatorios/financeiros/DRE";
-import { Inadimplencia } from "@/components/relatorios/financeiros/InadimplenciaDisabled";
+import { Inadimplencia } from "@/components/relatorios/financeiros/Inadimplencia";
 import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/PacotesProximosVencimento";
 import { PacotesExpirados } from "@/components/relatorios/pacotes/PacotesExpirados";
 import { ClientesEmRisco } from "@/components/relatorios/clientes/ClientesEmRisco";
@@ -68,7 +68,7 @@ const Relatorios = () => {
         {relatorioAtivo === "controle-financeiro" && <ControleFinanceiro filtrosIniciais={filtrosControleFinanceiro} />}
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
-        {relatorioAtivo === "inadimplencia" && <Inadimplencia filtros={filtros} />}
+        {relatorioAtivo === "inadimplencia" && <Inadimplencia />}
       {relatorioAtivo === "receita-operacional" && <ReceitaOperacional />}
       {relatorioAtivo === "receita-nao-operacional" && <ReceitaNaoOperacional />}
       {relatorioAtivo === "despesas-fixas" && <DespesasFixas />}
@@ -181,7 +181,7 @@ const Relatorios = () => {
               { id: "despesas-nao-operacionais", titulo: "Despesas Não Operacionais", desc: "Análise de despesas não operacionais (manutenção, reparos, etc.)" },
               { id: "despesas-variaveis", titulo: "Despesas Variáveis", desc: "Em desenvolvimento" },
               { id: "movimentacoes-bancarias", titulo: "Movimentações Bancárias", desc: "Em desenvolvimento" },
-              { id: "inadimplencia", titulo: "Inadimplência e Contas a Receber", desc: "Contas vencidas e a vencer" },
+              { id: "inadimplencia", titulo: "Inadimplência e Contas a Receber", desc: "Contas vencidas e gestão de inadimplência" },
             ].map((rel) => (
               <Card
                 key={rel.id}
