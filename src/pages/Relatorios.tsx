@@ -10,6 +10,7 @@ import { DRE } from "@/components/relatorios/financeiros/DRE";
 import { Inadimplencia } from "@/components/relatorios/financeiros/Inadimplencia";
 import { PacotesProximosVencimento } from "@/components/relatorios/pacotes/PacotesProximosVencimento";
 import { PacotesExpirados } from "@/components/relatorios/pacotes/PacotesExpirados";
+import { PacotesAtivos } from "@/components/relatorios/pacotes/PacotesAtivos";
 import { ClientesEmRisco } from "@/components/relatorios/clientes/ClientesEmRisco";
 import ControleFinanceiro from "@/pages/ControleFinanceiro";
 import { ReceitaOperacional } from "@/components/relatorios/financeiros/ReceitaOperacional";
@@ -80,6 +81,7 @@ const Relatorios = () => {
       {relatorioAtivo === "atendimentos-realizados" && <AtendimentosRealizados />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
+        {relatorioAtivo === "pacotes-ativos" && <PacotesAtivos />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
 
       {![
@@ -211,6 +213,20 @@ const Relatorios = () => {
               <CardContent>
                 <p className="text-xs text-muted-foreground">
                   Análise completa de todos os atendimentos: avulsos e pacotes
+                </p>
+              </CardContent>
+            </Card>
+            <Card
+              key="pacotes-ativos"
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("pacotes-ativos")}
+            >
+              <CardHeader>
+                <CardTitle className="text-sm">Pacotes Ativos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Análise completa de pacotes ativos, consumo e vencimentos
                 </p>
               </CardContent>
             </Card>
