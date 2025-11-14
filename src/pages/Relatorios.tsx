@@ -182,8 +182,6 @@ const Relatorios = () => {
               { id: "despesas-fixas", titulo: "Despesas Fixas", desc: "Análise detalhada de despesas fixas mensais" },
               { id: "despesas-operacionais", titulo: "Despesas Operacionais", desc: "Análise detalhada de despesas operacionais do negócio" },
               { id: "despesas-nao-operacionais", titulo: "Despesas Não Operacionais", desc: "Análise de despesas não operacionais (manutenção, reparos, etc.)" },
-              { id: "despesas-variaveis", titulo: "Despesas Variáveis", desc: "Em desenvolvimento" },
-              { id: "movimentacoes-bancarias", titulo: "Movimentações Bancárias", desc: "Em desenvolvimento" },
               { id: "inadimplencia", titulo: "Inadimplência e Contas a Receber", desc: "Contas vencidas e gestão de inadimplência" },
             ].map((rel) => (
               <Card
