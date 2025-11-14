@@ -158,8 +158,8 @@ export function Inadimplencia() {
           pago: l.pago,
           clienteId: l.cliente_id,
           petId: l.pet_id,
-          nomeCliente: cliente?.nome || "Sem Cliente",
-          nomePet: pet?.nome || "Sem Pet",
+          nomeCliente: cliente?.nome_cliente || "Sem Cliente",
+          nomePet: pet?.nome_pet || "Sem Pet",
           descricao1: l.descricao1 || "",
           nomeBanco: l.nome_banco || "Sem Banco",
           observacao: l.observacao || "",
@@ -347,10 +347,22 @@ export function Inadimplencia() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard titulo="Total em Aberto" valor={formatarMoeda(totalEmAberto)} icon={DollarSign} trend="down" color="red" subtitulo="Total de receitas não pagas" />
-        <KPICard titulo="Quantidade de Lançamentos" valor={quantidadeLancamentos.toString()} icon={FileText} color="blue" subtitulo="Contas a receber em aberto" />
-        <KPICard titulo="Taxa de Inadimplência" valor={`${taxaInadimplencia.toFixed(1)}%`} icon={TrendingDown} trend="down" color="orange" subtitulo="Percentual de inadimplência" />
-        <KPICard titulo="Média de Atraso" valor={`${mediaAtraso} dias`} icon={Calendar} color="purple" subtitulo="Tempo médio de atraso" />
+        <Card className="bg-red-50 dark:bg-red-950/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-red-900 dark:text-red-200">Total em Aberto</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatarMoeda(totalEmAberto)}</p><p className="text-xs text-red-700 dark:text-red-300">Total de receitas não pagas</p></div><DollarSign className="h-8 w-8 text-red-500" /></div></CardContent>
+        </Card>
+        <Card className="bg-blue-50 dark:bg-blue-950/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-200">Quantidade de Lançamentos</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{quantidadeLancamentos}</p><p className="text-xs text-blue-700 dark:text-blue-300">Contas a receber em aberto</p></div><FileText className="h-8 w-8 text-blue-500" /></div></CardContent>
+        </Card>
+        <Card className="bg-orange-50 dark:bg-orange-950/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-200">Taxa de Inadimplência</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{taxaInadimplencia.toFixed(1)}%</p><p className="text-xs text-orange-700 dark:text-orange-300">Percentual de inadimplência</p></div><TrendingDown className="h-8 w-8 text-orange-500" /></div></CardContent>
+        </Card>
+        <Card className="bg-purple-50 dark:bg-purple-950/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-200">Média de Atraso</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{mediaAtraso} dias</p><p className="text-xs text-purple-700 dark:text-purple-300">Tempo médio de atraso</p></div><Calendar className="h-8 w-8 text-purple-500" /></div></CardContent>
+        </Card>
       </div>
 
       <Card>
