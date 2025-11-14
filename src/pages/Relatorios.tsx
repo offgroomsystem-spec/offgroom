@@ -17,6 +17,7 @@ import { ReceitaNaoOperacional } from "@/components/relatorios/financeiros/Recei
 import { DespesasFixas } from "@/components/relatorios/financeiros/DespesasFixas";
 import { DespesasOperacionais } from "@/components/relatorios/financeiros/DespesasOperacionais";
 import { DespesasNaoOperacionais } from "@/components/relatorios/financeiros/DespesasNaoOperacionais";
+import { PontoEquilibrio } from "@/components/relatorios/financeiros/PontoEquilibrio";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -74,6 +75,7 @@ const Relatorios = () => {
       {relatorioAtivo === "despesas-fixas" && <DespesasFixas />}
       {relatorioAtivo === "despesas-operacionais" && <DespesasOperacionais />}
       {relatorioAtivo === "despesas-nao-operacionais" && <DespesasNaoOperacionais />}
+      {relatorioAtivo === "ponto-equilibrio" && <PontoEquilibrio />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
@@ -89,6 +91,7 @@ const Relatorios = () => {
     "despesas-fixas",
     "despesas-operacionais",
     "despesas-nao-operacionais",
+    "ponto-equilibrio",
     "pacotes-vencimento",
         "pacotes-expirados",
         "clientes-risco",
@@ -173,7 +176,7 @@ const Relatorios = () => {
                 titulo: "Demonstrativo de Resultado (DRE)",
                 desc: "Análise de receitas, custos e lucro líquido",
               },
-              { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio", desc: "Em desenvolvimento" },
+              { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio (PE)", desc: "Calcule o valor necessário para cobrir todas as despesas" },
               { id: "receita-operacional", titulo: "Receita Operacional", desc: "Análise detalhada de receitas operacionais" },
               { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Análise detalhada de receitas não operacionais" },
               { id: "despesas-fixas", titulo: "Despesas Fixas", desc: "Análise detalhada de despesas fixas mensais" },
