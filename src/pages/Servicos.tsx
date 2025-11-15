@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +15,13 @@ interface Servico {
   id: string;
   nome: string;
   valor: number;
+  porte: string;
+  raca: string;
+}
+
+interface Raca {
+  nome: string;
+  porte: string;
 }
 
 const Servicos = () => {
@@ -22,11 +31,45 @@ const Servicos = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingServico, setEditingServico] = useState<Servico | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [racasDisponiveis, setRacasDisponiveis] = useState<Raca[]>([]);
+  const [racasFiltradas, setRacasFiltradas] = useState<Raca[]>([]);
 
   const [formData, setFormData] = useState({
     nome: "",
     valor: "",
+    porte: "",
+    raca: "",
   });
+
+  // Fetch raças from Supabase
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchRacas = async () => {
+      // Buscar raças padrão
+      const { data: racasPadrao } = await supabase
+        .from('racas_padrao')
+        .select('nome, porte')
+        .order('nome');
+      
+      // Buscar raças customizadas do usuário
+      const { data: racasCustom } = await supabase
+        .from('racas')
+        .select('nome, porte')
+        .eq('user_id', user.id)
+        .order('nome');
+      
+      // Combinar e remover duplicatas
+      const todasRacas = [...(racasPadrao || []), ...(racasCustom || [])];
+      const racasUnicas = Array.from(
+        new Map(todasRacas.map(r => [r.nome, r])).values()
+      );
+      
+      setRacasDisponiveis(racasUnicas);
+    };
+    
+    fetchRacas();
+  }, [user]);
 
   // Fetch servicos from Supabase
   useEffect(() => {
@@ -50,11 +93,35 @@ const Servicos = () => {
     fetchServicos();
   }, [user]);
 
+  // Filtrar raças por porte
+  useEffect(() => {
+    if (formData.porte) {
+      const filtradas = racasDisponiveis.filter(r => r.porte === formData.porte);
+      setRacasFiltradas(filtradas);
+      
+      // Limpar raça se não estiver no porte selecionado
+      if (formData.raca) {
+        const racaValida = filtradas.find(r => r.nome === formData.raca);
+        if (!racaValida) {
+          setFormData(prev => ({ ...prev, raca: "" }));
+        }
+      }
+    } else {
+      setRacasFiltradas([]);
+    }
+  }, [formData.porte, racasDisponiveis]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) {
       toast.error("Usuário não autenticado");
+      return;
+    }
+
+    // Validações
+    if (!formData.nome || !formData.valor || !formData.porte || !formData.raca) {
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
     
@@ -63,7 +130,9 @@ const Servicos = () => {
         .from('servicos')
         .update({
           nome: formData.nome,
-          valor: parseFloat(formData.valor)
+          valor: parseFloat(formData.valor),
+          porte: formData.porte,
+          raca: formData.raca,
         })
         .eq('id', editingServico.id)
         .eq('user_id', user.id);
@@ -75,7 +144,15 @@ const Servicos = () => {
       }
       
       setServicos(servicos.map(s => 
-        s.id === editingServico.id ? { nome: formData.nome, valor: parseFloat(formData.valor), id: editingServico.id } : s
+        s.id === editingServico.id 
+          ? { 
+              ...s,
+              nome: formData.nome, 
+              valor: parseFloat(formData.valor),
+              porte: formData.porte,
+              raca: formData.raca,
+            }
+          : s
       ));
       toast.success("Serviço atualizado com sucesso!");
     } else {
@@ -84,7 +161,9 @@ const Servicos = () => {
         .insert([{
           user_id: user.id,
           nome: formData.nome,
-          valor: parseFloat(formData.valor)
+          valor: parseFloat(formData.valor),
+          porte: formData.porte,
+          raca: formData.raca,
         }])
         .select()
         .single();
@@ -105,14 +184,19 @@ const Servicos = () => {
   };
 
   const resetForm = () => {
-    setFormData({ nome: "", valor: "" });
+    setFormData({ nome: "", valor: "", porte: "", raca: "" });
     setEditingServico(null);
     setIsDialogOpen(false);
   };
 
   const handleEdit = (servico: Servico) => {
     setEditingServico(servico);
-    setFormData({ nome: servico.nome, valor: servico.valor.toString() });
+    setFormData({ 
+      nome: servico.nome, 
+      valor: servico.valor.toString(),
+      porte: servico.porte || "",
+      raca: servico.raca || "",
+    });
     setIsDialogOpen(true);
   };
 
@@ -195,6 +279,54 @@ const Servicos = () => {
                   className="h-8 text-xs"
                   required
                 />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="porte" className="text-xs">Porte do Pet *</Label>
+                <Select
+                  value={formData.porte}
+                  onValueChange={(value) => setFormData({ ...formData, porte: value })}
+                  required
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Selecione o porte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pequeno">Pequeno</SelectItem>
+                    <SelectItem value="Médio">Médio</SelectItem>
+                    <SelectItem value="Grande">Grande</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="raca" className="text-xs">Raça do Pet *</Label>
+                <Select
+                  value={formData.raca}
+                  onValueChange={(value) => setFormData({ ...formData, raca: value })}
+                  disabled={!formData.porte}
+                  required
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder={
+                      formData.porte 
+                        ? "Selecione a raça" 
+                        : "Selecione o porte primeiro"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {racasFiltradas.length === 0 && formData.porte && (
+                      <div className="px-2 py-1 text-xs text-muted-foreground">
+                        Nenhuma raça cadastrada para este porte
+                      </div>
+                    )}
+                    {racasFiltradas.map((raca) => (
+                      <SelectItem key={raca.nome} value={raca.nome}>
+                        {raca.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex justify-end gap-2">

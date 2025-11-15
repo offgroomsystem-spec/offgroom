@@ -87,27 +87,21 @@ export function PacotesAtivos() {
       
       if (errorPacotes) throw errorPacotes;
       
-      // 2. Buscar informações dos pacotes (validade)
+      // 2. Buscar informações dos pacotes (validade, porte, raca)
       const { data: pacotesInfoData } = await supabase
         .from("pacotes")
-        .select("nome, validade")
+        .select("nome, validade, porte, raca")
         .eq("user_id", user.id);
       
       const pacotesInfoMap = new Map(
-        (pacotesInfoData || []).map(p => [p.nome, p.validade])
+        (pacotesInfoData || []).map(p => [p.nome, { 
+          validade: p.validade,
+          porte: p.porte,
+          raca: p.raca,
+        }])
       );
       
-      // 3. Buscar raças para porte
-      const { data: racasData } = await supabase
-        .from("racas")
-        .select("nome, porte")
-        .eq("user_id", user.id);
-      
-      const racasMap = new Map(
-        (racasData || []).map(r => [r.nome, r.porte])
-      );
-      
-      // 4. Buscar agendamentos que usaram os pacotes
+      // 3. Buscar agendamentos que usaram os pacotes
       const { data: agendamentosData } = await supabase
         .from("agendamentos")
         .select("numero_servico_pacote, servico, data")
@@ -123,15 +117,22 @@ export function PacotesAtivos() {
         }
       });
       
-      // 5. Consolidar dados
+      // 4. Consolidar dados
       const pacotesConsolidados: PacoteAtivo[] = (pacotesData || []).map((p: any) => {
         const servicos = p.servicos as any[];
         const totalServicos = servicos.reduce((acc, s) => acc + (s.quantidade || 1), 0);
         const servicosUsados = usosPorPacote.get(p.id) || 0;
         const servicosRestantes = Math.max(0, totalServicos - servicosUsados);
         
+        // Buscar informações do pacote (validade, porte, raca)
+        const infoComplementar = pacotesInfoMap.get(p.nome_pacote) || { 
+          validade: "90",
+          porte: "Pequeno",
+          raca: "",
+        };
+        
         // Calcular validade
-        const validadeDias = parseInt(pacotesInfoMap.get(p.nome_pacote) || "90");
+        const validadeDias = parseInt(infoComplementar.validade);
         const dataValidade = addDays(new Date(p.data_venda), validadeDias);
         
         // Calcular status
@@ -152,7 +153,7 @@ export function PacotesAtivos() {
           cliente: p.nome_cliente,
           pet: p.nome_pet,
           raca: p.raca,
-          porte: racasMap.get(p.raca) || "Médio",
+          porte: infoComplementar.porte,
           whatsapp: p.whatsapp,
           dataAtivacao: p.data_venda,
           dataValidade: format(dataValidade, "yyyy-MM-dd"),
