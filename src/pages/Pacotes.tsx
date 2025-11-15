@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,8 @@ interface Servico {
   id: string;
   nome: string;
   valor: number;
+  porte: string;
+  raca: string;
 }
 
 interface ServicoSelecionado {
@@ -31,6 +34,13 @@ interface Pacote {
   descontoPercentual: number;
   descontoValor: number;
   valorFinal: number;
+  porte: string;
+  raca: string;
+}
+
+interface Raca {
+  nome: string;
+  porte: string;
 }
 
 const Pacotes = () => {
@@ -43,9 +53,14 @@ const Pacotes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
   const [servicoAtual, setServicoAtual] = useState<string>("");
+  const [racasDisponiveis, setRacasDisponiveis] = useState<Raca[]>([]);
+  const [racasFiltradas, setRacasFiltradas] = useState<Raca[]>([]);
+  const [servicosFiltrados, setServicosFiltrados] = useState<Servico[]>([]);
 
   const [formData, setFormData] = useState({
     nome: "",
+    porte: "",
+    raca: "",
     validade: "",
     descontoPercentual: "",
     descontoValor: "",
@@ -56,8 +71,36 @@ const Pacotes = () => {
     if (user) {
       loadPacotes();
       loadServicos();
+      loadRacas();
     }
   }, [user]);
+
+  const loadRacas = async () => {
+    try {
+      // Buscar raças padrão
+      const { data: racasPadrao } = await supabase
+        .from('racas_padrao')
+        .select('nome, porte')
+        .order('nome');
+      
+      // Buscar raças customizadas do usuário
+      const { data: racasCustom } = await supabase
+        .from('racas')
+        .select('nome, porte')
+        .eq('user_id', user?.id)
+        .order('nome');
+      
+      // Combinar e remover duplicatas
+      const todasRacas = [...(racasPadrao || []), ...(racasCustom || [])];
+      const racasUnicas = Array.from(
+        new Map(todasRacas.map(r => [r.nome, r])).values()
+      );
+      
+      setRacasDisponiveis(racasUnicas);
+    } catch (error: any) {
+      console.error('Erro ao carregar raças:', error);
+    }
+  };
 
   const loadPacotes = async () => {
     try {
@@ -77,7 +120,9 @@ const Pacotes = () => {
           validade: p.validade,
           descontoPercentual: Number(p.desconto_percentual || 0),
           descontoValor: Number(p.desconto_valor || 0),
-          valorFinal: Number(p.valor_final || 0)
+          valorFinal: Number(p.valor_final || 0),
+          porte: p.porte || "",
+          raca: p.raca || "",
         }));
         setPacotes(pacotesFormatados);
       }
@@ -103,7 +148,9 @@ const Pacotes = () => {
         const servicosFormatados = data.map((s: any) => ({
           id: s.id,
           nome: s.nome,
-          valor: Number(s.valor || 0)
+          valor: Number(s.valor || 0),
+          porte: s.porte || "",
+          raca: s.raca || "",
         }));
         setServicos(servicosFormatados);
       }
@@ -111,6 +158,44 @@ const Pacotes = () => {
       console.error('Erro ao carregar serviços:', error);
     }
   };
+
+  // Filtrar raças por porte
+  useEffect(() => {
+    if (formData.porte) {
+      const filtradas = racasDisponiveis.filter(r => r.porte === formData.porte);
+      setRacasFiltradas(filtradas);
+      
+      // Limpar raça se não estiver no porte selecionado
+      if (formData.raca) {
+        const racaValida = filtradas.find(r => r.nome === formData.raca);
+        if (!racaValida) {
+          setFormData(prev => ({ ...prev, raca: "" }));
+        }
+      }
+    } else {
+      setRacasFiltradas([]);
+    }
+  }, [formData.porte, racasDisponiveis]);
+
+  // Filtrar serviços por porte e raça
+  useEffect(() => {
+    if (formData.porte && formData.raca) {
+      const filtrados = servicos.filter(
+        s => s.porte === formData.porte && s.raca === formData.raca
+      );
+      setServicosFiltrados(filtrados);
+      
+      // Remover serviços selecionados que não correspondem mais
+      setServicosSelecionados(prev => 
+        prev.filter(ss => {
+          const servico = servicos.find(s => s.id === ss.id);
+          return servico && servico.porte === formData.porte && servico.raca === formData.raca;
+        })
+      );
+    } else {
+      setServicosFiltrados([]);
+    }
+  }, [formData.porte, formData.raca, servicos]);
 
   // Calcular valor total dos serviços
   const valorTotalServicos = servicosSelecionados.reduce((acc, s) => acc + s.valor, 0);
@@ -175,8 +260,8 @@ const Pacotes = () => {
       return;
     }
 
-    if (!formData.nome) {
-      toast.error("Favor preencher o Nome do Pacote");
+    if (!formData.nome || !formData.porte || !formData.raca) {
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
@@ -194,6 +279,8 @@ const Pacotes = () => {
 
       const pacoteData = {
         nome: formData.nome,
+        porte: formData.porte,
+        raca: formData.raca,
         servicos: servicosSelecionados as any,
         validade: formData.validade,
         desconto_percentual: descontoPercentual,
@@ -230,7 +317,7 @@ const Pacotes = () => {
   };
 
   const resetForm = () => {
-    setFormData({ nome: "", validade: "", descontoPercentual: "", descontoValor: "" });
+    setFormData({ nome: "", porte: "", raca: "", validade: "", descontoPercentual: "", descontoValor: "" });
     setServicosSelecionados([]);
     setServicoAtual("");
     setEditingPacote(null);
@@ -239,7 +326,7 @@ const Pacotes = () => {
 
   const handleOpenDialog = () => {
     // Limpar campos de desconto ao abrir dialog para novo pacote
-    setFormData({ nome: "", validade: "", descontoPercentual: "", descontoValor: "" });
+    setFormData({ nome: "", porte: "", raca: "", validade: "", descontoPercentual: "", descontoValor: "" });
     setServicosSelecionados([]);
     setServicoAtual("");
     setEditingPacote(null);
@@ -250,6 +337,8 @@ const Pacotes = () => {
     setEditingPacote(pacote);
     setFormData({
       nome: pacote.nome,
+      porte: pacote.porte || "",
+      raca: pacote.raca || "",
       validade: pacote.validade,
       descontoPercentual: pacote.descontoPercentual.toString(),
       descontoValor: pacote.descontoValor.toString(),
@@ -329,19 +418,78 @@ const Pacotes = () => {
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   placeholder="Ex: Pacote Completo"
                   className="h-8 text-xs"
+                  required
                 />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="porte" className="text-xs">Porte do Pet *</Label>
+                <Select
+                  value={formData.porte}
+                  onValueChange={(value) => setFormData({ ...formData, porte: value })}
+                  required
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Selecione o porte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pequeno">Pequeno</SelectItem>
+                    <SelectItem value="Médio">Médio</SelectItem>
+                    <SelectItem value="Grande">Grande</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="raca" className="text-xs">Raça do Pet *</Label>
+                <Select
+                  value={formData.raca}
+                  onValueChange={(value) => setFormData({ ...formData, raca: value })}
+                  disabled={!formData.porte}
+                  required
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder={
+                      formData.porte 
+                        ? "Selecione a raça" 
+                        : "Selecione o porte primeiro"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {racasFiltradas.length === 0 && formData.porte && (
+                      <div className="px-2 py-1 text-xs text-muted-foreground">
+                        Nenhuma raça cadastrada para este porte
+                      </div>
+                    )}
+                    {racasFiltradas.map((raca) => (
+                      <SelectItem key={raca.nome} value={raca.nome}>
+                        {raca.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1">
                 <Label className="text-xs">Serviços do Pacote</Label>
                 <div className="flex gap-2">
-                  <Select value={servicoAtual} onValueChange={setServicoAtual}>
+                  <Select 
+                    value={servicoAtual} 
+                    onValueChange={setServicoAtual}
+                    disabled={!formData.porte || !formData.raca}
+                  >
                     <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Selecione um serviço" />
+                      <SelectValue placeholder={
+                        !formData.porte || !formData.raca
+                          ? "Selecione porte e raça primeiro"
+                          : servicosFiltrados.length === 0
+                          ? "Nenhum serviço disponível para esta raça"
+                          : "Selecione um serviço"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
-                      {servicos.map((servico) => (
-                        <SelectItem key={servico.id} value={servico.id} className="text-xs">
+                      {servicosFiltrados.map((servico) => (
+                        <SelectItem key={servico.id} value={servico.id}>
                           {servico.nome} - {formatCurrency(servico.valor)}
                         </SelectItem>
                       ))}
@@ -471,6 +619,8 @@ const Pacotes = () => {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 px-3 font-semibold text-xs">Pacote</th>
+                  <th className="text-left py-2 px-3 font-semibold text-xs">Porte</th>
+                  <th className="text-left py-2 px-3 font-semibold text-xs">Raça</th>
                   <th className="text-left py-2 px-3 font-semibold text-xs">Serviços</th>
                   <th className="text-left py-2 px-3 font-semibold text-xs">Válidade</th>
                   <th className="text-left py-2 px-3 font-semibold text-xs">Desconto</th>
@@ -481,7 +631,7 @@ const Pacotes = () => {
               <tbody>
                 {filteredPacotes.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
+                    <td colSpan={8} className="text-center py-8 text-muted-foreground text-xs">
                       Nenhum pacote cadastrado
                     </td>
                   </tr>
@@ -489,6 +639,10 @@ const Pacotes = () => {
                   filteredPacotes.map((pacote) => (
                     <tr key={pacote.id} className="border-b hover:bg-secondary/50 transition-colors">
                       <td className="py-2 px-3 font-medium text-xs">{pacote.nome}</td>
+                      <td className="py-2 px-3 text-xs">
+                        <Badge variant="outline" className="text-[10px]">{pacote.porte}</Badge>
+                      </td>
+                      <td className="py-2 px-3 text-xs">{pacote.raca}</td>
                       <td className="py-2 px-3 text-xs">
                         {(() => {
                           const servicosAgrupados = pacote.servicos.reduce((acc, servico) => {

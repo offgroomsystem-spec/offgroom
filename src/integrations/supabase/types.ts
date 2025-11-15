@@ -417,6 +417,8 @@ export type Database = {
           desconto_valor: number
           id: string
           nome: string
+          porte: string
+          raca: string
           servicos: Json
           user_id: string
           validade: string
@@ -429,6 +431,8 @@ export type Database = {
           desconto_valor?: number
           id?: string
           nome: string
+          porte: string
+          raca: string
           servicos?: Json
           user_id: string
           validade?: string
@@ -441,6 +445,8 @@ export type Database = {
           desconto_valor?: number
           id?: string
           nome?: string
+          porte?: string
+          raca?: string
           servicos?: Json
           user_id?: string
           validade?: string
@@ -656,6 +662,8 @@ export type Database = {
           created_at: string | null
           id: string
           nome: string
+          porte: string
+          raca: string
           user_id: string
           valor: number
         }
@@ -663,6 +671,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           nome: string
+          porte: string
+          raca: string
           user_id: string
           valor: number
         }
@@ -670,6 +680,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           nome?: string
+          porte?: string
+          raca?: string
           user_id?: string
           valor?: number
         }
