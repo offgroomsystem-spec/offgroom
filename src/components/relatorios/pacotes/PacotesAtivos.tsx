@@ -336,19 +336,6 @@ export function PacotesAtivos() {
       .map(([porte, quantidade]) => ({ porte, quantidade }));
   }, [pacotesFiltrados]);
 
-  const distribuicaoStatus = useMemo(() => {
-    const contagem = { Ativo: 0, Completo: 0, Vencido: 0 };
-    pacotesFiltrados.forEach(p => {
-      contagem[p.status]++;
-    });
-    
-    return [
-      { status: "Ativo", quantidade: contagem.Ativo },
-      { status: "Completo", quantidade: contagem.Completo },
-      { status: "Vencido", quantidade: contagem.Vencido },
-    ];
-  }, [pacotesFiltrados]);
-
   const topClientes = useMemo(() => {
     const contagem = new Map<string, number>();
     pacotesFiltrados.forEach(p => {
@@ -358,26 +345,6 @@ export function PacotesAtivos() {
     return Array.from(contagem.entries())
       .map(([nome, usados]) => ({ nome, usados }))
       .sort((a, b) => b.usados - a.usados)
-      .slice(0, 10);
-  }, [pacotesFiltrados]);
-
-  const pacotesMaisUtilizados = useMemo(() => {
-    const estatisticas = new Map<string, { total: number; usados: number }>();
-    
-    pacotesFiltrados.forEach(p => {
-      const atual = estatisticas.get(p.nomePacote) || { total: 0, usados: 0 };
-      estatisticas.set(p.nomePacote, {
-        total: atual.total + p.servicosTotal,
-        usados: atual.usados + p.servicosUsados,
-      });
-    });
-    
-    return Array.from(estatisticas.entries())
-      .map(([nome, stats]) => ({
-        nome,
-        taxa: stats.total > 0 ? (stats.usados / stats.total) * 100 : 0,
-      }))
-      .sort((a, b) => b.taxa - a.taxa)
       .slice(0, 10);
   }, [pacotesFiltrados]);
 
@@ -672,7 +639,7 @@ export function PacotesAtivos() {
         </Card>
       </div>
 
-      {/* Gráficos - Linha 1 */}
+      {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -702,35 +669,6 @@ export function PacotesAtivos() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição por Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={distribuicaoStatus}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="quantidade" fill="#3b82f6" name="Quantidade">
-                  {distribuicaoStatus.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`}
-                      fill={entry.status === "Ativo" ? "#10b981" :
-                            entry.status === "Completo" ? "#3b82f6" : "#ef4444"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Gráficos - Linha 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Distribuição por Porte do Pet</CardTitle>
@@ -760,23 +698,6 @@ export function PacotesAtivos() {
                 <Tooltip />
                 <Legend />
               </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Pacotes com Maior Taxa de Utilização</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={pacotesMaisUtilizados}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="nome" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-                <Bar dataKey="taxa" fill="#10b981" name="Taxa de Uso (%)" />
-              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
