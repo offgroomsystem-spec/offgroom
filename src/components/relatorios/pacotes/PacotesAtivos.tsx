@@ -336,17 +336,6 @@ export function PacotesAtivos() {
       .map(([porte, quantidade]) => ({ porte, quantidade }));
   }, [pacotesFiltrados]);
 
-  const topClientes = useMemo(() => {
-    const contagem = new Map<string, number>();
-    pacotesFiltrados.forEach(p => {
-      contagem.set(p.cliente, (contagem.get(p.cliente) || 0) + p.servicosUsados);
-    });
-    
-    return Array.from(contagem.entries())
-      .map(([nome, usados]) => ({ nome, usados }))
-      .sort((a, b) => b.usados - a.usados)
-      .slice(0, 10);
-  }, [pacotesFiltrados]);
 
   const pacotesProximosVencimento = useMemo(() => {
     const hoje = new Date();
@@ -361,30 +350,30 @@ export function PacotesAtivos() {
       .slice(0, 10);
   }, [pacotesFiltrados]);
 
-  const comparativoMensal = useMemo(() => {
+  const evolucaoUltimos3Meses = useMemo(() => {
     const hoje = new Date();
-    const inicioMesAtual = startOfMonth(hoje);
-    const fimMesAtual = endOfMonth(hoje);
-    const inicioMesAnterior = startOfMonth(subMonths(hoje, 1));
-    const fimMesAnterior = endOfMonth(subMonths(hoje, 1));
     
-    const mesAtual = pacotes.filter(p => {
-      const data = new Date(p.dataAtivacao);
-      return data >= inicioMesAtual && data <= fimMesAtual;
-    });
+    // Calcular os últimos 3 meses
+    const meses = [];
+    for (let i = 2; i >= 0; i--) {
+      const dataReferencia = subMonths(hoje, i);
+      const inicio = startOfMonth(dataReferencia);
+      const fim = endOfMonth(dataReferencia);
+      
+      const pacotesDoMes = pacotes.filter(p => {
+        const data = new Date(p.dataAtivacao);
+        return data >= inicio && data <= fim;
+      });
+      
+      const totalServicos = pacotesDoMes.reduce((acc, p) => acc + p.servicosTotal, 0);
+      
+      meses.push({
+        mes: format(dataReferencia, "MMM/yy", { locale: ptBR }),
+        servicos: totalServicos,
+      });
+    }
     
-    const mesAnterior = pacotes.filter(p => {
-      const data = new Date(p.dataAtivacao);
-      return data >= inicioMesAnterior && data <= fimMesAnterior;
-    });
-    
-    return [
-      {
-        categoria: "Serviços Vendidos",
-        mesAtual: mesAtual.reduce((acc, p) => acc + p.servicosTotal, 0),
-        mesAnterior: mesAnterior.reduce((acc, p) => acc + p.servicosTotal, 0),
-      },
-    ];
+    return meses;
   }, [pacotes]);
 
   const exportarCSV = () => {
@@ -678,40 +667,46 @@ export function PacotesAtivos() {
         </Card>
       </div>
 
-      {/* Top 10 Clientes */}
+      {/* Evolução Últimos 3 Meses */}
       <Card>
         <CardHeader>
-          <CardTitle>Top 10 Clientes - Maior Uso de Pacotes</CardTitle>
+          <CardTitle>Evolução de Serviços Vendidos</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Total de serviços incluídos nos pacotes vendidos nos últimos 3 meses
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {topClientes.length > 0 ? (
-              topClientes.map((cliente, index) => (
-                <div key={cliente.nome} className="flex items-center gap-4">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
-                    {index + 1}
-                  </div>
-                  
-                  <div className="flex-1">
-                    <p className="font-semibold">{cliente.nome}</p>
-                    <div className="w-full h-2 bg-gray-200 rounded-full mt-1">
-                      <div
-                        className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"
-                        style={{ width: `${(cliente.usados / topClientes[0].usados) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <p className="font-bold text-lg">{cliente.usados}</p>
-                    <p className="text-xs text-muted-foreground">serviços</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-muted-foreground py-4">Nenhum dado disponível</p>
-            )}
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={evolucaoUltimos3Meses}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="mes" 
+                stroke="hsl(var(--muted-foreground))"
+                style={{ fontSize: '12px' }}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                style={{ fontSize: '12px' }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                }}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="servicos" 
+                stroke="#3b82f6" 
+                strokeWidth={3}
+                dot={{ fill: '#3b82f6', r: 5 }}
+                activeDot={{ r: 7 }}
+                name="Serviços Vendidos"
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
@@ -757,28 +752,6 @@ export function PacotesAtivos() {
         </CardContent>
       </Card>
 
-      {/* Comparativo Mensal */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comparativo: Mês Atual vs Mês Anterior</CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            Total de serviços incluídos nos pacotes vendidos em cada período
-          </p>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={comparativoMensal}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="categoria" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="mesAtual" fill="#3b82f6" name="Mês Atual" />
-              <Bar dataKey="mesAnterior" fill="#94a3b8" name="Mês Anterior" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
 
       {/* Tabela Final */}
       <Card>
