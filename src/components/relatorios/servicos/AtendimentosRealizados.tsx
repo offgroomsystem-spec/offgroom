@@ -74,7 +74,8 @@ export function AtendimentosRealizados() {
     try {
       setLoading(true);
       
-      // Buscar agendamentos avulsos
+      // Buscar TODOS os agendamentos (avulsos e de pacotes)
+      // Os atendimentos realizados de pacotes ficam na tabela "agendamentos" com numero_servico_pacote preenchido
       const { data: agendamentosData, error: errorAgendamentos } = await supabase
         .from("agendamentos")
         .select("*")
@@ -84,17 +85,6 @@ export function AtendimentosRealizados() {
         .order("data", { ascending: false });
       
       if (errorAgendamentos) throw errorAgendamentos;
-      
-      // Buscar agendamentos de pacotes
-      const { data: pacotesData, error: errorPacotes } = await supabase
-        .from("agendamentos_pacotes")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("data_venda", filtros.dataInicio)
-        .lte("data_venda", filtros.dataFim)
-        .order("data_venda", { ascending: false });
-      
-      if (errorPacotes) throw errorPacotes;
       
       // Buscar raças para obter porte
       const { data: racasData } = await supabase
@@ -106,45 +96,27 @@ export function AtendimentosRealizados() {
         (racasData || []).map(r => [r.nome, r.porte])
       );
       
-      // Consolidar dados avulsos
-      const atendimentosAvulsos: AtendimentoConsolidado[] = (agendamentosData || []).map((a: any) => ({
-        id: a.id,
-        data: a.data,
-        horario: a.horario || "—",
-        horarioTermino: a.horario_termino || "—",
-        servico: a.servico,
-        cliente: a.cliente,
-        pet: a.pet,
-        raca: a.raca,
-        porte: racasMap.get(a.raca) || "Médio",
-        tipo: "Avulso" as const,
-        groomer: a.groomer || "—",
-        origem: "agendamentos" as const,
-      }));
-      
-      // Processar pacotes
-      const atendimentosPacotes: AtendimentoConsolidado[] = [];
-      (pacotesData || []).forEach((p: any) => {
-        const servicos = p.servicos as any[];
-        servicos.forEach((s: any, index: number) => {
-          atendimentosPacotes.push({
-            id: `${p.id}-${index}`,
-            data: p.data_venda,
-            horario: "—",
-            horarioTermino: "—",
-            servico: s.servico || "Serviço do Pacote",
-            cliente: p.nome_cliente,
-            pet: p.nome_pet,
-            raca: p.raca,
-            porte: racasMap.get(p.raca) || "Médio",
-            tipo: "Pacote" as const,
-            groomer: "—",
-            origem: "agendamentos_pacotes" as const,
-          });
-        });
+      // Consolidar todos os atendimentos
+      const todosAtendimentos: AtendimentoConsolidado[] = (agendamentosData || []).map((a: any) => {
+        // Verificar se é de pacote ou avulso pelo campo numero_servico_pacote
+        const isPacote = a.numero_servico_pacote && a.numero_servico_pacote.trim() !== "";
+        
+        return {
+          id: a.id,
+          data: a.data,
+          horario: a.horario || "—",
+          horarioTermino: a.horario_termino || "—",
+          servico: a.servico,
+          cliente: a.cliente,
+          pet: a.pet,
+          raca: a.raca,
+          porte: racasMap.get(a.raca) || "Médio",
+          tipo: isPacote ? "Pacote" as const : "Avulso" as const,
+          groomer: a.groomer || "—",
+          origem: "agendamentos" as const,
+        };
       });
       
-      const todosAtendimentos = [...atendimentosAvulsos, ...atendimentosPacotes];
       setAtendimentos(todosAtendimentos);
       
     } catch (error) {
