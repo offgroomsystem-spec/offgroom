@@ -649,7 +649,6 @@ export function AtendimentosRealizados() {
                   outerRadius={100}
                   paddingAngle={5}
                   dataKey="quantidade"
-                  label={(entry) => `${entry.porte}: ${entry.quantidade}`}
                 >
                   {distribuicaoPorte.map((entry, index) => (
                     <Cell 
@@ -659,8 +658,19 @@ export function AtendimentosRealizados() {
                     />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
-                <Legend />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: any, name: any, props: any) => {
+                    const porte = props.payload.porte;
+                    const quantidade = props.payload.quantidade;
+                    const label = quantidade === 1 ? 'agendamento' : 'agendamentos';
+                    return [`Porte ${porte}: ${quantidade} ${label}`, ''];
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -741,69 +751,6 @@ export function AtendimentosRealizados() {
                 <span className="font-bold text-lg">{cliente.quantidade}</span>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabela Final */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Listagem de Atendimentos</CardTitle>
-            <Badge variant="secondary">{atendimentos.length} registro(s)</Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Horário</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Pet</TableHead>
-                  <TableHead>Tutor</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Groomer</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {atendimentos.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      Nenhum atendimento encontrado no período selecionado
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  atendimentos
-                    .sort((a, b) => b.data.localeCompare(a.data))
-                    .map((atendimento) => (
-                      <TableRow key={atendimento.id}>
-                        <TableCell>
-                          {format(new Date(atendimento.data + "T12:00:00"), "dd/MM/yyyy")}
-                        </TableCell>
-                        <TableCell>{atendimento.horario}</TableCell>
-                        <TableCell className="font-medium">{atendimento.servico}</TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{atendimento.pet}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {atendimento.raca} - {atendimento.porte}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{atendimento.cliente}</TableCell>
-                        <TableCell>
-                          <Badge variant={atendimento.tipo === "Avulso" ? "default" : "secondary"}>
-                            {atendimento.tipo}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{atendimento.groomer}</TableCell>
-                      </TableRow>
-                    ))
-                )}
-              </TableBody>
-            </Table>
           </div>
         </CardContent>
       </Card>
