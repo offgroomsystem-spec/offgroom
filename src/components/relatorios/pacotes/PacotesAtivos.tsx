@@ -115,27 +115,22 @@ export function PacotesAtivos() {
         }])
       );
       
-      // 3. Buscar agendamentos que usaram os pacotes
-      const { data: agendamentosData } = await supabase
-        .from("agendamentos")
-        .select("numero_servico_pacote, servico, data")
-        .eq("user_id", user.id)
-        .not("numero_servico_pacote", "is", null);
-      
-      // Criar mapa de usos por pacote (usando ID do pacote)
-      const usosPorPacote = new Map<string, number>();
-      (agendamentosData || []).forEach(a => {
-        const key = a.numero_servico_pacote;
-        if (key) {
-          usosPorPacote.set(key, (usosPorPacote.get(key) || 0) + 1);
-        }
-      });
+      // 3. Preparar data de hoje para comparação
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
       
       // 4. Consolidar dados
       const pacotesConsolidados: PacoteAtivo[] = (pacotesData || []).map((p: any) => {
         const servicos = p.servicos as any[];
-        const totalServicos = servicos.reduce((acc, s) => acc + (s.quantidade || 1), 0);
-        const servicosUsados = usosPorPacote.get(p.id) || 0;
+        const totalServicos = servicos.length;
+        
+        // Contar serviços usados baseado na data
+        const servicosUsados = servicos.filter((s: any) => {
+          const dataServico = new Date(s.data);
+          dataServico.setHours(0, 0, 0, 0);
+          return dataServico <= hoje;
+        }).length;
+        
         const servicosRestantes = Math.max(0, totalServicos - servicosUsados);
         
         // Buscar informações do pacote (validade, porte, raca)
@@ -150,7 +145,6 @@ export function PacotesAtivos() {
         const dataValidade = addDays(new Date(p.data_venda), validadeDias);
         
         // Status temporário (será recalculado após filtro de único pacote)
-        const hoje = new Date();
         let status: "Ativo" | "Completo" | "Vencido";
         
         if (servicosRestantes === 0) {
@@ -202,10 +196,7 @@ export function PacotesAtivos() {
         pacotesUnicos.push(maisRecente);
       });
       
-      // 7. Filtrar apenas pacotes com validade >= hoje
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0); // Zerar horas para comparação de data
-      
+      // 7. Filtrar apenas pacotes com validade >= hoje (usar a mesma variável 'hoje')
       const pacotesAtivosValidos = pacotesUnicos.filter(pacote => {
         const dataValidade = new Date(pacote.dataValidade);
         dataValidade.setHours(0, 0, 0, 0);
