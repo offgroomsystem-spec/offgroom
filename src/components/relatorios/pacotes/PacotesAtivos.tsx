@@ -65,7 +65,7 @@ export function PacotesAtivos() {
   const [filtros, setFiltros] = useState({
     dataInicio: format(subMonths(new Date(), 3), "yyyy-MM-dd"),
     dataFim: format(new Date(), "yyyy-MM-dd"),
-    status: "all" as "all" | "Ativo" | "Completo" | "Vencido",
+    status: "Ativo" as "all" | "Ativo" | "Completo" | "Vencido",
     cliente: "all",
     porte: "all",
   });
@@ -255,7 +255,7 @@ export function PacotesAtivos() {
     setFiltros({
       dataInicio: format(subMonths(new Date(), 3), "yyyy-MM-dd"),
       dataFim: format(new Date(), "yyyy-MM-dd"),
-      status: "all",
+      status: "Ativo",
       cliente: "all",
       porte: "all",
     });
