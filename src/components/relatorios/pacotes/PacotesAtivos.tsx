@@ -673,16 +673,17 @@ export function PacotesAtivos() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
-                <Pie
-                  data={distribuicaoPorte}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="quantidade"
-                  label
-                >
+        <Pie
+          data={distribuicaoPorte}
+          cx="50%"
+          cy="50%"
+          innerRadius={60}
+          outerRadius={100}
+          paddingAngle={5}
+          dataKey="quantidade"
+          nameKey="porte"
+          label={(entry) => entry.quantidade}
+        >
                   {distribuicaoPorte.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
