@@ -633,48 +633,6 @@ export function AtendimentosRealizados() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição por Porte</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={distribuicaoPorte}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="quantidade"
-                >
-                  {distribuicaoPorte.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.porte === "Pequeno" ? "#10b981" : 
-                            entry.porte === "Médio" ? "#f59e0b" : "#ef4444"} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                  formatter={(value: any, name: any, props: any) => {
-                    const porte = props.payload.porte;
-                    const quantidade = props.payload.quantidade;
-                    const label = quantidade === 1 ? 'agendamento' : 'agendamentos';
-                    return [`Porte ${porte}: ${quantidade} ${label}`, ''];
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Serviços Mais Realizados */}
