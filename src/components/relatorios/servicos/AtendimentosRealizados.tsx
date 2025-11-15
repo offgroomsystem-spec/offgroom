@@ -472,7 +472,7 @@ export function AtendimentosRealizados() {
       </Card>
 
       {/* Cards KPI */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           titulo="Total de Atendimentos"
           valor={totalAtendimentos.toString()}
@@ -521,13 +521,6 @@ export function AtendimentosRealizados() {
           valor={horarioPico.faixa}
           subtitulo={`${horarioPico.quantidade} atendimentos`}
           icon={<Clock className="h-5 w-5" />}
-        />
-        
-        <KPICard
-          titulo="Clientes Ativos"
-          valor={topClientes.length.toString()}
-          subtitulo="Clientes únicos"
-          icon={<Users className="h-5 w-5" />}
         />
       </div>
 
@@ -589,7 +582,7 @@ export function AtendimentosRealizados() {
       </div>
 
       {/* Gráficos - Linha 2 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Distribuição: Avulsos vs Pacotes</CardTitle>
