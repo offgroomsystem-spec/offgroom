@@ -350,12 +350,12 @@ export function PacotesAtivos() {
       .slice(0, 10);
   }, [pacotesFiltrados]);
 
-  const evolucaoUltimos3Meses = useMemo(() => {
+  const evolucaoUltimos6Meses = useMemo(() => {
     const hoje = new Date();
     
-    // Calcular os últimos 3 meses
+    // Calcular os últimos 6 meses
     const meses = [];
-    for (let i = 2; i >= 0; i--) {
+    for (let i = 5; i >= 0; i--) {
       const dataReferencia = subMonths(hoje, i);
       const inicio = startOfMonth(dataReferencia);
       const fim = endOfMonth(dataReferencia);
@@ -370,6 +370,33 @@ export function PacotesAtivos() {
       meses.push({
         mes: format(dataReferencia, "MMM/yy", { locale: ptBR }),
         servicos: totalServicos,
+      });
+    }
+    
+    return meses;
+  }, [pacotes]);
+
+  const evolucaoPacotesVendidos = useMemo(() => {
+    const hoje = new Date();
+    
+    // Calcular os últimos 6 meses
+    const meses = [];
+    for (let i = 5; i >= 0; i--) {
+      const dataReferencia = subMonths(hoje, i);
+      const inicio = startOfMonth(dataReferencia);
+      const fim = endOfMonth(dataReferencia);
+      
+      const pacotesDoMes = pacotes.filter(p => {
+        const data = new Date(p.dataAtivacao);
+        return data >= inicio && data <= fim;
+      });
+      
+      // Cada pacote vendido conta como 1, independente de quantos serviços tem
+      const totalPacotes = pacotesDoMes.length;
+      
+      meses.push({
+        mes: format(dataReferencia, "MMM/yy", { locale: ptBR }),
+        pacotes: totalPacotes,
       });
     }
     
@@ -667,17 +694,17 @@ export function PacotesAtivos() {
         </Card>
       </div>
 
-      {/* Evolução Últimos 3 Meses */}
+      {/* Evolução Últimos 6 Meses - Serviços */}
       <Card>
         <CardHeader>
-          <CardTitle>Evolução de Serviços Vendidos</CardTitle>
+          <CardTitle>Evolução de Serviços Vendidos dentro do Pacote</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Total de serviços incluídos nos pacotes vendidos nos últimos 3 meses
+            Total de serviços incluídos nos pacotes vendidos nos últimos 6 meses
           </p>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={evolucaoUltimos3Meses}>
+            <LineChart data={evolucaoUltimos6Meses}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="mes" 
@@ -704,6 +731,49 @@ export function PacotesAtivos() {
                 dot={{ fill: '#3b82f6', r: 5 }}
                 activeDot={{ r: 7 }}
                 name="Serviços Vendidos"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Evolução Últimos 6 Meses - Pacotes */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Evolução de Pacotes Vendidos</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Quantidade de pacotes vendidos nos últimos 6 meses (cada venda conta como 1 pacote)
+          </p>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={evolucaoPacotesVendidos}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="mes" 
+                stroke="hsl(var(--muted-foreground))"
+                style={{ fontSize: '12px' }}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                style={{ fontSize: '12px' }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                }}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="pacotes" 
+                stroke="#10b981" 
+                strokeWidth={3}
+                dot={{ fill: '#10b981', r: 5 }}
+                activeDot={{ r: 7 }}
+                name="Pacotes Vendidos"
               />
             </LineChart>
           </ResponsiveContainer>
