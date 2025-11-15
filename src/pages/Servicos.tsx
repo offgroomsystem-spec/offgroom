@@ -16,12 +16,6 @@ interface Servico {
   nome: string;
   valor: number;
   porte: string;
-  raca: string;
-}
-
-interface Raca {
-  nome: string;
-  porte: string;
 }
 
 const Servicos = () => {
@@ -31,45 +25,12 @@ const Servicos = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingServico, setEditingServico] = useState<Servico | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [racasDisponiveis, setRacasDisponiveis] = useState<Raca[]>([]);
-  const [racasFiltradas, setRacasFiltradas] = useState<Raca[]>([]);
 
   const [formData, setFormData] = useState({
     nome: "",
     valor: "",
     porte: "",
-    raca: "",
   });
-
-  // Fetch raças from Supabase
-  useEffect(() => {
-    if (!user) return;
-    
-    const fetchRacas = async () => {
-      // Buscar raças padrão
-      const { data: racasPadrao } = await supabase
-        .from('racas_padrao')
-        .select('nome, porte')
-        .order('nome');
-      
-      // Buscar raças customizadas do usuário
-      const { data: racasCustom } = await supabase
-        .from('racas')
-        .select('nome, porte')
-        .eq('user_id', user.id)
-        .order('nome');
-      
-      // Combinar e remover duplicatas
-      const todasRacas = [...(racasPadrao || []), ...(racasCustom || [])];
-      const racasUnicas = Array.from(
-        new Map(todasRacas.map(r => [r.nome, r])).values()
-      );
-      
-      setRacasDisponiveis(racasUnicas);
-    };
-    
-    fetchRacas();
-  }, [user]);
 
   // Fetch servicos from Supabase
   useEffect(() => {
@@ -93,24 +54,6 @@ const Servicos = () => {
     fetchServicos();
   }, [user]);
 
-  // Filtrar raças por porte
-  useEffect(() => {
-    if (formData.porte) {
-      const filtradas = racasDisponiveis.filter(r => r.porte === formData.porte);
-      setRacasFiltradas(filtradas);
-      
-      // Limpar raça se não estiver no porte selecionado
-      if (formData.raca) {
-        const racaValida = filtradas.find(r => r.nome === formData.raca);
-        if (!racaValida) {
-          setFormData(prev => ({ ...prev, raca: "" }));
-        }
-      }
-    } else {
-      setRacasFiltradas([]);
-    }
-  }, [formData.porte, racasDisponiveis]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -120,7 +63,7 @@ const Servicos = () => {
     }
 
     // Validações
-    if (!formData.nome || !formData.valor || !formData.porte || !formData.raca) {
+    if (!formData.nome || !formData.valor || !formData.porte) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -132,7 +75,6 @@ const Servicos = () => {
           nome: formData.nome,
           valor: parseFloat(formData.valor),
           porte: formData.porte,
-          raca: formData.raca,
         })
         .eq('id', editingServico.id)
         .eq('user_id', user.id);
@@ -150,7 +92,6 @@ const Servicos = () => {
               nome: formData.nome, 
               valor: parseFloat(formData.valor),
               porte: formData.porte,
-              raca: formData.raca,
             }
           : s
       ));
@@ -163,7 +104,6 @@ const Servicos = () => {
           nome: formData.nome,
           valor: parseFloat(formData.valor),
           porte: formData.porte,
-          raca: formData.raca,
         }])
         .select()
         .single();
@@ -184,7 +124,7 @@ const Servicos = () => {
   };
 
   const resetForm = () => {
-    setFormData({ nome: "", valor: "", porte: "", raca: "" });
+    setFormData({ nome: "", valor: "", porte: "" });
     setEditingServico(null);
     setIsDialogOpen(false);
   };
@@ -195,7 +135,6 @@ const Servicos = () => {
       nome: servico.nome, 
       valor: servico.valor.toString(),
       porte: servico.porte || "",
-      raca: servico.raca || "",
     });
     setIsDialogOpen(true);
   };
@@ -299,36 +238,6 @@ const Servicos = () => {
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="raca" className="text-xs">Raça do Pet *</Label>
-                <Select
-                  value={formData.raca}
-                  onValueChange={(value) => setFormData({ ...formData, raca: value })}
-                  disabled={!formData.porte}
-                  required
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder={
-                      formData.porte 
-                        ? "Selecione a raça" 
-                        : "Selecione o porte primeiro"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {racasFiltradas.length === 0 && formData.porte && (
-                      <div className="px-2 py-1 text-xs text-muted-foreground">
-                        Nenhuma raça cadastrada para este porte
-                      </div>
-                    )}
-                    {racasFiltradas.map((raca) => (
-                      <SelectItem key={raca.nome} value={raca.nome}>
-                        {raca.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={resetForm} className="h-8 text-xs">
                   Cancelar
@@ -366,6 +275,7 @@ const Servicos = () => {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 px-3 font-semibold text-xs">Serviço</th>
+                  <th className="text-left py-2 px-3 font-semibold text-xs">Porte</th>
                   <th className="text-left py-2 px-3 font-semibold text-xs">Valor</th>
                   <th className="text-right py-2 px-3 font-semibold text-xs">Ações</th>
                 </tr>
@@ -373,7 +283,7 @@ const Servicos = () => {
               <tbody>
                 {filteredServicos.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="text-center py-8 text-muted-foreground text-xs">
+                    <td colSpan={4} className="text-center py-8 text-muted-foreground text-xs">
                       Nenhum serviço cadastrado
                     </td>
                   </tr>
@@ -381,6 +291,9 @@ const Servicos = () => {
                   filteredServicos.map((servico) => (
                     <tr key={servico.id} className="border-b hover:bg-secondary/50 transition-colors">
                       <td className="py-2 px-3 font-medium text-xs">{servico.nome}</td>
+                      <td className="py-2 px-3 text-xs">
+                        <Badge variant="outline" className="text-[10px]">{servico.porte}</Badge>
+                      </td>
                       <td className="py-2 px-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent">
                           {formatCurrency(servico.valor)}
