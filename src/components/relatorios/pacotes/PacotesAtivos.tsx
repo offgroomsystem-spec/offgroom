@@ -380,37 +380,12 @@ export function PacotesAtivos() {
     
     return [
       {
-        categoria: "Pacotes Ativos",
-        mesAtual: mesAtual.filter(p => p.status === "Ativo").length,
-        mesAnterior: mesAnterior.filter(p => p.status === "Ativo").length,
-      },
-      {
-        categoria: "Serviços Usados",
-        mesAtual: mesAtual.reduce((acc, p) => acc + p.servicosUsados, 0),
-        mesAnterior: mesAnterior.reduce((acc, p) => acc + p.servicosUsados, 0),
-      },
-      {
-        categoria: "Serviços Restantes",
-        mesAtual: mesAtual.reduce((acc, p) => acc + p.servicosRestantes, 0),
-        mesAnterior: mesAnterior.reduce((acc, p) => acc + p.servicosRestantes, 0),
+        categoria: "Serviços Vendidos",
+        mesAtual: mesAtual.reduce((acc, p) => acc + p.servicosTotal, 0),
+        mesAnterior: mesAnterior.reduce((acc, p) => acc + p.servicosTotal, 0),
       },
     ];
   }, [pacotes]);
-
-  const saldoPorCliente = useMemo(() => {
-    const saldo = new Map<string, number>();
-    
-    pacotesFiltrados
-      .filter(p => p.status === "Ativo")
-      .forEach(p => {
-        saldo.set(p.cliente, (saldo.get(p.cliente) || 0) + p.servicosRestantes);
-      });
-    
-    return Array.from(saldo.entries())
-      .map(([cliente, restantes]) => ({ cliente, restantes }))
-      .sort((a, b) => b.restantes - a.restantes)
-      .slice(0, 10);
-  }, [pacotesFiltrados]);
 
   const exportarCSV = () => {
     const headers = [
@@ -786,6 +761,9 @@ export function PacotesAtivos() {
       <Card>
         <CardHeader>
           <CardTitle>Comparativo: Mês Atual vs Mês Anterior</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Total de serviços incluídos nos pacotes vendidos em cada período
+          </p>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -797,24 +775,6 @@ export function PacotesAtivos() {
               <Legend />
               <Bar dataKey="mesAtual" fill="#3b82f6" name="Mês Atual" />
               <Bar dataKey="mesAnterior" fill="#94a3b8" name="Mês Anterior" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Saldo por Cliente */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Saldo de Serviços por Cliente (Top 10)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={saldoPorCliente} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="cliente" type="category" width={120} />
-              <Tooltip />
-              <Bar dataKey="restantes" fill="#f59e0b" name="Serviços Restantes" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
