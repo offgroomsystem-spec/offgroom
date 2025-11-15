@@ -624,7 +624,8 @@ export function PacotesAtivos() {
                   outerRadius={100}
                   paddingAngle={5}
                   dataKey="quantidade"
-                  label={(entry) => `${entry.nome}`}
+                  nameKey="nome"
+                  label={(entry) => entry.quantidade}
                 >
                   {distribuicaoPorPacote.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
