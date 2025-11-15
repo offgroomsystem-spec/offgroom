@@ -74,8 +74,7 @@ export function AtendimentosRealizados() {
     try {
       setLoading(true);
       
-      // Buscar TODOS os agendamentos (avulsos e de pacotes)
-      // Os atendimentos realizados de pacotes ficam na tabela "agendamentos" com numero_servico_pacote preenchido
+      // Buscar agendamentos avulsos e de pacotes já agendados na tabela agendamentos
       const { data: agendamentosData, error: errorAgendamentos } = await supabase
         .from("agendamentos")
         .select("*")
@@ -85,6 +84,14 @@ export function AtendimentosRealizados() {
         .order("data", { ascending: false });
       
       if (errorAgendamentos) throw errorAgendamentos;
+      
+      // Buscar pacotes vendidos para expandir os serviços por data de atendimento
+      const { data: pacotesData, error: errorPacotes } = await supabase
+        .from("agendamentos_pacotes")
+        .select("*")
+        .eq("user_id", user.id);
+      
+      if (errorPacotes) throw errorPacotes;
       
       // Buscar raças para obter porte
       const { data: racasData } = await supabase
@@ -96,9 +103,8 @@ export function AtendimentosRealizados() {
         (racasData || []).map(r => [r.nome, r.porte])
       );
       
-      // Consolidar todos os atendimentos
-      const todosAtendimentos: AtendimentoConsolidado[] = (agendamentosData || []).map((a: any) => {
-        // Verificar se é de pacote ou avulso pelo campo numero_servico_pacote
+      // Consolidar agendamentos da tabela agendamentos
+      const atendimentosAgendamentos: AtendimentoConsolidado[] = (agendamentosData || []).map((a: any) => {
         const isPacote = a.numero_servico_pacote && a.numero_servico_pacote.trim() !== "";
         
         return {
@@ -117,6 +123,34 @@ export function AtendimentosRealizados() {
         };
       });
       
+      // Expandir serviços de pacotes filtrando pela data do atendimento
+      const atendimentosPacotes: AtendimentoConsolidado[] = [];
+      (pacotesData || []).forEach((p: any) => {
+        const servicos = p.servicos as any[];
+        servicos.forEach((s: any, index: number) => {
+          const dataServico = s.data;
+          
+          // Filtrar apenas serviços dentro do período selecionado
+          if (dataServico >= filtros.dataInicio && dataServico <= filtros.dataFim) {
+            atendimentosPacotes.push({
+              id: `${p.id}-${index}`,
+              data: dataServico,
+              horario: s.horarioInicio || "—",
+              horarioTermino: s.horarioTermino || "—",
+              servico: s.nomeServico || "Serviço do Pacote",
+              cliente: p.nome_cliente,
+              pet: p.nome_pet,
+              raca: p.raca,
+              porte: racasMap.get(p.raca) || "Médio",
+              tipo: "Pacote" as const,
+              groomer: "—",
+              origem: "agendamentos_pacotes" as const,
+            });
+          }
+        });
+      });
+      
+      const todosAtendimentos = [...atendimentosAgendamentos, ...atendimentosPacotes];
       setAtendimentos(todosAtendimentos);
       
     } catch (error) {
