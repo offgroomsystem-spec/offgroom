@@ -70,19 +70,33 @@ export function PacotesAtivos() {
     porte: "all",
   });
 
+  /**
+   * LÓGICA DE PACOTES ATIVOS:
+   * 
+   * 1. Busca TODOS os pacotes vendidos (sem filtro de período inicial)
+   * 2. Para cada combinação Cliente+Pet, considera apenas o ÚLTIMO pacote vendido (data_venda mais recente)
+   * 3. Um pacote é considerado ATIVO apenas se:
+   *    - Data de validade >= hoje
+   *    - Ainda possui serviços restantes (> 0)
+   * 4. Após selecionar os pacotes únicos ativos, aplica filtros de período para exibição no relatório
+   * 
+   * Exemplo:
+   * - Cliente: Larissa Pereira | Pet: Pandora
+   * - Pacote A: vendido 16/10/2025 (todos serviços usados, mas ainda válido)
+   * - Pacote B: vendido 13/11/2025 (serviços disponíveis, válido)
+   * - RESULTADO: Considera apenas Pacote B (mais recente)
+   */
   const loadPacotes = async () => {
     if (!user) return;
     
     try {
       setLoading(true);
       
-      // 1. Buscar pacotes vendidos
+      // 1. Buscar TODOS os pacotes vendidos (sem filtro de período)
       const { data: pacotesData, error: errorPacotes } = await supabase
         .from("agendamentos_pacotes")
         .select("*")
         .eq("user_id", user.id)
-        .gte("data_venda", filtros.dataInicio)
-        .lte("data_venda", filtros.dataFim)
         .order("data_venda", { ascending: false });
       
       if (errorPacotes) throw errorPacotes;
@@ -135,7 +149,7 @@ export function PacotesAtivos() {
         const validadeDias = parseInt(infoComplementar.validade);
         const dataValidade = addDays(new Date(p.data_venda), validadeDias);
         
-        // Calcular status
+        // Status temporário (será recalculado após filtro de único pacote)
         const hoje = new Date();
         let status: "Ativo" | "Completo" | "Vencido";
         
@@ -168,7 +182,66 @@ export function PacotesAtivos() {
         };
       });
       
-      setPacotes(pacotesConsolidados);
+      // 5. Agrupar pacotes por cliente+pet
+      const pacotesPorClientePet = new Map<string, PacoteAtivo[]>();
+      pacotesConsolidados.forEach(pacote => {
+        const chave = `${pacote.cliente}|${pacote.pet}`;
+        if (!pacotesPorClientePet.has(chave)) {
+          pacotesPorClientePet.set(chave, []);
+        }
+        pacotesPorClientePet.get(chave)!.push(pacote);
+      });
+      
+      // 6. Para cada grupo, selecionar apenas o pacote mais recente
+      const pacotesUnicos: PacoteAtivo[] = [];
+      pacotesPorClientePet.forEach(grupoPacotes => {
+        // Ordenar por data_venda decrescente e pegar o primeiro
+        const maisRecente = grupoPacotes.sort((a, b) => 
+          new Date(b.dataAtivacao).getTime() - new Date(a.dataAtivacao).getTime()
+        )[0];
+        pacotesUnicos.push(maisRecente);
+      });
+      
+      // 7. Filtrar apenas pacotes com validade >= hoje
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0); // Zerar horas para comparação de data
+      
+      const pacotesAtivosValidos = pacotesUnicos.filter(pacote => {
+        const dataValidade = new Date(pacote.dataValidade);
+        dataValidade.setHours(0, 0, 0, 0);
+        return dataValidade >= hoje;
+      });
+      
+      // 8. Recalcular status para pacotes únicos
+      const pacotesComStatusAtualizado = pacotesAtivosValidos.map(pacote => {
+        const dataValidade = new Date(pacote.dataValidade);
+        dataValidade.setHours(0, 0, 0, 0);
+        const hojeLimpo = new Date();
+        hojeLimpo.setHours(0, 0, 0, 0);
+        
+        let status: "Ativo" | "Completo" | "Vencido";
+        
+        if (dataValidade < hojeLimpo) {
+          status = "Vencido";
+        } else if (pacote.servicosRestantes === 0) {
+          status = "Completo";
+        } else {
+          status = "Ativo";
+        }
+        
+        return { ...pacote, status };
+      });
+      
+      // 9. Aplicar filtros de período APÓS seleção de pacotes únicos
+      const pacotesDentroPeriodo = pacotesComStatusAtualizado.filter(pacote => {
+        const dataAtivacao = new Date(pacote.dataAtivacao);
+        const dataInicio = new Date(filtros.dataInicio);
+        const dataFim = new Date(filtros.dataFim);
+        
+        return dataAtivacao >= dataInicio && dataAtivacao <= dataFim;
+      });
+      
+      setPacotes(pacotesDentroPeriodo);
       
     } catch (error) {
       console.error("Erro ao carregar pacotes:", error);
