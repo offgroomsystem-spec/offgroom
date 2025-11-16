@@ -276,6 +276,87 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedores: {
+        Row: {
+          bairro: string | null
+          banco: string | null
+          cep: string | null
+          chave_pix: string | null
+          cidade: string | null
+          cnpj_cpf: string
+          complemento: string | null
+          condicao_pagamento: string | null
+          created_at: string | null
+          email: string | null
+          estado: string | null
+          forma_pagamento: string | null
+          id: string
+          nome_fantasia: string | null
+          nome_fornecedor: string
+          nome_titular: string | null
+          numero: string | null
+          rua: string | null
+          site: string | null
+          telefone: string | null
+          tipo_fornecedor: string
+          updated_at: string | null
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          banco?: string | null
+          cep?: string | null
+          chave_pix?: string | null
+          cidade?: string | null
+          cnpj_cpf: string
+          complemento?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string | null
+          email?: string | null
+          estado?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          nome_fornecedor: string
+          nome_titular?: string | null
+          numero?: string | null
+          rua?: string | null
+          site?: string | null
+          telefone?: string | null
+          tipo_fornecedor: string
+          updated_at?: string | null
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          banco?: string | null
+          cep?: string | null
+          chave_pix?: string | null
+          cidade?: string | null
+          cnpj_cpf?: string
+          complemento?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string | null
+          email?: string | null
+          estado?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          nome_fornecedor?: string
+          nome_titular?: string | null
+          numero?: string | null
+          rua?: string | null
+          site?: string | null
+          telefone?: string | null
+          tipo_fornecedor?: string
+          updated_at?: string | null
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       groomers: {
         Row: {
           created_at: string | null
@@ -503,7 +584,9 @@ export type Database = {
         Row: {
           codigo: string
           created_at: string | null
+          data_ultima_compra: string | null
           descricao: string | null
+          fornecedor_id: string | null
           id: string
           imposto: number
           lucro_unitario: number
@@ -517,7 +600,9 @@ export type Database = {
         Insert: {
           codigo?: string
           created_at?: string | null
+          data_ultima_compra?: string | null
           descricao?: string | null
+          fornecedor_id?: string | null
           id?: string
           imposto?: number
           lucro_unitario?: number
@@ -531,7 +616,9 @@ export type Database = {
         Update: {
           codigo?: string
           created_at?: string | null
+          data_ultima_compra?: string | null
           descricao?: string | null
+          fornecedor_id?: string | null
           id?: string
           imposto?: number
           lucro_unitario?: number
@@ -542,7 +629,15 @@ export type Database = {
           user_id?: string
           valor?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produtos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
