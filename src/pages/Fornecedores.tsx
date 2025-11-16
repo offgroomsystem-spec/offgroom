@@ -46,8 +46,46 @@ interface Produto {
 
 const TIPOS_FORNECEDOR = ["Produtos", "Serviços", "Produtos e Serviços", "Outros"];
 const FORMAS_PAGAMENTO = ["Pix", "Boleto", "Transferência", "Cartão", "Dinheiro"];
-const CONDICOES_PAGAMENTO = ["7 dias", "14 dias", "15 dias", "15/30", "28 dias", "30 dias", "28/56", "30/60", "30/60/90"];
-const ESTADOS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
+const CONDICOES_PAGAMENTO = [
+  "7 dias",
+  "14 dias",
+  "15 dias",
+  "15/30",
+  "28 dias",
+  "30 dias",
+  "28/56",
+  "30/60",
+  "30/60/90",
+];
+const ESTADOS = [
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
+];
 
 const Fornecedores = () => {
   const { user } = useAuth();
@@ -93,7 +131,7 @@ const Fornecedores = () => {
 
   const fetchFornecedores = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -162,9 +200,7 @@ const Fornecedores = () => {
           description: "As alterações foram salvas com sucesso.",
         });
       } else {
-        const { error } = await supabase
-          .from("fornecedores")
-          .insert([{ ...formData, user_id: user.id }]);
+        const { error } = await supabase.from("fornecedores").insert([{ ...formData, user_id: user.id }]);
 
         if (error) {
           if (error.code === "23505") {
@@ -254,11 +290,7 @@ const Fornecedores = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("fornecedores")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", user!.id);
+      const { error } = await supabase.from("fornecedores").delete().eq("id", id).eq("user_id", user!.id);
 
       if (error) throw error;
 
@@ -316,8 +348,8 @@ const Fornecedores = () => {
   };
 
   const filteredFornecedores = fornecedores.filter((f) => {
-    const matchSearch = f.nome_fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        f.cnpj_cpf.includes(searchTerm);
+    const matchSearch =
+      f.nome_fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) || f.cnpj_cpf.includes(searchTerm);
     const matchTipo = filterTipo === "all" || f.tipo_fornecedor === filterTipo;
     const matchCidade = filterCidade === "all" || f.cidade === filterCidade;
     return matchSearch && matchTipo && matchCidade;
@@ -432,7 +464,7 @@ const Fornecedores = () => {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="rua">Rua</Label>
+                  <Label htmlFor="rua">Logradouro</Label>
                   <Input
                     id="rua"
                     value={formData.rua}
@@ -640,27 +672,15 @@ const Fornecedores = () => {
                       <TableCell>{fornecedor.tipo_fornecedor}</TableCell>
                       <TableCell>{fornecedor.telefone || "-"}</TableCell>
                       <TableCell>
-                        {fornecedor.cidade && fornecedor.estado
-                          ? `${fornecedor.cidade}/${fornecedor.estado}`
-                          : "-"}
+                        {fornecedor.cidade && fornecedor.estado ? `${fornecedor.cidade}/${fornecedor.estado}` : "-"}
                       </TableCell>
                       <TableCell>{fornecedor.forma_pagamento || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleView(fornecedor)}
-                            title="Visualizar"
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleView(fornecedor)} title="Visualizar">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(fornecedor)}
-                            title="Editar"
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(fornecedor)} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
