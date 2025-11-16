@@ -175,13 +175,13 @@ const Relatorios = () => {
                 titulo: "Demonstrativo de Resultado (DRE)",
                 desc: "Análise de receitas, custos e lucro líquido",
               },
-              { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio (PE)", desc: "Calcule o valor necessário para cobrir todas as despesas" },
-              { id: "receita-operacional", titulo: "Receita Operacional", desc: "Análise detalhada de receitas operacionais" },
-              { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Análise detalhada de receitas não operacionais" },
               { id: "despesas-fixas", titulo: "Despesas Fixas", desc: "Análise detalhada de despesas fixas mensais" },
               { id: "despesas-operacionais", titulo: "Despesas Operacionais", desc: "Análise detalhada de despesas operacionais do negócio" },
-              { id: "despesas-nao-operacionais", titulo: "Despesas Não Operacionais", desc: "Análise de despesas não operacionais (manutenção, reparos, etc.)" },
+              { id: "receita-operacional", titulo: "Receita Operacional", desc: "Análise detalhada de receitas operacionais" },
               { id: "inadimplencia", titulo: "Inadimplência e Contas a Receber", desc: "Contas vencidas e gestão de inadimplência" },
+              { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio (PE)", desc: "Calcule o valor necessário para cobrir todas as despesas" },
+              { id: "despesas-nao-operacionais", titulo: "Despesas Não Operacionais", desc: "Análise de despesas não operacionais (manutenção, reparos, etc.)" },
+              { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Análise detalhada de receitas não operacionais" },
             ].map((rel) => (
               <Card
                 key={rel.id}
