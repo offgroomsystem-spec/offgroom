@@ -23,12 +23,6 @@ const Layout = () => {
     navigate('/login');
   };
 
-  const financeiroItems = [
-    { path: "/receitas", label: "Receitas", icon: DollarSign },
-    { path: "/despesas", label: "Despesas", icon: DollarSign },
-    { path: "/contas-bancarias", label: "Contas Bancárias", icon: DollarSign },
-  ];
-
   const cadastroItems = [
     { path: "/clientes", label: "Clientes", icon: Users },
     { path: "/servicos", label: "Serviços", icon: Scissors },
@@ -36,19 +30,10 @@ const Layout = () => {
     { path: "/racas", label: "Raças", icon: PawPrint },
     { path: "/pacotes", label: "Pacotes", icon: Scissors },
     { path: "/empresa", label: "Empresa", icon: Building2 },
-    { 
-      path: "#financeiro", 
-      label: "Financeiro", 
-      icon: DollarSign,
-      isSubmenu: true,
-      submenuItems: financeiroItems
-    },
+    { path: "/contas-bancarias", label: "Contas Bancárias", icon: DollarSign },
   ];
 
-  const isFinanceiroActive = financeiroItems.some(item => location.pathname === item.path);
-  const isCadastroActive = cadastroItems.some(item => 
-    item.path !== "#financeiro" && location.pathname === item.path
-  ) || isFinanceiroActive;
+  const isCadastroActive = cadastroItems.some(item => location.pathname === item.path);
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,33 +79,6 @@ const Layout = () => {
               <DropdownMenuContent align="start" className="bg-background z-[100]">
                 {cadastroItems.map((item) => {
                   const Icon = item.icon;
-                  
-                  if ('isSubmenu' in item && item.isSubmenu && 'submenuItems' in item && item.submenuItems) {
-                    return (
-                      <DropdownMenuSub key={item.path}>
-                        <DropdownMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
-                          <Icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="bg-background z-[101]">
-                          {item.submenuItems.map((subItem) => {
-                            const SubIcon = subItem.icon;
-                            return (
-                              <DropdownMenuItem key={subItem.path} asChild>
-                                <Link
-                                  to={subItem.path}
-                                  className="flex items-center gap-2 cursor-pointer"
-                                >
-                                  <SubIcon className="h-4 w-4" />
-                                  <span>{subItem.label}</span>
-                                </Link>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                    );
-                  }
                   
                   return (
                     <DropdownMenuItem key={item.path} asChild>

@@ -19,8 +19,6 @@ import Agendamentos from "./pages/Agendamentos";
 import Relatorios from "./pages/Relatorios";
 import Empresa from "./pages/Empresa";
 import NotFound from "./pages/NotFound";
-import Receitas from "./pages/Receitas";
-import Despesas from "./pages/Despesas";
 import ContasBancarias from "./pages/ContasBancarias";
 import ControleFinanceiro from "./pages/ControleFinanceiro";
 
@@ -51,8 +49,6 @@ const App = () => (
                 <Route path="/racas" element={<Racas />} />
                 <Route path="/pacotes" element={<Pacotes />} />
                 <Route path="/empresa" element={<Empresa />} />
-                <Route path="/receitas" element={<Receitas />} />
-                <Route path="/despesas" element={<Despesas />} />
                 <Route path="/contas-bancarias" element={<ContasBancarias />} />
                 <Route path="/controle-financeiro" element={<ControleFinanceiro />} />
                 <Route path="/relatorios" element={<Relatorios />} />
