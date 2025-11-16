@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Pencil, Trash2, Eye, Search } from "lucide-react";
+import { Pencil, Trash2, Eye, Search, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -99,6 +99,7 @@ const Fornecedores = () => {
   const [viewingFornecedor, setViewingFornecedor] = useState<Fornecedor | null>(null);
   const [produtosFornecedor, setProdutosFornecedor] = useState<Produto[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     nome_fornecedor: "",
@@ -221,6 +222,7 @@ const Fornecedores = () => {
 
       resetForm();
       fetchFornecedores();
+      setFormDialogOpen(false);
     } catch (error: any) {
       toast({
         title: "Erro ao salvar fornecedor",
@@ -256,6 +258,7 @@ const Fornecedores = () => {
       nome_titular: "",
     });
     setEditingId(null);
+    setFormDialogOpen(false);
   };
 
   const handleEdit = (fornecedor: Fornecedor) => {
@@ -361,248 +364,248 @@ const Fornecedores = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Cadastro de Fornecedores</h1>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{editingId ? "Editar Fornecedor" : "Novo Fornecedor"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Informações do Fornecedor</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nome_fornecedor">Nome do Fornecedor *</Label>
-                  <Input
-                    id="nome_fornecedor"
-                    value={formData.nome_fornecedor}
-                    onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cnpj_cpf">CNPJ/CPF *</Label>
-                  <Input
-                    id="cnpj_cpf"
-                    value={formData.cnpj_cpf}
-                    onChange={(e) => setFormData({ ...formData, cnpj_cpf: maskCNPJCPF(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
-                  <Input
-                    id="nome_fantasia"
-                    value={formData.nome_fantasia}
-                    onChange={(e) => setFormData({ ...formData, nome_fantasia: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tipo_fornecedor">Tipo do Fornecedor *</Label>
-                  <Select
-                    value={formData.tipo_fornecedor}
-                    onValueChange={(value) => setFormData({ ...formData, tipo_fornecedor: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIPOS_FORNECEDOR.map((tipo) => (
-                        <SelectItem key={tipo} value={tipo}>
-                          {tipo}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="whatsapp">WhatsApp</Label>
-                  <Input
-                    id="whatsapp"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="telefone">Telefone</Label>
-                  <Input
-                    id="telefone"
-                    value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: maskPhone(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="site">Site</Label>
-                  <Input
-                    id="site"
-                    value={formData.site}
-                    onChange={(e) => setFormData({ ...formData, site: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Endereço</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="cep">CEP</Label>
-                  <Input
-                    id="cep"
-                    value={formData.cep}
-                    onChange={(e) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="rua">Logradouro</Label>
-                  <Input
-                    id="rua"
-                    value={formData.rua}
-                    onChange={(e) => setFormData({ ...formData, rua: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="numero">Número</Label>
-                  <Input
-                    id="numero"
-                    value={formData.numero}
-                    onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="complemento">Complemento</Label>
-                  <Input
-                    id="complemento"
-                    value={formData.complemento}
-                    onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="bairro">Bairro</Label>
-                  <Input
-                    id="bairro"
-                    value={formData.bairro}
-                    onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cidade">Cidade</Label>
-                  <Input
-                    id="cidade"
-                    value={formData.cidade}
-                    onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="estado">Estado</Label>
-                  <Select
-                    value={formData.estado}
-                    onValueChange={(value) => setFormData({ ...formData, estado: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ESTADOS.map((estado) => (
-                        <SelectItem key={estado} value={estado}>
-                          {estado}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+        <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => { resetForm(); setFormDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Fornecedor
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingId ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Informações do Fornecedor</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="nome_fornecedor">Nome do Fornecedor *</Label>
+                    <Input
+                      id="nome_fornecedor"
+                      value={formData.nome_fornecedor}
+                      onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cnpj_cpf">CNPJ/CPF *</Label>
+                    <Input
+                      id="cnpj_cpf"
+                      value={formData.cnpj_cpf}
+                      onChange={(e) => setFormData({ ...formData, cnpj_cpf: maskCNPJCPF(e.target.value) })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
+                    <Input
+                      id="nome_fantasia"
+                      value={formData.nome_fantasia}
+                      onChange={(e) => setFormData({ ...formData, nome_fantasia: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tipo_fornecedor">Tipo do Fornecedor *</Label>
+                    <Select
+                      value={formData.tipo_fornecedor}
+                      onValueChange={(value) => setFormData({ ...formData, tipo_fornecedor: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIPOS_FORNECEDOR.map((tipo) => (
+                          <SelectItem key={tipo} value={tipo}>
+                            {tipo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="whatsapp">WhatsApp</Label>
+                    <Input
+                      id="whatsapp"
+                      value={formData.whatsapp}
+                      onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="telefone">Telefone</Label>
+                    <Input
+                      id="telefone"
+                      value={formData.telefone}
+                      onChange={(e) => setFormData({ ...formData, telefone: maskPhone(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">E-mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="site">Site</Label>
+                    <Input
+                      id="site"
+                      value={formData.site}
+                      onChange={(e) => setFormData({ ...formData, site: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Dados Financeiros</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
-                  <Select
-                    value={formData.forma_pagamento}
-                    onValueChange={(value) => setFormData({ ...formData, forma_pagamento: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FORMAS_PAGAMENTO.map((forma) => (
-                        <SelectItem key={forma} value={forma}>
-                          {forma}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="condicao_pagamento">Condição de Pagamento</Label>
-                  <Select
-                    value={formData.condicao_pagamento}
-                    onValueChange={(value) => setFormData({ ...formData, condicao_pagamento: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CONDICOES_PAGAMENTO.map((condicao) => (
-                        <SelectItem key={condicao} value={condicao}>
-                          {condicao}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="banco">Banco</Label>
-                  <Input
-                    id="banco"
-                    value={formData.banco}
-                    onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="chave_pix">Chave Pix</Label>
-                  <Input
-                    id="chave_pix"
-                    value={formData.chave_pix}
-                    onChange={(e) => setFormData({ ...formData, chave_pix: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="nome_titular">Nome do Titular</Label>
-                  <Input
-                    id="nome_titular"
-                    value={formData.nome_titular}
-                    onChange={(e) => setFormData({ ...formData, nome_titular: e.target.value })}
-                  />
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Endereço</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cep">CEP</Label>
+                    <Input
+                      id="cep"
+                      value={formData.cep}
+                      onChange={(e) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="rua">Logradouro</Label>
+                    <Input
+                      id="rua"
+                      value={formData.rua}
+                      onChange={(e) => setFormData({ ...formData, rua: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="numero">Número</Label>
+                    <Input
+                      id="numero"
+                      value={formData.numero}
+                      onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="complemento">Complemento</Label>
+                    <Input
+                      id="complemento"
+                      value={formData.complemento}
+                      onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="bairro">Bairro</Label>
+                    <Input
+                      id="bairro"
+                      value={formData.bairro}
+                      onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cidade">Cidade</Label>
+                    <Input
+                      id="cidade"
+                      value={formData.cidade}
+                      onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="estado">Estado</Label>
+                    <Select value={formData.estado} onValueChange={(value) => setFormData({ ...formData, estado: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ESTADOS.map((estado) => (
+                          <SelectItem key={estado} value={estado}>
+                            {estado}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-2">
-              <Button type="submit" disabled={loading}>
-                {editingId ? "Salvar Alterações" : "Cadastrar"}
-              </Button>
-              {editingId && (
-                <Button type="button" variant="outline" onClick={resetForm}>
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Dados Financeiros</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
+                    <Select
+                      value={formData.forma_pagamento}
+                      onValueChange={(value) => setFormData({ ...formData, forma_pagamento: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FORMAS_PAGAMENTO.map((forma) => (
+                          <SelectItem key={forma} value={forma}>
+                            {forma}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="condicao_pagamento">Condição de Pagamento</Label>
+                    <Select
+                      value={formData.condicao_pagamento}
+                      onValueChange={(value) => setFormData({ ...formData, condicao_pagamento: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONDICOES_PAGAMENTO.map((condicao) => (
+                          <SelectItem key={condicao} value={condicao}>
+                            {condicao}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="banco">Banco</Label>
+                    <Input
+                      id="banco"
+                      value={formData.banco}
+                      onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="chave_pix">Chave Pix</Label>
+                    <Input
+                      id="chave_pix"
+                      value={formData.chave_pix}
+                      onChange={(e) => setFormData({ ...formData, chave_pix: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nome_titular">Nome do Titular</Label>
+                    <Input
+                      id="nome_titular"
+                      value={formData.nome_titular}
+                      onChange={(e) => setFormData({ ...formData, nome_titular: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setFormDialogOpen(false)}>
                   Cancelar
                 </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Salvando..." : editingId ? "Salvar Alterações" : "Cadastrar"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <Card>
         <CardHeader>
