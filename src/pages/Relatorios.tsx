@@ -203,20 +203,6 @@ const Relatorios = () => {
         <TabsContent value="clientes" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card
-              key="atendimentos-realizados"
-              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
-              onClick={() => handleCardClick("atendimentos-realizados")}
-            >
-              <CardHeader>
-                <CardTitle className="text-sm">Atendimentos Realizados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Análise completa de todos os atendimentos: avulsos e pacotes
-                </p>
-              </CardContent>
-            </Card>
-            <Card
               key="pacotes-ativos"
               className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
               onClick={() => handleCardClick("pacotes-ativos")}
@@ -228,6 +214,18 @@ const Relatorios = () => {
                 <p className="text-xs text-muted-foreground">
                   Análise completa de pacotes ativos, consumo e vencimentos
                 </p>
+              </CardContent>
+            </Card>
+            <Card
+              key="Pacotes Próximos do Vencimento"
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("pacotes-vencimento")}
+            >
+              <CardHeader>
+                <CardTitle className="text-sm">Pacotes Próximos do Vencimento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">Visualize pacotes que vencem nos próximos 7 dias</p>
               </CardContent>
             </Card>
             <Card
@@ -257,15 +255,17 @@ const Relatorios = () => {
               </CardContent>
             </Card>
             <Card
-              key="Pacotes Próximos do Vencimento"
+              key="atendimentos-realizados"
               className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
-              onClick={() => handleCardClick("pacotes-vencimento")}
+              onClick={() => handleCardClick("atendimentos-realizados")}
             >
               <CardHeader>
-                <CardTitle className="text-sm">Pacotes Próximos do Vencimento</CardTitle>
+                <CardTitle className="text-sm">Atendimentos Realizados</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">Visualize pacotes que vencem nos próximos 7 dias</p>
+                <p className="text-xs text-muted-foreground">
+                  Análise completa de todos os atendimentos: avulsos e pacotes
+                </p>
               </CardContent>
             </Card>
           </div>
