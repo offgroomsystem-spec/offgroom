@@ -31,6 +31,7 @@ const Layout = () => {
     { path: "/pacotes", label: "Pacotes", icon: Scissors },
     { path: "/empresa", label: "Empresa", icon: Building2 },
     { path: "/fornecedores", label: "Fornecedores", icon: Building2 },
+    { path: "/compras-realizadas", label: "Compras Realizadas", icon: FileText },
     { path: "/contas-bancarias", label: "Contas Bancárias", icon: DollarSign },
   ];
 
