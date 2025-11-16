@@ -166,6 +166,98 @@ export type Database = {
         }
         Relationships: []
       }
+      compras_nf: {
+        Row: {
+          chave_nf: string
+          created_at: string
+          data_compra: string
+          fornecedor_id: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          chave_nf: string
+          created_at?: string
+          data_compra: string
+          fornecedor_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          chave_nf?: string
+          created_at?: string
+          data_compra?: string
+          fornecedor_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_nf_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras_nf_itens: {
+        Row: {
+          created_at: string
+          data_validade: string | null
+          id: string
+          nf_id: string
+          observacoes: string | null
+          produto_id: string
+          quantidade: number
+          updated_at: string
+          valor_compra: number
+        }
+        Insert: {
+          created_at?: string
+          data_validade?: string | null
+          id?: string
+          nf_id: string
+          observacoes?: string | null
+          produto_id: string
+          quantidade: number
+          updated_at?: string
+          valor_compra: number
+        }
+        Update: {
+          created_at?: string
+          data_validade?: string | null
+          id?: string
+          nf_id?: string
+          observacoes?: string | null
+          produto_id?: string
+          quantidade?: number
+          updated_at?: string
+          valor_compra?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_nf_itens_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "compras_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_nf_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_bancarias: {
         Row: {
           created_at: string | null

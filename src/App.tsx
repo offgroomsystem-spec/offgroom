@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import ContasBancarias from "./pages/ContasBancarias";
 import ControleFinanceiro from "./pages/ControleFinanceiro";
 import Fornecedores from "./pages/Fornecedores";
+import ComprasRealizadas from "./pages/ComprasRealizadas";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/pacotes" element={<Pacotes />} />
                 <Route path="/empresa" element={<Empresa />} />
                 <Route path="/fornecedores" element={<Fornecedores />} />
+                <Route path="/compras-realizadas" element={<ComprasRealizadas />} />
                 <Route path="/contas-bancarias" element={<ContasBancarias />} />
                 <Route path="/controle-financeiro" element={<ControleFinanceiro />} />
                 <Route path="/relatorios" element={<Relatorios />} />
