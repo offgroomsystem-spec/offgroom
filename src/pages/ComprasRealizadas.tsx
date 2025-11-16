@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, Eye, Filter, X, Calendar } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, Filter, X, Calendar, Search, Check, ChevronsUpDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -103,6 +116,8 @@ export default function ComprasRealizadas() {
       observacoes: "",
     },
   ]);
+
+  const [openProdutoIndex, setOpenProdutoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadCompras();
@@ -217,6 +232,24 @@ export default function ComprasRealizadas() {
     }, 0);
   };
 
+  const formatarChaveNF = (value: string) => {
+    // Remove tudo que não é número
+    const numeros = value.replace(/\D/g, '');
+    
+    // Limita a 44 dígitos
+    const limitado = numeros.slice(0, 44);
+    
+    // Adiciona espaços a cada 4 dígitos
+    const formatado = limitado.match(/.{1,4}/g)?.join(' ') || limitado;
+    
+    return formatado;
+  };
+
+  const handleChaveNFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatado = formatarChaveNF(e.target.value);
+    setFormData({ ...formData, chave_nf: formatado });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -239,13 +272,22 @@ export default function ComprasRealizadas() {
       if (!user) throw new Error("Usuário não autenticado");
 
       const valorTotal = calcularValorTotal();
+      
+      // Remove espaços da chave NF antes de salvar
+      const chaveNFLimpa = formData.chave_nf.replace(/\s/g, '');
+      
+      // Valida se tem exatamente 44 dígitos
+      if (chaveNFLimpa.length !== 44) {
+        toast.error("A chave da NF deve ter exatamente 44 dígitos");
+        return;
+      }
 
       // Inserir a NF
       const { data: nfData, error: nfError } = await supabase
         .from("compras_nf")
         .insert({
           user_id: user.id,
-          chave_nf: formData.chave_nf,
+          chave_nf: chaveNFLimpa,
           fornecedor_id: formData.fornecedor_id,
           data_compra: formData.data_compra,
           valor_total: valorTotal,
@@ -392,12 +434,14 @@ export default function ComprasRealizadas() {
                       <Input
                         id="chave_nf"
                         value={formData.chave_nf}
-                        onChange={(e) =>
-                          setFormData({ ...formData, chave_nf: e.target.value })
-                        }
-                        placeholder="Digite a chave de acesso"
+                        onChange={handleChaveNFChange}
+                        placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
+                        maxLength={54}
                         required
                       />
+                      <p className="text-xs text-muted-foreground">
+                        44 dígitos numéricos
+                      </p>
                     </div>
 
                     <div className="space-y-2">
@@ -475,23 +519,58 @@ export default function ComprasRealizadas() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>Produto *</Label>
-                          <Select
-                            value={item.produto_id}
-                            onValueChange={(value) =>
-                              atualizarItem(index, "produto_id", value)
-                            }
+                          <Popover 
+                            open={openProdutoIndex === index} 
+                            onOpenChange={(open) => setOpenProdutoIndex(open ? index : null)}
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o produto" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {produtos.map((produto) => (
-                                <SelectItem key={produto.id} value={produto.id}>
-                                  {produto.codigo} - {produto.nome}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openProdutoIndex === index}
+                                className="w-full justify-between"
+                              >
+                                {item.produto_id
+                                  ? produtos.find((p) => p.id === item.produto_id)
+                                      ? `${produtos.find((p) => p.id === item.produto_id)?.codigo} - ${produtos.find((p) => p.id === item.produto_id)?.nome}`
+                                      : "Selecione o produto"
+                                  : "Selecione o produto"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0" align="start">
+                              <Command>
+                                <CommandInput 
+                                  placeholder="Buscar produto..." 
+                                  className="h-9"
+                                />
+                                <CommandList>
+                                  <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                                  <CommandGroup>
+                                    {produtos.map((produto) => (
+                                      <CommandItem
+                                        key={produto.id}
+                                        value={`${produto.codigo} ${produto.nome}`}
+                                        onSelect={() => {
+                                          atualizarItem(index, "produto_id", produto.id);
+                                          setOpenProdutoIndex(null);
+                                        }}
+                                      >
+                                        {produto.codigo} - {produto.nome}
+                                        <Check
+                                          className={`ml-auto h-4 w-4 ${
+                                            item.produto_id === produto.id
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          }`}
+                                        />
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </div>
 
                         <div className="space-y-2">
