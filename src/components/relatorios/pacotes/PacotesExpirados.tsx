@@ -145,7 +145,7 @@ Aguardamos seu retorno.`;
         const temAgendamentoNaTabela = agendamentosClientePet.some((ag) => {
           const dataAgendamento = new Date(ag.data);
           dataAgendamento.setHours(0, 0, 0, 0);
-          return dataAgendamento > hoje;
+          return dataAgendamento >= hoje;
         });
 
         // Verificar se tem serviço futuro no próprio pacote (JSON servicos)
@@ -153,7 +153,7 @@ Aguardamos seu retorno.`;
           (pacoteVendido.servicos as any[])?.filter((servico) => {
             const dataServico = new Date(servico.data);
             dataServico.setHours(0, 0, 0, 0);
-            return dataServico > hoje;
+            return dataServico >= hoje;
           }) || [];
         const temServicoFuturoNoPacote = servicosFuturosNoPacote.length > 0;
 
@@ -175,7 +175,7 @@ Aguardamos seu retorno.`;
           return (outroPacote.servicos as any[])?.some((servico) => {
             const dataServico = new Date(servico.data);
             dataServico.setHours(0, 0, 0, 0);
-            return dataServico > hoje;
+            return dataServico >= hoje;
           });
         });
 
