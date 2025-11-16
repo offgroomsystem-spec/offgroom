@@ -189,7 +189,14 @@ const Produtos = () => {
       valorVenda: ""
     });
     setProdutoSelecionado(null);
-    setIsDialogOpen(false);
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      // Quando o modal fecha, reseta tudo
+      resetForm();
+    }
   };
 
   const abrirEdicao = (produto: Produto) => {
@@ -277,6 +284,7 @@ const Produtos = () => {
       }
 
       await loadProdutos();
+      setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
       console.error('Erro ao salvar produto:', error);
@@ -335,7 +343,7 @@ const Produtos = () => {
             {mostrarFiltros ? "Ocultar Filtros" : "Aplicar Filtros"}
           </Button>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
               <Button className="gap-2 h-8 text-xs">
                 <Plus className="h-3 w-3" />
