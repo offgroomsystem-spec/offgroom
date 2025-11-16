@@ -244,22 +244,6 @@ const Relatorios = () => {
                 </p>
               </CardContent>
             </Card>
-            {[
-              "Pacotes Ativos",
-              "Taxa de Renovação",
-              "Clientes Top (Por Receita)",
-              "Valor de Vida do Cliente (CLV)",
-              "Clientes em Risco (Churn Proativo)",
-            ].map((titulo) => (
-              <Card key={titulo} className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary">
-                <CardHeader>
-                  <CardTitle className="text-sm">{titulo}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
-                </CardContent>
-              </Card>
-            ))}
             <Card
               key="Pacotes Expirados"
               className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
