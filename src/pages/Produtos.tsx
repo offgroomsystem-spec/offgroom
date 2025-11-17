@@ -65,7 +65,8 @@ const Produtos = () => {
     taxaCartao: "2.33",
     codigo: "",
     valorVenda: "",
-    estoqueMinimo: "0"
+    estoqueMinimo: "0",
+    estoqueAtual: "",
   });
 
   useEffect(() => {
@@ -74,20 +75,41 @@ const Produtos = () => {
     }
   }, [user]);
 
-  const calcularEstoque = async (produtoId: string): Promise<number> => {
+  const calcularEstoque = async (produtoNome: string, produtoId: string): Promise<number> => {
     try {
-      const { data: itens, error } = await supabase
+      // 1. Buscar estoque físico armazenado (prioridade se foi editado manualmente)
+      const { data: produtoData } = await supabase
+        .from('produtos')
+        .select('estoque_atual')
+        .eq('id', produtoId)
+        .single();
+      
+      // Se existe estoque_atual definido, retornar (foi editado manualmente)
+      if (produtoData && produtoData.estoque_atual !== null) {
+        return Number(produtoData.estoque_atual);
+      }
+
+      // 2. Caso contrário, calcular automaticamente: Compras - Vendas
+      const { data: compras } = await supabase
         .from('compras_nf_itens')
         .select('quantidade')
         .eq('produto_id', produtoId);
-
-      if (error) throw error;
       
-      const estoqueTotal = (itens || []).reduce((total, item) => {
-        return total + Number(item.quantidade || 0);
-      }, 0);
+      const totalCompras = (compras || []).reduce((total, item) => 
+        total + Number(item.quantidade || 0), 0
+      );
 
-      return estoqueTotal;
+      const { data: vendas } = await supabase
+        .from('lancamentos_financeiros_itens')
+        .select('quantidade')
+        .eq('descricao2', 'Venda')
+        .eq('produto_servico', produtoNome);
+
+      const totalVendas = (vendas || []).reduce((total, venda) => 
+        total + Number(venda.quantidade || 0), 0
+      );
+
+      return Math.max(0, totalCompras - totalVendas);
     } catch (error) {
       console.error('Erro ao calcular estoque:', error);
       return 0;
@@ -107,7 +129,7 @@ const Produtos = () => {
       if (data) {
         const produtosComEstoque = await Promise.all(
           data.map(async (p: any) => {
-            const estoqueAtual = await calcularEstoque(p.id);
+            const estoqueAtual = await calcularEstoque(p.nome || p.descricao, p.id);
             return {
               id: p.id,
               descricao: p.nome || p.descricao,
@@ -293,7 +315,7 @@ const Produtos = () => {
     }
 
     try {
-      const produtoData = {
+      const produtoData: any = {
         nome: formData.descricao.trim(),
         preco_custo: parseFloat(formData.precoCusto),
         margem_lucro: parseFloat(formData.margemLucro) || 0,
@@ -305,6 +327,11 @@ const Produtos = () => {
         estoque_minimo: parseInt(formData.estoqueMinimo) || 0,
         user_id: user.id
       };
+
+      // Adicionar estoque_atual apenas em modo de edição
+      if (produtoSelecionado) {
+        produtoData.estoque_atual = formData.estoqueAtual ? parseFloat(formData.estoqueAtual) : null;
+      }
 
       if (produtoSelecionado) {
         const { error } = await supabase
@@ -369,7 +396,8 @@ const Produtos = () => {
       taxaCartao: produto.taxaCartao.toString(),
       codigo: produto.codigo,
       valorVenda: produto.valorVenda.toString(),
-      estoqueMinimo: produto.estoqueMinimo.toString()
+      estoqueMinimo: produto.estoqueMinimo.toString(),
+      estoqueAtual: produto.estoqueAtual?.toString() || "",
     });
     
     setIsDialogOpen(true);
@@ -391,7 +419,8 @@ const Produtos = () => {
       taxaCartao: "2.33",
       codigo: "",
       valorVenda: "",
-      estoqueMinimo: "0"
+      estoqueMinimo: "0",
+      estoqueAtual: "",
     });
     setProdutoSelecionado(null);
     setVariacaoPreco(null);
@@ -698,20 +727,40 @@ const Produtos = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-0.5">
-                    <Label className="text-[10px] font-semibold">Estoque Mínimo *</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.estoqueMinimo}
-                      onChange={(e) => {
-                        const valor = e.target.value.replace(/\D/g, '');
-                        setFormData({ ...formData, estoqueMinimo: valor });
-                      }}
-                      placeholder="0"
-                      className="h-8 text-xs"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] font-semibold">Estoque Mínimo *</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={formData.estoqueMinimo}
+                        onChange={(e) => {
+                          const valor = e.target.value.replace(/\D/g, '');
+                          setFormData({ ...formData, estoqueMinimo: valor });
+                        }}
+                        placeholder="0"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    {produtoSelecionado && (
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] font-semibold">Estoque Atual</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.estoqueAtual}
+                          onChange={(e) => setFormData({ ...formData, estoqueAtual: e.target.value })}
+                          placeholder="0"
+                          className="h-8 text-xs"
+                        />
+                        <p className="text-[9px] text-muted-foreground">
+                          Edite manualmente para ajustar o estoque
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

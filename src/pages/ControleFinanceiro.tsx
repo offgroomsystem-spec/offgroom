@@ -48,6 +48,7 @@ interface ItemLancamento {
   descricao2: string;
   produtoServico: string;
   valor: number;
+  quantidade?: number;
 }
 
 interface LancamentoFinanceiro {
@@ -309,7 +310,7 @@ const ItemLancamentoForm = ({
         </Select>
       </div>
 
-      <div className="col-span-5 space-y-0.5">
+      <div className={isVenda ? "col-span-4 space-y-0.5" : "col-span-5 space-y-0.5"}>
         <Label className="text-[10px] font-semibold">
           {isServicos ? "Serviço" : isVenda ? "Produto" : "Observação"}
           {isObrigatorio && " *"}
@@ -333,6 +334,20 @@ const ItemLancamentoForm = ({
           />
         )}
       </div>
+
+      {isVenda && (
+        <div className="col-span-1 space-y-0.5">
+          <Label className="text-[10px] font-semibold">Qtd *</Label>
+          <Input
+            type="number"
+            step="1"
+            min="1"
+            value={item.quantidade || 1}
+            onChange={(e) => onChange({ ...item, quantidade: parseInt(e.target.value) || 1 })}
+            className="h-7 text-xs"
+          />
+        </div>
+      )}
 
       <div className="col-span-3 space-y-0.5">
         <div className="flex items-end justify-between gap-1">
@@ -586,7 +601,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
   });
 
   const [itensLancamento, setItensLancamento] = useState<ItemLancamento[]>([
-    { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
+    { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0, quantidade: 1 },
   ]);
 
   const [filtros, setFiltros] = useState({
@@ -807,6 +822,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           descricao2: item.descricao2,
           produto_servico: item.produtoServico,
           valor: item.valor,
+          quantidade: item.quantidade || 1,
         })),
       );
 
@@ -836,7 +852,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       valorDeducao: 0,
       tipoDeducao: "",
     });
-    setItensLancamento([{ id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }]);
+    setItensLancamento([{ id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0, quantidade: 1 }]);
     setIsDialogOpen(false);
     setIsEditDialogOpen(false);
   };
@@ -956,6 +972,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           descricao2: item.descricao2,
           produto_servico: item.produtoServico,
           valor: item.valor,
+          quantidade: item.quantidade || 1,
         })),
       );
 
@@ -1435,7 +1452,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       if (itensLancamento.length < 10) {
                         setItensLancamento([
                           ...itensLancamento,
-                          { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
+                          { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0, quantidade: 1 },
                         ]);
                       } else {
                         toast.error("Limite máximo de 10 itens atingido");
@@ -2246,7 +2263,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     onClick={() => {
                       setItensLancamento([
                         ...itensLancamento,
-                        { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
+                        { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0, quantidade: 1 },
                       ]);
                     }}
                     className="h-6 text-[10px] gap-1"
@@ -2281,7 +2298,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     if (itensLancamento.length < 10) {
                       setItensLancamento([
                         ...itensLancamento,
-                        { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 },
+                        { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0, quantidade: 1 },
                       ]);
                     } else {
                       toast.error("Limite máximo de 10 itens atingido");
