@@ -419,19 +419,59 @@ const Produtos = () => {
     toast.success("Preço de venda atualizado!");
   };
 
-  const VariacaoPrecoIndicador = ({ produtoId }: { produtoId: string }) => {
+  const precoVendaEstaAtualizado = (
+    precoCustoAtual: number,
+    valorVendaAtual: number,
+    margemLucro: number,
+    imposto: number,
+    taxaCartao: number
+  ): boolean => {
+    if (precoCustoAtual <= 0) return true;
+    
+    // Calcular qual deveria ser o preço de venda ideal
+    const percentualTotal = (margemLucro + imposto + taxaCartao) / 100;
+    const precoVendaIdeal = precoCustoAtual / (1 - percentualTotal);
+    
+    // Calcular diferença percentual
+    const diferencaPercentual = Math.abs((valorVendaAtual - precoVendaIdeal) / precoVendaIdeal) * 100;
+    
+    // Considerar atualizado se diferença < 1%
+    return diferencaPercentual < 1;
+  };
+
+  const VariacaoPrecoIndicador = ({ 
+    produtoId, 
+    produto 
+  }: { 
+    produtoId: string;
+    produto: Produto;
+  }) => {
     const [variacao, setVariacao] = useState<VariacaoPreco | null>(null);
+    const [deveExibir, setDeveExibir] = useState(false);
 
     useEffect(() => {
       const buscarVariacao = async () => {
         const historico = await buscarHistoricoCompras(produtoId);
         const variacaoCalculada = calcularVariacaoPreco(historico);
         setVariacao(variacaoCalculada);
+        
+        if (variacaoCalculada && variacaoCalculada.tipo !== 'igual') {
+          const atualizado = precoVendaEstaAtualizado(
+            variacaoCalculada.valorAtual,
+            produto.valorVenda,
+            produto.margemLucro,
+            produto.imposto,
+            produto.taxaCartao
+          );
+          setDeveExibir(!atualizado);
+        } else {
+          setDeveExibir(false);
+        }
       };
       buscarVariacao();
-    }, [produtoId]);
+    }, [produtoId, produto]);
 
-    if (!variacao || variacao.tipo === 'igual') return null;
+    if (!variacao || !deveExibir) return null;
 
     return (
       <div className="inline-flex items-center">
@@ -525,8 +565,16 @@ const Produtos = () => {
                       placeholder="0.00"
                       className="h-8 text-xs"
                     />
-                    {variacaoPreco && variacaoPreco.tipo !== 'igual' && (
-                      <p className={`text-[9px] ${variacaoPreco.tipo === 'aumento' ? 'text-destructive' : 'text-green-600'}`}>
+                    {variacaoPreco && 
+                     variacaoPreco.tipo !== 'igual' && 
+                     !precoVendaEstaAtualizado(
+                       parseFloat(formData.precoCusto) || 0,
+                       parseFloat(formData.valorVenda) || 0,
+                       parseFloat(formData.margemLucro) || 0,
+                       parseFloat(formData.imposto) || 0,
+                       parseFloat(formData.taxaCartao) || 0
+                     ) && (
+                      <p className={`text-[11px] ${variacaoPreco.tipo === 'aumento' ? 'text-destructive' : 'text-green-600'}`}>
                         {variacaoPreco.tipo === 'aumento' ? (
                           <>O preço de compra desse produto subiu de {formatCurrency(variacaoPreco.valorAnterior)} para {formatCurrency(variacaoPreco.valorAtual)}, o que representa uma alta de {variacaoPreco.percentual.toFixed(2)}%.</>
                         ) : (
@@ -618,7 +666,16 @@ const Produtos = () => {
                           placeholder="0.00"
                           className="h-8 text-xs"
                         />
-                        {variacaoPreco && variacaoPreco.tipo !== 'igual' && produtoSelecionado && (
+                        {variacaoPreco && 
+                         variacaoPreco.tipo !== 'igual' && 
+                         produtoSelecionado &&
+                         !precoVendaEstaAtualizado(
+                           parseFloat(formData.precoCusto) || 0,
+                           parseFloat(formData.valorVenda) || 0,
+                           parseFloat(formData.margemLucro) || 0,
+                           parseFloat(formData.imposto) || 0,
+                           parseFloat(formData.taxaCartao) || 0
+                         ) && (
                           <div className="absolute right-2 top-1/2 -translate-y-1/2">
                             {variacaoPreco.tipo === 'aumento' ? (
                               <TrendingUp className="h-4 w-4 text-destructive" />
@@ -789,7 +846,7 @@ const Produtos = () => {
                       <td className="py-2 px-2 text-xs font-semibold">
                         <div className="flex items-center gap-1">
                           {formatCurrency(produto.valorVenda)}
-                          <VariacaoPrecoIndicador produtoId={produto.id} />
+                          <VariacaoPrecoIndicador produtoId={produto.id} produto={produto} />
                         </div>
                       </td>
                       <td className="py-2 px-2 text-xs">
