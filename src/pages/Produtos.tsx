@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Plus, Filter, X } from "lucide-react";
+import { Pencil, Trash2, Plus, Filter, X, TrendingUp, TrendingDown, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,20 @@ interface Produto {
   dataCadastro: string;
 }
 
+interface CompraHistorico {
+  data_compra: string;
+  valor_compra: number;
+  fornecedor_nome: string;
+  chave_nf: string;
+}
+
+interface VariacaoPreco {
+  tipo: 'aumento' | 'reducao' | 'igual';
+  valorAnterior: number;
+  valorAtual: number;
+  percentual: number;
+}
+
 const Produtos = () => {
   const { user } = useAuth();
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -30,7 +44,10 @@ const Produtos = () => {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isHistoricoDialogOpen, setIsHistoricoDialogOpen] = useState(false);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
+  const [historicoCompras, setHistoricoCompras] = useState<CompraHistorico[]>([]);
+  const [variacaoPreco, setVariacaoPreco] = useState<VariacaoPreco | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   
   const [filtros, setFiltros] = useState({
@@ -48,7 +65,6 @@ const Produtos = () => {
     valorVenda: ""
   });
 
-  // Load produtos from Supabase
   useEffect(() => {
     if (user) {
       loadProdutos();
@@ -88,7 +104,59 @@ const Produtos = () => {
     }
   };
 
-  // Gerar próximo código automático
+  const buscarHistoricoCompras = async (produtoId: string) => {
+    try {
+      const { data: itens, error } = await supabase
+        .from('compras_nf_itens')
+        .select(`
+          valor_compra,
+          compras_nf!inner (
+            data_compra,
+            chave_nf,
+            fornecedores (
+              nome_fornecedor
+            )
+          )
+        `)
+        .eq('produto_id', produtoId)
+        .order('compras_nf.data_compra', { ascending: false });
+
+      if (error) throw error;
+
+      const historico: CompraHistorico[] = (itens || []).map((item: any) => ({
+        data_compra: item.compras_nf.data_compra,
+        valor_compra: Number(item.valor_compra),
+        fornecedor_nome: item.compras_nf.fornecedores?.nome_fornecedor || 'N/A',
+        chave_nf: item.compras_nf.chave_nf
+      }));
+
+      return historico;
+    } catch (error) {
+      console.error('Erro ao buscar histórico:', error);
+      return [];
+    }
+  };
+
+  const calcularVariacaoPreco = (historico: CompraHistorico[]): VariacaoPreco | null => {
+    if (historico.length < 2) return null;
+
+    const valorAtual = historico[0].valor_compra;
+    const valorAnterior = historico[1].valor_compra;
+
+    if (valorAtual === valorAnterior) {
+      return { tipo: 'igual', valorAnterior, valorAtual, percentual: 0 };
+    }
+
+    const percentual = ((valorAtual - valorAnterior) / valorAnterior) * 100;
+
+    return {
+      tipo: valorAtual > valorAnterior ? 'aumento' : 'reducao',
+      valorAnterior,
+      valorAtual,
+      percentual: Math.abs(percentual)
+    };
+  };
+
   const gerarProximoCodigo = (): string => {
     if (produtos.length === 0) {
       return "0000000000001";
@@ -105,7 +173,6 @@ const Produtos = () => {
     return proximoCodigo.toString().padStart(13, '0');
   };
 
-  // Preencher código ao abrir dialog de cadastro
   useEffect(() => {
     if (isDialogOpen && !produtoSelecionado) {
       setFormData(prev => ({
@@ -115,7 +182,6 @@ const Produtos = () => {
     }
   }, [isDialogOpen, produtoSelecionado]);
 
-  // Calcular Valor de Venda e Lucro Unitário em tempo real
   const calcularValores = useMemo(() => {
     const precoCusto = parseFloat(formData.precoCusto) || 0;
     const margemLucro = parseFloat(formData.margemLucro) || 0;
@@ -126,7 +192,6 @@ const Produtos = () => {
       return { valorVenda: 0, lucroUnitario: 0, margemCalculada: 0 };
     }
     
-    // Se Margem de Lucro foi preenchida, calcular Valor de Venda
     if (margemLucro > 0) {
       const percentualTotal = (margemLucro + imposto + taxaCartao) / 100;
       const valorVenda = precoCusto / (1 - percentualTotal);
@@ -139,7 +204,6 @@ const Produtos = () => {
         margemCalculada: margemLucro
       };
     } 
-    // Se Valor de Venda foi preenchido manualmente, calcular Margem de Lucro
     else if (formData.valorVenda) {
       const valorVenda = parseFloat(formData.valorVenda) || 0;
       
@@ -157,11 +221,9 @@ const Produtos = () => {
       };
     }
     
-    // Caso apenas Preço de Custo esteja preenchido
     return { valorVenda: precoCusto, lucroUnitario: 0, margemCalculada: 0 };
   }, [formData.precoCusto, formData.margemLucro, formData.imposto, formData.taxaCartao, formData.valorVenda]);
 
-  // Atualizar Valor de Venda automaticamente
   useEffect(() => {
     if (formData.precoCusto && (formData.margemLucro || formData.imposto || formData.taxaCartao)) {
       setFormData(prev => ({
@@ -189,21 +251,27 @@ const Produtos = () => {
       valorVenda: ""
     });
     setProdutoSelecionado(null);
+    setVariacaoPreco(null);
   };
 
   const handleDialogOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
-      // Quando o modal fecha, reseta tudo
       resetForm();
     }
   };
 
-  const abrirEdicao = (produto: Produto) => {
+  const abrirEdicao = async (produto: Produto) => {
     setProdutoSelecionado(produto);
+    
+    const historico = await buscarHistoricoCompras(produto.id);
+    const ultimaCompra = historico.length > 0 ? historico[0].valor_compra : produto.precoCusto;
+    const variacao = calcularVariacaoPreco(historico);
+    
+    setVariacaoPreco(variacao);
     setFormData({
       descricao: produto.descricao,
-      precoCusto: produto.precoCusto.toString(),
+      precoCusto: ultimaCompra.toString(),
       margemLucro: produto.margemLucro.toString(),
       imposto: produto.imposto.toString(),
       taxaCartao: produto.taxaCartao.toString(),
@@ -211,6 +279,28 @@ const Produtos = () => {
       valorVenda: produto.valorVenda.toString()
     });
     setIsDialogOpen(true);
+  };
+
+  const atualizarPrecoVenda = () => {
+    const precoCusto = parseFloat(formData.precoCusto) || 0;
+    const margemLucro = parseFloat(formData.margemLucro) || 0;
+    const imposto = parseFloat(formData.imposto) || 0;
+    const taxaCartao = parseFloat(formData.taxaCartao) || 0;
+
+    if (precoCusto <= 0 || margemLucro <= 0) {
+      toast.error("Preencha o preço de custo e margem de lucro para recalcular");
+      return;
+    }
+
+    const percentualTotal = (margemLucro + imposto + taxaCartao) / 100;
+    const novoValorVenda = precoCusto / (1 - percentualTotal);
+
+    setFormData(prev => ({
+      ...prev,
+      valorVenda: novoValorVenda.toFixed(2)
+    }));
+
+    toast.success("Preço de venda atualizado!");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -221,7 +311,6 @@ const Produtos = () => {
       return;
     }
 
-    // Validações
     if (!formData.descricao.trim()) {
       toast.error("Favor preencher a descrição do produto!");
       return;
@@ -237,7 +326,6 @@ const Produtos = () => {
       return;
     }
 
-    // Verificar código duplicado
     const codigoExiste = produtos.some(p => 
       p.codigo === formData.codigo && p.id !== produtoSelecionado?.id
     );
@@ -314,7 +402,24 @@ const Produtos = () => {
     }
   };
 
-  // Lógica de Filtragem
+  const abrirHistorico = async (produto: Produto) => {
+    setProdutoSelecionado(produto);
+    const historico = await buscarHistoricoCompras(produto.id);
+    setHistoricoCompras(historico);
+    setIsHistoricoDialogOpen(true);
+  };
+
+  const getUltimaCompra = async (produtoId: string) => {
+    const historico = await buscarHistoricoCompras(produtoId);
+    if (historico.length === 0) return null;
+    
+    const variacao = calcularVariacaoPreco(historico);
+    return {
+      precoCusto: historico[0].valor_compra,
+      variacao
+    };
+  };
+
   const produtosFiltrados = useMemo(() => {
     return produtos.filter(produto => {
       const matchNome = produto.descricao.toLowerCase().includes(filtros.nome.toLowerCase());
@@ -324,9 +429,36 @@ const Produtos = () => {
     });
   }, [produtos, filtros]);
 
+  const VariacaoPrecoIndicador = ({ produtoId }: { produtoId: string }) => {
+    const [dados, setDados] = useState<{ precoCusto: number; variacao: VariacaoPreco | null } | null>(null);
+
+    useEffect(() => {
+      getUltimaCompra(produtoId).then(setDados);
+    }, [produtoId]);
+
+    if (!dados || !dados.variacao) return null;
+
+    if (dados.variacao.tipo === 'aumento') {
+      return (
+        <span className="flex items-center gap-1 text-destructive font-semibold">
+          <TrendingUp className="h-3 w-3" />
+        </span>
+      );
+    }
+
+    if (dados.variacao.tipo === 'reducao') {
+      return (
+        <span className="flex items-center gap-1 text-green-600 font-semibold">
+          <TrendingDown className="h-3 w-3" />
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="font-bold text-foreground">Produtos</h1>
@@ -361,7 +493,6 @@ const Produtos = () => {
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-3">
-                {/* Linha 1: Descrição */}
                 <div className="space-y-0.5">
                   <Label className="text-[10px] font-semibold">Descrição do Produto *</Label>
                   <Input
@@ -372,7 +503,6 @@ const Produtos = () => {
                   />
                 </div>
 
-                {/* Linha 2: Preço de Custo e Código */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Preço de Custo *</Label>
@@ -385,6 +515,15 @@ const Produtos = () => {
                       placeholder="0.00"
                       className="h-8 text-xs"
                     />
+                    {variacaoPreco && variacaoPreco.tipo !== 'igual' && (
+                      <p className={`text-[9px] ${variacaoPreco.tipo === 'aumento' ? 'text-destructive' : 'text-green-600'}`}>
+                        {variacaoPreco.tipo === 'aumento' ? (
+                          <>O preço de compra desse produto subiu de {formatCurrency(variacaoPreco.valorAnterior)} para {formatCurrency(variacaoPreco.valorAtual)}, o que representa uma alta de {variacaoPreco.percentual.toFixed(2)}%.</>
+                        ) : (
+                          <>O preço de compra desse produto diminuiu de {formatCurrency(variacaoPreco.valorAnterior)} para {formatCurrency(variacaoPreco.valorAtual)}, o que representa uma redução de {variacaoPreco.percentual.toFixed(2)}%.</>
+                        )}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-0.5">
@@ -406,7 +545,6 @@ const Produtos = () => {
                   </div>
                 </div>
 
-                {/* Linha 3: Margem de Lucro, Imposto, Taxa de Cartão */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-0.5">
                     <Label className="text-[10px] font-semibold">Margem de Lucro (%)</Label>
@@ -456,21 +594,42 @@ const Produtos = () => {
                   </div>
                 </div>
 
-                {/* Linha 4: Valor de Venda */}
                 <div className="space-y-0.5">
                   <Label className="text-[10px] font-semibold">Valor de Venda *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.valorVenda}
-                    onChange={(e) => setFormData({ ...formData, valorVenda: e.target.value })}
-                    placeholder="0.00"
-                    className="h-8 text-xs"
-                  />
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.valorVenda}
+                        onChange={(e) => setFormData({ ...formData, valorVenda: e.target.value })}
+                        placeholder="0.00"
+                        className="h-8 text-xs"
+                      />
+                      {variacaoPreco && variacaoPreco.tipo !== 'igual' && produtoSelecionado && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          {variacaoPreco.tipo === 'aumento' ? (
+                            <TrendingUp className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {produtoSelecionado && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={atualizarPrecoVenda}
+                        className="h-8 text-xs whitespace-nowrap"
+                      >
+                        Atualizar preço de venda
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Informação de Lucro Unitário */}
                 <div className="bg-secondary/30 p-2 rounded-md border">
                   <p className="text-xs font-semibold text-center">
                     O valor do Lucro Unitário será de{" "}
@@ -480,7 +639,6 @@ const Produtos = () => {
                   </p>
                 </div>
 
-                {/* Botões */}
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">
                     Cancelar
@@ -495,7 +653,6 @@ const Produtos = () => {
         </div>
       </div>
 
-      {/* Seção de Filtros */}
       {mostrarFiltros && (
         <Card>
           <CardHeader className="py-2">
@@ -558,7 +715,6 @@ const Produtos = () => {
         </Card>
       )}
 
-      {/* Tabela de Produtos */}
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-base">Lista de Produtos</CardTitle>
@@ -601,9 +757,23 @@ const Produtos = () => {
                       <td className="py-2 px-2 text-xs">{produto.imposto.toFixed(2)}%</td>
                       <td className="py-2 px-2 text-xs">{produto.taxaCartao.toFixed(2)}%</td>
                       <td className="py-2 px-2 text-xs font-mono">{produto.codigo}</td>
-                      <td className="py-2 px-2 text-xs font-semibold">{formatCurrency(produto.valorVenda)}</td>
+                      <td className="py-2 px-2 text-xs font-semibold">
+                        <div className="flex items-center gap-1">
+                          {formatCurrency(produto.valorVenda)}
+                          <VariacaoPrecoIndicador produtoId={produto.id} />
+                        </div>
+                      </td>
                       <td className="py-2 px-2">
                         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => abrirHistorico(produto)} 
+                            className="h-6 w-6 p-0"
+                            title="Histórico de Compras"
+                          >
+                            <History className="h-3 w-3" />
+                          </Button>
                           <Button 
                             size="sm" 
                             variant="ghost" 
@@ -634,7 +804,53 @@ const Produtos = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de Exclusão */}
+      <Dialog open={isHistoricoDialogOpen} onOpenChange={setIsHistoricoDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">Histórico de Compras</DialogTitle>
+            <DialogDescription className="text-xs">
+              {produtoSelecionado?.descricao}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2 font-semibold text-xs">Data da Compra</th>
+                  <th className="text-left py-2 px-2 font-semibold text-xs">Preço de Compra</th>
+                  <th className="text-left py-2 px-2 font-semibold text-xs">Fornecedor</th>
+                  <th className="text-left py-2 px-2 font-semibold text-xs">N° NF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historicoCompras.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-8 text-muted-foreground text-xs">
+                      Nenhuma compra registrada para este produto
+                    </td>
+                  </tr>
+                ) : (
+                  historicoCompras.map((compra, idx) => (
+                    <tr key={idx} className="border-b">
+                      <td className="py-2 px-2 text-xs">
+                        {new Date(compra.data_compra).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="py-2 px-2 text-xs font-semibold">
+                        {formatCurrency(compra.valor_compra)}
+                      </td>
+                      <td className="py-2 px-2 text-xs">{compra.fornecedor_nome}</td>
+                      <td className="py-2 px-2 text-xs font-mono text-[10px]">
+                        {compra.chave_nf}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
