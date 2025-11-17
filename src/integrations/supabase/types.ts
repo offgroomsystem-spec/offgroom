@@ -555,6 +555,7 @@ export type Database = {
           id: string
           lancamento_id: string
           produto_servico: string | null
+          quantidade: number | null
           valor: number
         }
         Insert: {
@@ -563,6 +564,7 @@ export type Database = {
           id?: string
           lancamento_id: string
           produto_servico?: string | null
+          quantidade?: number | null
           valor?: number
         }
         Update: {
@@ -571,6 +573,7 @@ export type Database = {
           id?: string
           lancamento_id?: string
           produto_servico?: string | null
+          quantidade?: number | null
           valor?: number
         }
         Relationships: [
@@ -678,6 +681,7 @@ export type Database = {
           created_at: string | null
           data_ultima_compra: string | null
           descricao: string | null
+          estoque_atual: number | null
           estoque_minimo: number
           fornecedor_id: string | null
           id: string
@@ -695,6 +699,7 @@ export type Database = {
           created_at?: string | null
           data_ultima_compra?: string | null
           descricao?: string | null
+          estoque_atual?: number | null
           estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
@@ -712,6 +717,7 @@ export type Database = {
           created_at?: string | null
           data_ultima_compra?: string | null
           descricao?: string | null
+          estoque_atual?: number | null
           estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
