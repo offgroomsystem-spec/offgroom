@@ -678,6 +678,7 @@ export type Database = {
           created_at: string | null
           data_ultima_compra: string | null
           descricao: string | null
+          estoque_minimo: number
           fornecedor_id: string | null
           id: string
           imposto: number
@@ -694,6 +695,7 @@ export type Database = {
           created_at?: string | null
           data_ultima_compra?: string | null
           descricao?: string | null
+          estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
           imposto?: number
@@ -710,6 +712,7 @@ export type Database = {
           created_at?: string | null
           data_ultima_compra?: string | null
           descricao?: string | null
+          estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
           imposto?: number

@@ -21,6 +21,8 @@ interface Produto {
   valorVenda: number;
   lucroUnitario: number;
   dataCadastro: string;
+  estoqueMinimo: number;
+  estoqueAtual?: number;
 }
 
 interface CompraHistorico {
@@ -62,7 +64,8 @@ const Produtos = () => {
     imposto: "",
     taxaCartao: "2.33",
     codigo: "",
-    valorVenda: ""
+    valorVenda: "",
+    estoqueMinimo: "0"
   });
 
   useEffect(() => {
@@ -70,6 +73,26 @@ const Produtos = () => {
       loadProdutos();
     }
   }, [user]);
+
+  const calcularEstoque = async (produtoId: string): Promise<number> => {
+    try {
+      const { data: itens, error } = await supabase
+        .from('compras_nf_itens')
+        .select('quantidade')
+        .eq('produto_id', produtoId);
+
+      if (error) throw error;
+      
+      const estoqueTotal = (itens || []).reduce((total, item) => {
+        return total + Number(item.quantidade || 0);
+      }, 0);
+
+      return estoqueTotal;
+    } catch (error) {
+      console.error('Erro ao calcular estoque:', error);
+      return 0;
+    }
+  };
 
   const loadProdutos = async () => {
     try {
@@ -82,19 +105,26 @@ const Produtos = () => {
       if (error) throw error;
       
       if (data) {
-        const produtosFormatados = data.map((p: any) => ({
-          id: p.id,
-          descricao: p.nome || p.descricao,
-          precoCusto: Number(p.preco_custo || 0),
-          margemLucro: Number(p.margem_lucro || 0),
-          imposto: Number(p.imposto || 0),
-          taxaCartao: Number(p.taxa_cartao || 0),
-          codigo: p.codigo || '',
-          valorVenda: Number(p.valor || 0),
-          lucroUnitario: Number(p.lucro_unitario || 0),
-          dataCadastro: p.created_at || new Date().toISOString()
-        }));
-        setProdutos(produtosFormatados);
+        const produtosComEstoque = await Promise.all(
+          data.map(async (p: any) => {
+            const estoqueAtual = await calcularEstoque(p.id);
+            return {
+              id: p.id,
+              descricao: p.nome || p.descricao,
+              precoCusto: Number(p.preco_custo || 0),
+              margemLucro: Number(p.margem_lucro || 0),
+              imposto: Number(p.imposto || 0),
+              taxaCartao: Number(p.taxa_cartao || 0),
+              codigo: p.codigo || '',
+              valorVenda: Number(p.valor || 0),
+              lucroUnitario: Number(p.lucro_unitario || 0),
+              dataCadastro: p.created_at || new Date().toISOString(),
+              estoqueMinimo: Number(p.estoque_minimo || 0),
+              estoqueAtual
+            };
+          })
+        );
+        setProdutos(produtosComEstoque);
       }
     } catch (error: any) {
       console.error('Erro ao carregar produtos:', error);
@@ -108,27 +138,31 @@ const Produtos = () => {
     try {
       const { data: itens, error } = await supabase
         .from('compras_nf_itens')
-        .select(`
-          valor_compra,
-          compras_nf!inner (
-            data_compra,
-            chave_nf,
-            fornecedores (
-              nome_fornecedor
-            )
-          )
-        `)
-        .eq('produto_id', produtoId)
-        .order('compras_nf.data_compra', { ascending: false });
+        .select('nf_id, valor_compra, quantidade')
+        .eq('produto_id', produtoId);
 
       if (error) throw error;
+      if (!itens || itens.length === 0) return [];
 
-      const historico: CompraHistorico[] = (itens || []).map((item: any) => ({
-        data_compra: item.compras_nf.data_compra,
-        valor_compra: Number(item.valor_compra),
-        fornecedor_nome: item.compras_nf.fornecedores?.nome_fornecedor || 'N/A',
-        chave_nf: item.compras_nf.chave_nf
-      }));
+      const nfIds = itens.map(item => item.nf_id);
+      const { data: nfs, error: nfError } = await supabase
+        .from('compras_nf')
+        .select('id, data_compra, chave_nf, fornecedor_id, fornecedores(nome_fornecedor)')
+        .in('id', nfIds);
+
+      if (nfError) throw nfError;
+
+      const historico = itens
+        .map(item => {
+          const nf = nfs?.find((n: any) => n.id === item.nf_id);
+          return {
+            data_compra: nf?.data_compra || '',
+            valor_compra: Number(item.valor_compra),
+            fornecedor_nome: (nf?.fornecedores as any)?.nome_fornecedor || 'N/A',
+            chave_nf: nf?.chave_nf || ''
+          };
+        })
+        .sort((a, b) => new Date(b.data_compra).getTime() - new Date(a.data_compra).getTime());
 
       return historico;
     } catch (error) {
@@ -233,11 +267,119 @@ const Produtos = () => {
     }
   }, [calcularValores.valorVenda, formData.precoCusto, formData.margemLucro, formData.imposto, formData.taxaCartao]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.descricao.trim() || !formData.precoCusto || !formData.codigo || !formData.valorVenda) {
+      toast.error("Favor preencher todos os campos obrigatórios!");
+      return;
+    }
+
+    if (formData.codigo.length !== 13) {
+      toast.error("O código deve ter exatamente 13 dígitos!");
+      return;
+    }
+
+    if (!formData.estoqueMinimo || parseInt(formData.estoqueMinimo) < 0) {
+      toast.error("Favor preencher o estoque mínimo (valor deve ser maior ou igual a 0)!");
+      return;
+    }
+
+    try {
+      const produtoData = {
+        nome: formData.descricao.trim(),
+        preco_custo: parseFloat(formData.precoCusto),
+        margem_lucro: parseFloat(formData.margemLucro) || 0,
+        imposto: parseFloat(formData.imposto) || 0,
+        taxa_cartao: parseFloat(formData.taxaCartao) || 0,
+        codigo: formData.codigo,
+        valor: parseFloat(formData.valorVenda),
+        lucro_unitario: calcularValores.lucroUnitario,
+        estoque_minimo: parseInt(formData.estoqueMinimo) || 0,
+        user_id: user.id
+      };
+
+      if (produtoSelecionado) {
+        const { error } = await supabase
+          .from('produtos')
+          .update(produtoData)
+          .eq('id', produtoSelecionado.id);
+
+        if (error) throw error;
+        toast.success("Produto atualizado com sucesso!");
+      } else {
+        const { error } = await supabase
+          .from('produtos')
+          .insert([produtoData]);
+
+        if (error) throw error;
+        toast.success("Produto cadastrado com sucesso!");
+      }
+
+      handleDialogOpenChange(false);
+      loadProdutos();
+    } catch (error: any) {
+      console.error('Erro ao salvar produto:', error);
+      toast.error(error.message || "Erro ao salvar produto");
+    }
+  };
+
+  const handleExcluir = async () => {
+    if (!produtoSelecionado) return;
+
+    try {
+      const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', produtoSelecionado.id);
+
+      if (error) throw error;
+
+      toast.success("Produto excluído com sucesso!");
+      setIsDeleteDialogOpen(false);
+      setProdutoSelecionado(null);
+      loadProdutos();
+    } catch (error: any) {
+      console.error('Erro ao excluir produto:', error);
+      toast.error("Erro ao excluir produto");
+    }
+  };
+
+  const abrirEdicao = async (produto: Produto) => {
+    setProdutoSelecionado(produto);
+    
+    const historico = await buscarHistoricoCompras(produto.id);
+    const variacao = calcularVariacaoPreco(historico);
+    setVariacaoPreco(variacao);
+    
+    const ultimoPrecoCusto = historico.length > 0 ? historico[0].valor_compra : produto.precoCusto;
+    
+    setFormData({
+      descricao: produto.descricao,
+      precoCusto: ultimoPrecoCusto.toString(),
+      margemLucro: produto.margemLucro.toString(),
+      imposto: produto.imposto.toString(),
+      taxaCartao: produto.taxaCartao.toString(),
+      codigo: produto.codigo,
+      valorVenda: produto.valorVenda.toString(),
+      estoqueMinimo: produto.estoqueMinimo.toString()
+    });
+    
+    setIsDialogOpen(true);
+  };
+
+  const abrirHistorico = async (produto: Produto) => {
+    setProdutoSelecionado(produto);
+    const historico = await buscarHistoricoCompras(produto.id);
+    setHistoricoCompras(historico);
+    setIsHistoricoDialogOpen(true);
   };
 
   const resetForm = () => {
@@ -248,37 +390,11 @@ const Produtos = () => {
       imposto: "",
       taxaCartao: "2.33",
       codigo: "",
-      valorVenda: ""
+      valorVenda: "",
+      estoqueMinimo: "0"
     });
     setProdutoSelecionado(null);
     setVariacaoPreco(null);
-  };
-
-  const handleDialogOpenChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) {
-      resetForm();
-    }
-  };
-
-  const abrirEdicao = async (produto: Produto) => {
-    setProdutoSelecionado(produto);
-    
-    const historico = await buscarHistoricoCompras(produto.id);
-    const ultimaCompra = historico.length > 0 ? historico[0].valor_compra : produto.precoCusto;
-    const variacao = calcularVariacaoPreco(historico);
-    
-    setVariacaoPreco(variacao);
-    setFormData({
-      descricao: produto.descricao,
-      precoCusto: ultimaCompra.toString(),
-      margemLucro: produto.margemLucro.toString(),
-      imposto: produto.imposto.toString(),
-      taxaCartao: produto.taxaCartao.toString(),
-      codigo: produto.codigo,
-      valorVenda: produto.valorVenda.toString()
-    });
-    setIsDialogOpen(true);
   };
 
   const atualizarPrecoVenda = () => {
@@ -288,7 +404,7 @@ const Produtos = () => {
     const taxaCartao = parseFloat(formData.taxaCartao) || 0;
 
     if (precoCusto <= 0 || margemLucro <= 0) {
-      toast.error("Preencha o preço de custo e margem de lucro para recalcular");
+      toast.error("Preço de custo e margem devem ser maiores que zero!");
       return;
     }
 
@@ -303,195 +419,89 @@ const Produtos = () => {
     toast.success("Preço de venda atualizado!");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!user) {
-      toast.error("Você precisa estar logado");
-      return;
-    }
-
-    if (!formData.descricao.trim()) {
-      toast.error("Favor preencher a descrição do produto!");
-      return;
-    }
-
-    if (!formData.precoCusto || parseFloat(formData.precoCusto) < 0) {
-      toast.error("Favor preencher o preço de custo do produto!");
-      return;
-    }
-
-    if (!formData.codigo || formData.codigo.length !== 13) {
-      toast.error("O código deve ter exatamente 13 dígitos!");
-      return;
-    }
-
-    const codigoExiste = produtos.some(p => 
-      p.codigo === formData.codigo && p.id !== produtoSelecionado?.id
-    );
-    
-    if (codigoExiste) {
-      toast.error("Já existe um produto com este código!");
-      return;
-    }
-
-    if (!formData.valorVenda || parseFloat(formData.valorVenda) <= 0) {
-      toast.error("Favor preencher o valor de venda!");
-      return;
-    }
-
-    try {
-      const produtoData = {
-        nome: formData.descricao.trim(),
-        preco_custo: parseFloat(formData.precoCusto),
-        margem_lucro: parseFloat(formData.margemLucro) || 0,
-        imposto: parseFloat(formData.imposto) || 0,
-        taxa_cartao: parseFloat(formData.taxaCartao) || 0,
-        codigo: formData.codigo,
-        valor: parseFloat(formData.valorVenda),
-        lucro_unitario: calcularValores.lucroUnitario,
-        user_id: user.id
-      };
-
-      if (produtoSelecionado) {
-        const { error } = await supabase
-          .from('produtos')
-          .update(produtoData)
-          .eq('id', produtoSelecionado.id)
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-        toast.success("Produto atualizado com sucesso!");
-      } else {
-        const { error } = await supabase
-          .from('produtos')
-          .insert([produtoData]);
-
-        if (error) throw error;
-        toast.success("Produto cadastrado com sucesso!");
-      }
-
-      await loadProdutos();
-      setIsDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      console.error('Erro ao salvar produto:', error);
-      toast.error("Erro ao salvar produto");
-    }
-  };
-
-  const handleExcluir = async () => {
-    if (!produtoSelecionado || !user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('produtos')
-        .delete()
-        .eq('id', produtoSelecionado.id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      toast.success(`Produto "${produtoSelecionado.descricao}" excluído com sucesso!`);
-      await loadProdutos();
-      setIsDeleteDialogOpen(false);
-      setProdutoSelecionado(null);
-    } catch (error: any) {
-      console.error('Erro ao excluir produto:', error);
-      toast.error("Erro ao excluir produto");
-    }
-  };
-
-  const abrirHistorico = async (produto: Produto) => {
-    setProdutoSelecionado(produto);
-    const historico = await buscarHistoricoCompras(produto.id);
-    setHistoricoCompras(historico);
-    setIsHistoricoDialogOpen(true);
-  };
-
-  const getUltimaCompra = async (produtoId: string) => {
-    const historico = await buscarHistoricoCompras(produtoId);
-    if (historico.length === 0) return null;
-    
-    const variacao = calcularVariacaoPreco(historico);
-    return {
-      precoCusto: historico[0].valor_compra,
-      variacao
-    };
-  };
-
-  const produtosFiltrados = useMemo(() => {
-    return produtos.filter(produto => {
-      const matchNome = produto.descricao.toLowerCase().includes(filtros.nome.toLowerCase());
-      const matchCodigo = produto.codigo.includes(filtros.codigo);
-      
-      return matchNome && matchCodigo;
-    });
-  }, [produtos, filtros]);
-
   const VariacaoPrecoIndicador = ({ produtoId }: { produtoId: string }) => {
-    const [dados, setDados] = useState<{ precoCusto: number; variacao: VariacaoPreco | null } | null>(null);
+    const [variacao, setVariacao] = useState<VariacaoPreco | null>(null);
 
     useEffect(() => {
-      getUltimaCompra(produtoId).then(setDados);
+      const buscarVariacao = async () => {
+        const historico = await buscarHistoricoCompras(produtoId);
+        const variacaoCalculada = calcularVariacaoPreco(historico);
+        setVariacao(variacaoCalculada);
+      };
+      buscarVariacao();
     }, [produtoId]);
 
-    if (!dados || !dados.variacao) return null;
+    if (!variacao || variacao.tipo === 'igual') return null;
 
-    if (dados.variacao.tipo === 'aumento') {
-      return (
-        <span className="flex items-center gap-1 text-destructive font-semibold">
-          <TrendingUp className="h-3 w-3" />
-        </span>
-      );
-    }
-
-    if (dados.variacao.tipo === 'reducao') {
-      return (
-        <span className="flex items-center gap-1 text-green-600 font-semibold">
-          <TrendingDown className="h-3 w-3" />
-        </span>
-      );
-    }
-
-    return null;
+    return (
+      <div className="inline-flex items-center">
+        {variacao.tipo === 'aumento' ? (
+          <TrendingUp className="h-3 w-3 text-destructive" />
+        ) : (
+          <TrendingDown className="h-3 w-3 text-green-600" />
+        )}
+      </div>
+    );
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="font-bold text-foreground">Produtos</h1>
-          <p className="text-muted-foreground text-xs">Gerencie os produtos físicos</p>
+  const produtosFiltrados = produtos.filter(produto => {
+    const nomeMatch = produto.descricao.toLowerCase().includes(filtros.nome.toLowerCase());
+    const codigoMatch = produto.codigo.includes(filtros.codigo);
+    return nomeMatch && codigoMatch;
+  });
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p>Carregando produtos...</p>
         </div>
-        
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Cadastro de Produtos</h1>
+          <p className="text-sm text-muted-foreground">Gerencie seus produtos</p>
+        </div>
         <div className="flex gap-2">
           <Button 
             variant="outline" 
-            onClick={() => setMostrarFiltros(!mostrarFiltros)} 
-            className="h-8 text-xs gap-2"
+            size="sm" 
+            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+            className="gap-2"
           >
-            <Filter className="h-3 w-3" />
-            {mostrarFiltros ? "Ocultar Filtros" : "Aplicar Filtros"}
+            <Filter className="h-4 w-4" />
+            {mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
           </Button>
-          
           <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
-              <Button className="gap-2 h-8 text-xs">
-                <Plus className="h-3 w-3" />
+              <Button size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
                 Novo Produto
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="text-base">
                   {produtoSelecionado ? "Editar Produto" : "Novo Produto"}
                 </DialogTitle>
-                <DialogDescription className="text-[10px]">
-                  Preencha os dados do produto
+                <DialogDescription className="text-xs">
+                  {produtoSelecionado 
+                    ? "Atualize os dados do produto" 
+                    : "Preencha os dados do novo produto"}
                 </DialogDescription>
               </DialogHeader>
-
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="space-y-0.5">
                   <Label className="text-[10px] font-semibold">Descrição do Produto *</Label>
@@ -594,39 +604,57 @@ const Produtos = () => {
                   </div>
                 </div>
 
-                <div className="space-y-0.5">
-                  <Label className="text-[10px] font-semibold">Valor de Venda *</Label>
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.valorVenda}
-                        onChange={(e) => setFormData({ ...formData, valorVenda: e.target.value })}
-                        placeholder="0.00"
-                        className="h-8 text-xs"
-                      />
-                      {variacaoPreco && variacaoPreco.tipo !== 'igual' && produtoSelecionado && (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                          {variacaoPreco.tipo === 'aumento' ? (
-                            <TrendingUp className="h-4 w-4 text-destructive" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-green-600" />
-                          )}
-                        </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Valor de Venda *</Label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.valorVenda}
+                          onChange={(e) => setFormData({ ...formData, valorVenda: e.target.value })}
+                          placeholder="0.00"
+                          className="h-8 text-xs"
+                        />
+                        {variacaoPreco && variacaoPreco.tipo !== 'igual' && produtoSelecionado && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            {variacaoPreco.tipo === 'aumento' ? (
+                              <TrendingUp className="h-4 w-4 text-destructive" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 text-green-600" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {produtoSelecionado && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={atualizarPrecoVenda}
+                          className="h-8 text-xs whitespace-nowrap"
+                        >
+                          Atualizar preço de venda
+                        </Button>
                       )}
                     </div>
-                    {produtoSelecionado && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={atualizarPrecoVenda}
-                        className="h-8 text-xs whitespace-nowrap"
-                      >
-                        Atualizar preço de venda
-                      </Button>
-                    )}
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Estoque Mínimo *</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.estoqueMinimo}
+                      onChange={(e) => {
+                        const valor = e.target.value.replace(/\D/g, '');
+                        setFormData({ ...formData, estoqueMinimo: valor });
+                      }}
+                      placeholder="0"
+                      className="h-8 text-xs"
+                    />
                   </div>
                 </div>
 
@@ -734,13 +762,14 @@ const Produtos = () => {
                   <th className="text-left py-2 px-2 font-semibold text-xs">Taxa Cartão (%)</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Código</th>
                   <th className="text-left py-2 px-2 font-semibold text-xs">Valor de Venda</th>
+                  <th className="text-left py-2 px-2 font-semibold text-xs">Estoque</th>
                   <th className="text-right py-2 px-2 font-semibold text-xs">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {produtosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-muted-foreground text-xs">
+                    <td colSpan={9} className="text-center py-8 text-muted-foreground text-xs">
                       Nenhum produto cadastrado
                     </td>
                   </tr>
@@ -763,8 +792,13 @@ const Produtos = () => {
                           <VariacaoPrecoIndicador produtoId={produto.id} />
                         </div>
                       </td>
+                      <td className="py-2 px-2 text-xs">
+                        <span className={produto.estoqueAtual && produto.estoqueAtual < produto.estoqueMinimo ? 'text-destructive font-bold' : ''}>
+                          {produto.estoqueAtual || 0}
+                        </span>
+                      </td>
                       <td className="py-2 px-2">
-                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button 
                             size="sm" 
                             variant="ghost" 
@@ -858,7 +892,7 @@ const Produtos = () => {
             <AlertDialogDescription className="space-y-2">
               <p>Tem certeza que deseja excluir o produto <strong>{produtoSelecionado?.descricao}</strong>?</p>
               {produtoSelecionado && (
-                <div className="text-xs bg-secondary/50 p-2 rounded space-y-1">
+                <div className="text-xs space-y-1 bg-secondary/30 p-2 rounded">
                   <p><strong>Código:</strong> {produtoSelecionado.codigo}</p>
                   <p><strong>Valor:</strong> {formatCurrency(produtoSelecionado.valorVenda)}</p>
                 </div>
