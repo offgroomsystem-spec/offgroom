@@ -1,6 +1,7 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import logoOffgroom from "@/assets/logo-offgroom.png";
 import {
   DropdownMenu,
@@ -141,6 +142,8 @@ const Layout = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            <ThemeToggle />
           </div>
         </div>
       </header>
