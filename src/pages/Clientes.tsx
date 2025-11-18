@@ -7,10 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Plus, Trash2, Edit, PawPrint, X } from "lucide-react";
+import { Search, Plus, Trash2, Edit, PawPrint, X, Check, ChevronsUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface Raca {
   id: string;
@@ -50,6 +53,7 @@ export default function Clientes() {
   const [endereco, setEndereco] = useState("");
   const [observacaoCliente, setObservacaoCliente] = useState("");
   const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+  const [racaPopoverOpen, setRacaPopoverOpen] = useState<{ [key: number]: boolean }>({});
 
   // ✅ Formata nomes automaticamente, respeitando espaços durante a digitação
   const formatarNome = (texto: string) => {
@@ -132,6 +136,7 @@ export default function Clientes() {
     setObservacaoCliente("");
     setPets([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
     setEditingId(null);
+    setRacaPopoverOpen({});
   };
 
   const handleEdit = (cliente: Cliente) => {
@@ -420,20 +425,49 @@ export default function Clientes() {
 
                           <div className="space-y-2">
                             <Label>Raça *</Label>
-                            <Select value={pet.raca} onValueChange={(value) => updatePet(index, "raca", value)}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione a raça" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {racas
-                                  .filter((raca) => !pet.porte || raca.porte === pet.porte)
-                                  .map((raca) => (
-                                    <SelectItem key={raca.id} value={raca.nome}>
-                                      {raca.nome} {raca.isPadrao ? "" : "(Personalizada)"}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
+                            <Popover open={racaPopoverOpen[index]} onOpenChange={(open) => setRacaPopoverOpen({ ...racaPopoverOpen, [index]: open })}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={racaPopoverOpen[index]}
+                                  className="w-full justify-between h-8 text-xs"
+                                >
+                                  {pet.raca || "Selecione a raça"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-full p-0" align="start">
+                                <Command>
+                                  <CommandInput placeholder="Buscar raça..." className="h-9" />
+                                  <CommandList>
+                                    <CommandEmpty>Nenhuma raça encontrada.</CommandEmpty>
+                                    <CommandGroup>
+                                      {racas
+                                        .filter((raca) => !pet.porte || raca.porte === pet.porte)
+                                        .map((raca) => (
+                                          <CommandItem
+                                            key={raca.id}
+                                            value={raca.nome}
+                                            onSelect={() => {
+                                              updatePet(index, "raca", raca.nome);
+                                              setRacaPopoverOpen({ ...racaPopoverOpen, [index]: false });
+                                            }}
+                                          >
+                                            {raca.nome} {raca.isPadrao ? "" : "(Personalizada)"}
+                                            <Check
+                                              className={cn(
+                                                "ml-auto h-4 w-4",
+                                                pet.raca === raca.nome ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                          </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
                           </div>
 
                           <div className="space-y-2">
