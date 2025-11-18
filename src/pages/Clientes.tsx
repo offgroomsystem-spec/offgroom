@@ -425,11 +425,13 @@ export default function Clientes() {
                                 <SelectValue placeholder="Selecione a raça" />
                               </SelectTrigger>
                               <SelectContent>
-                                {racas.map((raca) => (
-                                  <SelectItem key={raca.id} value={raca.nome}>
-                                    {raca.nome} {raca.isPadrao ? "" : "(Personalizada)"}
-                                  </SelectItem>
-                                ))}
+                                {racas
+                                  .filter((raca) => !pet.porte || raca.porte === pet.porte)
+                                  .map((raca) => (
+                                    <SelectItem key={raca.id} value={raca.nome}>
+                                      {raca.nome} {raca.isPadrao ? "" : "(Personalizada)"}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
