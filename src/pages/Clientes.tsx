@@ -405,13 +405,7 @@ export default function Clientes() {
                             </div>
                             <div className="space-y-2">
                               <Label>Porte *</Label>
-                              <Select 
-                                value={pet.porte} 
-                                onValueChange={(value) => {
-                                  updatePet(index, "porte", value);
-                                  updatePet(index, "raca", "");
-                                }}
-                              >
+                              <Select value={pet.porte} onValueChange={(value) => updatePet(index, "porte", value)}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Selecione o porte" />
                                 </SelectTrigger>
@@ -431,27 +425,11 @@ export default function Clientes() {
                                 <SelectValue placeholder="Selecione a raça" />
                               </SelectTrigger>
                               <SelectContent>
-                                {racas
-                                  .filter((raca) => {
-                                    if (!pet.porte) return true;
-                                    return raca.porte.toLowerCase() === pet.porte.toLowerCase();
-                                  })
-                                  .length === 0 ? (
-                                  <div className="p-2 text-sm text-muted-foreground">
-                                    Nenhuma raça disponível para este porte
-                                  </div>
-                                ) : (
-                                  racas
-                                    .filter((raca) => {
-                                      if (!pet.porte) return true;
-                                      return raca.porte.toLowerCase() === pet.porte.toLowerCase();
-                                    })
-                                    .map((raca) => (
-                                      <SelectItem key={raca.id} value={raca.nome}>
-                                        {raca.nome} {raca.isPadrao ? "" : "(Personalizada)"}
-                                      </SelectItem>
-                                    ))
-                                )}
+                                {racas.map((raca) => (
+                                  <SelectItem key={raca.id} value={raca.nome}>
+                                    {raca.nome} {raca.isPadrao ? "" : "(Personalizada)"}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
