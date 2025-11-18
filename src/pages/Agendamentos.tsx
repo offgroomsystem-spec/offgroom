@@ -1397,6 +1397,16 @@ const Agendamentos = () => {
     });
   };
 
+  // Handler para gerenciar abertura/fechamento do modal de gerenciamento
+  const handleGerenciamentoOpenChange = (open: boolean) => {
+    setGerenciamentoOpen(open);
+    
+    // Se o modal está fechando, limpar todos os filtros
+    if (!open) {
+      limparFiltros();
+    }
+  };
+
   // Abrir edição
   const handleEditarClick = (agendamento: AgendamentoUnificado) => {
     setEditandoAgendamento(agendamento);
@@ -2231,7 +2241,7 @@ const Agendamentos = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={gerenciamentoOpen} onOpenChange={setGerenciamentoOpen}>
+          <Dialog open={gerenciamentoOpen} onOpenChange={handleGerenciamentoOpenChange}>
             <DialogTrigger asChild>
               <Button className="gap-2 h-8 text-xs" variant="secondary">
                 <Settings className="h-3 w-3" />
