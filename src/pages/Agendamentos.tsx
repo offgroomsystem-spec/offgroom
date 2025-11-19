@@ -1365,7 +1365,18 @@ const Agendamentos = () => {
   // Agendamentos filtrados
   const agendamentosUnificados = useMemo(() => unificarAgendamentos(), [agendamentos, agendamentosPacotes]);
   const agendamentosFiltrados = useMemo(
-    () => aplicarFiltros(agendamentosUnificados),
+    () => {
+      const filtrados = aplicarFiltros(agendamentosUnificados);
+      // Ordenação: primeiro por Horário (crescente), depois por Agendamento (decrescente)
+      return filtrados.sort((a, b) => {
+        // Primeiro critério: Horário (crescente)
+        const horarioCompare = a.horarioInicio.localeCompare(b.horarioInicio);
+        if (horarioCompare !== 0) return horarioCompare;
+        
+        // Segundo critério: Data do Agendamento (decrescente)
+        return b.data.localeCompare(a.data);
+      });
+    },
     [agendamentosUnificados, filtrosAplicados],
   );
 
