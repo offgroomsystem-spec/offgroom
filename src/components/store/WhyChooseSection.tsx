@@ -1,59 +1,30 @@
 import { Check } from "lucide-react";
 
 const benefits = [
-  "Interface moderna e intuitiva",
-  "Suporte completo em português",
-  "Atualizações constantes e gratuitas",
-  "Multiplataforma (web, tablet, mobile)",
-  "Dados seguros e criptografados",
-  "Sem custo de instalação",
-  "Relatórios personalizados",
-  "Integração com WhatsApp",
-  "Backup automático na nuvem",
-  "Treinamento e suporte dedicado",
-  "Implementação rápida e fácil",
-  "Escalável para qualquer tamanho de negócio",
+  "Interface intuitiva",
+  "Dados seguros",
+  "Sem instalação",
+  "Suporte em português",
+  "Atualizações incluídas",
+  "Multiplataforma",
 ];
 
 export const WhyChooseSection = () => {
   return (
-    <section className="py-20 md:py-32">
+    <section className="bg-gray-50 py-12">
       <div className="container">
-        <div className="mx-auto max-w-6xl">
-          {/* Cabeçalho */}
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-              Por que escolher o{" "}
-              <span className="text-primary">Offgroom</span>?
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Benefícios e diferenciais que fazem a diferença no seu dia a dia
-            </p>
-          </div>
-
-          {/* Grid de benefícios */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-6 text-center text-2xl font-medium text-gray-900">
+            Por que escolher?
+          </h2>
+          
+          <div className="grid gap-3 sm:grid-cols-2">
             {benefits.map((benefit, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 rounded-lg border bg-card p-4 transition-all hover:shadow-md"
-              >
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10">
-                  <Check className="h-4 w-4 text-accent" />
-                </div>
-                <p className="text-sm font-medium leading-relaxed">
-                  {benefit}
-                </p>
+              <div key={index} className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-gray-500" />
+                <span className="text-sm text-gray-700">{benefit}</span>
               </div>
             ))}
-          </div>
-
-          {/* CTA adicional */}
-          <div className="mt-16 text-center">
-            <p className="text-lg text-muted-foreground">
-              Junte-se a centenas de petshops que já transformaram sua gestão
-              com o Offgroom
-            </p>
           </div>
         </div>
       </div>
