@@ -24,6 +24,7 @@ import ContasBancarias from "./pages/ContasBancarias";
 import ControleFinanceiro from "./pages/ControleFinanceiro";
 import Fornecedores from "./pages/Fornecedores";
 import ComprasRealizadas from "./pages/ComprasRealizadas";
+import Store from "./pages/Store";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/esqueci-senha" element={<EsqueciSenha />} />
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            <Route path="/store" element={<Store />} />
             
             {/* Rotas protegidas */}
             <Route element={<ProtectedRoute />}>
