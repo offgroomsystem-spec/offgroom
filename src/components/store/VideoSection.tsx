@@ -1,27 +1,20 @@
 export const VideoSection = () => {
   return (
-    <section id="video" className="py-20 md:py-32">
+    <section id="video" className="bg-gray-50 py-12">
       <div className="container">
-        <div className="mx-auto max-w-5xl text-center">
-          {/* Título */}
-          <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Conheça o Offgroom em ação
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-6 text-center text-2xl font-medium text-gray-900">
+            Veja como funciona
           </h2>
-          <p className="mb-12 text-lg text-muted-foreground">
-            Veja como é fácil gerenciar seu petshop com o Offgroom
-          </p>
 
-          {/* Vídeo Embed */}
-          <div className="relative overflow-hidden rounded-2xl shadow-2xl ring-1 ring-border">
-            <div className="aspect-video">
-              <iframe
-                className="h-full w-full"
-                src="https://www.youtube.com/embed/5yLZvrxtJlo"
-                title="Offgroom - Sistema de Gestão para Petshops"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+          <div className="aspect-video overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+            <iframe
+              className="h-full w-full"
+              src="https://www.youtube.com/embed/5yLZvrxtJlo"
+              title="Offgroom - Sistema de Gestão para Petshops"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         </div>
       </div>
