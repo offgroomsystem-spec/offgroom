@@ -1,99 +1,125 @@
+import { Check, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { abrirHotmart } from "./StoreLayout";
 
 const plans = [
   {
     name: "Básico",
-    price: "99",
+    price: "97",
     popular: false,
     features: [
-      "Até 100 agendamentos/mês",
       "1 usuário",
-      "Gestão básica de clientes",
+      "Agendamentos ilimitados",
+      "Controle financeiro básico",
       "Suporte por email",
     ],
   },
   {
     name: "Profissional",
-    price: "199",
+    price: "147",
     popular: true,
     features: [
-      "Agendamentos ilimitados",
-      "Até 3 usuários",
-      "Relatórios gerenciais",
+      "3 usuários",
+      "Todos os recursos do Básico",
+      "Relatórios avançados",
+      "Gestão de estoque",
       "Suporte prioritário",
     ],
   },
   {
     name: "Empresarial",
-    price: "349",
+    price: "247",
     popular: false,
     features: [
       "Usuários ilimitados",
-      "Múltiplas unidades",
+      "Todos os recursos do Profissional",
+      "API de integração",
       "Suporte 24/7",
-      "Treinamento personalizado",
+      "Gerente de conta dedicado",
     ],
   },
 ];
 
 export const PricingSection = () => {
   return (
-    <section id="pricing" className="bg-white py-12">
-      <div className="container">
-        <h2 className="mb-8 text-center text-2xl font-medium text-gray-900">
-          Planos
-        </h2>
-
-        <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-3">
+    <section className="bg-muted py-16 md:py-24">
+      <div className="container max-w-6xl">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Planos que cabem no seu bolso
+          </h2>
+          <p className="text-lg text-muted-foreground">
+            Escolha o melhor plano para o seu petshop
+          </p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-8">
           {plans.map((plan, index) => (
-            <div
+            <div 
               key={index}
-              className={`rounded-lg border p-4 ${
-                plan.popular ? "border-blue-500" : "border-gray-200"
+              className={`relative bg-card rounded-2xl p-8 border-2 transition-all hover:scale-105 ${
+                plan.popular 
+                  ? 'border-primary shadow-xl' 
+                  : 'border-border shadow-md hover:border-primary/50'
               }`}
             >
+              {/* Badge "Mais Popular" */}
               {plan.popular && (
-                <div className="mb-2 text-xs font-medium text-blue-600">
-                  Mais Popular
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-amber-500 text-white px-4 py-1 text-sm font-semibold shadow-lg">
+                    ⭐ Mais Popular
+                  </Badge>
                 </div>
               )}
               
-              <h3 className="mb-1 text-lg font-medium text-gray-900">
+              {/* Nome do plano */}
+              <h3 className="text-2xl font-bold text-foreground mb-2">
                 {plan.name}
               </h3>
-              <div className="mb-4">
-                <span className="text-3xl font-medium text-gray-900">
-                  R$ {plan.price}
-                </span>
-                <span className="text-sm text-gray-600">/mês</span>
+              
+              {/* Preço */}
+              <div className="mb-6">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-bold text-foreground">
+                    R$ {plan.price}
+                  </span>
+                  <span className="text-lg text-muted-foreground">/mês</span>
+                </div>
               </div>
               
-              <ul className="mb-4 space-y-1.5">
-                {plan.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-start gap-2 text-sm text-gray-700">
-                    <Check className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                    {feature}
+              {/* Features */}
+              <ul className="space-y-4 mb-8">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                    <span className="text-card-foreground">{feature}</span>
                   </li>
                 ))}
               </ul>
               
+              {/* CTA */}
               <Button
                 onClick={abrirHotmart}
-                variant={plan.popular ? "default" : "outline"}
-                className={plan.popular ? "w-full bg-blue-600 hover:bg-blue-700" : "w-full"}
-                size="sm"
+                className={`w-full py-6 text-lg font-semibold rounded-xl ${
+                  plan.popular
+                    ? 'bg-primary hover:bg-primary/90 shadow-lg'
+                    : 'bg-foreground hover:bg-foreground/90 text-background'
+                }`}
               >
-                Comprar
+                Escolher plano
               </Button>
             </div>
           ))}
         </div>
         
-        <p className="mt-6 text-center text-xs text-gray-500">
-          7 dias de garantia • Cancele quando quiser
-        </p>
+        {/* Garantia */}
+        <div className="mt-12 text-center">
+          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+            <Shield className="h-4 w-4 text-accent" />
+            7 dias de garantia • Cancele quando quiser • Sem multas ou taxas
+          </p>
+        </div>
       </div>
     </section>
   );
