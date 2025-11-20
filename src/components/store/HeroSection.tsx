@@ -5,7 +5,7 @@ import heroImage from "@/assets/hero-offgroom.png";
 
 export const HeroSection = () => {
   return (
-    <section className="bg-card min-h-screen flex items-center">
+    <section className="bg-card min-h-screen flex items-center py-16 md:py-24 lg:py-32">
       <div className="container max-w-7xl">
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[850px]">
           {/* Lado esquerdo: Conteúdo */}
