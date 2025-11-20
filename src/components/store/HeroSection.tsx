@@ -3,7 +3,8 @@ import { ArrowRight, Play, Check, Sparkles } from "lucide-react";
 import { abrirHotmart } from "./StoreLayout";
 import heroImage from "@/assets/hero-offgroom.png";
 export const HeroSection = () => {
-  return <section className="bg-card min-h-screen flex items-center py-16 md:py-24 lg:py-32">
+  return (
+    <section className="bg-card min-h-screen flex items-center py-16 md:py-24 lg:py-32">
       <div className="container max-w-7xl">
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[850px]">
           {/* Lado esquerdo: Conteúdo */}
@@ -28,12 +29,20 @@ export const HeroSection = () => {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Button size="lg" onClick={abrirHotmart} className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">
+              <Button
+                size="lg"
+                onClick={abrirHotmart}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
                 Começar agora
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
-              <Button size="lg" variant="outline" className="border-2 border-border hover:border-primary hover:text-primary px-8 py-6 text-lg font-semibold rounded-xl transition-all">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-2 border-border hover:border-primary hover:text-primary px-8 py-6 text-lg font-semibold rounded-xl transition-all"
+              >
                 <Play className="mr-2 h-5 w-5" />
                 Ver demonstração
               </Button>
@@ -57,10 +66,15 @@ export const HeroSection = () => {
           </div>
 
           {/* Lado direito: Imagem do sistema */}
-          <div className="order-1 lg:order-2 pr-0 mb-0 mt-0 ml-0 mr-0 pl-0 my-0 pt-[130px] mx-0">
-            <img src={heroImage} alt="Offgroom - Sistema de gestão para petshops" className="w-full sm:max-w-[520px] lg:max-w-[800px] mx-auto rounded-2xl object-scale-down" />
+          <div className="order-1 lg:order-2 flex items-center justify-center min-h-[650px]">
+            <img
+              src={heroImage}
+              alt="Offgroom - Sistema de gestão para petshops"
+              className="w-full max-w-[700px] rounded-2xl"
+            />
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
