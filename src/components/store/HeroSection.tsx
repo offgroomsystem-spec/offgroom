@@ -15,24 +15,22 @@ export const HeroSection = () => {
               <Sparkles className="h-4 w-4" />
               Feito por groomers, para groomers
             </div>
-            
+
             {/* Título principal */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground mb-6">
               Gestão completa
-              <span className="block text-primary">
-                para seu petshop
-              </span>
+              <span className="block text-primary">para seu petshop</span>
             </h1>
-            
+
             {/* Subtítulo */}
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
-              Simplifique agendamentos, controle financeiro e gestão de clientes. 
-              Tudo em um só lugar, com a facilidade que você precisa.
+              Simplifique agendamentos, controle financeiro e gestão de clientes. Tudo em um só lugar, com a facilidade
+              que você precisa.
             </p>
-            
+
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Button 
+              <Button
                 size="lg"
                 onClick={abrirHotmart}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
@@ -40,8 +38,8 @@ export const HeroSection = () => {
                 Começar agora
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              
-              <Button 
+
+              <Button
                 size="lg"
                 variant="outline"
                 className="border-2 border-border hover:border-primary hover:text-primary px-8 py-6 text-lg font-semibold rounded-xl transition-all"
@@ -50,7 +48,7 @@ export const HeroSection = () => {
                 Ver demonstração
               </Button>
             </div>
-            
+
             {/* Stats mini */}
             <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -67,14 +65,14 @@ export const HeroSection = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Lado direito: Imagem do sistema */}
-          <div className="order-1 lg:order-2">
-          <img 
-            src={heroImage}
-            alt="Offgroom - Sistema de gestão para petshops"
-            className="w-full rounded-2xl scale-200 origin-center"
-          />
+          <div className="order-1 lg:order-2 flex items-stretch">
+            <img
+              src={heroImage}
+              alt="Offgroom - Sistema de gestão para petshops"
+              className="w-full h-full rounded-2xl object-cover min-h-[520px] lg:min-h-[650px]"
+            />
           </div>
         </div>
       </div>
