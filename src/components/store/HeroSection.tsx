@@ -7,7 +7,7 @@ export const HeroSection = () => {
   return (
     <section className="bg-card py-16 md:py-24 lg:py-32">
       <div className="container max-w-7xl">
-        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[650px]">
+        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[850px]">
           {/* Lado esquerdo: Conteúdo */}
           <div className="order-2 lg:order-1">
             {/* Badge */}
