@@ -70,17 +70,11 @@ export const HeroSection = () => {
           
           {/* Lado direito: Imagem do sistema */}
           <div className="order-1 lg:order-2">
-            <div className="relative">
-              {/* Círculo decorativo de fundo */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl transform rotate-3"></div>
-              
-              {/* Imagem real do sistema */}
-              <img 
-                src={heroImage}
-                alt="Offgroom - Sistema de gestão para petshops"
-                className="relative z-10 w-full rounded-2xl shadow-2xl"
-              />
-            </div>
+            <img 
+              src={heroImage}
+              alt="Offgroom - Sistema de gestão para petshops"
+              className="w-full rounded-2xl shadow-2xl"
+            />
           </div>
         </div>
       </div>
