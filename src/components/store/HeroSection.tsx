@@ -17,7 +17,7 @@ export const HeroSection = () => {
             </div>
 
             {/* Título principal */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
               Tecnologia feita por quem realmente sabe
               <span className="block text-primary">o que aumenta recorrência e faturamento.</span>
             </h1>
