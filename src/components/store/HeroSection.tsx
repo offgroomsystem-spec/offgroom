@@ -70,11 +70,11 @@ export const HeroSection = () => {
           
           {/* Lado direito: Imagem do sistema */}
           <div className="order-1 lg:order-2">
-            <img 
-              src={heroImage}
-              alt="Offgroom - Sistema de gestão para petshops"
-              className="w-full rounded-2xl"
-            />
+          <img 
+            src={heroImage}
+            alt="Offgroom - Sistema de gestão para petshops"
+            className="w-full rounded-2xl scale-200 origin-center"
+          />
           </div>
         </div>
       </div>
