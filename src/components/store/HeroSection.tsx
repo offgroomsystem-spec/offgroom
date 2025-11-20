@@ -67,11 +67,11 @@ export const HeroSection = () => {
           </div>
 
           {/* Lado direito: Imagem do sistema */}
-          <div className="order-1 lg:order-2 flex items-stretch">
+          <div className="order-1 lg:order-2 flex justify-center">
             <img
               src={heroImage}
               alt="Offgroom - Sistema de gestão para petshops"
-              className="w-full h-full rounded-2xl object-cover min-h-[520px] lg:min-h-[650px]"
+              className="h-[600px] w-auto rounded-2xl object-cover"
             />
           </div>
         </div>
