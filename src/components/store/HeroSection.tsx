@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Check, Sparkles } from "lucide-react";
 import { abrirHotmart } from "./StoreLayout";
+import heroImage from "@/assets/hero-offgroom.png";
 
 export const HeroSection = () => {
   return (
@@ -73,12 +74,12 @@ export const HeroSection = () => {
               {/* Círculo decorativo de fundo */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl transform rotate-3"></div>
               
-              {/* Mockup do sistema */}
-              <div className="relative z-10 w-full aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl shadow-2xl flex items-center justify-center">
-                <p className="text-muted-foreground text-center px-8">
-                  Interface do Offgroom
-                </p>
-              </div>
+              {/* Imagem real do sistema */}
+              <img 
+                src={heroImage}
+                alt="Offgroom - Sistema de gestão para petshops"
+                className="relative z-10 w-full rounded-2xl shadow-2xl"
+              />
             </div>
           </div>
         </div>
