@@ -22,7 +22,7 @@ export const HeroSection = () => {
             </h1>
 
             {/* Subtítulo */}
-            <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
+            <p className="text-xl md:text-1xl text-muted-foreground mb-8 leading-relaxed">
               Simplifique agendamentos, controle financeiro e gestão de clientes. Tudo em um só lugar, com a facilidade
               que você precisa.
             </p>
