@@ -19,7 +19,7 @@ export const CTASection = () => {
             size="lg"
             className="bg-card text-primary hover:bg-card/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-xl"
           >
-            Experimente Grátis por 7 dias
+            Começar Agora
             <ArrowRight className="ml-2" />
           </Button>
 
