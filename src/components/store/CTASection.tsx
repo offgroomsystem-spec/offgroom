@@ -12,18 +12,18 @@ export const CTASection = () => {
         <p className="text-xl text-primary-foreground/80 mb-8">
           Junte-se a centenas de petshops que já confiam no Offgroom
         </p>
-        
+
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button 
+          <Button
             onClick={abrirHotmart}
             size="lg"
             className="bg-card text-primary hover:bg-card/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-xl"
           >
-            Começar agora
+            Experimente Grátis por 7 dias
             <ArrowRight className="ml-2" />
           </Button>
-          
-          <Button 
+
+          <Button
             size="lg"
             variant="outline"
             className="border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10 px-8 py-6 text-lg font-semibold rounded-xl"
@@ -31,7 +31,7 @@ export const CTASection = () => {
             Falar com especialista
           </Button>
         </div>
-        
+
         <p className="mt-6 text-sm text-primary-foreground/70">
           ⚡ Configure em minutos • Sem cartão de crédito para testar
         </p>
