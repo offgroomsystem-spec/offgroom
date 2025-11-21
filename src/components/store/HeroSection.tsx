@@ -20,10 +20,10 @@ export const HeroSection = () => {
               <span className="text-foreground">Tecnologia feita por quem realmente sabe o que aumenta</span>
 
               <span className="block">
-                <span className="text-primary">recorrência </span>
-                <span className="text-primary"> e </span>
+                <span className="text-primary">recorrência</span>
+                <span className="text-foreground"> e </span>
                 <span className="text-primary">faturamento</span>
-                <span className="text-primary">.</span>
+                <span className="text-foreground">.</span>
               </span>
             </h1>
 
