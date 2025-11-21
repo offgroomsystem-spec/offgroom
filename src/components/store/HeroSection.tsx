@@ -52,11 +52,11 @@ export const HeroSection = () => {
             <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-accent" />
-                <span>Sem contrato de fidelidade</span>
+                <span>Teste gratuito sem compromisso</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-accent" />
-                <span>Suporte em português</span>
+                <span>Suporte dedicado, pronto para ajudar</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-accent" />
