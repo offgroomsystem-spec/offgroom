@@ -7,7 +7,7 @@ interface StoreLayoutProps {
 }
 
 export const abrirHotmart = () => {
-  const hotmartUrl = "https://pay.hotmart.com/XXXXXXXX"; // Placeholder - será substituído
+  const hotmartUrl = "https://wa.me/5561991273079?text=Ol%C3%A1%21%20Quero%20comprar%20o%20Offgroom"; // Placeholder - será substituído
   window.open(hotmartUrl, "_blank");
 };
 
@@ -21,10 +21,12 @@ export const StoreLayout = ({ children }: StoreLayoutProps) => {
           </Link>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">Entrar</Link>
+              <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
+                Entrar
+              </Link>
             </Button>
-            <Button 
-              onClick={abrirHotmart} 
+            <Button
+              onClick={abrirHotmart}
               size="sm"
               className="bg-primary text-sm text-primary-foreground hover:bg-primary/90"
             >
