@@ -76,7 +76,7 @@ export const HeroSection = () => {
             <img
               src={heroImage}
               alt="Offgroom - Sistema de gestão para petshops"
-              className="w-full h-auto max-h-[300px] md:max-h-[400px] lg:h-[550px] lg:w-auto rounded-2xl object-contain lg:object-left"
+              className="w-full h-auto max-h-[300px] md:max-h-[450px] lg:h-[550px] lg:w-auto rounded-2xl object-contain lg:object-left"
             />
           </div>
         </div>
