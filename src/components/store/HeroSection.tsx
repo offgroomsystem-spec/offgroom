@@ -34,7 +34,7 @@ export const HeroSection = () => {
                 onClick={abrirHotmart}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
               >
-                Começar agora
+                Experimente Grátis
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
