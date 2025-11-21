@@ -17,13 +17,12 @@ export const HeroSection = () => {
 
             {/* Título principal */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-              <span className="text-foreground">Tecnologia feita por quem realmente sabe</span>
+              <span className="text-foreground">Tecnologia feita por quem realmente sabe o que aumenta</span>
 
               <span className="block">
-                <span className="text-primary">o que aumenta </span>
-                <span className="text-blue-400 font-bold">recorrência</span>
+                <span className="text-primary">recorrência </span>
                 <span className="text-primary"> e </span>
-                <span className="text-blue-400 font-bold">faturamento</span>
+                <span className="text-primary">faturamento</span>
                 <span className="text-primary">.</span>
               </span>
             </h1>
