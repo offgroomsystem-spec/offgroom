@@ -16,7 +16,7 @@ export const HeroSection = () => {
             </div>
 
             {/* Título principal */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">
               <span className="text-foreground">Tecnologia feita por quem realmente sabe o que aumenta</span>
 
               <span className="block">
