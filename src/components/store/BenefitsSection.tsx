@@ -5,27 +5,27 @@ import { abrirHotmart } from "./StoreLayout";
 const benefits = [
   {
     title: "Interface intuitiva",
-    description: "Design pensado para facilitar o dia a dia, sem complicações"
+    description: "Design pensado para facilitar o dia a dia, sem complicações",
   },
   {
     title: "Dados 100% seguros",
-    description: "Backup automático e criptografia de ponta a ponta"
+    description: "Backup automático e criptografia de ponta a ponta",
   },
   {
     title: "Suporte em português",
-    description: "Equipe brasileira pronta para ajudar quando você precisar"
+    description: "Equipe brasileira pronta para ajudar quando você precisar",
   },
   {
     title: "Sem instalação",
-    description: "Acesse de qualquer lugar, basta ter internet"
+    description: "Acesse de qualquer lugar, basta ter internet",
   },
   {
     title: "Atualizações constantes",
-    description: "Novos recursos e melhorias sem custo adicional"
+    description: "Novos recursos e melhorias sem custo adicional",
   },
   {
     title: "Multiplataforma",
-    description: "Funciona em computador, tablet e celular"
+    description: "Funciona em computador, tablet e celular",
   },
 ];
 
@@ -36,24 +36,21 @@ export const BenefitsSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Texto à esquerda */}
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-              Por que escolher o Offgroom?
-            </h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Por que escolher o Offgroom?</h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Desenvolvido especialmente para petshops que querem crescer de forma 
-              profissional e organizada.
+              Desenvolvido especialmente para petshops que querem crescer de forma profissional e organizada.
             </p>
-            
-            <Button 
+
+            <Button
               onClick={abrirHotmart}
               size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              Começar agora
+              Experimente Grátis
               <ArrowRight className="ml-2" />
             </Button>
           </div>
-          
+
           {/* Lista à direita */}
           <div className="space-y-4">
             {benefits.map((benefit, index) => (
