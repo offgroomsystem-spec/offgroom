@@ -7,7 +7,7 @@ interface StoreLayoutProps {
 }
 
 export const abrirHotmart = () => {
-  const hotmartUrl = "https://wa.me/5561991273079?text=Ol%C3%A1%21%20Quero%20comprar%20o%20Offgroom"; // Placeholder - será substituído
+  const hotmartUrl = "https://pay.hotmart.com/"; // Placeholder - será substituído
   window.open(hotmartUrl, "_blank");
 };
 
