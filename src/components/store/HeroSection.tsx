@@ -9,12 +9,6 @@ export const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Lado esquerdo: Conteúdo */}
           <div className="order-2 lg:order-1">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-sm font-medium mb-6">
-              <Sparkles className="h-4 w-4" />
-              Feito por groomers, para groomers
-            </div>
-
             {/* Título principal */}
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight mb-6">
               <span className="text-foreground">Tecnologia feita por quem realmente sabe o que aumenta</span>
