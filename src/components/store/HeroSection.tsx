@@ -58,10 +58,6 @@ export const HeroSection = () => {
                 <Check className="h-4 w-4 text-accent" />
                 <span>Suporte dedicado, pronto para ajudar</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-accent" />
-                <span>7 dias grátis</span>
-              </div>
             </div>
           </div>
 
