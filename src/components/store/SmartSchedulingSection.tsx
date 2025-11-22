@@ -50,7 +50,7 @@ export const SmartSchedulingSection = () => {
               Agendamentos inteligentes que eliminam conflitos e impulsionam sua rotina.
             </h2>
 
-            <p className="text-lg text-muted-foreground mb-6">
+            <p className="text-lg text-muted-foreground mb-3">
               Tenha controle total da sua agenda com a Offgroom. Visualize horários preenchidos e disponíveis com o
               gráfico de Gantt, tome decisões em segundos e mantenha uma operação organizada, rápida e sem estresse.
             </p>
