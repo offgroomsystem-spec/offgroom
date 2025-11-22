@@ -40,7 +40,7 @@ export const SmartSchedulingSection = () => {
             <img
               src={agendamentoImg}
               alt="Agendamentos Inteligentes Offgroom"
-              className="w-full h-auto max-h-[200px] md:max-h-[1200px] lg:h-[650px] lg:w-auto object-contain rounded-3xl"
+              className="w-full h-auto max-h-[500px] md:max-h-[1200px] lg:h-[650px] lg:w-auto object-contain rounded-3xl"
             />
           </div>
 
