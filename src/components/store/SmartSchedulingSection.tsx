@@ -32,7 +32,7 @@ export const SmartSchedulingSection = () => {
   ];
 
   return (
-    <section className="py-8 md:py-12 lg:py-16 bg-background">
+    <section className="py-4 md:py-6 lg:py-8 bg-background">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-center">
           {/* Coluna Esquerda - Imagem */}
@@ -49,9 +49,10 @@ export const SmartSchedulingSection = () => {
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
               Agendamentos inteligentes que eliminam conflitos e impulsionam sua rotina.
             </h2>
-            
+
             <p className="text-lg text-muted-foreground mb-6">
-              Tenha controle total da sua agenda com a Offgroom. Visualize horários preenchidos e disponíveis com o gráfico de Gantt, tome decisões em segundos e mantenha uma operação organizada, rápida e sem estresse.
+              Tenha controle total da sua agenda com a Offgroom. Visualize horários preenchidos e disponíveis com o
+              gráfico de Gantt, tome decisões em segundos e mantenha uma operação organizada, rápida e sem estresse.
             </p>
 
             {/* Grid de 6 Cards */}
@@ -66,9 +67,7 @@ export const SmartSchedulingSection = () => {
                     <div className="w-12 h-12 bg-card rounded-lg flex items-center justify-center shrink-0 border border-border">
                       <Icon className="h-6 w-6 text-primary" />
                     </div>
-                    <p className="text-sm text-card-foreground font-medium pt-3">
-                      {feature.text}
-                    </p>
+                    <p className="text-sm text-card-foreground font-medium pt-3">{feature.text}</p>
                   </div>
                 );
               })}
