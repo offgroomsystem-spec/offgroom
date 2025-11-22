@@ -1,6 +1,6 @@
 import { StoreLayout } from "@/components/store/StoreLayout";
 import { HeroSection } from "@/components/store/HeroSection";
-import { ClientLogos } from "@/components/store/ClientLogos";
+import { SmartSchedulingSection } from "@/components/store/SmartSchedulingSection";
 import { VideoSection } from "@/components/store/VideoSection";
 import { FeaturedFeatures } from "@/components/store/FeaturedFeatures";
 import { FeaturesSection } from "@/components/store/FeaturesSection";
@@ -12,7 +12,7 @@ import { StoreFooter } from "@/components/store/StoreFooter";
 const Store = () => {
   return <StoreLayout>
       <HeroSection />
-      <ClientLogos />
+      <SmartSchedulingSection />
       <VideoSection />
       <FeaturedFeatures />
       <FeaturesSection />
