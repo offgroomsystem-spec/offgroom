@@ -32,30 +32,30 @@ export const SmartSchedulingSection = () => {
   ];
 
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="py-8 md:py-12 lg:py-16 bg-background">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-center">
           {/* Coluna Esquerda - Imagem */}
           <div className="lg:col-span-2 flex justify-center lg:justify-start">
             <img
               src={agendamentoImg}
               alt="Agendamentos Inteligentes Offgroom"
-              className="w-full h-auto max-h-[400px] md:max-h-[500px] lg:h-[500px] lg:w-auto object-contain"
+              className="w-full h-auto max-h-[500px] md:max-h-[600px] lg:h-[650px] lg:w-auto object-contain rounded-3xl"
             />
           </div>
 
           {/* Coluna Direita - Conteúdo */}
           <div className="lg:col-span-3">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
               Agendamentos inteligentes que eliminam conflitos e impulsionam sua rotina.
             </h2>
             
-            <p className="text-lg text-muted-foreground mb-10">
+            <p className="text-lg text-muted-foreground mb-6">
               Tenha controle total da sua agenda com a Offgroom. Visualize horários preenchidos e disponíveis com o gráfico de Gantt, tome decisões em segundos e mantenha uma operação organizada, rápida e sem estresse.
             </p>
 
             {/* Grid de 6 Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               {features.map((feature, index) => {
                 const Icon = feature.icon;
                 return (
@@ -78,7 +78,7 @@ export const SmartSchedulingSection = () => {
             <Button
               onClick={abrirHotmart}
               size="lg"
-              className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg"
+              className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg"
             >
               Experimentar Grátis
             </Button>
