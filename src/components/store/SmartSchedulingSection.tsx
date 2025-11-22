@@ -34,7 +34,7 @@ export const SmartSchedulingSection = () => {
   return (
     <section className="py-2 md:py-3 lg:py-4 bg-background">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-1 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-1 lg:gap-1 items-center">
           {/* Coluna Esquerda - Imagem */}
           <div className="lg:col-span-2 flex justify-center lg:justify-start">
             <img
