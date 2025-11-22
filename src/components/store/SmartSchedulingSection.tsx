@@ -46,7 +46,7 @@ export const SmartSchedulingSection = () => {
 
           {/* Coluna Direita - Conteúdo */}
           <div className="lg:col-span-3">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-1">
               Agendamentos inteligentes que eliminam conflitos e impulsionam sua rotina.
             </h2>
 
