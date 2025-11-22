@@ -36,7 +36,7 @@ export const SmartSchedulingSection = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-1 lg:gap-1 items-center">
           {/* Coluna Esquerda - Imagem */}
-          <div className="lg:col-span-1 flex justify-center lg:justify-start">
+          <div className="lg:col-span-2 flex justify-center lg:justify-start">
             <img
               src={agendamentoImg}
               alt="Agendamentos Inteligentes Offgroom"
