@@ -48,7 +48,7 @@ export const FeaturedFeatures = () => {
     <section className="bg-muted py-16 md:py-24">
       <div className="container max-w-7xl">
         <div className="text-center mb-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-1">Tudo que você precisa em um só lugar</h2>
+          <h2 className="text-4xl md:text-4xl font-bold text-foreground mb-1">Tudo que você precisa em um só lugar</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Recursos poderosos para simplificar sua rotina e aumentar seus resultados
           </p>
