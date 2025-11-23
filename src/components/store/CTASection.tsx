@@ -33,9 +33,7 @@ export const CTASection = () => {
           </Button>
         </div>
 
-        <p className="mt-6 text-sm text-primary-foreground/70">
-          ⚡ Configure em minutos • Sem cartão de crédito para testar
-        </p>
+        <p className="mt-6 text-sm text-primary-foreground/70">⚡ Projete sua empresa para crescer ainda mais.</p>
       </div>
     </section>
   );
