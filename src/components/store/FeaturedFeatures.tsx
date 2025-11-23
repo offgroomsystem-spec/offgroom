@@ -3,9 +3,10 @@ import { Calendar, DollarSign, BarChart3, Check } from "lucide-react";
 const featuredFeatures = [
   {
     icon: Calendar,
-    title: "Agendamentos Recorrentes",
-    description: "Configure serviços que se repetem automaticamente e nunca mais perca uma marcação",
-    benefits: ["Lembretes automáticos por WhatsApp", "Confirmação de presença", "Calendário inteligente"],
+    title: "Agendamentos Inteligentes",
+    description:
+      "Gerencie seus horários com praticidade. Enxergue rapidamente os intervalos livres pelo Gantt e mantenha sua rotina alinhada e tranquila.",
+    benefits: ["Lembretes por WhatsApp", "Confirmação de presença", "Calendário inteligente"],
     color: "blue",
   },
   {
