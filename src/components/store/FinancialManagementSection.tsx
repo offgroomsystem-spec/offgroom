@@ -32,7 +32,7 @@ export const FinancialManagementSection = () => {
   ];
 
   return (
-    <section className="py-8 md:py-12 lg:py-16 bg-background">
+    <section cclassName="py-2 md:py-3 lg:py-4 bg-background">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-center">
           {/* Coluna Esquerda - Conteúdo */}
