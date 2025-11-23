@@ -1,4 +1,5 @@
 import { Calendar, DollarSign, BarChart3, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const featuredFeatures = [
   {
@@ -49,9 +50,9 @@ const colorClasses = {
   purple: "bg-purple-50 text-purple-600",
 };
 
-export const FeaturedFeatures = () => {
+export const FeaturedFeatures = ({ className }: { className?: string }) => {
   return (
-    <section className="bg-muted py-16 md:py-24">
+    <section className={cn("bg-muted py-16 md:py-24", className)}>
       <div className="container max-w-7xl">
         <div className="text-center mb-4">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-1">Tudo que você precisa em um só lugar</h2>

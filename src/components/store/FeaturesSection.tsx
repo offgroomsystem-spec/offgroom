@@ -8,6 +8,7 @@ import {
   Shield,
   Smartphone,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const features = [
   {
@@ -52,9 +53,9 @@ const features = [
   },
 ];
 
-export const FeaturesSection = () => {
+export const FeaturesSection = ({ className }: { className?: string }) => {
   return (
-    <section className="bg-card py-16 md:py-24">
+    <section className={cn("bg-card py-16 md:py-24", className)}>
       <div className="container max-w-7xl">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
