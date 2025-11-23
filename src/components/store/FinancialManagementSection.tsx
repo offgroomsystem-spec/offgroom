@@ -41,13 +41,13 @@ export const FinancialManagementSection = () => {
               Eficiência e facilidade para você focar no estratégico.
             </h2>
 
-            <p className="text-lg text-muted-foreground mb-6">
+            <p className="text-lg text-muted-foreground mb-3">
               Tenha uma visão clara das suas finanças e tome decisões mais seguras. A Offgroom organiza seus números,
               oferece insights precisos e facilita o planejamento para que sua empresa cresça com confiança.
             </p>
 
             {/* Grid de 6 Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
               {features.map((feature, index) => {
                 const Icon = feature.icon;
                 return (
@@ -68,7 +68,7 @@ export const FinancialManagementSection = () => {
             <Button
               onClick={abrirHotmart}
               size="lg"
-              className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg"
+              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg"
             >
               Experimentar Grátis
             </Button>
