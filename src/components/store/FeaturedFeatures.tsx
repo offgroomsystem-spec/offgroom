@@ -41,7 +41,7 @@ export const FeaturedFeatures = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-80">
+        <div className="grid md:grid-cols-3 gap-8">
           {featuredFeatures.map((feature, index) => (
             <div
               key={index}
