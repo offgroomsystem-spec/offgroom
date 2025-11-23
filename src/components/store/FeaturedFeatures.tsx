@@ -23,6 +23,18 @@ const featuredFeatures = [
     benefits: ["Análise de faturamento", "Clientes em risco", "Performance por serviço"],
     color: "purple",
   },
+  {
+    icon: DollarSign,
+    title: "Recursos para Recorrência",
+    description:
+      "Use recursos voltados para atendimentos recorrentes para manter seus clientes sempre ativos e elevar seu faturamento, enviando mensagens estratégicas pelo WhatsApp com frases prontas",
+    benefits: [
+      "Clientes sem agendamentos futuros",
+      "Pacotes vencidos sem agendamentos",
+      "Pacotes prestes a vencer convidando o cliente a Renovar imediatamente",
+    ],
+    color: "green",
+  },
 ];
 
 const colorClasses = {
