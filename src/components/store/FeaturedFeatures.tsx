@@ -12,16 +12,16 @@ const featuredFeatures = [
   {
     icon: DollarSign,
     title: "Controles Inteligentes",
-    description:
-      "Tenha uma visão completa das finanças com dashboards detalhados e tome decisões baseadas em dados reais para acompanhar o crescimento do seu negócio",
-    benefits: [
-      "Fluxo de caixa em tempo real",
-      "Contas a pagar e receber",
-      "DRE e ponto de equilíbrio",
-      "Análise de faturamento com Gráficos",
-      "Performance por serviço",
-    ],
+    description: "Tenha visão completa das finanças e tome decisões baseadas em dados reais",
+    benefits: ["Fluxo de caixa em tempo real", "Contas a pagar e receber", "DRE e ponto de equilíbrio"],
     color: "green",
+  },
+  {
+    icon: BarChart3,
+    title: "Relatórios Gerenciais",
+    description: "Dashboards completos para acompanhar o crescimento do seu negócio",
+    benefits: ["Análise de faturamento", "Clientes em risco", "Performance por serviço"],
+    color: "purple",
   },
   {
     icon: DollarSign,
@@ -54,7 +54,7 @@ export const FeaturedFeatures = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {featuredFeatures.map((feature, index) => (
             <div
               key={index}
