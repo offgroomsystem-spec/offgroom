@@ -2,8 +2,9 @@ import { DollarSign, Calendar, PieChart, FileText, TrendingUp, BarChart } from "
 import { Button } from "@/components/ui/button";
 import { abrirHotmart } from "./StoreLayout";
 import financeiroImg from "@/assets/financeiro.png";
+import { cn } from "@/lib/utils";
 
-export const FinancialManagementSection = () => {
+export const FinancialManagementSection = ({ className }: { className?: string }) => {
   const features = [
     {
       icon: DollarSign,
@@ -32,7 +33,7 @@ export const FinancialManagementSection = () => {
   ];
 
   return (
-    <section className="py-8 md:py-12 lg:py-16 bg-background">
+    <section className={cn("py-8 md:py-12 lg:py-16 bg-background", className)}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-1 lg:gap-1 items-center">
           {/* Coluna Esquerda - Conteúdo */}

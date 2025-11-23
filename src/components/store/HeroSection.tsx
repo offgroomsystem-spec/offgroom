@@ -2,9 +2,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Check, Sparkles } from "lucide-react";
 import { abrirHotmart } from "./StoreLayout";
 import heroImage from "@/assets/hero-offgroom.png";
-export const HeroSection = () => {
+import { cn } from "@/lib/utils";
+
+export const HeroSection = ({ className }: { className?: string }) => {
   return (
-    <section className="bg-card py-16 md:py-24 lg:py-32">
+    <section className={cn("bg-card py-16 md:py-24 lg:py-32", className)}>
       <div className="container max-w-7xl">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Lado esquerdo: Conteúdo */}
