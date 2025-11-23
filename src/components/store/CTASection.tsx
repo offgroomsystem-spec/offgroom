@@ -26,7 +26,7 @@ export const CTASection = () => {
           <Button
             size="lg"
             variant="outline"
-            className="border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10 px-8 py-6 text-lg font-semibold rounded-xl"
+            className="bg-card text-primary hover:bg-card/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-xl"
           >
             Falar com especialista
           </Button>
