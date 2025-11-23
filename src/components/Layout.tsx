@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User } from "lucide-react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logoOffgroom from "@/assets/logo-offgroom.png";
@@ -52,6 +52,18 @@ const Layout = () => {
           </div>
           
           <nav className="flex gap-1 items-center">
+            <Link
+              to="/home"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                location.pathname === "/home" || location.pathname === "/"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Home className="h-4 w-4" />
+              <span className="font-medium">Home</span>
+            </Link>
+            
             <Link
               to="/agendamentos"
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
