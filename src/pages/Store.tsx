@@ -12,7 +12,7 @@ import { StoreFooter } from "@/components/store/StoreFooter";
 const Store = () => {
   return <StoreLayout>
       <HeroSection />
-      <SmartSchedulingSection />
+      <SmartSchedulingSection className="py-0" />
       <FinancialManagementSection className="py-0" />
       <FeaturedFeatures className="mx-0 my-0 py-[30px]" />
       <FeaturesSection />
