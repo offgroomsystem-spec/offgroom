@@ -70,7 +70,7 @@ export const FeaturedFeatures = () => {
 
               <p className="text-muted-foreground mb-6">{feature.description}</p>
 
-              <ul className="space-y-4">
+              <ul className="space-y-3">
                 {feature.benefits.map((benefit, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
