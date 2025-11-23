@@ -6,7 +6,13 @@ const featuredFeatures = [
     title: "Agendamentos Inteligentes",
     description:
       "Gerencie seus horários com praticidade. Enxergue rapidamente os intervalos livres pelo Gantt e mantenha sua rotina alinhada e tranquila.",
-    benefits: ["Lembretes por WhatsApp", "Confirmação de presença", "Calendário inteligente", "Gráfico de Gantt"],
+    benefits: [
+      "Lembretes por WhatsApp",
+      "Confirmação de presença",
+      "Calendário inteligente",
+      "Gráfico de Gantt",
+      "Visualização simples e objetiva",
+    ],
     color: "blue",
   },
   {
