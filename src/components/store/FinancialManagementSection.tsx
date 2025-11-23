@@ -70,7 +70,7 @@ export const FinancialManagementSection = () => {
               size="lg"
               className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg"
             >
-              Experimentar Grátis
+              Experimentar Grátis por 7 dias
             </Button>
           </div>
 
