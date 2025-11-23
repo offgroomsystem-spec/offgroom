@@ -12,16 +12,16 @@ const featuredFeatures = [
   {
     icon: DollarSign,
     title: "Controles Inteligentes",
-    description: "Tenha visão completa das finanças e tome decisões baseadas em dados reais",
-    benefits: ["Fluxo de caixa em tempo real", "Contas a pagar e receber", "DRE e ponto de equilíbrio"],
+    description:
+      "Tenha uma visão completa das finanças com dashboards detalhados e tome decisões baseadas em dados reais para acompanhar o crescimento do seu negócio",
+    benefits: [
+      "Fluxo de caixa em tempo real",
+      "Contas a pagar e receber",
+      "DRE e ponto de equilíbrio",
+      "Análise de faturamento com Gráficos",
+      "Performance por serviço",
+    ],
     color: "green",
-  },
-  {
-    icon: BarChart3,
-    title: "Relatórios Gerenciais",
-    description: "Dashboards completos para acompanhar o crescimento do seu negócio",
-    benefits: ["Análise de faturamento", "Clientes em risco", "Performance por serviço"],
-    color: "purple",
   },
   {
     icon: DollarSign,
