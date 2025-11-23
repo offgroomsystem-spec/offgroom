@@ -11,7 +11,7 @@ import { CTASection } from "@/components/store/CTASection";
 import { StoreFooter } from "@/components/store/StoreFooter";
 const Store = () => {
   return <StoreLayout>
-      <HeroSection />
+      <HeroSection className="py-[30px]" />
       <SmartSchedulingSection className="py-0" />
       <FinancialManagementSection className="py-0" />
       <FeaturedFeatures className="mx-0 my-0 py-[30px]" />
