@@ -14,7 +14,7 @@ const Store = () => {
       <HeroSection />
       <SmartSchedulingSection />
       <FinancialManagementSection />
-      <FeaturedFeatures />
+      <FeaturedFeatures className="mx-0 my-0 py-[30px]" />
       <FeaturesSection />
       <BenefitsSection />
       <TestimonialsSection />
