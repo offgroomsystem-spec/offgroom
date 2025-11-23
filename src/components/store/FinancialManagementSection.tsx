@@ -41,7 +41,7 @@ export const FinancialManagementSection = () => {
               Eficiência e facilidade para você focar no estratégico.
             </h2>
 
-            <p className="text-lg text-muted-foreground mb-3">
+            <p className="text-lg text-muted-foreground mb-60">
               Tenha uma visão clara das suas finanças e tome decisões mais seguras. A Offgroom organiza seus números,
               oferece insights precisos e facilita o planejamento para que sua empresa cresça com confiança.
             </p>
