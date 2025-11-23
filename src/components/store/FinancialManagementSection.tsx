@@ -37,7 +37,7 @@ export const FinancialManagementSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-1 lg:gap-1 items-center">
           {/* Coluna Esquerda - Conteúdo */}
           <div className="lg:col-span-3 order-2 lg:order-1">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-1">
               Eficiência e facilidade para você focar no estratégico.
             </h2>
 
@@ -79,7 +79,7 @@ export const FinancialManagementSection = () => {
             <img
               src={financeiroImg}
               alt="Gestão Financeira Offgroom"
-              className="w-full h-auto max-h-[500px] md:max-h-[600px] lg:h-[650px] lg:w-auto object-contain rounded-3xl"
+              className="w-full h-auto max-h-[350px] md:max-h-[1500px] lg:h-[650px] lg:w-auto object-contain rounded-3xl"
             />
           </div>
         </div>
