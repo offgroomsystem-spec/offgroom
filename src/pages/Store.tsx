@@ -15,7 +15,7 @@ const Store = () => {
       <SmartSchedulingSection className="py-0" />
       <FinancialManagementSection className="py-0" />
       <FeaturedFeatures className="mx-0 my-0 py-[30px]" />
-      <FeaturesSection />
+      <FeaturesSection className="py-[20px]" />
       <BenefitsSection />
       <TestimonialsSection />
       <PricingSection />
