@@ -34,7 +34,7 @@ export const FinancialManagementSection = () => {
   return (
     <section cclassName="py-2 md:py-3 lg:py-4 bg-background">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-1 lg:gap-1 items-center">
           {/* Coluna Esquerda - Conteúdo */}
           <div className="lg:col-span-3 order-2 lg:order-1">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
