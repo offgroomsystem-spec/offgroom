@@ -520,7 +520,7 @@ const Home = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dadosCrescimentoAgendamentos} margin={{ top: 2, right: 20, left: 10, bottom: 5 }}>
+              <LineChart data={dadosCrescimentoAgendamentos} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
