@@ -21,7 +21,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ContasProximasVencimento } from "@/components/dashboard/ContasProximasVencimento";
-import { PetsRetornoRecomendado } from "@/components/dashboard/PetsRetornoRecomendado";
 import { NovosClientes } from "@/components/dashboard/NovosClientes";
 
 const Home = () => {
@@ -115,7 +114,7 @@ const Home = () => {
     const atendimentosDiaPacotes = agendamentosPacotes.reduce((count, p) => {
       const servicos = Array.isArray(p.servicos) ? p.servicos : [];
       return count + servicos.filter((s: any) => 
-        s.agendado && s.data_agendamento === hojeStr
+        s.data === hojeStr
       ).length;
     }, 0);
     
@@ -131,8 +130,8 @@ const Home = () => {
     const atendimentosSemanaPacotes = agendamentosPacotes.reduce((count, p) => {
       const servicos = Array.isArray(p.servicos) ? p.servicos : [];
       return count + servicos.filter((s: any) => {
-        if (!s.agendado || !s.data_agendamento) return false;
-        const data = new Date(s.data_agendamento);
+        if (!s.data) return false;
+        const data = new Date(s.data);
         return data >= hoje && data <= proximaSemana;
       }).length;
     }, 0);
@@ -149,8 +148,8 @@ const Home = () => {
     const atendimentosSemanaAnteriorPacotes = agendamentosPacotes.reduce((count, p) => {
       const servicos = Array.isArray(p.servicos) ? p.servicos : [];
       return count + servicos.filter((s: any) => {
-        if (!s.agendado || !s.data_agendamento) return false;
-        const data = new Date(s.data_agendamento);
+        if (!s.data) return false;
+        const data = new Date(s.data);
         return data >= semanaAnteriorInicio && data < hoje;
       }).length;
     }, 0);
@@ -261,8 +260,8 @@ const Home = () => {
       const quantidadePacotes = agendamentosPacotes.reduce((count, p) => {
         const servicos = Array.isArray(p.servicos) ? p.servicos : [];
         return count + servicos.filter((s: any) => {
-          if (!s.agendado || !s.data_agendamento) return false;
-          const data = new Date(s.data_agendamento);
+          if (!s.data) return false;
+          const data = new Date(s.data);
           return data >= inicioMes && data <= fimMes;
         }).length;
       }, 0);
@@ -310,9 +309,9 @@ const Home = () => {
           cor="default"
         />
         
-        <KPICard
-          titulo="Próximos 7 dias"
-          valor={kpis.atendimentosSemana}
+            <KPICard
+              titulo="Próximos 7 dias"
+              valor={`${kpis.atendimentosSemana} agendamentos`}
           subtitulo={`${kpis.variacaoAgendamentos > 0 ? "+" : ""}${kpis.variacaoAgendamentos.toFixed(1)}% vs semana anterior`}
           icon={<CalendarDays />}
           cor={kpis.variacaoAgendamentos >= 0 ? "green" : "red"}
@@ -400,12 +399,11 @@ const Home = () => {
         </Card>
       </div>
       
-      {/* Linha 3: Mini Relatórios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <ContasProximasVencimento lancamentos={lancamentos} />
-        <PetsRetornoRecomendado agendamentos={agendamentos} clientes={clientes} />
-        <NovosClientes clientes={clientes} />
-      </div>
+          {/* Linha 3: Mini Relatórios */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ContasProximasVencimento lancamentos={lancamentos} />
+            <NovosClientes clientes={clientes} />
+          </div>
     </div>
   );
 };
