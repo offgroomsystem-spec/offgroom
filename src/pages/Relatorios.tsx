@@ -20,6 +20,7 @@ import { DespesasOperacionais } from "@/components/relatorios/financeiros/Despes
 import { DespesasNaoOperacionais } from "@/components/relatorios/financeiros/DespesasNaoOperacionais";
 import { PontoEquilibrio } from "@/components/relatorios/financeiros/PontoEquilibrio";
 import { AtendimentosRealizados } from "@/components/relatorios/servicos/AtendimentosRealizados";
+import { ProdutosProximosVencimento } from "@/components/relatorios/estoque/ProdutosProximosVencimento";
 
 const Relatorios = () => {
   const [filtros, setFiltros] = useState({
@@ -83,6 +84,7 @@ const Relatorios = () => {
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-ativos" && <PacotesAtivos />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
+        {relatorioAtivo === "produtos-vencimento" && <ProdutosProximosVencimento />}
 
       {![
         "dashboard",
@@ -99,6 +101,9 @@ const Relatorios = () => {
     "pacotes-vencimento",
         "pacotes-expirados",
         "clientes-risco",
+        "produtos-vencimento",
+        "atendimentos-realizados",
+        "pacotes-ativos",
       ].includes(relatorioAtivo) && (
           <Card>
             <CardHeader>
@@ -273,21 +278,47 @@ const Relatorios = () => {
 
         <TabsContent value="estoque" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              "Giro de Estoque e Curva ABC",
-              "Produtos Próximos ao Vencimento",
-              "Sugestão de Compra Inteligente",
-              "Margem de Lucro por Produto",
-            ].map((titulo) => (
-              <Card key={titulo} className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary">
-                <CardHeader>
-                  <CardTitle className="text-sm">{titulo}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary opacity-50">
+              <CardHeader>
+                <CardTitle className="text-sm">Giro de Estoque e Curva ABC</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
+              </CardContent>
+            </Card>
+            
+            {/* CARD CLICÁVEL - Produtos Próximos ao Vencimento */}
+            <Card
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("produtos-vencimento")}
+            >
+              <CardHeader>
+                <CardTitle className="text-sm">Produtos Próximos ao Vencimento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Controle de validade por lote com alertas de vencimento
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary opacity-50">
+              <CardHeader>
+                <CardTitle className="text-sm">Sugestão de Compra Inteligente</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary opacity-50">
+              <CardHeader>
+                <CardTitle className="text-sm">Margem de Lucro por Produto</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
