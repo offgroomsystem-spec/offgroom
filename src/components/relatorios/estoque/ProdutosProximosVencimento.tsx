@@ -9,10 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertTriangle, Package, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertTriangle, Package, Filter, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { ExportButton } from "../shared/ExportButton";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface ProdutoVencimento {
   id: string;
@@ -23,6 +26,7 @@ interface ProdutoVencimento {
   dataValidade: Date;
   diasParaVencer: number;
   status: "vencido" | "vencendo";
+  itensIds: string[];
 }
 
 interface Filtros {
@@ -41,6 +45,11 @@ export const ProdutosProximosVencimento = () => {
     status: "todos",
     diasAlerta: 30,
   });
+  const [modalAberto, setModalAberto] = useState(false);
+  const [loteEditando, setLoteEditando] = useState<ProdutoVencimento | null>(null);
+  const [novaQuantidade, setNovaQuantidade] = useState<number>(0);
+  const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
   const loadProdutosVencimento = async () => {
     if (!user) return;
@@ -112,11 +121,10 @@ export const ProdutosProximosVencimento = () => {
         // Só adicionar se estiver na janela de alerta ou vencido
         if (status) {
           if (lotesMap.has(chave)) {
-            // Somar quantidade ao lote existente
             const loteExistente = lotesMap.get(chave)!;
             loteExistente.quantidade += Number(item.quantidade);
+            loteExistente.itensIds.push(item.id);
           } else {
-            // Criar novo registro de lote
             lotesMap.set(chave, {
               id: chave,
               produtoId: item.produto_id,
@@ -126,6 +134,7 @@ export const ProdutosProximosVencimento = () => {
               dataValidade,
               diasParaVencer,
               status,
+              itensIds: [item.id],
             });
           }
         }
@@ -146,6 +155,85 @@ export const ProdutosProximosVencimento = () => {
   useEffect(() => {
     loadProdutosVencimento();
   }, [user, filtros.diasAlerta]);
+
+  const handleEditarLote = (lote: ProdutoVencimento) => {
+    setLoteEditando(lote);
+    setNovaQuantidade(lote.quantidade);
+    setModalAberto(true);
+  };
+
+  const handleSalvarEdicao = async () => {
+    if (!loteEditando || !user) return;
+    
+    if (novaQuantidade === 0) {
+      setConfirmacaoExclusao(true);
+      return;
+    }
+    
+    try {
+      setSalvando(true);
+      
+      const diferenca = novaQuantidade - loteEditando.quantidade;
+      
+      if (diferenca !== 0) {
+        const [primeiroItemId, ...outrosIds] = loteEditando.itensIds;
+        
+        const { error: updateError } = await supabase
+          .from('compras_nf_itens')
+          .update({ quantidade: novaQuantidade })
+          .eq('id', primeiroItemId);
+        
+        if (updateError) throw updateError;
+        
+        if (outrosIds.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('compras_nf_itens')
+            .delete()
+            .in('id', outrosIds);
+          
+          if (deleteError) throw deleteError;
+        }
+      }
+      
+      toast.success("Quantidade atualizada com sucesso!");
+      setModalAberto(false);
+      setLoteEditando(null);
+      loadProdutosVencimento();
+      
+    } catch (error) {
+      console.error('Erro ao atualizar quantidade:', error);
+      toast.error("Erro ao atualizar quantidade. Tente novamente.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const handleConfirmarExclusao = async () => {
+    if (!loteEditando || !user) return;
+    
+    try {
+      setSalvando(true);
+      
+      const { error } = await supabase
+        .from('compras_nf_itens')
+        .delete()
+        .in('id', loteEditando.itensIds);
+      
+      if (error) throw error;
+      
+      toast.success("Lote removido com sucesso!");
+      setConfirmacaoExclusao(false);
+      setModalAberto(false);
+      setLoteEditando(null);
+      loadProdutosVencimento();
+      
+    } catch (error) {
+      console.error('Erro ao excluir lote:', error);
+      toast.error("Erro ao excluir lote. Tente novamente.");
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   // Aplicar filtros locais
   const produtosFiltrados = produtos.filter(p => {
@@ -279,6 +367,7 @@ export const ProdutosProximosVencimento = () => {
                   <TableHead>Data Validade</TableHead>
                   <TableHead className="text-center">Dias p/ Vencer</TableHead>
                   <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -310,6 +399,15 @@ export const ProdutosProximosVencimento = () => {
                         <Badge className="bg-orange-500 hover:bg-orange-600">Vencendo</Badge>
                       )}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditarLote(produto)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -334,6 +432,98 @@ export const ProdutosProximosVencimento = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Edição */}
+      <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Lote</DialogTitle>
+            <DialogDescription>
+              Altere a quantidade em estoque deste lote específico
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loteEditando && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Código</Label>
+                  <p className="font-mono text-sm">{loteEditando.codigo}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Status</Label>
+                  <div className="mt-1">
+                    {loteEditando.status === "vencido" ? (
+                      <Badge variant="destructive">Vencido</Badge>
+                    ) : (
+                      <Badge className="bg-orange-500">Vencendo</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-muted-foreground">Produto</Label>
+                <p className="font-medium">{loteEditando.nome}</p>
+              </div>
+              
+              <div>
+                <Label className="text-muted-foreground">Data de Validade</Label>
+                <p>{format(loteEditando.dataValidade, "dd/MM/yyyy", { locale: ptBR })}</p>
+              </div>
+              
+              <div className="pt-2 border-t">
+                <Label htmlFor="quantidade">Quantidade em Estoque</Label>
+                <Input
+                  id="quantidade"
+                  type="number"
+                  min="0"
+                  value={novaQuantidade}
+                  onChange={(e) => setNovaQuantidade(Number(e.target.value))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Quantidade original: {loteEditando.quantidade} unidades
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalAberto(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSalvarEdicao} disabled={salvando}>
+              {salvando ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog de Confirmação de Exclusão */}
+      <AlertDialog open={confirmacaoExclusao} onOpenChange={setConfirmacaoExclusao}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente excluir/baixar este estoque? Esta ação não pode ser desfeita.
+              <br /><br />
+              <strong>Produto:</strong> {loteEditando?.nome}<br />
+              <strong>Validade:</strong> {loteEditando && format(loteEditando.dataValidade, "dd/MM/yyyy")}<br />
+              <strong>Quantidade:</strong> {loteEditando?.quantidade} unidades
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmarExclusao}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {salvando ? "Excluindo..." : "Confirmar Exclusão"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
