@@ -494,7 +494,7 @@ const Home = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={dadosFluxoCaixa} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="data" tick={{ fontSize: 12 }} />
                 <YAxis width={30} tick={{ fontSize: 12 }} />
                 <Tooltip
@@ -521,7 +521,7 @@ const Home = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={dadosCrescimentoAgendamentos} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
                 <YAxis width={30} tick={{ fontSize: 12 }} />
                 <Tooltip
@@ -572,7 +572,7 @@ const Home = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={dadosMediaMensalHistorico} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
                 <YAxis width={30} tick={{ fontSize: 12 }} />
                 <Tooltip
