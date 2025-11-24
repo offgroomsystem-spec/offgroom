@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { AtendimentosRealizados } from "@/components/relatorios/servicos/Atendim
 import { ProdutosProximosVencimento } from "@/components/relatorios/estoque/ProdutosProximosVencimento";
 
 const Relatorios = () => {
+  const location = useLocation();
   const [filtros, setFiltros] = useState({
     periodo: "mes",
     dataInicio: "",
@@ -33,6 +35,13 @@ const Relatorios = () => {
   const [relatorioAtivo, setRelatorioAtivo] = useState<string | null>(null);
   const [versaoFiltro, setVersaoFiltro] = useState(0);
   const [filtrosControleFinanceiro, setFiltrosControleFinanceiro] = useState<any>(null);
+
+  // Suportar navegação direta do dashboard
+  useEffect(() => {
+    if (location.state?.tab) {
+      setRelatorioAtivo(location.state.tab);
+    }
+  }, [location]);
 
   const handleCardClick = (nomeRelatorio: string, filtrosIniciais?: any) => {
     setRelatorioAtivo(nomeRelatorio);

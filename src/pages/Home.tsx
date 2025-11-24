@@ -2,12 +2,13 @@ import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KPICard } from "@/components/relatorios/shared/KPICard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, CalendarDays, DollarSign, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { Calendar, CalendarDays, DollarSign, TrendingUp, TrendingDown, Users, AlertTriangle, Package, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, subDays, addDays, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, subDays, addDays, subMonths, differenceInDays, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -25,12 +26,19 @@ import { NovosClientes } from "@/components/dashboard/NovosClientes";
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
   const [agendamentosPacotes, setAgendamentosPacotes] = useState<any[]>([]);
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [diasFuncionamento, setDiasFuncionamento] = useState<any>(null);
+  const [kpisAdicionais, setKpisAdicionais] = useState({
+    clientesEmRisco: 0,
+    pacotesExpirados: 0,
+    pacotesAExpirar: 0,
+    produtosVencimento: 0,
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -98,6 +106,21 @@ const Home = () => {
             domingo: false,
           },
         );
+
+        // Calcular KPIs adicionais
+        const [clientesRisco, pacotesExp, pacotesAExp, produtosVenc] = await Promise.all([
+          calcularClientesEmRisco(),
+          calcularPacotesExpirados(),
+          calcularPacotesAExpirar(),
+          calcularProdutosVencimento(),
+        ]);
+
+        setKpisAdicionais({
+          clientesEmRisco: clientesRisco,
+          pacotesExpirados: pacotesExp,
+          pacotesAExpirar: pacotesAExp,
+          produtosVencimento: produtosVenc,
+        });
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         toast.error("Erro ao carregar dados do dashboard");
@@ -127,6 +150,280 @@ const Home = () => {
     }
 
     return addDays(hoje, 1);
+  };
+
+  // Calcular Clientes em Risco (20-90 dias sem agendamento)
+  const calcularClientesEmRisco = async () => {
+    if (!user) return 0;
+
+    try {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const { data: agendamentosData } = await supabase
+        .from("agendamentos")
+        .select("cliente_id, cliente, data, pet, whatsapp")
+        .eq("user_id", user.id)
+        .order("data", { ascending: false });
+
+      const { data: pacotesData } = await supabase
+        .from("agendamentos_pacotes")
+        .select("id, nome_cliente, data_venda, nome_pet, servicos")
+        .eq("user_id", user.id);
+
+      const mapa = new Map<string, { ultimoAgendamento: Date }>();
+
+      agendamentosData?.forEach((a) => {
+        const chave = `${a.cliente}_${a.pet}`;
+        const data = parseISO(a.data);
+        if (!isValid(data)) return;
+
+        if (!mapa.has(chave)) {
+          mapa.set(chave, { ultimoAgendamento: data });
+        } else {
+          const existente = mapa.get(chave)!;
+          if (data > existente.ultimoAgendamento) {
+            existente.ultimoAgendamento = data;
+          }
+        }
+      });
+
+      pacotesData?.forEach((p) => {
+        const chave = `${p.nome_cliente}_${p.nome_pet}`;
+        let ultimaDataServico: Date | null = null;
+
+        try {
+          const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+          if (Array.isArray(servicos)) {
+            const datasValidas = servicos.map((s) => parseISO(s.data)).filter((d) => isValid(d));
+            if (datasValidas.length > 0) {
+              ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
+            }
+          }
+        } catch {}
+
+        const dataFinal = ultimaDataServico ? ultimaDataServico : parseISO(p.data_venda);
+        if (!isValid(dataFinal)) return;
+
+        if (!mapa.has(chave)) {
+          mapa.set(chave, { ultimoAgendamento: dataFinal });
+        } else {
+          const existente = mapa.get(chave)!;
+          if (dataFinal > existente.ultimoAgendamento) {
+            existente.ultimoAgendamento = dataFinal;
+          }
+        }
+      });
+
+      let count = 0;
+      mapa.forEach((cli) => {
+        const dias = differenceInDays(hoje, cli.ultimoAgendamento);
+        const temAgendamentoFuturo =
+          agendamentosData?.some((a) => parseISO(a.data) >= hoje) ||
+          pacotesData?.some((p) => {
+            try {
+              const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+              if (Array.isArray(servicos)) {
+                return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+              }
+            } catch {
+              return false;
+            }
+            return false;
+          });
+
+        if (!temAgendamentoFuturo && dias >= 20 && dias <= 90) {
+          count++;
+        }
+      });
+
+      return count;
+    } catch (error) {
+      console.error("Erro ao calcular clientes em risco:", error);
+      return 0;
+    }
+  };
+
+  // Calcular Pacotes Expirados sem agendamento futuro
+  const calcularPacotesExpirados = async () => {
+    if (!user) return 0;
+
+    try {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const { data: agendamentosPacotesData } = await supabase
+        .from("agendamentos_pacotes")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const { data: pacotesDefinicao } = await supabase
+        .from("pacotes")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const { data: todosAgendamentos } = await supabase
+        .from("agendamentos")
+        .select("*")
+        .eq("user_id", user.id);
+
+      let count = 0;
+
+      for (const pacoteVendido of agendamentosPacotesData || []) {
+        const definicao = pacotesDefinicao?.find((p) => p.nome === pacoteVendido.nome_pacote);
+        if (!definicao) continue;
+
+        const dataVenda = new Date(pacoteVendido.data_venda);
+        const validadeDias = parseInt(definicao.validade) || 0;
+        const dataVencimento = new Date(dataVenda);
+        dataVencimento.setDate(dataVencimento.getDate() + validadeDias);
+
+        if (dataVencimento >= hoje) continue;
+
+        const agendamentosClientePet =
+          todosAgendamentos?.filter((ag) => {
+            const clienteNormalizado = ag.cliente?.trim().toLowerCase() || "";
+            const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || "";
+            const petNormalizado = ag.pet?.trim().toLowerCase() || "";
+            const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || "";
+
+            return clienteNormalizado === clientePacoteNormalizado && petNormalizado === petPacoteNormalizado;
+          }) || [];
+
+        const temAgendamentoNaTabela = agendamentosClientePet.some((ag) => {
+          const dataAgendamento = new Date(ag.data);
+          dataAgendamento.setHours(0, 0, 0, 0);
+          return dataAgendamento >= hoje;
+        });
+
+        const servicosFuturosNoPacote =
+          (pacoteVendido.servicos as any[])?.filter((servico) => {
+            const dataServico = new Date(servico.data);
+            dataServico.setHours(0, 0, 0, 0);
+            return dataServico >= hoje;
+          }) || [];
+        const temServicoFuturoNoPacote = servicosFuturosNoPacote.length > 0;
+
+        const temAgendamentoFuturo = temAgendamentoNaTabela || temServicoFuturoNoPacote;
+
+        if (!temAgendamentoFuturo) {
+          const todasDatasServicos: Date[] = [];
+          (pacoteVendido.servicos as any[])?.forEach((servico) => {
+            if (servico.data) {
+              todasDatasServicos.push(new Date(servico.data));
+            }
+          });
+
+          const ultimoServicoData =
+            todasDatasServicos.length > 0
+              ? todasDatasServicos.sort((a, b) => b.getTime() - a.getTime())[0]
+              : null;
+
+          const dataUltimo = ultimoServicoData || dataVenda;
+          const diasDesde = differenceInDays(hoje, dataUltimo);
+
+          if (diasDesde <= 90) {
+            count++;
+          }
+        }
+      }
+
+      return count;
+    } catch (error) {
+      console.error("Erro ao calcular pacotes expirados:", error);
+      return 0;
+    }
+  };
+
+  // Calcular Pacotes a Expirar (7 dias)
+  const calcularPacotesAExpirar = async () => {
+    if (!user) return 0;
+
+    try {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const { data: agendamentosPacotesData } = await supabase
+        .from("agendamentos_pacotes")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const { data: pacotesDefinicao } = await supabase
+        .from("pacotes")
+        .select("*")
+        .eq("user_id", user.id);
+
+      let count = 0;
+
+      for (const pacoteVendido of agendamentosPacotesData || []) {
+        const definicao = pacotesDefinicao?.find((p) => p.nome === pacoteVendido.nome_pacote);
+        if (!definicao) continue;
+
+        const dataVenda = new Date(pacoteVendido.data_venda);
+        const validadeDias = parseInt(definicao.validade) || 0;
+        const dataVencimento = new Date(dataVenda);
+        dataVencimento.setDate(dataVencimento.getDate() + validadeDias);
+
+        const diasRestantes = differenceInDays(dataVencimento, hoje);
+
+        if (diasRestantes >= 0 && diasRestantes <= 7) {
+          count++;
+        }
+      }
+
+      return count;
+    } catch (error) {
+      console.error("Erro ao calcular pacotes a expirar:", error);
+      return 0;
+    }
+  };
+
+  // Calcular Produtos Próximos ao Vencimento (30 dias)
+  const calcularProdutosVencimento = async () => {
+    if (!user) return 0;
+
+    try {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const { data: itensCompra } = await supabase
+        .from("compras_nf_itens")
+        .select(`
+          id,
+          produto_id,
+          quantidade,
+          data_validade,
+          nf_id,
+          compras_nf!inner (
+            user_id
+          )
+        `)
+        .not("data_validade", "is", null);
+
+      const itensDoUsuario = (itensCompra || []).filter(
+        (item: any) => item.compras_nf?.user_id === user.id
+      );
+
+      const lotesMap = new Map<string, boolean>();
+
+      itensDoUsuario.forEach((item: any) => {
+        const dataValidade = new Date(item.data_validade);
+        dataValidade.setHours(0, 0, 0, 0);
+
+        const diasParaVencer = differenceInDays(dataValidade, hoje);
+
+        const chave = `${item.produto_id}-${item.data_validade}`;
+
+        if (diasParaVencer <= 30 && !lotesMap.has(chave)) {
+          lotesMap.set(chave, true);
+        }
+      });
+
+      return lotesMap.size;
+    } catch (error) {
+      console.error("Erro ao calcular produtos vencimento:", error);
+      return 0;
+    }
   };
 
   // Cálculo dos KPIs
@@ -412,8 +709,13 @@ const Home = () => {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
@@ -433,8 +735,8 @@ const Home = () => {
         <p className="text-sm text-muted-foreground">Visão geral do seu negócio</p>
       </div>
 
-      {/* Linha 1: Cards de Indicadores */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Linha 1: Cards de Indicadores Principais (5 cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <KPICard
           titulo="Atendimentos Hoje"
           valor={`${kpis.atendimentosDia} agendamentos`}
@@ -474,13 +776,52 @@ const Home = () => {
           icon={<TrendingDown />}
           cor="red"
         />
+      </div>
 
+      {/* Linha 2: Cards de Indicadores Adicionais (5 cards - clicáveis) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <KPICard
           titulo="Taxa de Recorrência"
           valor={`${kpis.taxaRecorrencia.toFixed(1)}%`}
           subtitulo="clientes que retornaram"
           icon={<Users />}
           cor={kpis.taxaRecorrencia >= 70 ? "green" : kpis.taxaRecorrencia >= 50 ? "yellow" : "red"}
+        />
+
+        <KPICard
+          titulo="Clientes em Risco"
+          valor={`${kpisAdicionais.clientesEmRisco} Clientes`}
+          subtitulo="sem agendamento há 20+ dias"
+          icon={<AlertTriangle />}
+          cor={kpisAdicionais.clientesEmRisco > 0 ? "red" : "green"}
+          onClick={() => navigate("/relatorios", { state: { tab: "clientes-risco" } })}
+        />
+
+        <KPICard
+          titulo="Pacotes Vencidos"
+          valor={`${kpisAdicionais.pacotesExpirados} Pacotes`}
+          subtitulo="sem agendamentos futuros"
+          icon={<Package />}
+          cor={kpisAdicionais.pacotesExpirados > 0 ? "red" : "green"}
+          onClick={() => navigate("/relatorios", { state: { tab: "pacotes-expirados" } })}
+        />
+
+        <KPICard
+          titulo="Pacotes a Expirar"
+          valor={`${kpisAdicionais.pacotesAExpirar} Pacotes`}
+          subtitulo="7 dias"
+          icon={<Package />}
+          cor={kpisAdicionais.pacotesAExpirar > 0 ? "yellow" : "green"}
+          onClick={() => navigate("/relatorios", { state: { tab: "pacotes-vencimento" } })}
+        />
+
+        <KPICard
+          titulo="Produtos Próximos ao Vencimento"
+          valor={`${kpisAdicionais.produtosVencimento} Produtos`}
+          subtitulo="30 dias"
+          icon={<ShoppingCart />}
+          cor={kpisAdicionais.produtosVencimento > 0 ? "yellow" : "green"}
+          onClick={() => navigate("/relatorios", { state: { tab: "produtos-vencimento" } })}
         />
       </div>
 
