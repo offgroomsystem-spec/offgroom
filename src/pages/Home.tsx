@@ -350,6 +350,64 @@ const Home = () => {
     };
   }, [agendamentos, agendamentosPacotes, diasFuncionamento]);
   
+  // Dados históricos de média mensal para os últimos 12 meses
+  const dadosMediaMensalHistorico = useMemo(() => {
+    if (!diasFuncionamento) return [];
+    
+    const dados: any[] = [];
+    const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    
+    // Buscar últimos 12 meses
+    for (let i = 11; i >= 0; i--) {
+      const mes = subMonths(new Date(), i);
+      const inicioMes = startOfMonth(mes);
+      const fimMes = endOfMonth(mes);
+      const hoje = new Date();
+      
+      // Limitar ao dia atual se for o mês corrente
+      const dataFinal = i === 0 ? hoje : fimMes;
+      
+      // Contar agendamentos regulares do mês
+      const atendimentosRegulares = agendamentos.filter((a) => {
+        const data = new Date(a.data);
+        return data >= inicioMes && data <= dataFinal;
+      }).length;
+      
+      // Contar agendamentos de pacotes do mês
+      const atendimentosPacotes = agendamentosPacotes.reduce((count, p) => {
+        const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+        return count + servicos.filter((s: any) => {
+          if (!s.data) return false;
+          const data = new Date(s.data);
+          return data >= inicioMes && data <= dataFinal;
+        }).length;
+      }, 0);
+      
+      const totalAtendimentos = atendimentosRegulares + atendimentosPacotes;
+      
+      // Contar dias úteis do mês (até hoje se for mês corrente)
+      let diasUteis = 0;
+      let dataAtual = new Date(inicioMes);
+      
+      while (dataAtual <= dataFinal) {
+        const diaDaSemana = diasSemana[dataAtual.getDay()];
+        if (diasFuncionamento[diaDaSemana] === true) {
+          diasUteis++;
+        }
+        dataAtual = addDays(dataAtual, 1);
+      }
+      
+      const media = diasUteis > 0 ? totalAtendimentos / diasUteis : 0;
+      
+      dados.push({
+        mes: format(mes, "MMM/yy", { locale: ptBR }),
+        media: Math.round(media * 10) / 10, // Arredondar para 1 casa decimal
+      });
+    }
+    
+    return dados;
+  }, [agendamentos, agendamentosPacotes, diasFuncionamento]);
+  
   if (loading) {
     return (
       <div className="space-y-4">
@@ -434,7 +492,10 @@ const Home = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dadosFluxoCaixa}>
+              <LineChart 
+                data={dadosFluxoCaixa}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="data" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -461,7 +522,10 @@ const Home = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dadosCrescimentoAgendamentos}>
+              <LineChart 
+                data={dadosCrescimentoAgendamentos}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -485,8 +549,16 @@ const Home = () => {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="quantidade" fill="#3b82f6" name="Atendimentos" />
-              </BarChart>
+                <Line 
+                  type="monotone" 
+                  dataKey="quantidade" 
+                  stroke="#3b82f6" 
+                  name="Atendimentos" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -500,24 +572,40 @@ const Home = () => {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center h-[300px] space-y-4">
-              <div className="text-center">
-                <p className="text-6xl font-bold text-primary">
-                  {mediaMensalAtendimentos.media.toFixed(1)}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">atendimentos/dia</p>
-              </div>
-              <div className="grid grid-cols-2 gap-8 text-center">
-                <div>
-                  <p className="text-2xl font-semibold">{mediaMensalAtendimentos.totalAtendimentos}</p>
-                  <p className="text-xs text-muted-foreground">Total de atendimentos</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-semibold">{mediaMensalAtendimentos.diasUteis}</p>
-                  <p className="text-xs text-muted-foreground">Dias úteis trabalhados</p>
-                </div>
-              </div>
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart 
+                data={dadosMediaMensalHistorico}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-background border rounded-lg p-3 shadow-lg">
+                          <p className="font-semibold">{data.mes}</p>
+                          <p className="text-sm">Média: {data.media.toFixed(1)} atendimentos/dia</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="media" 
+                  stroke="#8b5cf6" 
+                  name="Média Diária" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
