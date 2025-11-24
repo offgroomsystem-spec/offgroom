@@ -30,6 +30,7 @@ const Home = () => {
   const [agendamentosPacotes, setAgendamentosPacotes] = useState<any[]>([]);
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
+  const [diasFuncionamento, setDiasFuncionamento] = useState<any>(null);
   
   useEffect(() => {
     const loadData = async () => {
@@ -82,6 +83,23 @@ const Home = () => {
         
         setClientes(clientesData || []);
         
+        // Carregar configuração da empresa para obter dias de funcionamento
+        const { data: empresaConfig } = await supabase
+          .from("empresa_config")
+          .select("dias_funcionamento")
+          .eq("user_id", user.id)
+          .single();
+        
+        setDiasFuncionamento(empresaConfig?.dias_funcionamento || {
+          segunda: true,
+          terca: true,
+          quarta: true,
+          quinta: true,
+          sexta: true,
+          sabado: false,
+          domingo: false
+        });
+        
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         toast.error("Erro ao carregar dados do dashboard");
@@ -92,6 +110,26 @@ const Home = () => {
     
     loadData();
   }, [user]);
+  
+  // Função para calcular o próximo dia útil
+  const getProximoDiaUtil = (diasFuncionamento: any) => {
+    const hoje = new Date();
+    let proximoDia = addDays(hoje, 1);
+    
+    const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    
+    let tentativas = 0;
+    while (tentativas < 7) {
+      const diaDaSemana = diasSemana[proximoDia.getDay()];
+      if (diasFuncionamento && diasFuncionamento[diaDaSemana] === true) {
+        return proximoDia;
+      }
+      proximoDia = addDays(proximoDia, 1);
+      tentativas++;
+    }
+    
+    return addDays(hoje, 1);
+  };
   
   // Cálculo dos KPIs
   const kpis = useMemo(() => {
@@ -120,44 +158,22 @@ const Home = () => {
     
     const atendimentosDia = atendimentosDiaRegulares + atendimentosDiaPacotes;
     
-    // Atendimentos da semana (próximos 7 dias - regulares)
-    const atendimentosSemanaRegulares = agendamentos.filter((a) => {
-      const data = new Date(a.data);
-      return data >= hoje && data <= proximaSemana && (a.status === "confirmado" || a.status === "pendente");
-    }).length;
+    // Atendimentos do próximo dia útil
+    const proximoDiaUtil = getProximoDiaUtil(diasFuncionamento);
+    const proximoDiaUtilStr = format(proximoDiaUtil, "yyyy-MM-dd");
     
-    // Atendimentos da semana (pacotes)
-    const atendimentosSemanaPacotes = agendamentosPacotes.reduce((count, p) => {
+    // Agendamentos regulares do próximo dia útil
+    const atendimentosProximoDiaRegulares = agendamentos.filter((a) => 
+      a.data === proximoDiaUtilStr && (a.status === "confirmado" || a.status === "pendente")
+    ).length;
+    
+    // Agendamentos de pacotes do próximo dia útil
+    const atendimentosProximoDiaPacotes = agendamentosPacotes.reduce((count, p) => {
       const servicos = Array.isArray(p.servicos) ? p.servicos : [];
-      return count + servicos.filter((s: any) => {
-        if (!s.data) return false;
-        const data = new Date(s.data);
-        return data >= hoje && data <= proximaSemana;
-      }).length;
+      return count + servicos.filter((s: any) => s.data === proximoDiaUtilStr).length;
     }, 0);
     
-    const atendimentosSemana = atendimentosSemanaRegulares + atendimentosSemanaPacotes;
-    
-    // Variação de agendamentos (semana atual vs semana anterior)
-    const semanaAnteriorInicio = subDays(hoje, 7);
-    const atendimentosSemanaAnteriorRegulares = agendamentos.filter((a) => {
-      const data = new Date(a.data);
-      return data >= semanaAnteriorInicio && data < hoje;
-    }).length;
-    
-    const atendimentosSemanaAnteriorPacotes = agendamentosPacotes.reduce((count, p) => {
-      const servicos = Array.isArray(p.servicos) ? p.servicos : [];
-      return count + servicos.filter((s: any) => {
-        if (!s.data) return false;
-        const data = new Date(s.data);
-        return data >= semanaAnteriorInicio && data < hoje;
-      }).length;
-    }, 0);
-    
-    const atendimentosSemanaAnterior = atendimentosSemanaAnteriorRegulares + atendimentosSemanaAnteriorPacotes;
-    const variacaoAgendamentos = atendimentosSemanaAnterior > 0 
-      ? ((atendimentosSemana - atendimentosSemanaAnterior) / atendimentosSemanaAnterior) * 100 
-      : 0;
+    const atendimentosProximoDia = atendimentosProximoDiaRegulares + atendimentosProximoDiaPacotes;
     
     // Faturamento do mês (receitas pagas)
     const faturamentoMes = lancamentos
@@ -204,14 +220,14 @@ const Home = () => {
     
     return {
       atendimentosDia,
-      atendimentosSemana,
-      variacaoAgendamentos,
+      atendimentosProximoDia,
+      proximoDiaUtil,
       faturamentoMes,
       entradasPrevistas,
       saidasPrevistas,
       taxaRecorrencia,
     };
-  }, [agendamentos, agendamentosPacotes, lancamentos]);
+  }, [agendamentos, agendamentosPacotes, lancamentos, diasFuncionamento]);
   
   // Dados para gráfico de fluxo de caixa (últimos 30 dias)
   const dadosFluxoCaixa = useMemo(() => {
@@ -241,11 +257,11 @@ const Home = () => {
     return dados;
   }, [lancamentos]);
   
-  // Dados para gráfico de crescimento de agendamentos (últimos 3 meses)
+  // Dados para gráfico de crescimento de agendamentos (últimos 12 meses)
   const dadosCrescimentoAgendamentos = useMemo(() => {
     const dados: any[] = [];
     
-    for (let i = 2; i >= 0; i--) {
+    for (let i = 11; i >= 0; i--) {
       const mes = subMonths(new Date(), i);
       const inicioMes = startOfMonth(mes);
       const fimMes = endOfMonth(mes);
@@ -266,14 +282,73 @@ const Home = () => {
         }).length;
       }, 0);
       
+      const totalAtendimentos = quantidadeRegulares + quantidadePacotes;
+      
       dados.push({
         mes: format(mes, "MMM/yy", { locale: ptBR }),
-        quantidade: quantidadeRegulares + quantidadePacotes,
+        quantidade: totalAtendimentos,
       });
     }
     
-    return dados;
+    // Calcular variação percentual para cada mês
+    return dados.map((d, index) => {
+      if (index === 0) {
+        return { ...d, variacao: 0 };
+      }
+      const mesAnterior = dados[index - 1].quantidade;
+      const variacao = mesAnterior > 0 
+        ? ((d.quantidade - mesAnterior) / mesAnterior) * 100 
+        : 0;
+      return { ...d, variacao };
+    });
   }, [agendamentos, agendamentosPacotes]);
+  
+  // Média mensal de atendimentos
+  const mediaMensalAtendimentos = useMemo(() => {
+    if (!diasFuncionamento) return { media: 0, totalAtendimentos: 0, diasUteis: 0 };
+    
+    const hoje = new Date();
+    const inicioMes = startOfMonth(hoje);
+    
+    // Contar agendamentos regulares do mês
+    const atendimentosRegulares = agendamentos.filter((a) => {
+      const data = new Date(a.data);
+      return data >= inicioMes && data <= hoje;
+    }).length;
+    
+    // Contar agendamentos de pacotes do mês
+    const atendimentosPacotes = agendamentosPacotes.reduce((count, p) => {
+      const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+      return count + servicos.filter((s: any) => {
+        if (!s.data) return false;
+        const data = new Date(s.data);
+        return data >= inicioMes && data <= hoje;
+      }).length;
+    }, 0);
+    
+    const totalAtendimentos = atendimentosRegulares + atendimentosPacotes;
+    
+    // Contar dias úteis trabalhados do início do mês até hoje
+    const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    let diasUteis = 0;
+    let dataAtual = new Date(inicioMes);
+    
+    while (dataAtual <= hoje) {
+      const diaDaSemana = diasSemana[dataAtual.getDay()];
+      if (diasFuncionamento[diaDaSemana] === true) {
+        diasUteis++;
+      }
+      dataAtual = addDays(dataAtual, 1);
+    }
+    
+    const media = diasUteis > 0 ? totalAtendimentos / diasUteis : 0;
+    
+    return { 
+      media: Math.round(media * 10) / 10,
+      totalAtendimentos, 
+      diasUteis 
+    };
+  }, [agendamentos, agendamentosPacotes, diasFuncionamento]);
   
   if (loading) {
     return (
@@ -309,12 +384,12 @@ const Home = () => {
           cor="default"
         />
         
-            <KPICard
-              titulo="Próximos 7 dias"
-              valor={`${kpis.atendimentosSemana} agendamentos`}
-          subtitulo={`${kpis.variacaoAgendamentos > 0 ? "+" : ""}${kpis.variacaoAgendamentos.toFixed(1)}% vs semana anterior`}
+        <KPICard
+          titulo="Atendimentos Próximo dia útil"
+          valor={`${kpis.atendimentosProximoDia} agendamentos`}
+          subtitulo={kpis.proximoDiaUtil ? format(kpis.proximoDiaUtil, "EEEE, dd/MM", { locale: ptBR }) : ""}
           icon={<CalendarDays />}
-          cor={kpis.variacaoAgendamentos >= 0 ? "green" : "red"}
+          cor="default"
         />
         
         <KPICard
@@ -351,7 +426,7 @@ const Home = () => {
       </div>
       
       {/* Linha 2: Gráficos Principais */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Gráfico Fluxo de Caixa */}
         <Card>
           <CardHeader>
@@ -379,10 +454,10 @@ const Home = () => {
           </CardContent>
         </Card>
         
-        {/* Gráfico Crescimento de Agendamentos */}
+        {/* Gráfico Evolução de Agendamentos */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Evolução de Atendimentos - Últimos 3 meses</CardTitle>
+            <CardTitle className="text-lg">Evolução de Atendimentos - Últimos 12 meses</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -390,11 +465,59 @@ const Home = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-background border rounded-lg p-3 shadow-lg">
+                          <p className="font-semibold">{data.mes}</p>
+                          <p className="text-sm">Atendimentos: {data.quantidade}</p>
+                          {data.variacao !== 0 && (
+                            <p className={`text-sm font-medium ${data.variacao > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {data.variacao > 0 ? '+' : ''}{data.variacao.toFixed(1)}% vs mês anterior
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
                 <Legend />
                 <Bar dataKey="quantidade" fill="#3b82f6" name="Atendimentos" />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        
+        {/* Gráfico Média Mensal */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Média do Mês de Atendimentos Realizados</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Média diária de atendimentos considerando apenas dias úteis trabalhados
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center h-[300px] space-y-4">
+              <div className="text-center">
+                <p className="text-6xl font-bold text-primary">
+                  {mediaMensalAtendimentos.media.toFixed(1)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">atendimentos/dia</p>
+              </div>
+              <div className="grid grid-cols-2 gap-8 text-center">
+                <div>
+                  <p className="text-2xl font-semibold">{mediaMensalAtendimentos.totalAtendimentos}</p>
+                  <p className="text-xs text-muted-foreground">Total de atendimentos</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold">{mediaMensalAtendimentos.diasUteis}</p>
+                  <p className="text-xs text-muted-foreground">Dias úteis trabalhados</p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
