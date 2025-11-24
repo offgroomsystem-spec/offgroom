@@ -62,6 +62,7 @@ const Produtos = () => {
   const [lotesProduto, setLotesProduto] = useState<LoteProduto[]>([]);
   const [lotesEditados, setLotesEditados] = useState<Map<string, { quantidade?: number; dataValidade?: Date | null }>>(new Map());
   const [loadingLotes, setLoadingLotes] = useState(false);
+  const [vendasProduto, setVendasProduto] = useState<number>(0);
   
   const [filtros, setFiltros] = useState({
     nome: "",
@@ -258,6 +259,23 @@ const Produtos = () => {
     }
   };
 
+  const buscarVendasProduto = async (produtoNome: string): Promise<number> => {
+    try {
+      const { data: vendas } = await supabase
+        .from('lancamentos_financeiros_itens')
+        .select('quantidade')
+        .eq('descricao2', 'Venda')
+        .eq('produto_servico', produtoNome);
+
+      return (vendas || []).reduce((total, venda) => 
+        total + Number(venda.quantidade || 0), 0
+      );
+    } catch (error) {
+      console.error('Erro ao buscar vendas:', error);
+      return 0;
+    }
+  };
+
   const handleLoteChange = (loteId: string, campo: 'quantidade' | 'dataValidade', valor: number | Date | null) => {
     setLotesEditados(prev => {
       const novoMap = new Map(prev);
@@ -268,12 +286,15 @@ const Produtos = () => {
   };
 
   const calcularEstoqueTotalLotes = useMemo(() => {
-    return lotesProduto.reduce((total, lote) => {
+    const totalLotes = lotesProduto.reduce((total, lote) => {
       const edicao = lotesEditados.get(lote.id);
       const quantidade = edicao?.quantidade !== undefined ? edicao.quantidade : lote.quantidade;
       return total + quantidade;
     }, 0);
-  }, [lotesProduto, lotesEditados]);
+    
+    // Subtrair vendas do total de lotes
+    return Math.max(0, totalLotes - vendasProduto);
+  }, [lotesProduto, lotesEditados, vendasProduto]);
 
   const salvarAlteracoesLotes = async (): Promise<boolean> => {
     try {
@@ -496,9 +517,14 @@ const Produtos = () => {
     const variacao = calcularVariacaoPreco(historico);
     setVariacaoPreco(variacao);
     
-    // Carregar lotes do produto
-    const lotes = await buscarLotesProduto(produto.id);
+    // Carregar lotes do produto e vendas em paralelo
+    const [lotes, vendas] = await Promise.all([
+      buscarLotesProduto(produto.id),
+      buscarVendasProduto(produto.descricao)
+    ]);
+    
     setLotesProduto(lotes);
+    setVendasProduto(vendas);
     setLotesEditados(new Map());
     
     const ultimoPrecoCusto = historico.length > 0 ? historico[0].valor_compra : produto.precoCusto;
