@@ -13,9 +13,6 @@ import {
   Line,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,17 +20,15 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { ProximosAgendamentos } from "@/components/dashboard/ProximosAgendamentos";
 import { ContasProximasVencimento } from "@/components/dashboard/ContasProximasVencimento";
 import { PetsRetornoRecomendado } from "@/components/dashboard/PetsRetornoRecomendado";
 import { NovosClientes } from "@/components/dashboard/NovosClientes";
-
-const COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#6b7280"];
 
 const Home = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
+  const [agendamentosPacotes, setAgendamentosPacotes] = useState<any[]>([]);
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   
@@ -60,6 +55,16 @@ const Home = () => {
           .order("horario", { ascending: true });
         
         setAgendamentos(agendamentosData || []);
+        
+        // Carregar agendamentos de pacotes
+        const { data: agendamentosPacotesData } = await supabase
+          .from("agendamentos_pacotes")
+          .select("*")
+          .eq("user_id", user.id)
+          .gte("data_venda", format(ultimos90Dias, "yyyy-MM-dd"))
+          .order("data_venda", { ascending: true });
+        
+        setAgendamentosPacotes(agendamentosPacotesData || []);
         
         // Carregar lançamentos financeiros
         const { data: lancamentosData } = await supabase
@@ -92,6 +97,7 @@ const Home = () => {
   // Cálculo dos KPIs
   const kpis = useMemo(() => {
     const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     const hojeStr = format(hoje, "yyyy-MM-dd");
     const inicioMes = startOfMonth(hoje);
     const fimMes = endOfMonth(hoje);
@@ -100,23 +106,56 @@ const Home = () => {
     const inicioMesAnterior = startOfMonth(mesAnterior);
     const fimMesAnterior = endOfMonth(mesAnterior);
     
-    // Atendimentos do dia
-    const atendimentosDia = agendamentos.filter(
+    // Atendimentos do dia (agendamentos regulares)
+    const atendimentosDiaRegulares = agendamentos.filter(
       (a) => a.data === hojeStr && (a.status === "confirmado" || a.status === "pendente")
     ).length;
     
-    // Atendimentos da semana (próximos 7 dias)
-    const atendimentosSemana = agendamentos.filter((a) => {
+    // Atendimentos do dia (pacotes agendados)
+    const atendimentosDiaPacotes = agendamentosPacotes.reduce((count, p) => {
+      const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+      return count + servicos.filter((s: any) => 
+        s.agendado && s.data_agendamento === hojeStr
+      ).length;
+    }, 0);
+    
+    const atendimentosDia = atendimentosDiaRegulares + atendimentosDiaPacotes;
+    
+    // Atendimentos da semana (próximos 7 dias - regulares)
+    const atendimentosSemanaRegulares = agendamentos.filter((a) => {
       const data = new Date(a.data);
       return data >= hoje && data <= proximaSemana && (a.status === "confirmado" || a.status === "pendente");
     }).length;
     
+    // Atendimentos da semana (pacotes)
+    const atendimentosSemanaPacotes = agendamentosPacotes.reduce((count, p) => {
+      const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+      return count + servicos.filter((s: any) => {
+        if (!s.agendado || !s.data_agendamento) return false;
+        const data = new Date(s.data_agendamento);
+        return data >= hoje && data <= proximaSemana;
+      }).length;
+    }, 0);
+    
+    const atendimentosSemana = atendimentosSemanaRegulares + atendimentosSemanaPacotes;
+    
     // Variação de agendamentos (semana atual vs semana anterior)
     const semanaAnteriorInicio = subDays(hoje, 7);
-    const atendimentosSemanaAnterior = agendamentos.filter((a) => {
+    const atendimentosSemanaAnteriorRegulares = agendamentos.filter((a) => {
       const data = new Date(a.data);
       return data >= semanaAnteriorInicio && data < hoje;
     }).length;
+    
+    const atendimentosSemanaAnteriorPacotes = agendamentosPacotes.reduce((count, p) => {
+      const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+      return count + servicos.filter((s: any) => {
+        if (!s.agendado || !s.data_agendamento) return false;
+        const data = new Date(s.data_agendamento);
+        return data >= semanaAnteriorInicio && data < hoje;
+      }).length;
+    }, 0);
+    
+    const atendimentosSemanaAnterior = atendimentosSemanaAnteriorRegulares + atendimentosSemanaAnteriorPacotes;
     const variacaoAgendamentos = atendimentosSemanaAnterior > 0 
       ? ((atendimentosSemana - atendimentosSemanaAnterior) / atendimentosSemanaAnterior) * 100 
       : 0;
@@ -173,7 +212,7 @@ const Home = () => {
       saidasPrevistas,
       taxaRecorrencia,
     };
-  }, [agendamentos, lancamentos]);
+  }, [agendamentos, agendamentosPacotes, lancamentos]);
   
   // Dados para gráfico de fluxo de caixa (últimos 30 dias)
   const dadosFluxoCaixa = useMemo(() => {
@@ -212,39 +251,30 @@ const Home = () => {
       const inicioMes = startOfMonth(mes);
       const fimMes = endOfMonth(mes);
       
-      const quantidade = agendamentos.filter((a) => {
+      // Agendamentos regulares
+      const quantidadeRegulares = agendamentos.filter((a) => {
         const data = new Date(a.data);
         return data >= inicioMes && data <= fimMes;
       }).length;
       
+      // Agendamentos de pacotes
+      const quantidadePacotes = agendamentosPacotes.reduce((count, p) => {
+        const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+        return count + servicos.filter((s: any) => {
+          if (!s.agendado || !s.data_agendamento) return false;
+          const data = new Date(s.data_agendamento);
+          return data >= inicioMes && data <= fimMes;
+        }).length;
+      }, 0);
+      
       dados.push({
         mes: format(mes, "MMM/yy", { locale: ptBR }),
-        quantidade,
+        quantidade: quantidadeRegulares + quantidadePacotes,
       });
     }
     
     return dados;
-  }, [agendamentos]);
-  
-  // Dados para gráfico de distribuição de serviços
-  const dadosDistribuicaoServicos = useMemo(() => {
-    const servicos: { [key: string]: number } = {};
-    
-    agendamentos.forEach((a) => {
-      const servicoBase = a.servico.toLowerCase();
-      if (servicoBase.includes("banho")) {
-        servicos["Banho"] = (servicos["Banho"] || 0) + 1;
-      } else if (servicoBase.includes("tosa")) {
-        servicos["Tosa"] = (servicos["Tosa"] || 0) + 1;
-      } else if (servicoBase.includes("pacote")) {
-        servicos["Pacotes"] = (servicos["Pacotes"] || 0) + 1;
-      } else {
-        servicos["Outros"] = (servicos["Outros"] || 0) + 1;
-      }
-    });
-    
-    return Object.entries(servicos).map(([name, value]) => ({ name, value }));
-  }, [agendamentos]);
+  }, [agendamentos, agendamentosPacotes]);
   
   if (loading) {
     return (
@@ -274,8 +304,8 @@ const Home = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <KPICard
           titulo="Atendimentos Hoje"
-          valor={kpis.atendimentosDia}
-          subtitulo="agendamentos confirmados"
+          valor={`${kpis.atendimentosDia} agendamentos`}
+          subtitulo=""
           icon={<Calendar />}
           cor="default"
         />
@@ -370,41 +400,7 @@ const Home = () => {
         </Card>
       </div>
       
-      {/* Linha 3: Distribuição + Próximos Agendamentos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Gráfico Distribuição de Serviços */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Serviços Mais Realizados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={dadosDistribuicaoServicos}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry) => `${entry.name}: ${entry.value}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {dadosDistribuicaoServicos.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        
-        {/* Widget Próximos Agendamentos */}
-        <ProximosAgendamentos agendamentos={agendamentos} />
-      </div>
-      
-      {/* Linha 4: Mini Relatórios */}
+      {/* Linha 3: Mini Relatórios */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ContasProximasVencimento lancamentos={lancamentos} />
         <PetsRetornoRecomendado agendamentos={agendamentos} clientes={clientes} />
