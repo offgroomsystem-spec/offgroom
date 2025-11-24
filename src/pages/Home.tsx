@@ -496,7 +496,7 @@ const Home = () => {
               <LineChart data={dadosFluxoCaixa} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="data" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis width={30} tick={{ fontSize: 12 }} />
                 <Tooltip
                   formatter={(value: number) =>
                     new Intl.NumberFormat("pt-BR", {
@@ -523,7 +523,7 @@ const Home = () => {
               <LineChart data={dadosCrescimentoAgendamentos} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis width={30} tick={{ fontSize: 12 }} />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
@@ -574,7 +574,7 @@ const Home = () => {
               <LineChart data={dadosMediaMensalHistorico} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis width={30} tick={{ fontSize: 12 }} />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
