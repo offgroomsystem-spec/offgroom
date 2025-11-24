@@ -9,6 +9,7 @@ import { Pencil, Trash2, Plus, Filter, X, TrendingUp, TrendingDown, History } fr
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
 
 interface Produto {
   id: string;
@@ -39,6 +40,13 @@ interface VariacaoPreco {
   percentual: number;
 }
 
+interface LoteProduto {
+  id: string;
+  dataValidade: Date | null;
+  quantidade: number;
+  nfId: string;
+}
+
 const Produtos = () => {
   const { user } = useAuth();
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -51,6 +59,9 @@ const Produtos = () => {
   const [historicoCompras, setHistoricoCompras] = useState<CompraHistorico[]>([]);
   const [variacaoPreco, setVariacaoPreco] = useState<VariacaoPreco | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [lotesProduto, setLotesProduto] = useState<LoteProduto[]>([]);
+  const [lotesEditados, setLotesEditados] = useState<Map<string, { quantidade?: number; dataValidade?: Date | null }>>(new Map());
+  const [loadingLotes, setLoadingLotes] = useState(false);
   
   const [filtros, setFiltros] = useState({
     nome: "",
@@ -66,7 +77,6 @@ const Produtos = () => {
     codigo: "",
     valorVenda: "",
     estoqueMinimo: "0",
-    estoqueAtual: "",
   });
 
   useEffect(() => {
@@ -77,19 +87,7 @@ const Produtos = () => {
 
   const calcularEstoque = async (produtoNome: string, produtoId: string): Promise<number> => {
     try {
-      // 1. Buscar estoque físico armazenado (prioridade se foi editado manualmente)
-      const { data: produtoData } = await supabase
-        .from('produtos')
-        .select('estoque_atual')
-        .eq('id', produtoId)
-        .single();
-      
-      // Se existe estoque_atual definido, retornar (foi editado manualmente)
-      if (produtoData && produtoData.estoque_atual !== null) {
-        return Number(produtoData.estoque_atual);
-      }
-
-      // 2. Caso contrário, calcular automaticamente: Compras - Vendas
+      // Calcular automaticamente: Compras - Vendas
       const { data: compras } = await supabase
         .from('compras_nf_itens')
         .select('quantidade')
@@ -213,6 +211,117 @@ const Produtos = () => {
     };
   };
 
+  const buscarLotesProduto = async (produtoId: string): Promise<LoteProduto[]> => {
+    try {
+      setLoadingLotes(true);
+      
+      const { data, error } = await supabase
+        .from('compras_nf_itens')
+        .select(`
+          id,
+          quantidade,
+          data_validade,
+          nf_id,
+          compras_nf!inner (
+            user_id
+          )
+        `)
+        .eq('produto_id', produtoId);
+      
+      if (error) throw error;
+      
+      // Filtrar apenas do usuário atual
+      const itensDoUsuario = (data || []).filter(
+        (item: any) => item.compras_nf?.user_id === user?.id
+      );
+      
+      // Mapear para interface LoteProduto
+      const lotes = itensDoUsuario.map((item: any) => ({
+        id: item.id,
+        dataValidade: item.data_validade ? new Date(item.data_validade) : null,
+        quantidade: Number(item.quantidade),
+        nfId: item.nf_id,
+      }));
+      
+      // Ordenar por data de validade (mais próximas primeiro)
+      return lotes.sort((a, b) => {
+        if (!a.dataValidade) return 1;
+        if (!b.dataValidade) return -1;
+        return a.dataValidade.getTime() - b.dataValidade.getTime();
+      });
+      
+    } catch (error) {
+      console.error('Erro ao buscar lotes:', error);
+      return [];
+    } finally {
+      setLoadingLotes(false);
+    }
+  };
+
+  const handleLoteChange = (loteId: string, campo: 'quantidade' | 'dataValidade', valor: number | Date | null) => {
+    setLotesEditados(prev => {
+      const novoMap = new Map(prev);
+      const edAtual = novoMap.get(loteId) || {};
+      novoMap.set(loteId, { ...edAtual, [campo]: valor });
+      return novoMap;
+    });
+  };
+
+  const calcularEstoqueTotalLotes = useMemo(() => {
+    return lotesProduto.reduce((total, lote) => {
+      const edicao = lotesEditados.get(lote.id);
+      const quantidade = edicao?.quantidade !== undefined ? edicao.quantidade : lote.quantidade;
+      return total + quantidade;
+    }, 0);
+  }, [lotesProduto, lotesEditados]);
+
+  const salvarAlteracoesLotes = async (): Promise<boolean> => {
+    try {
+      for (const [loteId, edicao] of lotesEditados.entries()) {
+        const loteOriginal = lotesProduto.find(l => l.id === loteId);
+        if (!loteOriginal) continue;
+        
+        if (edicao.quantidade !== undefined && edicao.quantidade === 0) {
+          // Se quantidade = 0, excluir o lote
+          const { error } = await supabase
+            .from('compras_nf_itens')
+            .delete()
+            .eq('id', loteId);
+          
+          if (error) throw error;
+          continue;
+        }
+        
+        const updates: any = {};
+        
+        if (edicao.quantidade !== undefined) {
+          updates.quantidade = edicao.quantidade;
+        }
+        
+        if (edicao.dataValidade !== undefined) {
+          updates.data_validade = edicao.dataValidade 
+            ? format(edicao.dataValidade, 'yyyy-MM-dd')
+            : null;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          const { error } = await supabase
+            .from('compras_nf_itens')
+            .update(updates)
+            .eq('id', loteId);
+          
+          if (error) throw error;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar lotes:', error);
+      toast.error('Erro ao salvar alterações nos lotes');
+      return false;
+    }
+  };
+
   const gerarProximoCodigo = (): string => {
     if (produtos.length === 0) {
       return "0000000000001";
@@ -314,6 +423,12 @@ const Produtos = () => {
       return;
     }
 
+    // Salvar alterações nos lotes primeiro (se houver)
+    if (produtoSelecionado && lotesEditados.size > 0) {
+      const lotesOk = await salvarAlteracoesLotes();
+      if (!lotesOk) return;
+    }
+
     try {
       const produtoData: any = {
         nome: formData.descricao.trim(),
@@ -327,11 +442,6 @@ const Produtos = () => {
         estoque_minimo: parseInt(formData.estoqueMinimo) || 0,
         user_id: user.id
       };
-
-      // Adicionar estoque_atual apenas em modo de edição
-      if (produtoSelecionado) {
-        produtoData.estoque_atual = formData.estoqueAtual ? parseFloat(formData.estoqueAtual) : null;
-      }
 
       if (produtoSelecionado) {
         const { error } = await supabase
@@ -386,6 +496,11 @@ const Produtos = () => {
     const variacao = calcularVariacaoPreco(historico);
     setVariacaoPreco(variacao);
     
+    // Carregar lotes do produto
+    const lotes = await buscarLotesProduto(produto.id);
+    setLotesProduto(lotes);
+    setLotesEditados(new Map());
+    
     const ultimoPrecoCusto = historico.length > 0 ? historico[0].valor_compra : produto.precoCusto;
     
     setFormData({
@@ -397,7 +512,6 @@ const Produtos = () => {
       codigo: produto.codigo,
       valorVenda: produto.valorVenda.toString(),
       estoqueMinimo: produto.estoqueMinimo.toString(),
-      estoqueAtual: produto.estoqueAtual?.toString() || "",
     });
     
     setIsDialogOpen(true);
@@ -420,10 +534,11 @@ const Produtos = () => {
       codigo: "",
       valorVenda: "",
       estoqueMinimo: "0",
-      estoqueAtual: "",
     });
     setProdutoSelecionado(null);
     setVariacaoPreco(null);
+    setLotesProduto([]);
+    setLotesEditados(new Map());
   };
 
   const atualizarPrecoVenda = () => {
@@ -727,42 +842,87 @@ const Produtos = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] font-semibold">Estoque Mínimo *</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={formData.estoqueMinimo}
-                        onChange={(e) => {
-                          const valor = e.target.value.replace(/\D/g, '');
-                          setFormData({ ...formData, estoqueMinimo: valor });
-                        }}
-                        placeholder="0"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-
-                    {produtoSelecionado && (
-                      <div className="space-y-0.5">
-                        <Label className="text-[10px] font-semibold">Estoque Atual</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={formData.estoqueAtual}
-                          onChange={(e) => setFormData({ ...formData, estoqueAtual: e.target.value })}
-                          placeholder="0"
-                          className="h-8 text-xs"
-                        />
-                        <p className="text-[9px] text-muted-foreground">
-                          Edite manualmente para ajustar o estoque
-                        </p>
-                      </div>
-                    )}
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Estoque Mínimo *</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.estoqueMinimo}
+                      onChange={(e) => {
+                        const valor = e.target.value.replace(/\D/g, '');
+                        setFormData({ ...formData, estoqueMinimo: valor });
+                      }}
+                      placeholder="0"
+                      className="h-8 text-xs"
+                    />
                   </div>
                 </div>
+
+                {produtoSelecionado && (
+                  <div className="col-span-2 space-y-2">
+                    <Label className="text-[10px] font-semibold">Controle de Estoque por Lote</Label>
+                    
+                    {loadingLotes ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                      </div>
+                    ) : lotesProduto.length === 0 ? (
+                      <div className="text-center py-4 text-muted-foreground text-xs border rounded-md bg-muted/30">
+                        Nenhum lote registrado para este produto
+                      </div>
+                    ) : (
+                      <div className="border rounded-md overflow-hidden">
+                        <table className="w-full">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="text-left py-1.5 px-2 text-[10px] font-semibold">Data de Validade</th>
+                              <th className="text-center py-1.5 px-2 text-[10px] font-semibold">Quantidade</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {lotesProduto.map((lote) => {
+                              const edicao = lotesEditados.get(lote.id);
+                              const quantidadeAtual = edicao?.quantidade !== undefined ? edicao.quantidade : lote.quantidade;
+                              const dataAtual = edicao?.dataValidade !== undefined ? edicao.dataValidade : lote.dataValidade;
+                              
+                              return (
+                                <tr key={lote.id} className="border-t">
+                                  <td className="py-1 px-2">
+                                    <Input
+                                      type="date"
+                                      value={dataAtual ? format(dataAtual, 'yyyy-MM-dd') : ''}
+                                      onChange={(e) => {
+                                        const novaData = e.target.value ? new Date(e.target.value) : null;
+                                        handleLoteChange(lote.id, 'dataValidade', novaData);
+                                      }}
+                                      className="h-7 text-xs"
+                                    />
+                                  </td>
+                                  <td className="py-1 px-2">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={quantidadeAtual}
+                                      onChange={(e) => {
+                                        handleLoteChange(lote.id, 'quantidade', Number(e.target.value));
+                                      }}
+                                      className="h-7 text-xs text-center"
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    
+                    <p className="text-[10px] text-muted-foreground">
+                      Edite diretamente a data ou quantidade de cada lote. Quantidade 0 remove o lote.
+                    </p>
+                  </div>
+                )}
 
                 <div className="bg-secondary/30 p-2 rounded-md border">
                   <p className="text-xs font-semibold text-center">
@@ -773,13 +933,22 @@ const Produtos = () => {
                   </p>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="h-7 text-xs">
-                    {produtoSelecionado ? "Atualizar" : "Salvar Produto"}
-                  </Button>
+                <div className="flex justify-between items-center gap-2 pt-2 border-t mt-2">
+                  {produtoSelecionado && (
+                    <p className="text-xs font-semibold">
+                      Estoque total de{" "}
+                      <span className="text-primary">{calcularEstoqueTotalLotes}</span>
+                      {" "}unidades
+                    </p>
+                  )}
+                  <div className="flex gap-2 ml-auto">
+                    <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">
+                      Cancelar
+                    </Button>
+                    <Button type="submit" className="h-7 text-xs">
+                      {produtoSelecionado ? "Atualizar" : "Salvar Produto"}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </DialogContent>
