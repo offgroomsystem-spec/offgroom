@@ -519,7 +519,7 @@ const Home = () => {
             <CardTitle className="text-lg">Evolução de Atendimentos - Últimos 12 meses</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="150%" height={300}>
+            <ResponsiveContainer width="80%" height={300}>
               <LineChart data={dadosCrescimentoAgendamentos} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
