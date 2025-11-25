@@ -61,6 +61,7 @@ export function PacotesAtivos() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [pacotes, setPacotes] = useState<PacoteAtivo[]>([]);
+  const [pacotesHistorico, setPacotesHistorico] = useState<PacoteAtivo[]>([]);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [filtros, setFiltros] = useState({
     dataInicio: format(subMonths(new Date(), 3), "yyyy-MM-dd"),
@@ -196,15 +197,8 @@ export function PacotesAtivos() {
         pacotesUnicos.push(maisRecente);
       });
       
-      // 7. Filtrar apenas pacotes com validade >= hoje (usar a mesma variável 'hoje')
-      const pacotesAtivosValidos = pacotesUnicos.filter(pacote => {
-        const dataValidade = new Date(pacote.dataValidade);
-        dataValidade.setHours(0, 0, 0, 0);
-        return dataValidade >= hoje;
-      });
-      
-      // 8. Recalcular status para pacotes únicos
-      const pacotesComStatusAtualizado = pacotesAtivosValidos.map(pacote => {
+      // 7. Recalcular status para TODOS os pacotes únicos (para gráficos históricos)
+      const todosComStatusAtualizado = pacotesUnicos.map(pacote => {
         const dataValidade = new Date(pacote.dataValidade);
         dataValidade.setHours(0, 0, 0, 0);
         const hojeLimpo = new Date();
@@ -223,8 +217,18 @@ export function PacotesAtivos() {
         return { ...pacote, status };
       });
       
-      // 9. Aplicar filtros de período APÓS seleção de pacotes únicos
-      const pacotesDentroPeriodo = pacotesComStatusAtualizado.filter(pacote => {
+      // 8. Armazenar pacotes históricos (ativos + vencidos) para os gráficos
+      setPacotesHistorico(todosComStatusAtualizado);
+      
+      // 9. Filtrar apenas pacotes com validade >= hoje para tabela e KPIs
+      const pacotesAtivosValidos = todosComStatusAtualizado.filter(pacote => {
+        const dataValidade = new Date(pacote.dataValidade);
+        dataValidade.setHours(0, 0, 0, 0);
+        return dataValidade >= hoje;
+      });
+      
+      // 10. Aplicar filtros de período APÓS seleção de pacotes únicos
+      const pacotesDentroPeriodo = pacotesAtivosValidos.filter(pacote => {
         const dataAtivacao = new Date(pacote.dataAtivacao);
         const dataInicio = new Date(filtros.dataInicio);
         const dataFim = new Date(filtros.dataFim);
@@ -360,7 +364,7 @@ export function PacotesAtivos() {
       const inicio = startOfMonth(dataReferencia);
       const fim = endOfMonth(dataReferencia);
       
-      const pacotesDoMes = pacotes.filter(p => {
+      const pacotesDoMes = pacotesHistorico.filter(p => {
         const data = new Date(p.dataAtivacao);
         return data >= inicio && data <= fim;
       });
@@ -374,7 +378,7 @@ export function PacotesAtivos() {
     }
     
     return meses;
-  }, [pacotes]);
+  }, [pacotesHistorico]);
 
   const evolucaoPacotesVendidos = useMemo(() => {
     const hoje = new Date();
@@ -386,7 +390,7 @@ export function PacotesAtivos() {
       const inicio = startOfMonth(dataReferencia);
       const fim = endOfMonth(dataReferencia);
       
-      const pacotesDoMes = pacotes.filter(p => {
+      const pacotesDoMes = pacotesHistorico.filter(p => {
         const data = new Date(p.dataAtivacao);
         return data >= inicio && data <= fim;
       });
@@ -401,7 +405,7 @@ export function PacotesAtivos() {
     }
     
     return meses;
-  }, [pacotes]);
+  }, [pacotesHistorico]);
 
   const exportarCSV = () => {
     const headers = [
