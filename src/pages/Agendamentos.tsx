@@ -1226,6 +1226,12 @@ const Agendamentos = () => {
     }
   };
 
+  // Abrir link do WhatsApp em nova aba
+  const abrirWhatsApp = (url: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(url, '_blank');
+  };
+
   // Obter horários do Gantt baseado na config da empresa
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
@@ -3042,25 +3048,25 @@ const Agendamentos = () => {
                               variant="ghost"
                               size="sm"
                               onClick={(e) =>
-                                copiarLinkWhatsApp(
+                                abrirWhatsApp(
                                   gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
                                   e,
                                 )
                               }
                               className="h-5 w-5 p-0"
                             >
-                              <Copy className="h-3 w-3" />
+                              <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
                             </Button>
                           ) : agendamento.tipo === "simples" && agendamento.agendamentoOriginal ? (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={(e) =>
-                                copiarLinkWhatsApp(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), e)
+                                abrirWhatsApp(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), e)
                               }
                               className="h-5 w-5 p-0"
                             >
-                              <Copy className="h-3 w-3" />
+                              <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
                             </Button>
                           ) : null}
                         </td>
