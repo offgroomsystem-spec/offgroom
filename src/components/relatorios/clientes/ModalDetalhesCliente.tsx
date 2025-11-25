@@ -37,42 +37,43 @@ interface Agendamento {
 /** Função que gera mensagem personalizada conforme os dias sem agendar */
 const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
   const { nomeCliente, nomePet, diasSemAgendar } = cliente;
+  const primeiroNome = nomeCliente.split(" ")[0];
 
   if (diasSemAgendar >= 7 && diasSemAgendar <= 10)
-    return `Olá, ${nomeCliente}!  
+    return `Olá, ${primeiroNome}!  
 Como vc está?
 
 Notamos que faz ${diasSemAgendar} dias do último banho de ${nomePet}. Está quase na hora do próximo banho. Vamos marcar o próximo para manter os cuidados em dia?`;
 
   if (diasSemAgendar >= 11 && diasSemAgendar <= 15)
-    return `Oii, ${nomeCliente}.  
+    return `Oii, ${primeiroNome}.  
 Como vc está?
 
 Já faz um tempinho desde o último banho de ${nomePet}. Vamos marcar o próximo para ele continuar sempre bem cuidado?`;
 
   if (diasSemAgendar >= 16 && diasSemAgendar <= 20)
-    return `Olá, ${nomeCliente}.  
+    return `Olá, ${primeiroNome}.  
 Como vc está?
 
 Já faz um bom tempo que o ${nomePet} não vem nos visitar. Vamos agendar o próximo banho e colocar os cuidados em dia?`;
 
   if (diasSemAgendar >= 21 && diasSemAgendar <= 30)
-    return `Olá, ${nomeCliente}.  
+    return `Olá, ${primeiroNome}.  
 Como vc está?
 
 Já faz quase um mês desde o último banho de ${nomePet}. Que tal agendar um novo e deixar ele limpo e confortável?`;
 
   if (diasSemAgendar >= 31 && diasSemAgendar <= 45)
-    return `Oii, ${nomeCliente}!  
+    return `Oii, ${primeiroNome}!  
 Como vc está?
 
 O ${nomePet} está há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana. Vamos marcar?`;
 
   if (diasSemAgendar >= 46 && diasSemAgendar <= 90)
-    return `Olá, ${nomeCliente}.  
+    return `Olá, ${primeiroNome}.  
 Já faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta dele. Que tal agendar um novo banho e colocá-lo em dia com um cuidado especial?`;
 
-  return `Olá, ${nomeCliente}! Tudo bem?`;
+  return `Olá, ${primeiroNome}! Tudo bem?`;
 };
 
 /** Função que abre o WhatsApp com o número e mensagem */
