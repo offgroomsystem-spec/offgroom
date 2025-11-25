@@ -21,16 +21,17 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile, incrementLoginCount } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
-  // Se já estiver autenticado, redirecionar
-  if (user) {
-    return <Navigate to="/" replace />;
+  // Se já estiver autenticado, redirecionar baseado no login_count
+  if (user && profile) {
+    const destination = profile.login_count <= 2 ? "/empresa" : "/home";
+    return <Navigate to={destination} replace />;
   }
 
   const onSubmit = async (data: LoginForm) => {
@@ -50,8 +51,16 @@ const Login = () => {
         return;
       }
 
+      // Incrementar contador de login e redirecionar baseado no count
+      const loginCount = await incrementLoginCount();
+      
       toast.success('Login realizado com sucesso!');
-      navigate('/');
+      
+      if (loginCount <= 2) {
+        navigate('/empresa');
+      } else {
+        navigate('/home');
+      }
     } catch (error) {
       toast.error('Erro ao fazer login. Tente novamente.');
     } finally {

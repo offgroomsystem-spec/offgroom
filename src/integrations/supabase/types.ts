@@ -745,6 +745,7 @@ export type Database = {
           created_at: string | null
           email_hotmart: string
           id: string
+          login_count: number
           nome_completo: string
           updated_at: string | null
           whatsapp: string
@@ -753,6 +754,7 @@ export type Database = {
           created_at?: string | null
           email_hotmart: string
           id: string
+          login_count?: number
           nome_completo: string
           updated_at?: string | null
           whatsapp: string
@@ -761,6 +763,7 @@ export type Database = {
           created_at?: string | null
           email_hotmart?: string
           id?: string
+          login_count?: number
           nome_completo?: string
           updated_at?: string | null
           whatsapp?: string
