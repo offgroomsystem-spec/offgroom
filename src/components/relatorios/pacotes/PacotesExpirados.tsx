@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Link as LinkIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -70,15 +70,8 @@ Aguardamos seu retorno.`;
     return `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`;
   };
 
-  const copiarLinkWhatsApp = async (link: string) => {
-    try {
-      await navigator.clipboard.writeText(link);
-      toast.success("✅ Link copiado!", {
-        description: "Cole no navegador (Ctrl+V) para abrir o WhatsApp",
-      });
-    } catch (error) {
-      toast.error("Erro ao copiar link");
-    }
+  const abrirWhatsApp = (link: string) => {
+    window.open(link, '_blank');
   };
 
   const loadPacotesExpirados = async () => {
@@ -392,7 +385,7 @@ Aguardamos seu retorno.`;
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          copiarLinkWhatsApp(
+                          abrirWhatsApp(
                             gerarLinkWhatsApp(
                               pacote.nomeCliente,
                               pacote.nomePet,
@@ -401,9 +394,9 @@ Aguardamos seu retorno.`;
                             ),
                           )
                         }
-                        title="Copiar link do WhatsApp"
+                        title="Abrir WhatsApp"
                       >
-                        <LinkIcon className="h-4 w-4" />
+                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '16px' }}></i>
                       </Button>
                     </TableCell>
                   </TableRow>
