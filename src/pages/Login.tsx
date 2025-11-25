@@ -37,7 +37,7 @@ const Login = () => {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.senha,
       });
@@ -51,8 +51,9 @@ const Login = () => {
         return;
       }
 
-      // Incrementar contador de login e redirecionar baseado no count
-      const loginCount = await incrementLoginCount();
+      sessionStorage.setItem('offgroom_session_active', 'true');
+
+      const loginCount = await incrementLoginCount(authData.user?.id);
       
       toast.success('Login realizado com sucesso!');
       
