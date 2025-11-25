@@ -114,7 +114,8 @@ Já faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta 
   return `Olá, ${nomeCliente}! Tudo bem?`;
 };
 
-const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
+// Abrir link do WhatsApp em nova aba
+const abrirWhatsApp = (cliente: ClienteRisco) => {
   if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
 
   const numeroLimpo = cliente.whatsapp.toString().replace(/\D/g, "");
@@ -123,9 +124,7 @@ const copiarLinkWhatsApp = (cliente: ClienteRisco) => {
   const mensagem = encodeURIComponent(gerarMensagemWhatsApp(cliente));
   const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
 
-  navigator.clipboard.writeText(link).then(() => {
-    toast.success("✅ Link copiado! Cole no navegador (Ctrl+V) para abrir o WhatsApp");
-  });
+  window.open(link, '_blank');
 };
 
 export const ClientesEmRisco = () => {
@@ -410,10 +409,10 @@ export const ClientesEmRisco = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => copiarLinkWhatsApp(c)}
-                            title="Copiar Link do WhatsApp"
+                            onClick={() => abrirWhatsApp(c)}
+                            title="Abrir WhatsApp"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '16px' }}></i>
                           </Button>
                         </div>
                       </TableCell>
