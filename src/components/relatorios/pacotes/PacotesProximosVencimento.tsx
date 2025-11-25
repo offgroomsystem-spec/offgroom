@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { toast } from "sonner";
 import { FiltrosPacotesVencimento } from "./FiltrosPacotesVencimento";
 import { ExportButton } from "../shared/ExportButton";
@@ -111,16 +111,11 @@ export const PacotesProximosVencimento = () => {
     loadPacotesVencimento();
   }, [user]);
 
-  const copiarLinkWhatsApp = (whatsapp: string) => {
+  const abrirWhatsApp = (whatsapp: string) => {
     const numeroLimpo = whatsapp.replace(/\D/g, '');
     const numeroCompleto = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
-    const link = `wa.me/${numeroCompleto}`;
-    
-    navigator.clipboard.writeText(link).then(() => {
-      toast.success('Link do WhatsApp copiado!');
-    }).catch(() => {
-      toast.error('Erro ao copiar link');
-    });
+    const link = `https://wa.me/${numeroCompleto}`;
+    window.open(link, '_blank');
   };
 
   const pacotesFiltrados = pacotes.filter(pacote => {
@@ -216,10 +211,10 @@ export const PacotesProximosVencimento = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copiarLinkWhatsApp(pacote.whatsapp)}
-                        title="Copiar link do WhatsApp"
+                        onClick={() => abrirWhatsApp(pacote.whatsapp)}
+                        title="Abrir WhatsApp"
                       >
-                        <MessageSquare className="h-4 w-4" />
+                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '16px' }}></i>
                       </Button>
                     </TableCell>
                   </TableRow>
