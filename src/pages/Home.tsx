@@ -152,7 +152,7 @@ const Home = () => {
     return addDays(hoje, 1);
   };
 
-  // Calcular Clientes em Risco (20-90 dias sem agendamento)
+  // Calcular Clientes em Risco (15-90 dias sem agendamento)
   const calcularClientesEmRisco = async () => {
     if (!user) return 0;
 
@@ -171,7 +171,7 @@ const Home = () => {
         .select("id, nome_cliente, data_venda, nome_pet, servicos")
         .eq("user_id", user.id);
 
-      const mapa = new Map<string, { ultimoAgendamento: Date }>();
+      const mapa = new Map<string, { nomeCliente: string; nomePet: string; ultimoAgendamento: Date }>();
 
       agendamentosData?.forEach((a) => {
         const chave = `${a.cliente}_${a.pet}`;
@@ -179,7 +179,7 @@ const Home = () => {
         if (!isValid(data)) return;
 
         if (!mapa.has(chave)) {
-          mapa.set(chave, { ultimoAgendamento: data });
+          mapa.set(chave, { nomeCliente: a.cliente, nomePet: a.pet, ultimoAgendamento: data });
         } else {
           const existente = mapa.get(chave)!;
           if (data > existente.ultimoAgendamento) {
@@ -206,7 +206,7 @@ const Home = () => {
         if (!isValid(dataFinal)) return;
 
         if (!mapa.has(chave)) {
-          mapa.set(chave, { ultimoAgendamento: dataFinal });
+          mapa.set(chave, { nomeCliente: p.nome_cliente, nomePet: p.nome_pet, ultimoAgendamento: dataFinal });
         } else {
           const existente = mapa.get(chave)!;
           if (dataFinal > existente.ultimoAgendamento) {
@@ -218,9 +218,14 @@ const Home = () => {
       let count = 0;
       mapa.forEach((cli) => {
         const dias = differenceInDays(hoje, cli.ultimoAgendamento);
+        
+        // Verificar agendamento futuro APENAS para este cliente/pet específico
         const temAgendamentoFuturo =
-          agendamentosData?.some((a) => parseISO(a.data) >= hoje) ||
+          agendamentosData?.some(
+            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje
+          ) ||
           pacotesData?.some((p) => {
+            if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
             try {
               const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
               if (Array.isArray(servicos)) {
@@ -232,7 +237,7 @@ const Home = () => {
             return false;
           });
 
-        if (!temAgendamentoFuturo && dias >= 20 && dias <= 90) {
+        if (!temAgendamentoFuturo && dias >= 15 && dias <= 90) {
           count++;
         }
       });
@@ -304,27 +309,33 @@ const Home = () => {
           }) || [];
         const temServicoFuturoNoPacote = servicosFuturosNoPacote.length > 0;
 
-        const temAgendamentoFuturo = temAgendamentoNaTabela || temServicoFuturoNoPacote;
+        // Verificar se algum outro pacote do mesmo cliente/pet tem serviços futuros
+        const outrosPacotesClientePet =
+          agendamentosPacotesData?.filter((p) => {
+            if (p.id === pacoteVendido.id) return false;
 
-        if (!temAgendamentoFuturo) {
-          const todasDatasServicos: Date[] = [];
-          (pacoteVendido.servicos as any[])?.forEach((servico) => {
-            if (servico.data) {
-              todasDatasServicos.push(new Date(servico.data));
-            }
+            const clienteNormalizado = p.nome_cliente?.trim().toLowerCase() || "";
+            const clientePacoteNormalizado = pacoteVendido.nome_cliente?.trim().toLowerCase() || "";
+            const petNormalizado = p.nome_pet?.trim().toLowerCase() || "";
+            const petPacoteNormalizado = pacoteVendido.nome_pet?.trim().toLowerCase() || "";
+
+            return clienteNormalizado === clientePacoteNormalizado && petNormalizado === petPacoteNormalizado;
+          }) || [];
+
+        const temServicoFuturoEmOutrosPacotes = outrosPacotesClientePet.some((outroPacote) => {
+          return (outroPacote.servicos as any[])?.some((servico) => {
+            const dataServico = new Date(servico.data);
+            dataServico.setHours(0, 0, 0, 0);
+            return dataServico >= hoje;
           });
+        });
 
-          const ultimoServicoData =
-            todasDatasServicos.length > 0
-              ? todasDatasServicos.sort((a, b) => b.getTime() - a.getTime())[0]
-              : null;
+        const temAgendamentoFuturo =
+          temAgendamentoNaTabela || temServicoFuturoNoPacote || temServicoFuturoEmOutrosPacotes;
 
-          const dataUltimo = ultimoServicoData || dataVenda;
-          const diasDesde = differenceInDays(hoje, dataUltimo);
-
-          if (diasDesde <= 90) {
-            count++;
-          }
+        // Se não tem agendamento futuro, adicionar à contagem (sem limite de 90 dias)
+        if (!temAgendamentoFuturo) {
+          count++;
         }
       }
 
@@ -350,21 +361,28 @@ const Home = () => {
 
       const { data: pacotesDefinicao } = await supabase
         .from("pacotes")
-        .select("*")
+        .select("nome, validade")
         .eq("user_id", user.id);
+
+      // Criar mapa de validades
+      const validadeMap = new Map<string, number>();
+      (pacotesDefinicao || []).forEach((p) => {
+        const validadeDias = parseInt(p.validade.replace(/\D/g, "")) || 0;
+        validadeMap.set(p.nome, validadeDias);
+      });
 
       let count = 0;
 
       for (const pacoteVendido of agendamentosPacotesData || []) {
-        const definicao = pacotesDefinicao?.find((p) => p.nome === pacoteVendido.nome_pacote);
-        if (!definicao) continue;
+        const validade = validadeMap.get(pacoteVendido.nome_pacote) || 0;
+        
+        // Calcular dias restantes usando a mesma lógica do relatório
+        const dataVencimento = new Date(pacoteVendido.data_venda);
+        dataVencimento.setDate(dataVencimento.getDate() + validade);
+        dataVencimento.setHours(0, 0, 0, 0);
 
-        const dataVenda = new Date(pacoteVendido.data_venda);
-        const validadeDias = parseInt(definicao.validade) || 0;
-        const dataVencimento = new Date(dataVenda);
-        dataVencimento.setDate(dataVencimento.getDate() + validadeDias);
-
-        const diasRestantes = differenceInDays(dataVencimento, hoje);
+        const diffTime = dataVencimento.getTime() - hoje.getTime();
+        const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diasRestantes >= 0 && diasRestantes <= 7) {
           count++;
@@ -791,7 +809,7 @@ const Home = () => {
         <KPICard
           titulo="Clientes em Risco"
           valor={`${kpisAdicionais.clientesEmRisco} Clientes`}
-          subtitulo="sem agendamento há 20+ dias"
+          subtitulo="sem agendamento há 15+ dias"
           icon={<AlertTriangle />}
           cor={kpisAdicionais.clientesEmRisco > 0 ? "red" : "green"}
           onClick={() => navigate("/relatorios", { state: { tab: "clientes-risco" } })}
