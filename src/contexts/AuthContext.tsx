@@ -7,6 +7,7 @@ interface Profile {
   nome_completo: string;
   email_hotmart: string;
   whatsapp: string;
+  login_count: number;
 }
 
 interface AuthContextType {
@@ -15,6 +16,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  incrementLoginCount: () => Promise<number>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,6 +74,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const incrementLoginCount = async (): Promise<number> => {
+    if (!user) return 0;
+
+    try {
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('login_count')
+        .eq('id', user.id)
+        .single();
+
+      const newCount = (currentProfile?.login_count || 0) + 1;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ login_count: newCount })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => prev ? { ...prev, login_count: newCount } : null);
+      return newCount;
+    } catch (error) {
+      console.error('Erro ao incrementar login_count:', error);
+      return 0;
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     
@@ -100,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signOut, incrementLoginCount }}>
       {children}
     </AuthContext.Provider>
   );
