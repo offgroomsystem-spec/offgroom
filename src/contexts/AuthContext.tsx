@@ -16,7 +16,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  incrementLoginCount: () => Promise<number>;
+  incrementLoginCount: (userId?: string) => Promise<number>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -74,14 +74,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const incrementLoginCount = async (): Promise<number> => {
-    if (!user) return 0;
+  // Logout automático ao fechar navegador
+  useEffect(() => {
+    const sessionMarker = sessionStorage.getItem('offgroom_session_active');
+    
+    if (!sessionMarker && session) {
+      supabase.auth.signOut();
+    } else if (session) {
+      sessionStorage.setItem('offgroom_session_active', 'true');
+    }
+  }, [session]);
+
+  const incrementLoginCount = async (userId?: string): Promise<number> => {
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return 0;
 
     try {
       const { data: currentProfile } = await supabase
         .from('profiles')
         .select('login_count')
-        .eq('id', user.id)
+        .eq('id', targetUserId)
         .single();
 
       const newCount = (currentProfile?.login_count || 0) + 1;
@@ -89,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase
         .from('profiles')
         .update({ login_count: newCount })
-        .eq('id', user.id);
+        .eq('id', targetUserId);
 
       if (error) throw error;
 
