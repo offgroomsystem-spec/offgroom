@@ -155,7 +155,7 @@ export const ClientesEmRisco = () => {
       const { data: agendamentos, error: errorAg } = await supabase
         .from("agendamentos")
         .select("cliente_id, cliente, data, pet, whatsapp")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("data", { ascending: false });
 
       if (errorAg) throw errorAg;
