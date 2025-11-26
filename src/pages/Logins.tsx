@@ -158,6 +158,10 @@ export default function Logins() {
       const result = await response.json();
 
       if (!response.ok || result.error) {
+        // Melhorar mensagem de erro quando email já existe
+        if (result.error && result.error.includes("already been registered")) {
+          throw new Error("Este email já está cadastrado no sistema. Use outro email.");
+        }
         throw new Error(result.error || "Erro ao salvar login");
       }
 
