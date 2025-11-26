@@ -52,7 +52,7 @@ interface AtendimentoConsolidado {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"];
 
 export function AtendimentosRealizados() {
-  const { user, ownerId } = useAuth();
+  const { user, ownerId, isRecepcionista } = useAuth();
   const [loading, setLoading] = useState(true);
   const [atendimentos, setAtendimentos] = useState<AtendimentoConsolidado[]>([]);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -176,16 +176,19 @@ export function AtendimentosRealizados() {
 
   // Cálculos dos KPIs
   const totalAtendimentos = useMemo(() => {
+    if (isRecepcionista) return 0;
     return atendimentos.length;
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const atendimentosAvulsos = useMemo(() => {
+    if (isRecepcionista) return 0;
     return atendimentos.filter(a => a.tipo === "Avulso").length;
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const atendimentosPacotes = useMemo(() => {
+    if (isRecepcionista) return 0;
     return atendimentos.filter(a => a.tipo === "Pacote").length;
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const percentualAvulsos = useMemo(() => {
     if (totalAtendimentos === 0) return 0;
@@ -198,7 +201,7 @@ export function AtendimentosRealizados() {
   }, [atendimentosPacotes, totalAtendimentos]);
 
   const servicoMaisRealizado = useMemo(() => {
-    if (atendimentos.length === 0) return { nome: "—", quantidade: 0 };
+    if (isRecepcionista || atendimentos.length === 0) return { nome: "—", quantidade: 0 };
     
     const contagem = new Map<string, number>();
     atendimentos.forEach(a => {
@@ -213,9 +216,11 @@ export function AtendimentosRealizados() {
     });
     
     return maxServico;
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const horarioPico = useMemo(() => {
+    if (isRecepcionista) return { faixa: "—", quantidade: 0 };
+    
     const atendimentosComHorario = atendimentos.filter(a => a.horario !== "—");
     if (atendimentosComHorario.length === 0) return { faixa: "—", quantidade: 0 };
     
@@ -238,10 +243,12 @@ export function AtendimentosRealizados() {
     });
     
     return maxHora;
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   // Dados para gráficos
   const atendimentosPorDia = useMemo(() => {
+    if (isRecepcionista) return [];
+    
     const agrupado = new Map<string, number>();
     
     atendimentos.forEach(a => {
@@ -251,9 +258,11 @@ export function AtendimentosRealizados() {
     return Array.from(agrupado.entries())
       .map(([data, quantidade]) => ({ data, quantidade }))
       .sort((a, b) => a.data.localeCompare(b.data));
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const atendimentosPorServico = useMemo(() => {
+    if (isRecepcionista) return [];
+    
     const contagem = new Map<string, number>();
     
     atendimentos.forEach(a => {
@@ -264,17 +273,22 @@ export function AtendimentosRealizados() {
       .map(([servico, quantidade]) => ({ servico, quantidade }))
       .sort((a, b) => b.quantidade - a.quantidade)
       .slice(0, 10);
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const distribuicaoTipo = useMemo(() => {
+    if (isRecepcionista) return [];
     return [
       { name: "Avulsos", value: atendimentosAvulsos },
       { name: "Pacotes", value: atendimentosPacotes }
     ].filter(item => item.value > 0);
-  }, [atendimentosAvulsos, atendimentosPacotes]);
+  }, [atendimentosAvulsos, atendimentosPacotes, isRecepcionista]);
 
   const atendimentosPorDiaSemana = useMemo(() => {
     const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    if (isRecepcionista) {
+      return diasSemana.map(dia => ({ dia, quantidade: 0 }));
+    }
+    
     const contagem = new Array(7).fill(0);
     
     atendimentos.forEach(a => {
@@ -286,9 +300,11 @@ export function AtendimentosRealizados() {
       dia,
       quantidade: contagem[index]
     }));
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const distribuicaoPorte = useMemo(() => {
+    if (isRecepcionista) return [];
+    
     const contagem = new Map<string, number>();
     
     atendimentos.forEach(a => {
@@ -301,9 +317,11 @@ export function AtendimentosRealizados() {
         const ordem = ["Pequeno", "Médio", "Grande"];
         return ordem.indexOf(a.porte) - ordem.indexOf(b.porte);
       });
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const topClientes = useMemo(() => {
+    if (isRecepcionista) return [];
+    
     const contagem = new Map<string, number>();
     
     atendimentos.forEach(a => {
@@ -314,7 +332,7 @@ export function AtendimentosRealizados() {
       .map(([nome, quantidade]) => ({ nome, quantidade }))
       .sort((a, b) => b.quantidade - a.quantidade)
       .slice(0, 10);
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const horariosHeatmap = useMemo(() => {
     const contagem = new Map<number, number>();
@@ -323,19 +341,21 @@ export function AtendimentosRealizados() {
       contagem.set(h, 0);
     }
     
-    atendimentos.forEach(a => {
-      if (a.horario !== "—") {
-        const hora = parseInt(a.horario.split(":")[0]);
-        if (!isNaN(hora) && hora >= 8 && hora <= 18) {
-          contagem.set(hora, (contagem.get(hora) || 0) + 1);
+    if (!isRecepcionista) {
+      atendimentos.forEach(a => {
+        if (a.horario !== "—") {
+          const hora = parseInt(a.horario.split(":")[0]);
+          if (!isNaN(hora) && hora >= 8 && hora <= 18) {
+            contagem.set(hora, (contagem.get(hora) || 0) + 1);
+          }
         }
-      }
-    });
+      });
+    }
     
     return Array.from(contagem.entries())
       .map(([hora, quantidade]) => ({ hora, quantidade }))
       .sort((a, b) => a.hora - b.hora);
-  }, [atendimentos]);
+  }, [atendimentos, isRecepcionista]);
 
   const maxAtendimentosHora = useMemo(() => {
     return Math.max(...horariosHeatmap.map(h => h.quantidade), 1);
