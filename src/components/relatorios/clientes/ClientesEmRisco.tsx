@@ -129,7 +129,7 @@ const abrirWhatsApp = (cliente: ClienteRisco) => {
 };
 
 export const ClientesEmRisco = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [clientes, setClientes] = useState<ClienteRisco[]>([]);
   const [clientesFiltrados, setClientesFiltrados] = useState<ClienteRisco[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,7 +163,7 @@ export const ClientesEmRisco = () => {
       const { data: pacotes, error: errorPac } = await supabase
         .from("agendamentos_pacotes")
         .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (errorPac) throw errorPac;
 

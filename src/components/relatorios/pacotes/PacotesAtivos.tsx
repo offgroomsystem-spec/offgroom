@@ -58,7 +58,7 @@ const COLORS = [
 ];
 
 export function PacotesAtivos() {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [pacotes, setPacotes] = useState<PacoteAtivo[]>([]);
   const [pacotesHistorico, setPacotesHistorico] = useState<PacoteAtivo[]>([]);
@@ -97,7 +97,7 @@ export function PacotesAtivos() {
       const { data: pacotesData, error: errorPacotes } = await supabase
         .from("agendamentos_pacotes")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("data_venda", { ascending: false });
       
       if (errorPacotes) throw errorPacotes;

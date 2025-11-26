@@ -60,7 +60,7 @@ interface Filtros {
 }
 
 export function Inadimplencia() {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
   const [lancamentosTodosPeriodo, setLancamentosTodosPeriodo] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
@@ -136,9 +136,9 @@ export function Inadimplencia() {
         .eq("tipo", "Receita");
 
       const [clientesData, petsData, contasData] = await Promise.all([
-        supabase.from("clientes").select("*").eq("user_id", user.id),
-        supabase.from("pets").select("*").eq("user_id", user.id),
-        supabase.from("contas_bancarias").select("*").eq("user_id", user.id),
+        supabase.from("clientes").select("*").eq("user_id", ownerId),
+        supabase.from("pets").select("*").eq("user_id", ownerId),
+        supabase.from("contas_bancarias").select("*").eq("user_id", ownerId),
       ]);
 
       setClientes(clientesData.data || []);

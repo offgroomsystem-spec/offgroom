@@ -85,7 +85,7 @@ const abrirWhatsApp = (cliente: ClienteRisco) => {
 };
 
 export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhesClienteProps) => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [historico, setHistorico] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -115,7 +115,7 @@ export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhe
       const { data: agendamentosPacotes, error: errorPacotes } = await supabase
         .from("agendamentos_pacotes")
         .select("data_venda, nome_pacote, servicos")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("nome_cliente", cliente.nomeCliente)
         .eq("nome_pet", cliente.nomePet);
 

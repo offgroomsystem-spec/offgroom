@@ -52,7 +52,7 @@ interface AtendimentoConsolidado {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"];
 
 export function AtendimentosRealizados() {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [atendimentos, setAtendimentos] = useState<AtendimentoConsolidado[]>([]);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -89,7 +89,7 @@ export function AtendimentosRealizados() {
       const { data: pacotesData, error: errorPacotes } = await supabase
         .from("agendamentos_pacotes")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
       
       if (errorPacotes) throw errorPacotes;
       

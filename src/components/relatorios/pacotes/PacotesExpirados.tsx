@@ -30,7 +30,7 @@ interface Filtros {
 }
 
 export const PacotesExpirados = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [pacotes, setPacotes] = useState<PacoteExpirado[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState<Filtros>({
@@ -86,7 +86,7 @@ Aguardamos seu retorno.`;
       const { data: agendamentosPacotes, error: errorPacotes } = await supabase
         .from("agendamentos_pacotes")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (errorPacotes) throw errorPacotes;
 

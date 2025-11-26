@@ -77,7 +77,7 @@ interface ContaBancaria {
 }
 
 export const ReceitaOperacional = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
@@ -135,9 +135,9 @@ export const ReceitaOperacional = () => {
 
       // Carregar dados relacionados
       const [clientesData, petsData, contasData] = await Promise.all([
-        supabase.from("clientes").select("*").eq("user_id", user.id),
-        supabase.from("pets").select("*").eq("user_id", user.id),
-        supabase.from("contas_bancarias").select("*").eq("user_id", user.id),
+        supabase.from("clientes").select("*").eq("user_id", ownerId),
+        supabase.from("pets").select("*").eq("user_id", ownerId),
+        supabase.from("contas_bancarias").select("*").eq("user_id", ownerId),
       ]);
 
       if (clientesData.data && petsData.data && contasData.data) {

@@ -363,7 +363,7 @@ const ItemLancamentoForm = ({
 };
 
 const FluxoDeCaixa = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFluxo[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -470,9 +470,9 @@ const FluxoDeCaixa = () => {
       }));
 
       // Map cliente_id and conta_id to names
-      const clientesData = await supabase.from("clientes").select("*").eq("user_id", user.id);
-      const petsData = await supabase.from("pets").select("*").eq("user_id", user.id);
-      const contasData = await supabase.from("contas_bancarias").select("*").eq("user_id", user.id);
+      const clientesData = await supabase.from("clientes").select("*").eq("user_id", ownerId);
+      const petsData = await supabase.from("pets").select("*").eq("user_id", ownerId);
+      const contasData = await supabase.from("contas_bancarias").select("*").eq("user_id", ownerId);
 
       if (clientesData.data && petsData.data && contasData.data) {
         const clientesMap = new Map(clientesData.data.map((c: any) => [c.id, c.nome_cliente]));
@@ -524,12 +524,12 @@ const FluxoDeCaixa = () => {
 
     try {
       const [clientesRes, petsRes, contasRes, servicosRes, pacotesRes, produtosRes] = await Promise.all([
-        supabase.from("clientes").select("*").eq("user_id", user.id),
-        supabase.from("pets").select("*").eq("user_id", user.id),
-        supabase.from("contas_bancarias").select("*").eq("user_id", user.id),
-        supabase.from("servicos").select("*").eq("user_id", user.id),
-        supabase.from("pacotes").select("*").eq("user_id", user.id),
-        supabase.from("produtos").select("*").eq("user_id", user.id),
+        supabase.from("clientes").select("*").eq("user_id", ownerId),
+        supabase.from("pets").select("*").eq("user_id", ownerId),
+        supabase.from("contas_bancarias").select("*").eq("user_id", ownerId),
+        supabase.from("servicos").select("*").eq("user_id", ownerId),
+        supabase.from("pacotes").select("*").eq("user_id", ownerId),
+        supabase.from("produtos").select("*").eq("user_id", ownerId),
       ]);
 
       if (clientesRes.data) {

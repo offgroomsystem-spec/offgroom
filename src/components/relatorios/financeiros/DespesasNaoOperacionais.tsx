@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ interface ContaBancaria {
 }
 
 export function DespesasNaoOperacionais() {
+  const { user, ownerId } = useAuth();
   const { toast } = useToast();
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
@@ -109,9 +111,9 @@ export function DespesasNaoOperacionais() {
 
       // Carregar dados relacionados (clientes, pets, contas)
       const [clientesData, petsData, contasData] = await Promise.all([
-        supabase.from("clientes").select("*").eq("user_id", user.id),
-        supabase.from("pets").select("*").eq("user_id", user.id),
-        supabase.from("contas_bancarias").select("*").eq("user_id", user.id),
+        supabase.from("clientes").select("*").eq("user_id", ownerId),
+        supabase.from("pets").select("*").eq("user_id", ownerId),
+        supabase.from("contas_bancarias").select("*").eq("user_id", ownerId),
       ]);
 
       const clientes = clientesData.data || [];
