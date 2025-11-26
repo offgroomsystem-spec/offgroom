@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { Plus, FileText, Trash2, Eye, Filter, X, Calendar, Search, Check, ChevronsUpDown } from "lucide-react";
 import {
   Dialog,
@@ -85,6 +86,7 @@ interface Produto {
 }
 
 export default function ComprasRealizadas() {
+  const { user, ownerId } = useAuth();
   const [compras, setCompras] = useState<CompraNF[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -136,15 +138,15 @@ export default function ComprasRealizadas() {
           *,
           compras_nf_itens (*)
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("data_compra", { ascending: false });
 
       if (error) throw error;
 
       // Carregar fornecedores e produtos separadamente
       const [fornecedoresData, produtosData] = await Promise.all([
-        supabase.from("fornecedores").select("id, nome_fornecedor").eq("user_id", user.id),
-        supabase.from("produtos").select("id, nome, codigo").eq("user_id", user.id),
+        supabase.from("fornecedores").select("id, nome_fornecedor").eq("user_id", ownerId),
+        supabase.from("produtos").select("id, nome, codigo").eq("user_id", ownerId),
       ]);
 
       // Mapear fornecedores e produtos aos dados
@@ -172,7 +174,7 @@ export default function ComprasRealizadas() {
       const { data, error } = await supabase
         .from("fornecedores")
         .select("id, nome_fornecedor")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("nome_fornecedor");
 
       if (error) throw error;
@@ -190,7 +192,7 @@ export default function ComprasRealizadas() {
       const { data, error } = await supabase
         .from("produtos")
         .select("id, nome, codigo")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("nome");
 
       if (error) throw error;

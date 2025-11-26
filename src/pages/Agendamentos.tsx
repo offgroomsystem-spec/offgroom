@@ -149,7 +149,7 @@ interface AgendamentoUnificado {
   servicoOriginal?: ServicoAgendamento;
 }
 const Agendamentos = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
 
   // Função para formatar data sem problemas de timezone
@@ -191,7 +191,7 @@ const Agendamentos = () => {
       const { data, error } = await supabase
         .from("agendamentos")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("data", { ascending: true })
         .order("horario", { ascending: true });
 

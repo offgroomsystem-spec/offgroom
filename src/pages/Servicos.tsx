@@ -19,7 +19,7 @@ interface Servico {
 }
 
 const Servicos = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -40,7 +40,7 @@ const Servicos = () => {
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', ownerId);
         
       if (error) {
         console.error('Error fetching services:', error);
@@ -77,7 +77,7 @@ const Servicos = () => {
           porte: formData.porte,
         })
         .eq('id', editingServico.id)
-        .eq('user_id', user.id);
+        .eq('user_id', ownerId);
         
       if (error) {
         toast.error("Erro ao atualizar serviço");
@@ -100,7 +100,7 @@ const Servicos = () => {
       const { data, error } = await supabase
         .from('servicos')
         .insert([{
-          user_id: user.id,
+          user_id: ownerId,
           nome: formData.nome,
           valor: parseFloat(formData.valor),
           porte: formData.porte,
@@ -146,7 +146,7 @@ const Servicos = () => {
       .from('servicos')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('user_id', ownerId);
       
     if (error) {
       toast.error("Erro ao remover serviço");

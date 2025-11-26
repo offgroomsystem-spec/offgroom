@@ -27,7 +27,7 @@ interface DashboardContentProps {
 }
 
 export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProps) => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
@@ -59,7 +59,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         const { data: agendamentosData } = await supabase
           .from("agendamentos")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .gte("data", format(ultimos30Dias, "yyyy-MM-dd"))
           .order("data", { ascending: true })
           .order("horario", { ascending: true });
@@ -70,7 +70,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         const { data: agendamentosPacotesData } = await supabase
           .from("agendamentos_pacotes")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .gte("data_venda", format(ultimos90Dias, "yyyy-MM-dd"))
           .order("data_venda", { ascending: true });
 
@@ -80,13 +80,13 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         const { data: lancamentosData } = await supabase
           .from("lancamentos_financeiros")
           .select("*, lancamentos_financeiros_itens(*)")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .gte("data_pagamento", format(ultimos90Dias, "yyyy-MM-dd"));
 
         setLancamentos(lancamentosData || []);
 
         // Carregar clientes
-        const { data: clientesData } = await supabase.from("clientes").select("*").eq("user_id", user.id);
+        const { data: clientesData } = await supabase.from("clientes").select("*").eq("user_id", ownerId);
 
         setClientes(clientesData || []);
 
@@ -94,7 +94,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         const { data: empresaConfig } = await supabase
           .from("empresa_config")
           .select("dias_funcionamento")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .single();
 
         setDiasFuncionamento(

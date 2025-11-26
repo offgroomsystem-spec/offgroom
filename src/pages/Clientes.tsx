@@ -45,7 +45,7 @@ export default function Clientes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
 
   // Form state
   const [nomeCliente, setNomeCliente] = useState("");
@@ -84,7 +84,7 @@ export default function Clientes() {
     const { data: racasCustom } = await supabase
       .from("racas")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("nome", { ascending: true });
 
     const racasPadraoFormatted = racasPadrao?.map((r) => ({ ...r, isPadrao: true })) || [];
@@ -97,10 +97,10 @@ export default function Clientes() {
     if (!user) return;
 
     // Buscar clientes
-    const { data: clientesData, error: clientesError } = await supabase
+    const { data: clientesData, error: clientesError} = await supabase
       .from("clientes")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("nome_cliente");
 
     if (clientesError) {
@@ -112,7 +112,7 @@ export default function Clientes() {
     const { data: petsData, error: petsError } = await supabase
       .from("pets")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("nome_pet");
 
     if (petsError) {
@@ -230,7 +230,7 @@ export default function Clientes() {
           } else {
             // INSERT novo pet
             await supabase.from("pets").insert({
-              user_id: user.id,
+              user_id: ownerId,
               cliente_id: editingId,
               nome_pet: pet.nome_pet,
               porte: pet.porte,
@@ -246,7 +246,7 @@ export default function Clientes() {
         const { data: novoCliente, error: clienteError } = await supabase
           .from("clientes")
           .insert({
-            user_id: user.id,
+            user_id: ownerId,
             nome_cliente: nomeCliente,
             whatsapp,
             endereco,
@@ -259,7 +259,7 @@ export default function Clientes() {
 
         // INSERT Pets
         const petsParaInserir = pets.map((pet) => ({
-          user_id: user.id,
+          user_id: ownerId,
           cliente_id: novoCliente.id,
           nome_pet: pet.nome_pet,
           porte: pet.porte,

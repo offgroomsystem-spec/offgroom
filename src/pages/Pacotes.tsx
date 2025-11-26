@@ -37,7 +37,7 @@ interface Pacote {
 }
 
 const Pacotes = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ const Pacotes = () => {
       const { data, error } = await supabase
         .from('pacotes')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', ownerId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -100,7 +100,7 @@ const Pacotes = () => {
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', ownerId)
         .order('nome');
 
       if (error) throw error;
