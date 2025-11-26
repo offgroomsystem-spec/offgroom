@@ -10,15 +10,26 @@ interface Profile {
   login_count: number;
 }
 
+interface StaffAccount {
+  id: string;
+  owner_id: string;
+  ativo: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   roles: string[];
+  permissions: string[];
+  isStaff: boolean;
+  isOwner: boolean;
+  staffAccount: StaffAccount | null;
   loading: boolean;
   signOut: () => Promise<void>;
   incrementLoginCount: (userId?: string) => Promise<number>;
   hasRole: (role: string) => boolean;
+  hasPermission: (codigo: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +39,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [isStaff, setIsStaff] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [staffAccount, setStaffAccount] = useState<StaffAccount | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (userId: string) => {
@@ -53,14 +68,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', userId);
 
       if (error) throw error;
-      setRoles((data || []).map(r => r.role));
+      const userRoles = (data || []).map(r => r.role);
+      setRoles(userRoles);
+      setIsOwner(userRoles.includes('owner'));
     } catch (error) {
       console.error('Erro ao carregar roles:', error);
       setRoles([]);
+      setIsOwner(false);
+    }
+  };
+
+  const loadStaffAccount = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('staff_accounts')
+        .select('id, owner_id, ativo')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setIsStaff(true);
+        setStaffAccount(data);
+        // Update ultimo_acesso
+        await supabase
+          .from('staff_accounts')
+          .update({ ultimo_acesso: new Date().toISOString() })
+          .eq('id', data.id);
+      } else {
+        setIsStaff(false);
+        setStaffAccount(null);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar conta de staff:', error);
+      setIsStaff(false);
+      setStaffAccount(null);
+    }
+  };
+
+  const loadPermissions = async (userId: string) => {
+    try {
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff_accounts')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (staffError) throw staffError;
+
+      if (staffData) {
+        const { data: permsData, error: permsError } = await supabase
+          .from('staff_permissions')
+          .select('permission_codigo')
+          .eq('staff_id', staffData.id);
+
+        if (permsError) throw permsError;
+        setPermissions((permsData || []).map(p => p.permission_codigo));
+      } else {
+        // Not a staff user, clear permissions
+        setPermissions([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar permissões:', error);
+      setPermissions([]);
     }
   };
 
   const hasRole = (role: string) => roles.includes(role);
+  
+  const hasPermission = (codigo: string) => {
+    // Owners have all permissions
+    if (isOwner) return true;
+    // Staff must have explicit permission
+    return permissions.includes(codigo);
+  };
 
   useEffect(() => {
     // Verificar sessão atual
@@ -71,6 +153,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setTimeout(() => {
           loadProfile(session.user.id);
           loadUserRoles(session.user.id);
+          loadStaffAccount(session.user.id);
+          loadPermissions(session.user.id);
         }, 0);
       }
       setLoading(false);
@@ -86,10 +170,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => {
             loadProfile(session.user.id);
             loadUserRoles(session.user.id);
+            loadStaffAccount(session.user.id);
+            loadPermissions(session.user.id);
           }, 0);
         } else {
           setProfile(null);
           setRoles([]);
+          setPermissions([]);
+          setIsStaff(false);
+          setIsOwner(false);
+          setStaffAccount(null);
         }
       }
     );
@@ -162,10 +252,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setPermissions([]);
+    setIsStaff(false);
+    setIsOwner(false);
+    setStaffAccount(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, loading, signOut, incrementLoginCount, hasRole }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile, 
+      roles, 
+      permissions, 
+      isStaff, 
+      isOwner, 
+      staffAccount,
+      loading, 
+      signOut, 
+      incrementLoginCount, 
+      hasRole,
+      hasPermission 
+    }}>
       {children}
     </AuthContext.Provider>
   );
