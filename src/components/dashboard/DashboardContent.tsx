@@ -27,7 +27,7 @@ interface DashboardContentProps {
 }
 
 export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProps) => {
-  const { user, ownerId } = useAuth();
+  const { user, ownerId, isRecepcionista } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
@@ -533,15 +533,30 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       atendimentosDia,
       atendimentosProximoDia,
       proximoDiaUtil,
-      faturamentoMes,
-      entradasPrevistas,
-      saidasPrevistas,
-      taxaRecorrencia,
+      faturamentoMes: isRecepcionista ? 0 : faturamentoMes,
+      entradasPrevistas: isRecepcionista ? 0 : entradasPrevistas,
+      saidasPrevistas: isRecepcionista ? 0 : saidasPrevistas,
+      taxaRecorrencia: isRecepcionista ? 0 : taxaRecorrencia,
     };
-  }, [agendamentos, agendamentosPacotes, lancamentos, diasFuncionamento]);
+  }, [agendamentos, agendamentosPacotes, lancamentos, diasFuncionamento, isRecepcionista]);
 
   // Dados para gráfico de fluxo de caixa (últimos 30 dias)
   const dadosFluxoCaixa = useMemo(() => {
+    if (isRecepcionista) {
+      const dados: any[] = [];
+      const ultimos30Dias = subDays(new Date(), 30);
+      for (let i = 0; i < 30; i++) {
+        const data = addDays(ultimos30Dias, i);
+        dados.push({
+          data: format(data, "dd/MM", { locale: ptBR }),
+          receitas: 0,
+          despesas: 0,
+          lucro: 0,
+        });
+      }
+      return dados;
+    }
+
     const ultimos30Dias = subDays(new Date(), 30);
     const dados: any[] = [];
 
@@ -566,7 +581,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
     }
 
     return dados;
-  }, [lancamentos]);
+  }, [lancamentos, isRecepcionista]);
 
   // Dados para gráfico de crescimento de agendamentos (últimos 12 meses)
   const dadosCrescimentoAgendamentos = useMemo(() => {
@@ -576,6 +591,15 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const mes = subMonths(new Date(), i);
       const inicioMes = startOfMonth(mes);
       const fimMes = endOfMonth(mes);
+
+      if (isRecepcionista) {
+        dados.push({
+          mes: format(mes, "MMM/yy", { locale: ptBR }),
+          quantidade: 0,
+          variacao: 0,
+        });
+        continue;
+      }
 
       // Agendamentos regulares
       const quantidadeRegulares = agendamentos.filter((a) => {
@@ -606,18 +630,30 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
 
     // Calcular variação percentual para cada mês
     return dados.map((d, index) => {
-      if (index === 0) {
+      if (index === 0 || isRecepcionista) {
         return { ...d, variacao: 0 };
       }
       const mesAnterior = dados[index - 1].quantidade;
       const variacao = mesAnterior > 0 ? ((d.quantidade - mesAnterior) / mesAnterior) * 100 : 0;
       return { ...d, variacao };
     });
-  }, [agendamentos, agendamentosPacotes]);
+  }, [agendamentos, agendamentosPacotes, isRecepcionista]);
 
   // Dados históricos de média mensal para os últimos 12 meses
   const dadosMediaMensalHistorico = useMemo(() => {
     if (!diasFuncionamento) return [];
+
+    if (isRecepcionista) {
+      const dados: any[] = [];
+      for (let i = 11; i >= 0; i--) {
+        const mes = subMonths(new Date(), i);
+        dados.push({
+          mes: format(mes, "MMM/yy", { locale: ptBR }),
+          media: 0,
+        });
+      }
+      return dados;
+    }
 
     const dados: any[] = [];
     const diasSemana = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
@@ -674,7 +710,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
     }
 
     return dados;
-  }, [agendamentos, agendamentosPacotes, diasFuncionamento]);
+  }, [agendamentos, agendamentosPacotes, diasFuncionamento, isRecepcionista]);
 
   const handleKPIClick = (reportId: string) => {
     if (onNavigateToRelatorio) {
@@ -754,46 +790,46 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <KPICard
           titulo="Taxa de Recorrência"
-          valor={`${kpis.taxaRecorrencia.toFixed(1)}%`}
+          valor={isRecepcionista ? "0.0%" : `${kpis.taxaRecorrencia.toFixed(1)}%`}
           subtitulo="clientes que retornaram"
           icon={<Users />}
-          cor={kpis.taxaRecorrencia >= 70 ? "green" : kpis.taxaRecorrencia >= 50 ? "yellow" : "red"}
+          cor={isRecepcionista ? "default" : kpis.taxaRecorrencia >= 70 ? "green" : kpis.taxaRecorrencia >= 50 ? "yellow" : "red"}
         />
 
         <KPICard
           titulo="Clientes em Risco"
-          valor={`${kpisAdicionais.clientesEmRisco} Clientes`}
+          valor={isRecepcionista ? "0 Clientes" : `${kpisAdicionais.clientesEmRisco} Clientes`}
           subtitulo="sem agendamento há 15+ dias"
           icon={<AlertTriangle />}
-          cor={kpisAdicionais.clientesEmRisco > 0 ? "red" : "green"}
-          onClick={() => handleKPIClick("clientes-risco")}
+          cor={isRecepcionista ? "default" : kpisAdicionais.clientesEmRisco > 0 ? "red" : "green"}
+          onClick={isRecepcionista ? undefined : () => handleKPIClick("clientes-risco")}
         />
 
         <KPICard
           titulo="Pacotes Vencidos"
-          valor={`${kpisAdicionais.pacotesExpirados} Pacotes`}
+          valor={isRecepcionista ? "0 Pacotes" : `${kpisAdicionais.pacotesExpirados} Pacotes`}
           subtitulo="sem agendamentos futuros"
           icon={<Package />}
-          cor={kpisAdicionais.pacotesExpirados > 0 ? "red" : "green"}
-          onClick={() => handleKPIClick("pacotes-expirados")}
+          cor={isRecepcionista ? "default" : kpisAdicionais.pacotesExpirados > 0 ? "red" : "green"}
+          onClick={isRecepcionista ? undefined : () => handleKPIClick("pacotes-expirados")}
         />
 
         <KPICard
           titulo="Pacotes a Expirar"
-          valor={`${kpisAdicionais.pacotesAExpirar} Pacotes`}
+          valor={isRecepcionista ? "0 Pacotes" : `${kpisAdicionais.pacotesAExpirar} Pacotes`}
           subtitulo="7 dias"
           icon={<Package />}
-          cor={kpisAdicionais.pacotesAExpirar > 0 ? "yellow" : "green"}
-          onClick={() => handleKPIClick("pacotes-vencimento")}
+          cor={isRecepcionista ? "default" : kpisAdicionais.pacotesAExpirar > 0 ? "yellow" : "green"}
+          onClick={isRecepcionista ? undefined : () => handleKPIClick("pacotes-vencimento")}
         />
 
         <KPICard
           titulo="Produtos Próximos ao Vencimento"
-          valor={`${kpisAdicionais.produtosVencimento} Produtos`}
+          valor={isRecepcionista ? "0 Produtos" : `${kpisAdicionais.produtosVencimento} Produtos`}
           subtitulo="30 dias"
           icon={<ShoppingCart />}
-          cor={kpisAdicionais.produtosVencimento > 0 ? "yellow" : "green"}
-          onClick={() => handleKPIClick("produtos-vencimento")}
+          cor={isRecepcionista ? "default" : kpisAdicionais.produtosVencimento > 0 ? "yellow" : "green"}
+          onClick={isRecepcionista ? undefined : () => handleKPIClick("produtos-vencimento")}
         />
       </div>
 
@@ -920,8 +956,8 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
 
       {/* Linha 3: Mini Relatórios */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ContasProximasVencimento lancamentos={lancamentos} />
-        <NovosClientes clientes={clientes} />
+        <ContasProximasVencimento lancamentos={isRecepcionista ? [] : lancamentos} />
+        <NovosClientes clientes={isRecepcionista ? [] : clientes} />
       </div>
     </div>
   );
