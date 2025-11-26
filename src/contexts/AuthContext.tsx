@@ -14,9 +14,11 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  roles: string[];
   loading: boolean;
   signOut: () => Promise<void>;
   incrementLoginCount: (userId?: string) => Promise<number>;
+  hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (userId: string) => {
@@ -42,6 +45,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loadUserRoles = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      setRoles((data || []).map(r => r.role));
+    } catch (error) {
+      console.error('Erro ao carregar roles:', error);
+      setRoles([]);
+    }
+  };
+
+  const hasRole = (role: string) => roles.includes(role);
+
   useEffect(() => {
     // Verificar sessão atual
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -50,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         setTimeout(() => {
           loadProfile(session.user.id);
+          loadUserRoles(session.user.id);
         }, 0);
       }
       setLoading(false);
@@ -64,9 +85,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           setTimeout(() => {
             loadProfile(session.user.id);
+            loadUserRoles(session.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setRoles([]);
         }
       }
     );
@@ -138,10 +161,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setRoles([]);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signOut, incrementLoginCount }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, loading, signOut, incrementLoginCount, hasRole }}>
       {children}
     </AuthContext.Provider>
   );
