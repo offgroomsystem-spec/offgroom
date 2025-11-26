@@ -135,6 +135,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loadUserData = async (userId: string) => {
+    await loadProfile(userId);
+    await loadUserRoles(userId);
+    await loadStaffAccount(userId);
+    await loadPermissions(userId);
+  };
+
   const hasRole = (role: string) => roles.includes(role);
   
   const hasPermission = (codigo: string) => {
@@ -146,33 +153,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => {
-          loadProfile(session.user.id);
-          loadUserRoles(session.user.id);
-          loadStaffAccount(session.user.id);
-          loadPermissions(session.user.id);
-        }, 0);
+        await loadUserData(session.user.id);
       }
       setLoading(false);
     });
 
     // Listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            loadProfile(session.user.id);
-            loadUserRoles(session.user.id);
-            loadStaffAccount(session.user.id);
-            loadPermissions(session.user.id);
-          }, 0);
+          await loadUserData(session.user.id);
         } else {
           setProfile(null);
           setRoles([]);
