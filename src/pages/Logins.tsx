@@ -120,72 +120,48 @@ export default function Logins() {
     }
 
     try {
-      if (selectedStaff) {
-        // Editar login existente
-        const updates: any = {
-          nome: formData.nome,
-          tipo_login: formData.tipo_login,
-          ativo: formData.ativo,
-        };
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
 
-        // Se forneceu nova senha, atualizar no auth.users
-        if (formData.senha) {
-          const { error: authError } = await supabase.auth.admin.updateUserById(
-            selectedStaff.user_id,
-            { password: formData.senha }
-          );
-          if (authError) throw authError;
-        }
-
-        const { error } = await supabase
-          .from("staff_accounts")
-          .update(updates)
-          .eq("id", selectedStaff.id);
-
-        if (error) throw error;
-        toast.success("Login atualizado com sucesso");
-      } else {
-        // Criar novo login
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.senha,
-          options: {
-            data: {
-              nome_completo: formData.nome,
-            },
-          },
-        });
-
-        if (authError) throw authError;
-        if (!authData.user) throw new Error("Erro ao criar usuário");
-
-        // Criar registro em staff_accounts
-        const { error: staffError } = await supabase
-          .from("staff_accounts")
-          .insert({
-            owner_id: user?.id,
-            user_id: authData.user.id,
-            nome: formData.nome,
+      const action = selectedStaff ? "update" : "create";
+      const body = selectedStaff
+        ? {
+            user_id: selectedStaff.user_id,
             email: formData.email,
+            password: formData.senha || null,
+            nome: formData.nome,
             tipo_login: formData.tipo_login,
             ativo: formData.ativo,
-          });
+          }
+        : {
+            email: formData.email,
+            password: formData.senha,
+            nome: formData.nome,
+            tipo_login: formData.tipo_login,
+            ativo: formData.ativo,
+            owner_id: user?.id,
+          };
 
-        if (staffError) throw staffError;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-staff-user?action=${action}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify(body),
+        }
+      );
 
-        // Criar role para o usuário
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: authData.user.id,
-            role: formData.tipo_login,
-          });
+      const result = await response.json();
 
-        if (roleError) throw roleError;
-
-        toast.success("Login criado com sucesso");
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Erro ao salvar login");
       }
 
+      toast.success(selectedStaff ? "Login atualizado com sucesso" : "Login criado com sucesso");
       setDialogOpen(false);
       loadStaffAccounts();
     } catch (error: any) {
@@ -198,15 +174,31 @@ export default function Logins() {
     if (!selectedStaff) return;
 
     try {
-      // Deletar usuário do auth.users
-      const { error: authError } = await supabase.auth.admin.deleteUser(
-        selectedStaff.user_id
-      );
-      if (authError) throw authError;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
 
-      // O staff_accounts será deletado automaticamente via cascade
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-staff-user?action=delete`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ user_id: selectedStaff.user_id }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Erro ao excluir login");
+      }
+
       toast.success("Login excluído com sucesso");
       setDeleteDialogOpen(false);
+      setSelectedStaff(null);
       loadStaffAccounts();
     } catch (error: any) {
       console.error("Erro ao excluir login:", error);

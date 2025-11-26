@@ -1,1 +1,4 @@
-project_id = "sxlpxsobvznxzxovdpqo"
+project_id = "etqxzujphligtsvehxoj"
+
+[functions.manage-staff-user]
+verify_jwt = true
