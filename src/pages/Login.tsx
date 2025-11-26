@@ -75,7 +75,7 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4">
-            <img alt="OffGroom" className="h-16 mx-auto" src="/lovable-uploads/8c7fd45f-ed28-4ae0-9484-cb5b69a33a12.png" />
+            <img alt="OffGroom" className="h-16 mx-auto" src="/lovable-uploads/dcfc9471-47bd-4487-98d4-f4bc63871713.png" />
           </div>
           <CardTitle className="text-2xl font-bold">Bem-vindo de volta</CardTitle>
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
