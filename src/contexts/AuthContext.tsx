@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import type { TipoLogin, StaffAccount } from '@/types/permissions';
 
 interface Profile {
   id: string;
@@ -15,6 +16,12 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   roles: string[];
+  tipoLogin: TipoLogin | null;
+  isAdministrador: boolean;
+  isTaxiDog: boolean;
+  isRecepcionista: boolean;
+  staffAccount: StaffAccount | null;
+  ownerId: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
   incrementLoginCount: (userId?: string) => Promise<number>;
@@ -28,7 +35,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
+  const [tipoLogin, setTipoLogin] = useState<TipoLogin | null>(null);
+  const [staffAccount, setStaffAccount] = useState<StaffAccount | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const isAdministrador = tipoLogin === 'administrador';
+  const isTaxiDog = tipoLogin === 'taxi_dog';
+  const isRecepcionista = tipoLogin === 'recepcionista';
+  const ownerId = staffAccount?.owner_id || user?.id || null;
 
   const loadProfile = async (userId: string) => {
     try {
@@ -54,26 +68,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
       setRoles((data || []).map(r => r.role));
+      
+      // Definir tipo de login baseado na role
+      if (data && data.length > 0) {
+        setTipoLogin(data[0].role as TipoLogin);
+      }
     } catch (error) {
       console.error('Erro ao carregar roles:', error);
       setRoles([]);
     }
   };
 
+  const loadStaffAccount = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('staff_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setStaffAccount(data);
+      
+      if (data) {
+        setTipoLogin(data.tipo_login as TipoLogin);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar staff account:', error);
+    }
+  };
+
   const hasRole = (role: string) => roles.includes(role);
 
   useEffect(() => {
+    const loadUserData = async (userId: string) => {
+      await loadProfile(userId);
+      await loadUserRoles(userId);
+      await loadStaffAccount(userId);
+      setLoading(false);
+    };
+
     // Verificar sessão atual
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => {
-          loadProfile(session.user.id);
-          loadUserRoles(session.user.id);
-        }, 0);
+        loadUserData(session.user.id);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Listener de mudanças de autenticação
@@ -83,13 +126,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            loadProfile(session.user.id);
-            loadUserRoles(session.user.id);
-          }, 0);
+          loadUserData(session.user.id);
         } else {
           setProfile(null);
           setRoles([]);
+          setTipoLogin(null);
+          setStaffAccount(null);
         }
       }
     );
@@ -165,7 +207,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, loading, signOut, incrementLoginCount, hasRole }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile, 
+      roles, 
+      tipoLogin,
+      isAdministrador,
+      isTaxiDog,
+      isRecepcionista,
+      staffAccount,
+      ownerId,
+      loading, 
+      signOut, 
+      incrementLoginCount, 
+      hasRole 
+    }}>
       {children}
     </AuthContext.Provider>
   );

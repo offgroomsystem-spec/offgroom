@@ -34,11 +34,6 @@ const Login = () => {
     resolver: zodResolver(loginSchema)
   });
 
-  // Se já estiver autenticado, redirecionar baseado no login_count
-  if (user && profile) {
-    const destination = profile.login_count <= 2 ? "/empresa" : "/home";
-    return <Navigate to={destination} replace />;
-  }
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
@@ -58,12 +53,33 @@ const Login = () => {
         return;
       }
       sessionStorage.setItem('offgroom_session_active', 'true');
+      
+      // Incrementar login count
       const loginCount = await incrementLoginCount(authData.user?.id);
+      
+      // Carregar tipo de login do usuário
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authData.user?.id)
+        .single();
+      
       toast.success('Login realizado com sucesso!');
-      if (loginCount <= 2) {
-        navigate('/empresa');
+      
+      // Redirecionar baseado no tipo de login
+      const tipoLogin = roleData?.role;
+      
+      if (tipoLogin === 'taxi_dog') {
+        navigate('/agendamentos');
+      } else if (tipoLogin === 'recepcionista') {
+        navigate('/agendamentos');
       } else {
-        navigate('/home');
+        // Administrador
+        if (loginCount <= 2) {
+          navigate('/empresa');
+        } else {
+          navigate('/home');
+        }
       }
     } catch (error) {
       toast.error('Erro ao fazer login. Tente novamente.');
