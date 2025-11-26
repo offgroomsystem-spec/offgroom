@@ -127,7 +127,7 @@ export function PacotesAtivos() {
         
         // Contar serviços usados baseado na data
         const servicosUsados = servicos.filter((s: any) => {
-          const dataServico = new Date(s.data);
+          const dataServico = new Date(s.data + "T00:00:00");
           dataServico.setHours(0, 0, 0, 0);
           return dataServico <= hoje;
         }).length;

@@ -177,7 +177,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
 
       agendamentosData?.forEach((a) => {
         const chave = `${a.cliente}_${a.pet}`;
-        const data = parseISO(a.data);
+        const data = new Date(a.data + "T00:00:00");
         if (!isValid(data)) return;
 
         if (!mapa.has(chave)) {
@@ -197,14 +197,14 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         try {
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
           if (Array.isArray(servicos)) {
-            const datasValidas = servicos.map((s) => parseISO(s.data)).filter((d) => isValid(d));
+            const datasValidas = servicos.map((s) => new Date(s.data + "T00:00:00")).filter((d) => isValid(d));
             if (datasValidas.length > 0) {
               ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
             }
           }
         } catch {}
 
-        const dataFinal = ultimaDataServico ? ultimaDataServico : parseISO(p.data_venda);
+        const dataFinal = ultimaDataServico ? ultimaDataServico : new Date(p.data_venda + "T00:00:00");
         if (!isValid(dataFinal)) return;
 
         if (!mapa.has(chave)) {
@@ -224,14 +224,14 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         // Verificar agendamento futuro APENAS para este cliente/pet específico
         const temAgendamentoFuturo =
           agendamentosData?.some(
-            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje
+            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && new Date(a.data + "T00:00:00") >= hoje
           ) ||
           pacotesData?.some((p) => {
             if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
             try {
               const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
               if (Array.isArray(servicos)) {
-                return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+                return servicos.some((s) => isValid(new Date(s.data + "T00:00:00")) && new Date(s.data + "T00:00:00") >= hoje);
               }
             } catch {
               return false;
