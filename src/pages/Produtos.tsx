@@ -48,7 +48,7 @@ interface LoteProduto {
 }
 
 const Produtos = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -120,7 +120,7 @@ const Produtos = () => {
       const { data, error } = await supabase
         .from('produtos')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', ownerId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

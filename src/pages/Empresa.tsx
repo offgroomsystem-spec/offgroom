@@ -33,7 +33,7 @@ interface Groomer {
 }
 
 const Empresa = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [formData, setFormData] = useState<EmpresaConfig>({
     bordao: "",
     horarioInicio: "",
@@ -62,7 +62,7 @@ const Empresa = () => {
       const { data, error } = await supabase
         .from('empresa_config')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', ownerId)
         .single();
         
       if (error && error.code !== 'PGRST116') {
@@ -100,7 +100,7 @@ const Empresa = () => {
       const { data, error } = await (supabase as any)
         .from('groomers')
         .select('id, nome')
-        .eq('user_id', user.id);
+        .eq('user_id', ownerId);
         
       if (error) {
         console.error('Error fetching groomers:', error);
@@ -142,7 +142,7 @@ const Empresa = () => {
           dias_funcionamento: formData.diasFuncionamento as any,
         })
         .eq('id', formData.id)
-        .eq('user_id', user.id);
+        .eq('user_id', ownerId);
         
       if (error) {
         console.error('Error updating empresa:', error);
@@ -155,7 +155,7 @@ const Empresa = () => {
       const { data, error } = await supabase
         .from('empresa_config')
         .insert({
-          user_id: user.id,
+          user_id: ownerId,
           bordao: formData.bordao,
           horario_inicio: formData.horarioInicio,
           horario_fim: formData.horarioFim,
@@ -194,7 +194,7 @@ const Empresa = () => {
     const { data, error } = await (supabase as any)
       .from('groomers')
       .insert({
-        user_id: user.id,
+        user_id: ownerId,
         nome: novoGroomer.trim()
       })
       .select('id, nome')
@@ -231,7 +231,7 @@ const Empresa = () => {
       .from('groomers')
       .update({ nome: novoGroomer.trim() })
       .eq('id', editandoGroomer.id)
-      .eq('user_id', user.id);
+      .eq('user_id', ownerId);
       
     if (error) {
       console.error('Error updating groomer:', error);

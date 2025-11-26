@@ -18,7 +18,7 @@ interface Raca {
 }
 
 const Racas = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [racas, setRacas] = useState<Raca[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +48,7 @@ const Racas = () => {
       const { data: racasCustom, error: errorCustom } = await supabase
         .from('racas')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', ownerId)
         .order('porte', { ascending: true })
         .order('nome', { ascending: true });
         
@@ -163,7 +163,7 @@ const Racas = () => {
           porte: formData.porte
         })
         .eq('id', editingRaca.id)
-        .eq('user_id', user.id);
+        .eq('user_id', ownerId);
         
       if (error) {
         toast.error("Erro ao atualizar raça");
@@ -179,7 +179,7 @@ const Racas = () => {
       const { data, error } = await supabase
         .from('racas')
         .insert([{
-          user_id: user.id,
+          user_id: ownerId,
           nome: formData.nome,
           porte: formData.porte
         }])
@@ -230,7 +230,7 @@ const Racas = () => {
       .from('racas')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('user_id', ownerId);
       
     if (error) {
       toast.error("Erro ao remover raça");

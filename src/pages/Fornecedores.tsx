@@ -88,7 +88,7 @@ const ESTADOS = [
 ];
 
 const Fornecedores = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const { toast } = useToast();
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,7 +138,7 @@ const Fornecedores = () => {
       const { data, error } = await supabase
         .from("fornecedores")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("nome_fornecedor");
 
       if (error) throw error;
@@ -193,7 +193,7 @@ const Fornecedores = () => {
           .from("fornecedores")
           .update({ ...formData, updated_at: new Date().toISOString() })
           .eq("id", editingId)
-          .eq("user_id", user.id);
+          .eq("user_id", ownerId);
 
         if (error) throw error;
         toast({
@@ -201,7 +201,7 @@ const Fornecedores = () => {
           description: "As alterações foram salvas com sucesso.",
         });
       } else {
-        const { error } = await supabase.from("fornecedores").insert([{ ...formData, user_id: user.id }]);
+        const { error } = await supabase.from("fornecedores").insert([{ ...formData, user_id: ownerId }]);
 
         if (error) {
           if (error.code === "23505") {

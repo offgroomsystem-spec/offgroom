@@ -390,7 +390,7 @@ interface ControleFinanceiroProps {
 }
 
 const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
 

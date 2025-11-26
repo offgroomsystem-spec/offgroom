@@ -17,7 +17,7 @@ interface ContaBancaria {
 }
 
 const ContasBancarias = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -41,7 +41,7 @@ const ContasBancarias = () => {
       const { data, error } = await supabase
         .from('contas_bancarias')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', ownerId);
         
       if (error) {
         console.error('Error fetching contas:', error);
@@ -78,7 +78,7 @@ const ContasBancarias = () => {
     const { data, error } = await supabase
       .from('contas_bancarias')
       .insert({
-        user_id: user.id,
+        user_id: ownerId,
         nome: formData.nome,
         saldo: formData.saldo
       })
@@ -110,7 +110,7 @@ const ContasBancarias = () => {
         saldo: formData.saldo
       })
       .eq('id', contaSelecionada.id)
-      .eq('user_id', user.id);
+      .eq('user_id', ownerId);
       
     if (error) {
       console.error('Error updating conta:', error);
@@ -135,7 +135,7 @@ const ContasBancarias = () => {
       .from('contas_bancarias')
       .delete()
       .eq('id', contaSelecionada.id)
-      .eq('user_id', user.id);
+      .eq('user_id', ownerId);
       
     if (error) {
       console.error('Error deleting conta:', error);
