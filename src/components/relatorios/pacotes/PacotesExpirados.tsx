@@ -94,7 +94,7 @@ Aguardamos seu retorno.`;
       const { data: pacotesDefinicao, error: errorDefinicao } = await supabase
         .from("pacotes")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (errorDefinicao) throw errorDefinicao;
 
@@ -102,7 +102,7 @@ Aguardamos seu retorno.`;
       const { data: todosAgendamentos, error: errorAgendamentos } = await supabase
         .from("agendamentos")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (errorAgendamentos) throw errorAgendamentos;
 
