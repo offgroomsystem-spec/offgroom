@@ -794,7 +794,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         .from("lancamentos_financeiros")
         .insert([
           {
-            user_id: user.id,
+            user_id: ownerId,
             ano: formData.ano,
             mes_competencia: formData.mesCompetencia,
             tipo: formData.tipo,
