@@ -171,7 +171,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const { data: pacotesData } = await supabase
         .from("agendamentos_pacotes")
         .select("id, nome_cliente, data_venda, nome_pet, servicos")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       const mapa = new Map<string, { nomeCliente: string; nomePet: string; ultimoAgendamento: Date }>();
 
@@ -262,7 +262,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const { data: agendamentosPacotesData } = await supabase
         .from("agendamentos_pacotes")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       const { data: pacotesDefinicao } = await supabase
         .from("pacotes")
@@ -359,7 +359,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const { data: agendamentosPacotesData } = await supabase
         .from("agendamentos_pacotes")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       const { data: pacotesDefinicao } = await supabase
         .from("pacotes")

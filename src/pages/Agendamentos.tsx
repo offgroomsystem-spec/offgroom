@@ -421,7 +421,7 @@ const Agendamentos = () => {
       const { data, error } = await supabase
         .from("agendamentos_pacotes")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("data_venda", { ascending: false });
 
       if (error) throw error;
@@ -978,7 +978,7 @@ const Agendamentos = () => {
     try {
       const { error } = await supabase.from("agendamentos_pacotes").insert([
         {
-          user_id: user.id,
+          user_id: ownerId,
           nome_cliente: pacoteFormData.nomeCliente,
           nome_pet: pacoteFormData.nomePet,
           raca: pacoteFormData.raca,

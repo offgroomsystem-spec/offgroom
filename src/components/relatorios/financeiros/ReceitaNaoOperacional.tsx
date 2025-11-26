@@ -57,7 +57,7 @@ interface ContaBancaria {
 }
 
 export const ReceitaNaoOperacional = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
@@ -105,7 +105,7 @@ export const ReceitaNaoOperacional = () => {
       const { data: clientesData, error: clientesError } = await supabase
         .from("clientes")
         .select("id, nome_cliente")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (clientesError) throw clientesError;
 
@@ -113,7 +113,7 @@ export const ReceitaNaoOperacional = () => {
       const { data: petsData, error: petsError } = await supabase
         .from("pets")
         .select("id, nome_pet, cliente_id")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (petsError) throw petsError;
 
@@ -121,7 +121,7 @@ export const ReceitaNaoOperacional = () => {
       const { data: contasData, error: contasError } = await supabase
         .from("contas_bancarias")
         .select("id, nome")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (contasError) throw contasError;
 

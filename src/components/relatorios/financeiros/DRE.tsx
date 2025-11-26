@@ -51,7 +51,7 @@ const DRERow = ({ titulo, valor, nivel, destaque, cor = 'default' }: DRERowProps
 };
 
 export const DRE = ({ filtros }: DREProps) => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [contas, setContas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +133,7 @@ export const DRE = ({ filtros }: DREProps) => {
       const { data: contasData, error: contasError } = await supabase
         .from('contas_bancarias')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', ownerId);
       
       if (contasError) throw contasError;
       
