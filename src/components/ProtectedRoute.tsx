@@ -1,8 +1,11 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { AcessoNegado } from '@/components/AcessoNegado';
+import { hasRouteAccess } from '@/types/permissions';
 
 const ProtectedRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, tipoLogin } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -14,6 +17,11 @@ const ProtectedRoute = () => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Verificar se o usuário tem permissão para acessar esta rota
+  if (tipoLogin && !hasRouteAccess(tipoLogin, location.pathname)) {
+    return <AcessoNegado />;
   }
 
   return <Outlet />;

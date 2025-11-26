@@ -924,6 +924,7 @@ export type Database = {
           id: string
           nome: string
           owner_id: string
+          tipo_login: Database["public"]["Enums"]["app_role"]
           ultimo_acesso: string | null
           updated_at: string | null
           user_id: string
@@ -935,6 +936,7 @@ export type Database = {
           id?: string
           nome: string
           owner_id: string
+          tipo_login?: Database["public"]["Enums"]["app_role"]
           ultimo_acesso?: string | null
           updated_at?: string | null
           user_id: string
@@ -946,6 +948,7 @@ export type Database = {
           id?: string
           nome?: string
           owner_id?: string
+          tipo_login?: Database["public"]["Enums"]["app_role"]
           ultimo_acesso?: string | null
           updated_at?: string | null
           user_id?: string
@@ -1053,6 +1056,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_tipo_login: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1060,9 +1067,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_administrador: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "owner" | "manager" | "employee" | "viewer"
+      app_role: "administrador" | "taxi_dog" | "recepcionista"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1190,7 +1198,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "manager", "employee", "viewer"],
+      app_role: ["administrador", "taxi_dog", "recepcionista"],
     },
   },
 } as const
