@@ -27,8 +27,6 @@ import ComprasRealizadas from "./pages/ComprasRealizadas";
 import Store from "./pages/Store";
 import Home from "./pages/Home";
 
-import Logins from "./pages/Logins";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -64,7 +62,6 @@ const App = () => (
                 <Route path="/contas-bancarias" element={<ContasBancarias />} />
                 <Route path="/controle-financeiro" element={<ControleFinanceiro />} />
                 <Route path="/relatorios" element={<Relatorios />} />
-                <Route path="/logins" element={<Logins />} />
               </Route>
             </Route>
             

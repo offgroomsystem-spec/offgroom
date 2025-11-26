@@ -631,36 +631,6 @@ export type Database = {
         }
         Relationships: []
       }
-      permissions: {
-        Row: {
-          codigo: string
-          created_at: string | null
-          id: string
-          nome: string
-          ordem: number
-          parent_codigo: string | null
-          tema: string
-        }
-        Insert: {
-          codigo: string
-          created_at?: string | null
-          id?: string
-          nome: string
-          ordem?: number
-          parent_codigo?: string | null
-          tema: string
-        }
-        Update: {
-          codigo?: string
-          created_at?: string | null
-          id?: string
-          nome?: string
-          ordem?: number
-          parent_codigo?: string | null
-          tema?: string
-        }
-        Relationships: []
-      }
       pets: {
         Row: {
           cliente_id: string
@@ -915,78 +885,6 @@ export type Database = {
           valor?: number
         }
         Relationships: []
-      }
-      staff_accounts: {
-        Row: {
-          ativo: boolean
-          created_at: string | null
-          email: string
-          id: string
-          nome: string
-          owner_id: string
-          ultimo_acesso: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string | null
-          email: string
-          id?: string
-          nome: string
-          owner_id: string
-          ultimo_acesso?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string | null
-          email?: string
-          id?: string
-          nome?: string
-          owner_id?: string
-          ultimo_acesso?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      staff_permissions: {
-        Row: {
-          created_at: string | null
-          id: string
-          permission_codigo: string
-          staff_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          permission_codigo: string
-          staff_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          permission_codigo?: string
-          staff_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_permissions_permission_codigo_fkey"
-            columns: ["permission_codigo"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["codigo"]
-          },
-          {
-            foreignKeyName: "staff_permissions_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       subscriptions: {
         Row: {
