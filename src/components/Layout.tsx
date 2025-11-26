@@ -1,16 +1,19 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home } from "lucide-react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logoOffgroom from "@/assets/logo-offgroom.png";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const {
     profile,
-    signOut
+    signOut,
+    hasPermission,
+    isOwner
   } = useAuth();
   const handleLogout = async () => {
     await signOut();
@@ -19,40 +22,50 @@ const Layout = () => {
   const cadastroItems = [{
     path: "/clientes",
     label: "Clientes",
-    icon: Users
+    icon: Users,
+    permission: "cadastros.clientes"
   }, {
     path: "/servicos",
     label: "Serviços",
-    icon: Scissors
+    icon: Scissors,
+    permission: "cadastros.servicos"
   }, {
     path: "/produtos",
     label: "Produtos",
-    icon: Package
+    icon: Package,
+    permission: "cadastros.produtos"
   }, {
     path: "/racas",
     label: "Raças",
-    icon: PawPrint
+    icon: PawPrint,
+    permission: "cadastros.racas"
   }, {
     path: "/pacotes",
     label: "Pacotes",
-    icon: Scissors
+    icon: Scissors,
+    permission: "cadastros.pacotes"
   }, {
     path: "/empresa",
     label: "Empresa",
-    icon: Building2
+    icon: Building2,
+    permission: "empresa.acesso"
   }, {
     path: "/fornecedores",
     label: "Fornecedores",
-    icon: Building2
+    icon: Building2,
+    permission: "cadastros.fornecedores"
   }, {
     path: "/compras-realizadas",
     label: "Compras Realizadas",
-    icon: FileText
+    icon: FileText,
+    permission: "compras.acesso"
   }, {
     path: "/contas-bancarias",
     label: "Contas Bancárias",
-    icon: DollarSign
-  }];
+    icon: DollarSign,
+    permission: "cadastros.contas"
+  }].filter(item => hasPermission(item.permission));
+
   const isCadastroActive = cadastroItems.some(item => location.pathname === item.path);
   return <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -64,46 +77,63 @@ const Layout = () => {
           </div>
           
           <nav className="flex gap-1 items-center">
-            <Link to="/home" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/home" || location.pathname === "/" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              <Home className="h-4 w-4" />
-              <span className="font-medium">Home</span>
-            </Link>
+            {hasPermission('home.acesso') && (
+              <Link to="/home" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/home" || location.pathname === "/" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                <Home className="h-4 w-4" />
+                <span className="font-medium">Home</span>
+              </Link>
+            )}
             
-            <Link to="/agendamentos" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/agendamentos" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              <Calendar className="h-4 w-4" />
-              <span className="font-medium">Agendamentos</span>
-            </Link>
+            {hasPermission('agendamentos.agenda') && (
+              <Link to="/agendamentos" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/agendamentos" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                <Calendar className="h-4 w-4" />
+                <span className="font-medium">Agendamentos</span>
+              </Link>
+            )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className={`flex items-center gap-2 px-3 py-1.5 h-auto text-sm ${isCadastroActive ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-                  <PawPrint className="h-4 w-4" />
-                  <span className="font-medium">Cadastros</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-background z-[100]">
-                {cadastroItems.map(item => {
-                const Icon = item.icon;
-                return <DropdownMenuItem key={item.path} asChild>
+            {cadastroItems.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className={`flex items-center gap-2 px-3 py-1.5 h-auto text-sm ${isCadastroActive ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    <PawPrint className="h-4 w-4" />
+                    <span className="font-medium">Cadastros</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="bg-background z-[100]">
+                  {cadastroItems.map(item => {
+                    const Icon = item.icon;
+                    return <DropdownMenuItem key={item.path} asChild>
                       <Link to={item.path} className="flex items-center gap-2 cursor-pointer">
                         <Icon className="h-4 w-4" />
                         <span>{item.label}</span>
                       </Link>
                     </DropdownMenuItem>;
-              })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
-            <Link to="/controle-financeiro" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/controle-financeiro" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              <TrendingUp className="h-4 w-4" />
-              <span className="font-medium">Controle Financeiro</span>
-            </Link>
+            {hasPermission('financeiro.acesso') && (
+              <Link to="/controle-financeiro" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/controle-financeiro" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                <TrendingUp className="h-4 w-4" />
+                <span className="font-medium">Controle Financeiro</span>
+              </Link>
+            )}
 
-            <Link to="/relatorios" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/relatorios" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              <FileText className="h-4 w-4" />
-              <span className="font-medium">Relatórios</span>
-            </Link>
+            {hasPermission('relatorios.acesso') && (
+              <Link to="/relatorios" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/relatorios" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                <FileText className="h-4 w-4" />
+                <span className="font-medium">Relatórios</span>
+              </Link>
+            )}
+
+            {hasPermission('logins.acesso') && (
+              <Link to="/logins" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/logins" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                <ShieldCheck className="h-4 w-4" />
+                <span className="font-medium">Logins</span>
+              </Link>
+            )}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
