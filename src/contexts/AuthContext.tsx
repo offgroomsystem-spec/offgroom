@@ -92,6 +92,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         setTipoLogin(data.tipo_login as TipoLogin);
+        
+        // Atualizar último acesso para usuários staff
+        await supabase
+          .from('staff_accounts')
+          .update({ ultimo_acesso: new Date().toISOString() })
+          .eq('user_id', userId);
       }
     } catch (error) {
       console.error('Erro ao carregar staff account:', error);
