@@ -15,7 +15,7 @@ export const StoreLayout = ({
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/store" className="flex items-center">
-            <img alt="Offgroom" className="h-8" src="/lovable-uploads/43a55c5e-09c9-4503-b258-41c60452278a.png" />
+            <img alt="Offgroom" className="h-8" src="/lovable-uploads/a80c99d4-dc35-46ff-a448-fe1e7a34437f.png" />
           </Link>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
