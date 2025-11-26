@@ -136,7 +136,7 @@ Aguardamos seu retorno.`;
 
         // Verificar se tem agendamento futuro na tabela agendamentos
         const temAgendamentoNaTabela = agendamentosClientePet.some((ag) => {
-          const dataAgendamento = new Date(ag.data);
+          const dataAgendamento = new Date(ag.data + "T00:00:00");
           dataAgendamento.setHours(0, 0, 0, 0);
           return dataAgendamento >= hoje;
         });
@@ -144,7 +144,7 @@ Aguardamos seu retorno.`;
         // Verificar se tem serviço futuro no próprio pacote (JSON servicos)
         const servicosFuturosNoPacote =
           (pacoteVendido.servicos as any[])?.filter((servico) => {
-            const dataServico = new Date(servico.data);
+            const dataServico = new Date(servico.data + "T00:00:00");
             dataServico.setHours(0, 0, 0, 0);
             return dataServico >= hoje;
           }) || [];
@@ -166,7 +166,7 @@ Aguardamos seu retorno.`;
         // Verificar se algum outro pacote tem serviços futuros
         const temServicoFuturoEmOutrosPacotes = outrosPacotesClientePet.some((outroPacote) => {
           return (outroPacote.servicos as any[])?.some((servico) => {
-            const dataServico = new Date(servico.data);
+            const dataServico = new Date(servico.data + "T00:00:00");
             dataServico.setHours(0, 0, 0, 0);
             return dataServico >= hoje;
           });
@@ -181,7 +181,7 @@ Aguardamos seu retorno.`;
           // 1. Buscar último agendamento da tabela agendamentos
           const ultimoAgendamentoTabela = agendamentosClientePet.length > 0
             ? agendamentosClientePet
-                .map(ag => new Date(ag.data))
+                .map(ag => new Date(ag.data + "T00:00:00"))
                 .sort((a, b) => b.getTime() - a.getTime())[0]
             : null;
 
@@ -200,7 +200,7 @@ Aguardamos seu retorno.`;
           todosPacotesClientePet.forEach(pacote => {
             (pacote.servicos as any[])?.forEach(servico => {
               if (servico.data) {
-                todasDatasServicos.push(new Date(servico.data));
+                todasDatasServicos.push(new Date(servico.data + "T00:00:00"));
               }
             });
           });

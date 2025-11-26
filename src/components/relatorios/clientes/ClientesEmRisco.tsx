@@ -177,7 +177,8 @@ export const ClientesEmRisco = () => {
         dataStr: string,
       ) => {
         if (!dataStr) return;
-        const data = parseISO(dataStr);
+        // Interpreta data como local timezone ao invés de UTC
+        const data = new Date(dataStr + "T00:00:00");
         if (!isValid(data)) return;
 
         if (!mapa.has(chave)) {
@@ -210,7 +211,7 @@ export const ClientesEmRisco = () => {
         try {
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
           if (Array.isArray(servicos)) {
-            const datasValidas = servicos.map((s) => parseISO(s.data)).filter((d) => isValid(d));
+            const datasValidas = servicos.map((s) => new Date(s.data + "T00:00:00")).filter((d) => isValid(d));
             if (datasValidas.length > 0) {
               ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
             }
@@ -227,19 +228,19 @@ export const ClientesEmRisco = () => {
         const dias = differenceInDays(hoje, cli.ultimoAgendamento);
         const temAgendamentoFuturo =
           agendamentos?.some(
-            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && parseISO(a.data) >= hoje,
+            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && new Date(a.data + "T00:00:00") >= hoje,
           ) ||
           pacotes?.some((p) => {
             if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
             try {
               const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
               if (Array.isArray(servicos)) {
-                return servicos.some((s) => isValid(parseISO(s.data)) && parseISO(s.data) >= hoje);
+                return servicos.some((s) => isValid(new Date(s.data + "T00:00:00")) && new Date(s.data + "T00:00:00") >= hoje);
               }
             } catch {
               return false;
             }
-            return parseISO(p.data_venda) >= hoje;
+            return new Date(p.data_venda + "T00:00:00") >= hoje;
           });
 
         if (!temAgendamentoFuturo && dias >= 7) {
@@ -277,9 +278,9 @@ export const ClientesEmRisco = () => {
       );
     }
 
-    if (filtros.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= parseISO(filtros.dataInicio));
+    if (filtros.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= new Date(filtros.dataInicio + "T00:00:00"));
 
-    if (filtros.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= parseISO(filtros.dataFim));
+    if (filtros.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= new Date(filtros.dataFim + "T00:00:00"));
 
     setClientesFiltrados(resultado);
   };

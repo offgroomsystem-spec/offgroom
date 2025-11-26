@@ -125,9 +125,9 @@ export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhe
       const historicoCompleto: Agendamento[] = [];
 
       agendamentosRegulares?.forEach((ag) => {
-        if (isValid(parseISO(ag.data))) {
+        if (isValid(new Date(ag.data + "T00:00:00"))) {
           historicoCompleto.push({
-            data: parseISO(ag.data),
+            data: new Date(ag.data + "T00:00:00"),
             servico: ag.servico,
             status: ag.status,
             tipo: "regular",
@@ -140,7 +140,7 @@ export const ModalDetalhesCliente = ({ aberto, cliente, onFechar }: ModalDetalhe
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
           if (Array.isArray(servicos)) {
             servicos.forEach((s) => {
-              const dataServico = parseISO(s.data);
+              const dataServico = new Date(s.data + "T00:00:00");
               if (isValid(dataServico)) {
                 historicoCompleto.push({
                   data: dataServico,

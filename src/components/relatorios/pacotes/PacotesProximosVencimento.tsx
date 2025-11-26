@@ -36,7 +36,7 @@ export const PacotesProximosVencimento = () => {
   });
 
   const calcularDiasRestantes = (dataVenda: string, validade: number): number => {
-    const dataVencimento = new Date(dataVenda);
+    const dataVencimento = new Date(dataVenda + "T00:00:00");
     dataVencimento.setDate(dataVencimento.getDate() + validade);
     
     const hoje = new Date();
@@ -92,7 +92,7 @@ export const PacotesProximosVencimento = () => {
             nomePacote: ag.nome_pacote,
             diasRestantes,
             whatsapp: ag.whatsapp,
-            dataVencimento: new Date(ag.data_venda)
+            dataVencimento: new Date(ag.data_venda + "T00:00:00")
           };
         })
         .filter(p => p.diasRestantes >= 0 && p.diasRestantes <= 7)
