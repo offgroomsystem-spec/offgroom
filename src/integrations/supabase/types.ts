@@ -1056,6 +1056,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_effective_user_id: {
+        Args: { _auth_user_id: string }
+        Returns: string
+      }
       get_user_tipo_login: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
