@@ -22,7 +22,12 @@ import {
   Copy,
   Settings,
   Trash2,
+  Search,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TimeInput } from "@/components/TimeInput";
 import { Calendar } from "@/components/ui/calendar";
@@ -365,6 +370,8 @@ const Agendamentos = () => {
     taxiDog: "",
   });
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
+  const [openServicoCombobox, setOpenServicoCombobox] = useState(false);
+  const [openEditServicoCombobox, setOpenEditServicoCombobox] = useState(false);
   const [pacoteFormData, setPacoteFormData] = useState({
     nomeCliente: "",
     nomePet: "",
@@ -1812,48 +1819,85 @@ const Agendamentos = () => {
                     <Label htmlFor="servico" className="text-xs">
                       Serviço *
                     </Label>
-                    <Select
-                      value={formData.servico}
-                      onValueChange={(value) => {
-                        const isPacote = pacotes.some((p) => p.nome === value);
-                        setIsPacoteSelecionado(isPacote);
-                        setFormData({
-                          ...formData,
-                          servico: value,
-                          numeroServicoPacote: isPacote ? formData.numeroServicoPacote : "",
-                        });
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Selecione um serviço" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        {servicos.length > 0 && (
-                          <>
-                            <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
-                              Serviços Individuais
-                            </SelectItem>
-                            {servicos.map((servico) => (
-                              <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
-                                {servico.nome}
-                              </SelectItem>
-                            ))}
-                          </>
-                        )}
-                        {pacotes.length > 0 && (
-                          <>
-                            <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
-                              Pacotes de Serviços
-                            </SelectItem>
-                            {pacotes.map((pacote) => (
-                              <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
-                                {pacote.nome}
-                              </SelectItem>
-                            ))}
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openServicoCombobox} onOpenChange={setOpenServicoCombobox}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openServicoCombobox}
+                          className="h-8 w-full justify-between text-xs font-normal"
+                        >
+                          {formData.servico || "Selecione um serviço"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0 bg-background z-50">
+                        <Command>
+                          <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
+                          <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
+                            Nenhum serviço encontrado.
+                          </CommandEmpty>
+                          {servicos.length > 0 && (
+                            <CommandGroup heading="Serviços Individuais" className="text-xs">
+                              {servicos.map((servico) => (
+                                <CommandItem
+                                  key={`servico-${servico.id}`}
+                                  value={servico.nome}
+                                  onSelect={(currentValue) => {
+                                    const isPacote = false;
+                                    setIsPacoteSelecionado(isPacote);
+                                    setFormData({
+                                      ...formData,
+                                      servico: currentValue,
+                                      numeroServicoPacote: "",
+                                    });
+                                    setOpenServicoCombobox(false);
+                                  }}
+                                  className="text-xs"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.servico === servico.nome ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {servico.nome}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+                          {pacotes.length > 0 && (
+                            <CommandGroup heading="Pacotes de Serviços" className="text-xs">
+                              {pacotes.map((pacote) => (
+                                <CommandItem
+                                  key={`pacote-${pacote.id}`}
+                                  value={pacote.nome}
+                                  onSelect={(currentValue) => {
+                                    const isPacote = true;
+                                    setIsPacoteSelecionado(isPacote);
+                                    setFormData({
+                                      ...formData,
+                                      servico: currentValue,
+                                      numeroServicoPacote: formData.numeroServicoPacote,
+                                    });
+                                    setOpenServicoCombobox(false);
+                                  }}
+                                  className="text-xs"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.servico === pacote.nome ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {pacote.nome}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
@@ -3100,48 +3144,79 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço</Label>
-                    <Select
-                      value={editFormData.servico}
-                      onValueChange={(value) =>
-                        setEditFormData({
-                          ...editFormData,
-                          servico: value,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Selecione um serviço" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        <SelectItem value="__none__" className="text-xs">
-                          Selecione um serviço
-                        </SelectItem>
-                        {servicos.length > 0 && (
-                          <>
-                            <SelectItem value="__servicos__" disabled className="text-xs font-semibold">
-                              Serviços Individuais
-                            </SelectItem>
-                            {servicos.map((servico) => (
-                              <SelectItem key={`servico-${servico.id}`} value={servico.nome} className="text-xs pl-6">
-                                {servico.nome}
-                              </SelectItem>
-                            ))}
-                          </>
-                        )}
-                        {pacotes.length > 0 && (
-                          <>
-                            <SelectItem value="__pacotes__" disabled className="text-xs font-semibold mt-2">
-                              Pacotes de Serviços
-                            </SelectItem>
-                            {pacotes.map((pacote) => (
-                              <SelectItem key={`pacote-${pacote.id}`} value={pacote.nome} className="text-xs pl-6">
-                                {pacote.nome}
-                              </SelectItem>
-                            ))}
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openEditServicoCombobox} onOpenChange={setOpenEditServicoCombobox}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openEditServicoCombobox}
+                          className="h-8 w-full justify-between text-xs font-normal"
+                        >
+                          {editFormData.servico || "Selecione um serviço"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0 bg-background z-50">
+                        <Command>
+                          <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
+                          <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
+                            Nenhum serviço encontrado.
+                          </CommandEmpty>
+                          {servicos.length > 0 && (
+                            <CommandGroup heading="Serviços Individuais" className="text-xs">
+                              {servicos.map((servico) => (
+                                <CommandItem
+                                  key={`servico-${servico.id}`}
+                                  value={servico.nome}
+                                  onSelect={(currentValue) => {
+                                    setEditFormData({
+                                      ...editFormData,
+                                      servico: currentValue,
+                                    });
+                                    setOpenEditServicoCombobox(false);
+                                  }}
+                                  className="text-xs"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      editFormData.servico === servico.nome ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {servico.nome}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+                          {pacotes.length > 0 && (
+                            <CommandGroup heading="Pacotes de Serviços" className="text-xs">
+                              {pacotes.map((pacote) => (
+                                <CommandItem
+                                  key={`pacote-${pacote.id}`}
+                                  value={pacote.nome}
+                                  onSelect={(currentValue) => {
+                                    setEditFormData({
+                                      ...editFormData,
+                                      servico: currentValue,
+                                    });
+                                    setOpenEditServicoCombobox(false);
+                                  }}
+                                  className="text-xs"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      editFormData.servico === pacote.nome ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {pacote.nome}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-1">
