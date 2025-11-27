@@ -226,11 +226,11 @@ const Agendamentos = () => {
 
   // Load groomers, clientes, pacotes, servicos from Supabase
   const loadRelatedData = async () => {
-    if (!user) return;
+    if (!user || !ownerId) return;
 
     try {
       // Load groomers
-      const { data: groomersData } = await (supabase as any).from("groomers").select("*").eq("user_id", user.id);
+      const { data: groomersData } = await (supabase as any).from("groomers").select("*").eq("user_id", ownerId);
 
       if (groomersData) {
         setGroomers(groomersData.map((g: any) => ({ id: g.id, nome: g.nome })));
@@ -240,12 +240,12 @@ const Agendamentos = () => {
       const { data: clientesData, error: clientesError } = await supabase
         .from("clientes")
         .select("id, nome_cliente, whatsapp, endereco, observacao")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       if (clientesError) throw clientesError;
 
       // Load pets
-      const { data: petsData, error: petsError } = await supabase.from("pets").select("*").eq("user_id", user.id);
+      const { data: petsData, error: petsError } = await supabase.from("pets").select("*").eq("user_id", ownerId);
 
       if (petsError) throw petsError;
 
@@ -280,7 +280,7 @@ const Agendamentos = () => {
       setClientes(clientesComPets);
 
       // Load pacotes
-      const { data: pacotesData } = await supabase.from("pacotes").select("*").eq("user_id", user.id);
+      const { data: pacotesData } = await supabase.from("pacotes").select("*").eq("user_id", ownerId);
 
       if (pacotesData) {
         setPacotes(
@@ -297,7 +297,7 @@ const Agendamentos = () => {
       }
 
       // Load servicos
-      const { data: servicosData } = await supabase.from("servicos").select("*").eq("user_id", user.id);
+      const { data: servicosData } = await supabase.from("servicos").select("*").eq("user_id", ownerId);
 
       if (servicosData) {
         setServicos(
@@ -313,7 +313,7 @@ const Agendamentos = () => {
       const { data: empresaData } = await (supabase as any)
         .from("empresa_config")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .single();
 
       if (empresaData) {
@@ -330,11 +330,11 @@ const Agendamentos = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && ownerId) {
       loadAgendamentos();
       loadRelatedData();
     }
-  }, [user]);
+  }, [user, ownerId]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
