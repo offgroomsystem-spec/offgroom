@@ -25,6 +25,7 @@ import ControleFinanceiro from "./pages/ControleFinanceiro";
 import Fornecedores from "./pages/Fornecedores";
 import ComprasRealizadas from "./pages/ComprasRealizadas";
 import Store from "./pages/Store";
+import Pagamento from "./pages/Pagamento";
 import Home from "./pages/Home";
 import Logins from "./pages/Logins";
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/esqueci-senha" element={<EsqueciSenha />} />
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route path="/store" element={<Store />} />
+            <Route path="/pagamento" element={<Pagamento />} />
             <Route path="/" element={<Navigate to="/store" replace />} />
             
             {/* Rotas protegidas */}
