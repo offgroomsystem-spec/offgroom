@@ -99,7 +99,7 @@ const Pagamento = () => {
             <Card className="relative flex flex-col transition-all duration-300 scale-105 shadow-2xl border-[3px] border-amber-500 bg-gradient-to-br from-amber-50/50 to-card md:mt-0 -mt-4">
               {/* Badge "Mais Escolhido" */}
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                <Badge className="bg-amber-500 text-white px-6 py-2 text-base font-bold shadow-lg">
+                <Badge className="bg-amber-500 text-white px-8 py-2 text-base font-bold shadow-lg whitespace-nowrap">
                   🔥 Mais Escolhido
                 </Badge>
               </div>
