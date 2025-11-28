@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Check, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { abrirHotmart } from "./StoreLayout";
 import heroImage from "@/assets/hero-offgroom.png";
 import { cn } from "@/lib/utils";
@@ -38,15 +38,6 @@ export const HeroSection = ({ className }: { className?: string }) => {
               >
                 Experimente Grátis por 7 dias
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-border hover:border-primary hover:text-primary px-8 py-6 text-lg font-semibold rounded-xl transition-all"
-              >
-                <Play className="mr-2 h-5 w-5" />
-                Ver demonstração
               </Button>
             </div>
 
