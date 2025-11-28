@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { SubscriptionInfoCard } from "@/components/SubscriptionInfoCard";
 
 interface DiasSemana {
   segunda: boolean;
@@ -278,6 +279,8 @@ const Empresa = () => {
           Configure as informações da sua empresa
         </p>
       </div>
+
+      <SubscriptionInfoCard />
 
       <Card>
         <CardHeader>

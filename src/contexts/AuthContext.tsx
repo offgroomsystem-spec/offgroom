@@ -9,6 +9,7 @@ interface Profile {
   email_hotmart: string;
   whatsapp: string;
   login_count: number;
+  created_at: string | null;
 }
 
 interface AuthContextType {
