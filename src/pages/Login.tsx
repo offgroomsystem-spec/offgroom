@@ -57,14 +57,44 @@ const Login = () => {
       // Incrementar login count
       const loginCount = await incrementLoginCount(authData.user?.id);
       
+      // Verificar status da assinatura
+      const { data: subscriptionData, error: subError } = await supabase.functions.invoke(
+        'check-subscription-status',
+        {
+          headers: {
+            Authorization: `Bearer ${authData.session.access_token}`
+          }
+        }
+      );
+
+      if (subError) {
+        console.error('Error checking subscription:', subError);
+        toast.error('Erro ao verificar assinatura');
+        return;
+      }
+
+      // Se não tem acesso, redirecionar para página de pagamento
+      if (!subscriptionData?.hasAccess) {
+        toast.error(subscriptionData?.message || 'Acesso expirado. Por favor, assine um plano.');
+        navigate('/pagamento');
+        return;
+      }
+
+      // Exibir mensagem de boas-vindas baseada no tipo de acesso
+      if (subscriptionData.type === 'vip') {
+        toast.success('🌟 Bem-vindo! Acesso vitalício ativo.');
+      } else if (subscriptionData.type === 'trial') {
+        toast.success(`✨ Bem-vindo! ${subscriptionData.daysRemaining} dias de trial restantes.`);
+      } else if (subscriptionData.type === 'subscription') {
+        toast.success(`🎉 Bem-vindo! Plano ${subscriptionData.productName} ativo.`);
+      }
+      
       // Carregar tipo de login do usuário
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', authData.user?.id)
         .single();
-      
-      toast.success('Login realizado com sucesso!');
       
       // Redirecionar baseado no tipo de login
       const tipoLogin = roleData?.role;

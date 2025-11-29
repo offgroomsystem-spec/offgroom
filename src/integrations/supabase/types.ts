@@ -997,9 +997,15 @@ export type Database = {
           end_date: string | null
           hotmart_transaction_id: string | null
           id: string
+          is_active: boolean | null
           plan_name: string
           start_date: string
           status: string
+          stripe_customer_id: string | null
+          stripe_product_id: string | null
+          stripe_subscription_id: string | null
+          subscription_end: string | null
+          subscription_start: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1008,9 +1014,15 @@ export type Database = {
           end_date?: string | null
           hotmart_transaction_id?: string | null
           id?: string
+          is_active?: boolean | null
           plan_name: string
           start_date?: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          subscription_start?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1019,9 +1031,15 @@ export type Database = {
           end_date?: string | null
           hotmart_transaction_id?: string | null
           id?: string
+          is_active?: boolean | null
           plan_name?: string
           start_date?: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          subscription_start?: string | null
           updated_at?: string | null
           user_id?: string
         }

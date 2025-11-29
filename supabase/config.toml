@@ -2,3 +2,6 @@ project_id = "etqxzujphligtsvehxoj"
 
 [functions.manage-staff-user]
 verify_jwt = true
+
+[functions.check-subscription-status]
+verify_jwt = true

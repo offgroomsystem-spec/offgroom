@@ -12,6 +12,16 @@ interface Profile {
   created_at: string | null;
 }
 
+interface SubscriptionStatus {
+  hasAccess: boolean;
+  type: 'vip' | 'trial' | 'subscription' | 'expired' | 'error';
+  daysRemaining?: number;
+  productId?: string;
+  productName?: string;
+  subscriptionEnd?: string;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -23,10 +33,12 @@ interface AuthContextType {
   isRecepcionista: boolean;
   staffAccount: StaffAccount | null;
   ownerId: string | null;
+  subscriptionStatus: SubscriptionStatus | null;
   loading: boolean;
   signOut: () => Promise<void>;
   incrementLoginCount: (userId?: string) => Promise<number>;
   hasRole: (role: string) => boolean;
+  checkSubscription: () => Promise<SubscriptionStatus>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [roles, setRoles] = useState<string[]>([]);
   const [tipoLogin, setTipoLogin] = useState<TipoLogin | null>(null);
   const [staffAccount, setStaffAccount] = useState<StaffAccount | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isAdministrador = tipoLogin === 'administrador';
@@ -106,6 +119,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasRole = (role: string) => roles.includes(role);
+
+  const checkSubscription = async (): Promise<SubscriptionStatus> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const errorStatus: SubscriptionStatus = {
+          hasAccess: false,
+          type: 'error',
+          message: 'Não autenticado'
+        };
+        setSubscriptionStatus(errorStatus);
+        return errorStatus;
+      }
+
+      const { data, error } = await supabase.functions.invoke('check-subscription-status', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) {
+        console.error('Error checking subscription:', error);
+        const errorStatus: SubscriptionStatus = {
+          hasAccess: false,
+          type: 'error',
+          message: error.message
+        };
+        setSubscriptionStatus(errorStatus);
+        return errorStatus;
+      }
+
+      const status = data as SubscriptionStatus;
+      setSubscriptionStatus(status);
+      return status;
+    } catch (error) {
+      console.error('Error in checkSubscription:', error);
+      const errorStatus: SubscriptionStatus = {
+        hasAccess: false,
+        type: 'error',
+        message: 'Erro ao verificar assinatura'
+      };
+      setSubscriptionStatus(errorStatus);
+      return errorStatus;
+    }
+  };
 
   useEffect(() => {
     const loadUserData = async (userId: string) => {
@@ -225,10 +283,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isRecepcionista,
       staffAccount,
       ownerId,
+      subscriptionStatus,
       loading, 
       signOut, 
       incrementLoginCount, 
-      hasRole 
+      hasRole,
+      checkSubscription
     }}>
       {children}
     </AuthContext.Provider>
