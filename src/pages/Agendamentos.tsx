@@ -529,19 +529,27 @@ const Agendamentos = () => {
     setClienteSearch(nomeCliente);
     setSearchStartedWith("cliente");
 
-    const clienteSelecionado = clientes.find((c) => c.nomeCliente === nomeCliente);
+    // Buscar TODOS os clientes com esse nome (não apenas o primeiro)
+    const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === nomeCliente);
 
-    if (clienteSelecionado) {
+    if (clientesComMesmoNome.length > 0) {
+      // Pegar o primeiro cliente para definir whatsapp (poderia ser qualquer um)
+      const primeiroCliente = clientesComMesmoNome[0];
+      
       setPacoteFormData({
         ...pacoteFormData,
         nomeCliente,
         nomePet: "",
         raca: "",
-        whatsapp: clienteSelecionado.whatsapp,
+        whatsapp: primeiroCliente.whatsapp,
       });
 
-      const petsDoCliente = clienteSelecionado.pets.map((p) => p.nome);
-      setFilteredPets(petsDoCliente);
+      // Coletar pets de TODOS os clientes com esse nome
+      const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) => 
+        cliente.pets.map((p) => p.nome)
+      );
+      
+      setFilteredPets(todosPetsDoNome);
       setFilteredClientes([]);
       setAvailableRacas([]);
     }
@@ -633,19 +641,27 @@ const Agendamentos = () => {
     setSimpleClienteSearch(nomeCliente);
     setSimpleSearchStartedWith("cliente");
 
-    const clienteSelecionado = clientes.find((c) => c.nomeCliente === nomeCliente);
+    // Buscar TODOS os clientes com esse nome (não apenas o primeiro)
+    const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === nomeCliente);
 
-    if (clienteSelecionado) {
+    if (clientesComMesmoNome.length > 0) {
+      // Pegar o primeiro cliente para definir whatsapp (poderia ser qualquer um)
+      const primeiroCliente = clientesComMesmoNome[0];
+      
       setFormData({
         ...formData,
         cliente: nomeCliente,
         pet: "",
         raca: "",
-        whatsapp: clienteSelecionado.whatsapp,
+        whatsapp: primeiroCliente.whatsapp,
       });
 
-      const petsDoCliente = clienteSelecionado.pets.map((p) => p.nome);
-      setSimpleFilteredPets(petsDoCliente);
+      // Coletar pets de TODOS os clientes com esse nome
+      const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) => 
+        cliente.pets.map((p) => p.nome)
+      );
+      
+      setSimpleFilteredPets(todosPetsDoNome);
       setSimpleFilteredClientes([]);
       setSimpleAvailableRacas([]);
     }
