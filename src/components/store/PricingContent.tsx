@@ -21,9 +21,23 @@ export const PricingContent = () => {
         console.error('Erro ao criar checkout:', error);
         toast.error('Erro ao processar pagamento');
       }
+    } else if (planId === "power24") {
+      try {
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { price_id: 'price_1SXsPyGzVCrwCNdCRhrXAPuB' }
+        });
+        
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error) {
+        console.error('Erro ao criar checkout:', error);
+        toast.error('Erro ao processar pagamento');
+      }
     } else {
       console.log("Checkout iniciado para o plano:", planId);
-      toast.info("Em breve: outros planos");
+      toast.info("Em breve: plano Master 60");
     }
   };
 
