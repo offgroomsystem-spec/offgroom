@@ -1,14 +1,30 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Shield, Lock, HeadphonesIcon, CreditCard } from "lucide-react";
-import { abrirHotmart } from "./StoreLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const PricingContent = () => {
-  const handleCheckout = (planId: string) => {
-    console.log("Checkout iniciado para o plano:", planId);
-    abrirHotmart();
+  const handleCheckout = async (planId: string) => {
+    if (planId === "flex") {
+      try {
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { price_id: 'price_1SYxTcGzVCrwCNdCBKwgtdRG' }
+        });
+        
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error) {
+        console.error('Erro ao criar checkout:', error);
+        toast.error('Erro ao processar pagamento');
+      }
+    } else {
+      console.log("Checkout iniciado para o plano:", planId);
+      toast.info("Em breve: outros planos");
+    }
   };
 
   return (

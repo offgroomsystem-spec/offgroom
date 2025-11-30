@@ -3,11 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Zap, TrendingUp, Crown, Shield, Clock, Lock, Headphones, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Pagamento = () => {
-  const handleCheckout = (planId: string) => {
-    console.log("Checkout para plano:", planId);
-    // TODO: Integração com Stripe será implementada aqui
+  const handleCheckout = async (planId: string) => {
+    if (planId === "flex") {
+      try {
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { price_id: 'price_1SYxTcGzVCrwCNdCBKwgtdRG' }
+        });
+        
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error) {
+        console.error('Erro ao criar checkout:', error);
+        toast.error('Erro ao processar pagamento');
+      }
+    } else {
+      console.log("Checkout para plano:", planId);
+      toast.info("Em breve: outros planos");
+    }
   };
 
   return (
