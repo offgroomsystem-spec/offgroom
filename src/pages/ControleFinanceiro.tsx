@@ -126,7 +126,7 @@ const categoriasDescricao2: { [key: string]: string[] } = {
     "Material de Limpeza",
     "Outras Despesas Operacionais",
   ],
-  "Despesa Não Operacional": ["Manutenção", "Reparos", "Outras Despesas Não Operacionais"],
+  "Despesa Não Operacional": ["Manutenção", "Reparos", "Retirada Caixa", "Outras Despesas Não Operacionais"],
 };
 
 const meses = [
