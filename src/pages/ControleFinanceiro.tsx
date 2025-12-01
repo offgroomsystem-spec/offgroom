@@ -1026,63 +1026,70 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
   };
 
   const lancamentosFiltrados = useMemo(() => {
-    if (!filtrosAplicados) return lancamentos;
+    let resultado = filtrosAplicados ? [...lancamentos] : [...lancamentos];
 
-    let resultado = [...lancamentos];
-
-    if (filtroDataAtivo === "periodo") {
-      if (filtros.dataInicio || filtros.dataFim) {
-        resultado = resultado.filter((l) => {
-          if (!l.dataPagamento) return false;
-          if (filtros.dataInicio && l.dataPagamento < filtros.dataInicio) return false;
-          if (filtros.dataFim && l.dataPagamento > filtros.dataFim) return false;
-          return true;
-        });
-      }
-    } else if (filtroDataAtivo === "mesano") {
-      if (filtros.mes || filtros.ano) {
-        resultado = resultado.filter((l) => {
-          if (filtros.mes && filtros.ano) {
-            return l.mesCompetencia === filtros.mes && l.ano === filtros.ano;
-          }
-          if (filtros.mes) return l.mesCompetencia === filtros.mes;
-          if (filtros.ano) return l.ano === filtros.ano;
-          return true;
-        });
-      }
-    }
-
-    if (filtros.nomePet) {
-      resultado = resultado.filter((l) => {
-        // Buscar no pet principal
-        if (l.nomePet === filtros.nomePet) return true;
-
-        // Buscar nos pets adicionais
-        if (l.pets && l.pets.length > 0) {
-          return l.pets.some((p) => p.nomePet === filtros.nomePet);
+    if (filtrosAplicados) {
+      if (filtroDataAtivo === "periodo") {
+        if (filtros.dataInicio || filtros.dataFim) {
+          resultado = resultado.filter((l) => {
+            if (!l.dataPagamento) return false;
+            if (filtros.dataInicio && l.dataPagamento < filtros.dataInicio) return false;
+            if (filtros.dataFim && l.dataPagamento > filtros.dataFim) return false;
+            return true;
+          });
         }
+      } else if (filtroDataAtivo === "mesano") {
+        if (filtros.mes || filtros.ano) {
+          resultado = resultado.filter((l) => {
+            if (filtros.mes && filtros.ano) {
+              return l.mesCompetencia === filtros.mes && l.ano === filtros.ano;
+            }
+            if (filtros.mes) return l.mesCompetencia === filtros.mes;
+            if (filtros.ano) return l.ano === filtros.ano;
+            return true;
+          });
+        }
+      }
 
-        return false;
-      });
+      if (filtros.nomePet) {
+        resultado = resultado.filter((l) => {
+          // Buscar no pet principal
+          if (l.nomePet === filtros.nomePet) return true;
+
+          // Buscar nos pets adicionais
+          if (l.pets && l.pets.length > 0) {
+            return l.pets.some((p) => p.nomePet === filtros.nomePet);
+          }
+
+          return false;
+        });
+      }
+      if (filtros.nomeCliente) {
+        resultado = resultado.filter((l) => l.nomeCliente === filtros.nomeCliente);
+      }
+      if (filtros.tipo) {
+        resultado = resultado.filter((l) => l.tipo === filtros.tipo);
+      }
+      if (filtros.descricao1) {
+        resultado = resultado.filter((l) => l.descricao1 === filtros.descricao1);
+      }
+      if (filtros.dataPagamento) {
+        resultado = resultado.filter((l) => l.dataPagamento === filtros.dataPagamento);
+      }
+      if (filtros.nomeBanco) {
+        resultado = resultado.filter((l) => l.nomeBanco === filtros.nomeBanco);
+      }
+      if (filtros.pago !== null) {
+        resultado = resultado.filter((l) => l.pago === filtros.pago);
+      }
     }
-    if (filtros.nomeCliente) {
-      resultado = resultado.filter((l) => l.nomeCliente === filtros.nomeCliente);
-    }
-    if (filtros.tipo) {
-      resultado = resultado.filter((l) => l.tipo === filtros.tipo);
-    }
-    if (filtros.descricao1) {
-      resultado = resultado.filter((l) => l.descricao1 === filtros.descricao1);
-    }
-    if (filtros.dataPagamento) {
-      resultado = resultado.filter((l) => l.dataPagamento === filtros.dataPagamento);
-    }
-    if (filtros.nomeBanco) {
-      resultado = resultado.filter((l) => l.nomeBanco === filtros.nomeBanco);
-    }
-    if (filtros.pago !== null) {
-      resultado = resultado.filter((l) => l.pago === filtros.pago);
-    }
+
+    // Ordenar sempre por data de pagamento decrescente (mais recente primeiro)
+    resultado.sort((a, b) => {
+      if (!a.dataPagamento) return 1;
+      if (!b.dataPagamento) return -1;
+      return b.dataPagamento.localeCompare(a.dataPagamento);
+    });
 
     return resultado;
   }, [lancamentos, filtros, filtroDataAtivo, filtrosAplicados]);
