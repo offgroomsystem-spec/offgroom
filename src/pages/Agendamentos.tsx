@@ -560,21 +560,30 @@ const Agendamentos = () => {
     setPetSearch(nomePet);
 
     if (searchStartedWith === "cliente" || pacoteFormData.nomeCliente) {
-      // Se começou pelo cliente, filtrar apenas pets desse cliente
-      const clienteSelecionado = clientes.find((c) => c.nomeCliente === pacoteFormData.nomeCliente);
-
-      if (clienteSelecionado) {
-        const petSelecionado = clienteSelecionado.pets.find((p) => p.nome === nomePet);
-
-        if (petSelecionado) {
-          setAvailableRacas([petSelecionado.raca]);
-          setPacoteFormData({
-            ...pacoteFormData,
-            nomePet,
-            raca: petSelecionado.raca,
-            whatsapp: clienteSelecionado.whatsapp,
-          });
+      // Buscar TODOS os clientes com esse nome
+      const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === pacoteFormData.nomeCliente);
+      
+      // Encontrar qual cliente específico possui esse pet
+      let clienteCorreto: Cliente | undefined;
+      let petEncontrado: Pet | undefined;
+      
+      for (const cliente of clientesComMesmoNome) {
+        const pet = cliente.pets.find((p) => p.nome === nomePet);
+        if (pet) {
+          clienteCorreto = cliente;
+          petEncontrado = pet;
+          break;
         }
+      }
+
+      if (clienteCorreto && petEncontrado) {
+        setAvailableRacas([petEncontrado.raca]);
+        setPacoteFormData({
+          ...pacoteFormData,
+          nomePet,
+          raca: petEncontrado.raca,
+          whatsapp: clienteCorreto.whatsapp,
+        });
       }
     } else {
       // Se começou pelo pet, mostrar clientes que têm esse pet
@@ -604,33 +613,41 @@ const Agendamentos = () => {
 
   // Preencher WhatsApp quando raça é selecionada (Pacotes)
   const handleRacaSelect = (raca: string) => {
-    let clienteSelecionado: Cliente | undefined;
-    let petSelecionado: Pet | undefined;
+    let clienteCorreto: Cliente | undefined;
+    let petEncontrado: Pet | undefined;
 
     if (pacoteFormData.nomeCliente) {
-      clienteSelecionado = clientes.find((c) => c.nomeCliente === pacoteFormData.nomeCliente);
-      if (clienteSelecionado) {
-        petSelecionado = clienteSelecionado.pets.find((p) => p.nome === pacoteFormData.nomePet && p.raca === raca);
+      // Buscar TODOS os clientes com esse nome
+      const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === pacoteFormData.nomeCliente);
+      
+      for (const cliente of clientesComMesmoNome) {
+        const pet = cliente.pets.find((p) => p.nome === pacoteFormData.nomePet && p.raca === raca);
+        if (pet) {
+          clienteCorreto = cliente;
+          petEncontrado = pet;
+          break;
+        }
       }
     } else if (pacoteFormData.nomePet) {
-      clienteSelecionado = clientes.find((c) =>
+      clienteCorreto = clientes.find((c) =>
         c.pets.some((p) => p.nome === pacoteFormData.nomePet && p.raca === raca),
       );
 
-      if (clienteSelecionado) {
-        petSelecionado = clienteSelecionado.pets.find((p) => p.nome === pacoteFormData.nomePet && p.raca === raca);
+      if (clienteCorreto) {
+        petEncontrado = clienteCorreto.pets.find((p) => p.nome === pacoteFormData.nomePet && p.raca === raca);
       }
     }
 
-    if (clienteSelecionado && petSelecionado) {
+    if (clienteCorreto && petEncontrado) {
       setPacoteFormData({
         ...pacoteFormData,
-        nomeCliente: clienteSelecionado.nomeCliente,
-        raca: petSelecionado.raca,
-        whatsapp: clienteSelecionado.whatsapp,
+        nomeCliente: clienteCorreto.nomeCliente,
+        nomePet: petEncontrado.nome,
+        raca: petEncontrado.raca,
+        whatsapp: clienteCorreto.whatsapp,
       });
-      setClienteSearch(clienteSelecionado.nomeCliente);
-      setPetSearch(petSelecionado.nome);
+      setClienteSearch(clienteCorreto.nomeCliente);
+      setPetSearch(petEncontrado.nome);
       setFilteredClientes([]);
       setAvailableRacas([]);
     }
@@ -672,21 +689,30 @@ const Agendamentos = () => {
     setSimplePetSearch(nomePet);
 
     if (simpleSearchStartedWith === "cliente" || formData.cliente) {
-      // Se começou pelo cliente, filtrar apenas pets desse cliente
-      const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.cliente);
-
-      if (clienteSelecionado) {
-        const petSelecionado = clienteSelecionado.pets.find((p) => p.nome === nomePet);
-
-        if (petSelecionado) {
-          setSimpleAvailableRacas([petSelecionado.raca]);
-          setFormData({
-            ...formData,
-            pet: nomePet,
-            raca: petSelecionado.raca,
-            whatsapp: clienteSelecionado.whatsapp,
-          });
+      // Buscar TODOS os clientes com esse nome
+      const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
+      
+      // Encontrar qual cliente específico possui esse pet
+      let clienteCorreto: Cliente | undefined;
+      let petEncontrado: Pet | undefined;
+      
+      for (const cliente of clientesComMesmoNome) {
+        const pet = cliente.pets.find((p) => p.nome === nomePet);
+        if (pet) {
+          clienteCorreto = cliente;
+          petEncontrado = pet;
+          break;
         }
+      }
+
+      if (clienteCorreto && petEncontrado) {
+        setSimpleAvailableRacas([petEncontrado.raca]);
+        setFormData({
+          ...formData,
+          pet: nomePet,
+          raca: petEncontrado.raca,
+          whatsapp: clienteCorreto.whatsapp,
+        });
       }
     } else {
       // Se começou pelo pet, mostrar clientes que têm esse pet
@@ -716,32 +742,39 @@ const Agendamentos = () => {
 
   // Preencher WhatsApp quando raça é selecionada (Agendamento Simples)
   const handleSimpleRacaSelect = (raca: string) => {
-    let clienteSelecionado: Cliente | undefined;
-    let petSelecionado: Pet | undefined;
+    let clienteCorreto: Cliente | undefined;
+    let petEncontrado: Pet | undefined;
 
     if (formData.cliente) {
-      clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.cliente);
-      if (clienteSelecionado) {
-        petSelecionado = clienteSelecionado.pets.find((p) => p.nome === formData.pet && p.raca === raca);
+      // Buscar TODOS os clientes com esse nome
+      const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
+      
+      for (const cliente of clientesComMesmoNome) {
+        const pet = cliente.pets.find((p) => p.nome === formData.pet && p.raca === raca);
+        if (pet) {
+          clienteCorreto = cliente;
+          petEncontrado = pet;
+          break;
+        }
       }
     } else if (formData.pet) {
-      clienteSelecionado = clientes.find((c) => c.pets.some((p) => p.nome === formData.pet && p.raca === raca));
+      clienteCorreto = clientes.find((c) => c.pets.some((p) => p.nome === formData.pet && p.raca === raca));
 
-      if (clienteSelecionado) {
-        petSelecionado = clienteSelecionado.pets.find((p) => p.nome === formData.pet && p.raca === raca);
+      if (clienteCorreto) {
+        petEncontrado = clienteCorreto.pets.find((p) => p.nome === formData.pet && p.raca === raca);
       }
     }
 
-    if (clienteSelecionado && petSelecionado) {
+    if (clienteCorreto && petEncontrado) {
       setFormData({
         ...formData,
-        cliente: clienteSelecionado.nomeCliente,
-        pet: petSelecionado.nome,
-        raca: petSelecionado.raca,
-        whatsapp: clienteSelecionado.whatsapp,
+        cliente: clienteCorreto.nomeCliente,
+        pet: petEncontrado.nome,
+        raca: petEncontrado.raca,
+        whatsapp: clienteCorreto.whatsapp,
       });
-      setSimpleClienteSearch(clienteSelecionado.nomeCliente);
-      setSimplePetSearch(petSelecionado.nome);
+      setSimpleClienteSearch(clienteCorreto.nomeCliente);
+      setSimplePetSearch(petEncontrado.nome);
       setSimpleFilteredClientes([]);
       setSimpleAvailableRacas([]);
     }
