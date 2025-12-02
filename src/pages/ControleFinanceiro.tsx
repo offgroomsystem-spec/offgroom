@@ -1303,20 +1303,33 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                               <div className="max-h-48 overflow-y-auto space-y-1">
                                 {(() => {
                                   // Filtrar pets: mesmo cliente e mesmo porte do primeiro pet
-                                  const clienteSelecionado = clientes.find(
+                                  // Buscar TODOS os clientes com o mesmo nome
+                                  const clientesComMesmoNome = clientes.filter(
                                     (c) => c.nomeCliente === formData.nomeCliente,
                                   );
-                                  const primeiroPet = pets.find(
-                                    (p) => p.nomePet === formData.nomePet && p.clienteId === clienteSelecionado?.id,
-                                  );
+
+                                  // Encontrar qual cliente específico possui o pet selecionado
+                                  let clienteSelecionado: Cliente | undefined;
+                                  let primeiroPet: Pet | undefined;
+
+                                  for (const cliente of clientesComMesmoNome) {
+                                    const petEncontrado = pets.find(
+                                      (p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id,
+                                    );
+                                    if (petEncontrado) {
+                                      clienteSelecionado = cliente;
+                                      primeiroPet = petEncontrado;
+                                      break;
+                                    }
+                                  }
 
                                   if (!clienteSelecionado || !primeiroPet)
                                     return <div className="text-xs text-muted-foreground">Nenhum pet disponível</div>;
 
                                   const petsDisponiveis = pets.filter(
                                     (p) =>
-                                      p.clienteId === clienteSelecionado.id &&
-                                      p.porte === primeiroPet.porte &&
+                                      p.clienteId === clienteSelecionado!.id &&
+                                      p.porte === primeiroPet!.porte &&
                                       p.nomePet !== formData.nomePet && // Não mostrar o pet já selecionado
                                       !formData.petsSelecionados.some((ps) => ps.id === p.id), // Não mostrar pets já adicionados
                                   );
