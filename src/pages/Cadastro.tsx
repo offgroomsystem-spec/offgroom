@@ -41,9 +41,9 @@ const Cadastro = () => {
     resolver: zodResolver(cadastroSchema),
   });
 
-  // Se já estiver autenticado, redirecionar
+  // Se já estiver autenticado, redirecionar para home
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   const formatarWhatsApp = (value: string) => {
@@ -83,7 +83,7 @@ const Cadastro = () => {
       }
 
       toast.success('Cadastro realizado com sucesso!');
-      navigate('/');
+      navigate('/home');
     } catch (error) {
       toast.error('Erro ao criar conta. Tente novamente.');
     } finally {
