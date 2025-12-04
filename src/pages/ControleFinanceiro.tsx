@@ -1329,7 +1329,6 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                                   const petsDisponiveis = pets.filter(
                                     (p) =>
                                       p.clienteId === clienteSelecionado!.id &&
-                                      p.porte === primeiroPet!.porte &&
                                       p.nomePet !== formData.nomePet && // Não mostrar o pet já selecionado
                                       !formData.petsSelecionados.some((ps) => ps.id === p.id), // Não mostrar pets já adicionados
                                   );
@@ -1337,7 +1336,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                                   if (petsDisponiveis.length === 0) {
                                     return (
                                       <div className="text-xs text-muted-foreground p-2">
-                                        Nenhum pet adicional disponível com o mesmo porte
+                                        Nenhum pet adicional disponível
                                       </div>
                                     );
                                   }
