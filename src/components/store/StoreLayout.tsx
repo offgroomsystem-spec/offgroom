@@ -5,8 +5,7 @@ interface StoreLayoutProps {
   children: React.ReactNode;
 }
 export const abrirHotmart = () => {
-  const hotmartUrl = "https://pay.hotmart.com/"; // Placeholder - será substituído
-  window.open(hotmartUrl, "_blank");
+  window.location.href = '/cadastro';
 };
 export const StoreLayout = ({
   children
