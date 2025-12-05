@@ -58,27 +58,35 @@ const Cadastro = () => {
   const onSubmit = async (data: CadastroForm) => {
     setLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email: data.email_hotmart,
-        password: data.senha,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            nome_completo: data.nome_completo,
-            email_hotmart: data.email_hotmart,
-            whatsapp: data.whatsapp,
-          }
+      // Call public signup Edge Function
+      const { data: signupData, error: signupError } = await supabase.functions.invoke('public-signup', {
+        body: {
+          email: data.email_hotmart,
+          password: data.senha,
+          nome_completo: data.nome_completo,
+          whatsapp: data.whatsapp
         }
       });
 
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('Este e-mail já está cadastrado');
-        } else {
-          toast.error(error.message);
-        }
+      if (signupError) {
+        toast.error(signupError.message || 'Erro ao criar conta');
+        return;
+      }
+
+      if (signupData?.error) {
+        toast.error(signupData.error);
+        return;
+      }
+
+      // Auto-login after successful signup
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: data.email_hotmart,
+        password: data.senha
+      });
+
+      if (loginError) {
+        toast.error('Conta criada! Faça login para continuar.');
+        navigate('/login');
         return;
       }
 
