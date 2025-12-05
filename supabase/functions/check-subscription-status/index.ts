@@ -53,9 +53,35 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Check if user is a staff member and get owner's email for subscription check
+    let emailToCheck = user.email;
+    const { data: staffAccount } = await supabaseClient
+      .from('staff_accounts')
+      .select('owner_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (staffAccount?.owner_id) {
+      // User is a staff member, get owner's email
+      const { data: ownerProfile } = await supabaseClient
+        .from('profiles')
+        .select('email_hotmart')
+        .eq('id', staffAccount.owner_id)
+        .single();
+      
+      if (ownerProfile?.email_hotmart) {
+        emailToCheck = ownerProfile.email_hotmart;
+        logStep("Staff member detected, checking owner subscription", { 
+          staffUserId: user.id, 
+          ownerId: staffAccount.owner_id,
+          ownerEmail: emailToCheck 
+        });
+      }
+    }
+
     // 1️⃣ CHECK VIP WHITELIST (vitalício access)
-    if (VIP_EMAILS.includes(user.email.toLowerCase())) {
-      logStep("VIP user detected - vitalício access granted", { email: user.email });
+    if (VIP_EMAILS.includes(emailToCheck.toLowerCase())) {
+      logStep("VIP user detected - vitalício access granted", { email: emailToCheck });
       return new Response(JSON.stringify({
         hasAccess: true,
         type: 'vip',
@@ -66,11 +92,12 @@ serve(async (req) => {
       });
     }
 
-    // Get user profile to check trial
+    // Get user profile to check trial (use owner's profile for staff)
+    const profileId = staffAccount?.owner_id || user.id;
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('created_at')
-      .eq('id', user.id)
+      .eq('id', profileId)
       .single();
 
     if (profileError) {
@@ -90,12 +117,12 @@ serve(async (req) => {
     } else {
       const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-      // Find Stripe customer by email
-      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      // Find Stripe customer by email (owner's email for staff)
+      const customers = await stripe.customers.list({ email: emailToCheck, limit: 1 });
       
       if (customers.data.length > 0) {
         const customerId = customers.data[0].id;
-        logStep("Stripe customer found", { customerId });
+        logStep("Stripe customer found", { customerId, email: emailToCheck });
 
         // Check for active subscriptions
         const subscriptions = await stripe.subscriptions.list({
@@ -104,13 +131,86 @@ serve(async (req) => {
           limit: 10,
         });
 
+        logStep("Subscriptions found", { count: subscriptions.data.length });
+
         for (const subscription of subscriptions.data) {
-          const productId = subscription.items.data[0]?.price.product as string;
+          const subscriptionItem = subscription.items.data[0];
+          if (!subscriptionItem) {
+            logStep("No subscription item found", { subscriptionId: subscription.id });
+            continue;
+          }
+
+          const productId = subscriptionItem.price.product as string;
           const productConfig = STRIPE_PRODUCTS[productId as keyof typeof STRIPE_PRODUCTS];
 
+          logStep("Processing subscription", { 
+            subscriptionId: subscription.id,
+            productId,
+            hasProductConfig: !!productConfig
+          });
+
           if (productConfig) {
-            const subscriptionStart = new Date(subscription.current_period_start * 1000);
-            const subscriptionEnd = new Date(subscription.current_period_end * 1000);
+            // Get period dates - try multiple sources
+            // Stripe API returns these at subscription level, not item level
+            const periodStart = subscription.current_period_start;
+            const periodEnd = subscription.current_period_end;
+            
+            logStep("Period data", { 
+              periodStart, 
+              periodEnd,
+              subscriptionCreated: subscription.created,
+              subscriptionStartDate: subscription.start_date
+            });
+
+            if (!periodEnd) {
+              logStep("Warning: No period end found, using fallback calculation");
+              // Fallback: use subscription start date + product days
+              const startTimestamp = subscription.start_date || subscription.created;
+              const subscriptionStart = new Date(startTimestamp * 1000);
+              const subscriptionEnd = new Date(subscriptionStart.getTime() + (productConfig.days * 24 * 60 * 60 * 1000));
+              const daysRemaining = Math.floor((subscriptionEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+              logStep("Fallback calculation used", {
+                subscriptionStart: subscriptionStart.toISOString(),
+                subscriptionEnd: subscriptionEnd.toISOString(),
+                daysRemaining
+              });
+
+              // Update subscriptions table
+              await supabaseClient
+                .from('subscriptions')
+                .upsert({
+                  user_id: profileId,
+                  stripe_customer_id: customerId,
+                  stripe_subscription_id: subscription.id,
+                  stripe_product_id: productId,
+                  plan_name: productConfig.name,
+                  subscription_start: subscriptionStart.toISOString(),
+                  subscription_end: subscriptionEnd.toISOString(),
+                  is_active: true,
+                  status: 'active',
+                  updated_at: new Date().toISOString()
+                }, {
+                  onConflict: 'stripe_subscription_id'
+                });
+
+              return new Response(JSON.stringify({
+                hasAccess: true,
+                type: 'subscription',
+                productId,
+                productName: productConfig.name,
+                daysRemaining: Math.max(0, daysRemaining),
+                subscriptionEnd: subscriptionEnd.toISOString(),
+                message: `Plano ${productConfig.name} ativo`
+              }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+              });
+            }
+
+            // Use actual period dates from Stripe
+            const subscriptionStart = new Date(periodStart * 1000);
+            const subscriptionEnd = new Date(periodEnd * 1000);
             const daysRemaining = Math.floor((subscriptionEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
             logStep("Active Stripe subscription found", {
@@ -118,6 +218,7 @@ serve(async (req) => {
               productId,
               productName: productConfig.name,
               daysRemaining,
+              subscriptionStart: subscriptionStart.toISOString(),
               subscriptionEnd: subscriptionEnd.toISOString()
             });
 
@@ -125,7 +226,7 @@ serve(async (req) => {
             await supabaseClient
               .from('subscriptions')
               .upsert({
-                user_id: user.id,
+                user_id: profileId,
                 stripe_customer_id: customerId,
                 stripe_subscription_id: subscription.id,
                 stripe_product_id: productId,
@@ -144,7 +245,7 @@ serve(async (req) => {
               type: 'subscription',
               productId,
               productName: productConfig.name,
-              daysRemaining,
+              daysRemaining: Math.max(0, daysRemaining),
               subscriptionEnd: subscriptionEnd.toISOString(),
               message: `Plano ${productConfig.name} ativo`
             }), {
@@ -156,7 +257,7 @@ serve(async (req) => {
 
         logStep("No matching active Stripe subscriptions found");
       } else {
-        logStep("No Stripe customer found for email");
+        logStep("No Stripe customer found for email", { email: emailToCheck });
       }
     }
 
