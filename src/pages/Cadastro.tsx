@@ -59,7 +59,7 @@ const Cadastro = () => {
     setLoading(true);
     try {
       // Call public signup Edge Function
-      const { data: signupData, error: signupError } = await supabase.functions.invoke('public-signup', {
+      const response = await supabase.functions.invoke('public-signup', {
         body: {
           email: data.email_hotmart,
           password: data.senha,
@@ -68,13 +68,16 @@ const Cadastro = () => {
         }
       });
 
-      if (signupError) {
-        toast.error(signupError.message || 'Erro ao criar conta');
+      // Handle error responses
+      if (response.error) {
+        // Try to get error message from response data first
+        const errorMessage = response.data?.error || response.error.message || 'Erro ao criar conta';
+        toast.error(errorMessage);
         return;
       }
 
-      if (signupData?.error) {
-        toast.error(signupData.error);
+      if (response.data?.error) {
+        toast.error(response.data.error);
         return;
       }
 
