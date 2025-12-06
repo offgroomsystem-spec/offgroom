@@ -19,7 +19,7 @@ const STRIPE_PRODUCTS = {
   'prod_TUsA6Cvxwh3CAM': { name: 'Offgroom Power 24', days: 730 }
 };
 
-const TRIAL_DAYS = 10;
+const TRIAL_DAYS = 30;
 
 const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION-STATUS] ${step}${details ? ` - ${JSON.stringify(details)}` : ''}`);
@@ -96,7 +96,7 @@ serve(async (req) => {
     const profileId = staffAccount?.owner_id || user.id;
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('created_at')
+      .select('created_at, trial_end_date')
       .eq('id', profileId)
       .single();
 
@@ -104,11 +104,22 @@ serve(async (req) => {
       logStep("Error fetching profile", { error: profileError });
     }
 
-    const createdAt = profile?.created_at ? new Date(profile.created_at) : new Date();
-    const daysSinceRegistration = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-    const trialDaysRemaining = Math.max(0, TRIAL_DAYS - daysSinceRegistration);
+    // Calculate trial end date - use manual override if set, otherwise calculate from created_at
+    let trialEndDate: Date;
+    if (profile?.trial_end_date) {
+      // Manual override set in Supabase
+      trialEndDate = new Date(profile.trial_end_date);
+      logStep("Using manual trial_end_date override", { trialEndDate: trialEndDate.toISOString() });
+    } else {
+      // Default calculation: created_at + 30 days
+      const createdAt = profile?.created_at ? new Date(profile.created_at) : new Date();
+      trialEndDate = new Date(createdAt.getTime() + (TRIAL_DAYS * 24 * 60 * 60 * 1000));
+      logStep("Using calculated trial end date", { createdAt: createdAt.toISOString(), trialEndDate: trialEndDate.toISOString() });
+    }
 
-    logStep("Trial calculation", { daysSinceRegistration, trialDaysRemaining });
+    const trialDaysRemaining = Math.floor((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+    logStep("Trial calculation", { trialEndDate: trialEndDate.toISOString(), trialDaysRemaining });
 
     // 2️⃣ CHECK ACTIVE STRIPE SUBSCRIPTION
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
