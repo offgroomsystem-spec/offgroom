@@ -777,6 +777,7 @@ export type Database = {
           id: string
           login_count: number
           nome_completo: string
+          trial_end_date: string | null
           updated_at: string | null
           whatsapp: string
         }
@@ -786,6 +787,7 @@ export type Database = {
           id: string
           login_count?: number
           nome_completo: string
+          trial_end_date?: string | null
           updated_at?: string | null
           whatsapp: string
         }
@@ -795,6 +797,7 @@ export type Database = {
           id?: string
           login_count?: number
           nome_completo?: string
+          trial_end_date?: string | null
           updated_at?: string | null
           whatsapp?: string
         }
