@@ -1,18 +1,42 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Rocket, Zap, Shield } from "lucide-react";
+import { Clock, Rocket, Zap, Shield, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export const SubscriptionInfoCard = () => {
-  const { profile } = useAuth();
+  const { subscriptionStatus } = useAuth();
   const navigate = useNavigate();
   
-  // Calcular dias restantes do trial (10 dias desde criação)
-  const diasTrial = 10;
-  const createdAt = profile?.created_at ? new Date(profile.created_at) : new Date();
-  const diasDesdeRegistro = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-  const diasRestantes = Math.max(0, diasTrial - diasDesdeRegistro);
+  // Usar dados do subscriptionStatus que vem do check-subscription-status
+  const diasRestantes = subscriptionStatus?.daysRemaining ?? 0;
+  const tipo = subscriptionStatus?.type ?? 'trial';
+  const productName = subscriptionStatus?.productName;
+  const isSubscription = tipo === 'subscription';
+  const isVip = tipo === 'vip';
+  
+  // Se é VIP ou assinante ativo, não mostrar o card de conversão
+  if (isVip || isSubscription) {
+    return (
+      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200/50 dark:border-green-800/50">
+        <div className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span>
+              {isVip ? (
+                "Você tem acesso vitalício ao Offgroom!"
+              ) : (
+                <>
+                  Plano <span className="font-semibold text-foreground">{productName || 'Ativo'}</span> - 
+                  {diasRestantes > 0 && ` ${diasRestantes} dias restantes`}
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      </Card>
+    );
+  }
   
   return (
     <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200/50 dark:border-blue-800/50">
