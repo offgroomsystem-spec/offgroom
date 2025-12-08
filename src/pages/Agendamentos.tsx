@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote } from "@/hooks/useCriarLancamentoAutomatico";
 
 // Interfaces
 
@@ -862,6 +863,16 @@ const Agendamentos = () => {
 
       if (error) throw error;
 
+      // Automação: criar lançamento financeiro automaticamente
+      criarLancamentoFinanceiroAvulso({
+        nomeCliente: formData.cliente,
+        nomePet: formData.pet,
+        nomeServico: formData.servico,
+        dataAgendamento: formData.data,
+        dataVenda: formData.dataVenda,
+        ownerId: ownerId || user.id,
+      });
+
       toast.success("Agendamento criado com sucesso!");
       await loadAgendamentos();
       resetForm();
@@ -1047,6 +1058,19 @@ const Agendamentos = () => {
       ]);
 
       if (error) throw error;
+
+      // Automação: criar lançamento financeiro automaticamente
+      // Usar a primeira data de serviço para definir mês/ano
+      const primeiraDataServico = servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
+      
+      criarLancamentoFinanceiroPacote({
+        nomeCliente: pacoteFormData.nomeCliente,
+        nomePet: pacoteFormData.nomePet,
+        nomePacote: pacoteFormData.nomePacote,
+        dataVenda: pacoteFormData.dataVenda,
+        primeiraDataServico: primeiraDataServico,
+        ownerId: ownerId || "",
+      });
 
       toast.success("Pacote agendado com sucesso!");
       await loadAgendamentosPacotes();
