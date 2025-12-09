@@ -96,6 +96,14 @@ const Login = () => {
         .eq('user_id', authData.user?.id)
         .single();
       
+      // Verificar se tem checkout pendente
+      const pendingPlan = sessionStorage.getItem('pending_checkout_plan');
+      if (pendingPlan) {
+        sessionStorage.removeItem('pending_checkout_plan');
+        navigate('/pagamento');
+        return;
+      }
+
       // Redirecionar baseado no tipo de login
       const tipoLogin = roleData?.role;
       
