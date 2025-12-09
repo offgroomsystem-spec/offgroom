@@ -4,9 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Shield, Lock, HeadphonesIcon, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export const PricingContent = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const handleCheckout = async (planId: string) => {
+    // Verificar se usuário está logado
+    if (!user) {
+      sessionStorage.setItem('pending_checkout_plan', planId);
+      toast.info('Faça login para continuar com a compra');
+      navigate('/login');
+      return;
+    }
+
     if (planId === "flex") {
       try {
         const { data, error } = await supabase.functions.invoke('create-checkout', {
