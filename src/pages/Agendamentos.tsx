@@ -132,6 +132,15 @@ interface EmpresaConfig {
   bordao: string;
   horarioInicio: string;
   horarioFim: string;
+  diasFuncionamento: {
+    domingo: boolean;
+    segunda: boolean;
+    terca: boolean;
+    quarta: boolean;
+    quinta: boolean;
+    sexta: boolean;
+    sabado: boolean;
+  };
 }
 interface AgendamentoUnificado {
   id: string;
@@ -187,6 +196,15 @@ const Agendamentos = () => {
     bordao: "",
     horarioInicio: "08:00",
     horarioFim: "18:00",
+    diasFuncionamento: {
+      domingo: false,
+      segunda: true,
+      terca: true,
+      quarta: true,
+      quinta: true,
+      sexta: true,
+      sabado: false,
+    },
   });
 
   // Load agendamentos from Supabase
@@ -328,6 +346,15 @@ const Agendamentos = () => {
           bordao: empresa.bordao || "",
           horarioInicio: empresa.horario_inicio || "08:00",
           horarioFim: empresa.horario_fim || "18:00",
+          diasFuncionamento: empresa.dias_funcionamento || {
+            domingo: false,
+            segunda: true,
+            terca: true,
+            quarta: true,
+            quinta: true,
+            sexta: true,
+            sabado: false,
+          },
         });
       }
     } catch (error) {
@@ -782,6 +809,7 @@ const Agendamentos = () => {
   };
   const horarios = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
   const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const mapDiaSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'] as const;
 
   // Sincronizar Data da Venda com Data do Agendamento
   useEffect(() => {
@@ -809,6 +837,26 @@ const Agendamentos = () => {
     );
   };
   const weekDates = getWeekDates();
+  
+  // Filtrar apenas dias de funcionamento
+  const filteredWeekDates = weekDates.filter((date) => {
+    const dayIndex = date.getDay();
+    const dayName = mapDiaSemana[dayIndex];
+    return empresaConfig.diasFuncionamento[dayName];
+  });
+  
+  // Funções para buscar TODOS os agendamentos de um slot
+  const getAllAgendamentosForSlot = (date: Date, horario: string) => {
+    const dateStr = formatDateForInput(date);
+    return agendamentos.filter((a) => a.data === dateStr && a.horario === horario);
+  };
+
+  const getAllPacotesForSlot = (date: Date, horario: string) => {
+    const dateStr = formatDateForInput(date);
+    return agendamentosPacotes.filter((p) =>
+      p.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario)
+    );
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -2989,14 +3037,14 @@ const Agendamentos = () => {
         <CardContent className="py-2">
           {viewMode === "semana" ? (
             <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
-                <div className="grid grid-cols-8 gap-2">
+              <div className="min-w-[600px]">
+                <div className="grid gap-2" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
                   <div className="p-2 font-semibold">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  {weekDates.map((date, idx) => (
+                  {filteredWeekDates.map((date, idx) => (
                     <div key={idx} className="p-2 text-center">
-                      <div className="font-semibold text-sm">{diasSemana[idx]}</div>
+                      <div className="font-semibold text-sm">{diasSemana[date.getDay()]}</div>
                       <div className="text-xs text-muted-foreground">
                         {date.toLocaleDateString("pt-BR", {
                           day: "2-digit",
@@ -3008,37 +3056,42 @@ const Agendamentos = () => {
                 </div>
 
                 {horarios.map((horario) => (
-                  <div key={horario} className="grid grid-cols-8 gap-2 border-t">
+                  <div key={horario} className="grid gap-2 border-t" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
                     <div className="p-2 text-sm font-medium text-muted-foreground">{horario}</div>
-                    {weekDates.map((date, idx) => {
-                      const agendamento = getAgendamentoForSlot(date, horario);
-                      const pacote = getPacoteForSlot(date, horario);
-                      const ocupado = isHorarioOcupado(date, horario);
+                    {filteredWeekDates.map((date, idx) => {
+                      const allAgendamentos = getAllAgendamentosForSlot(date, horario);
+                      const allPacotes = getAllPacotesForSlot(date, horario);
+                      const total = allAgendamentos.length + allPacotes.length;
                       return (
                         <div
                           key={idx}
-                          className={`p-2 rounded-lg min-h-[60px] transition-colors ${pacote ? "bg-primary/20 text-primary-foreground border border-primary/40" : ocupado ? "bg-accent text-accent-foreground" : "bg-secondary/30 hover:bg-secondary/50"}`}
+                          className={`p-1 rounded-lg min-h-[60px] transition-colors ${total > 0 ? "bg-accent/50" : "bg-secondary/30 hover:bg-secondary/50"}`}
                         >
-                          {agendamento && (
-                            <div className="text-xs">
-                              <div className="font-semibold">{agendamento.cliente}</div>
-                              <div className="text-xs opacity-80">{agendamento.pet}</div>
-                              <div className="text-xs opacity-60">{agendamento.servico}</div>
-                            </div>
-                          )}
-                          {pacote && (
-                            <div className="text-xs">
-                              <div className="flex items-center gap-1">
-                                <Package className="h-3 w-3" />
-                                <span className="font-semibold">{pacote.nomeCliente}</span>
+                          <div className="flex flex-wrap gap-1">
+                            {allAgendamentos.map((ag, i) => (
+                              <div key={`ag-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground">
+                                <div className="font-semibold truncate">{ag.pet}</div>
+                                <div className="text-[10px] text-[#4590DB]/80 dark:text-accent-foreground/80 truncate">{ag.cliente}</div>
+                                <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60 truncate">{ag.servico}</div>
                               </div>
-                              <div className="text-xs opacity-80">{pacote.nomePet}</div>
-                              <div className="text-xs opacity-60">{pacote.nomePacote}</div>
-                              {pacote.servicos[0] && (
-                                <div className="text-xs opacity-60">{pacote.servicos[0].nomeServico}</div>
-                              )}
-                            </div>
-                          )}
+                            ))}
+                            {allPacotes.map((p, i) => {
+                              const servicoDoHorario = p.servicos.find(s => s.data === formatDateForInput(date) && s.horarioInicio === horario);
+                              return (
+                                <div key={`pk-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Package className="h-3 w-3" />
+                                    <span className="font-semibold truncate">{p.nomePet}</span>
+                                  </div>
+                                  <div className="text-[10px] text-[#4590DB]/80 dark:text-primary-foreground/80 truncate">{p.nomeCliente}</div>
+                                  <div className="text-[10px] text-[#4590DB]/60 dark:text-primary-foreground/60 truncate">{p.nomePacote}</div>
+                                  {servicoDoHorario && (
+                                    <div className="text-[10px] text-[#4590DB]/60 dark:text-primary-foreground/60 truncate">{servicoDoHorario.nomeServico}</div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     })}
