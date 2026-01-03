@@ -25,6 +25,7 @@ import {
   Search,
   Check,
   ChevronsUpDown,
+  X,
 } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -111,6 +112,13 @@ interface Cliente {
 interface ServicoSelecionado {
   instanceId: string;
   id: string;
+  nome: string;
+  valor: number;
+}
+
+// Interface para serviços selecionados no agendamento simples
+interface ServicoAgendamentoSimples {
+  instanceId: string;
   nome: string;
   valor: number;
 }
@@ -400,6 +408,12 @@ const Agendamentos = () => {
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
   const [openServicoCombobox, setOpenServicoCombobox] = useState(false);
   const [openEditServicoCombobox, setOpenEditServicoCombobox] = useState(false);
+  
+  // Estado para múltiplos serviços no agendamento simples
+  const [servicosSelecionadosSimples, setServicosSelecionadosSimples] = useState<ServicoAgendamentoSimples[]>([
+    { instanceId: crypto.randomUUID(), nome: "", valor: 0 }
+  ]);
+  const [openServicoComboboxIndex, setOpenServicoComboboxIndex] = useState<number | null>(null);
   const [pacoteFormData, setPacoteFormData] = useState({
     nomeCliente: "",
     nomePet: "",
@@ -861,6 +875,13 @@ const Agendamentos = () => {
     e.preventDefault();
     if (!user) return;
 
+    // Validar se pelo menos um serviço foi selecionado
+    const servicosValidos = servicosSelecionadosSimples.filter((s) => s.nome);
+    if (servicosValidos.length === 0) {
+      toast.error("Favor selecionar pelo menos um serviço");
+      return;
+    }
+
     if (!formData.data) {
       toast.error("Favor preencher a Data do Agendamento");
       return;
@@ -887,6 +908,9 @@ const Agendamentos = () => {
     }
 
     const horarioTermino = calcularHorarioTermino(formData.horario, formData.tempoServico);
+    
+    // Criar string concatenada para exibição no calendário
+    const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
 
     try {
       const { error } = await supabase.from("agendamentos").insert([
@@ -896,7 +920,8 @@ const Agendamentos = () => {
           pet: formData.pet,
           raca: formData.raca,
           whatsapp: formData.whatsapp,
-          servico: formData.servico,
+          servico: servicosNomes, // Ex: "Banho + Tosa"
+          servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })), // Array JSON
           data: formData.data,
           horario: formData.horario,
           tempo_servico: formData.tempoServico,
@@ -911,15 +936,17 @@ const Agendamentos = () => {
 
       if (error) throw error;
 
-      // Automação: criar lançamento financeiro automaticamente
-      criarLancamentoFinanceiroAvulso({
-        nomeCliente: formData.cliente,
-        nomePet: formData.pet,
-        nomeServico: formData.servico,
-        dataAgendamento: formData.data,
-        dataVenda: formData.dataVenda,
-        ownerId: ownerId || user.id,
-      });
+      // Criar lançamento financeiro para CADA serviço
+      for (const servico of servicosValidos) {
+        await criarLancamentoFinanceiroAvulso({
+          nomeCliente: formData.cliente,
+          nomePet: formData.pet,
+          nomeServico: servico.nome,
+          dataAgendamento: formData.data,
+          dataVenda: formData.dataVenda,
+          ownerId: ownerId || user.id,
+        });
+      }
 
       toast.success("Agendamento criado com sucesso!");
       await loadAgendamentos();
@@ -952,6 +979,8 @@ const Agendamentos = () => {
     setSimpleFilteredPets([]);
     setSimpleAvailableRacas([]);
     setSimpleSearchStartedWith(null);
+    setServicosSelecionadosSimples([{ instanceId: crypto.randomUUID(), nome: "", valor: 0 }]);
+    setOpenServicoComboboxIndex(null);
     setIsDialogOpen(false);
   };
   const resetPacoteForm = () => {
@@ -974,7 +1003,34 @@ const Agendamentos = () => {
     setIsPacoteDialogOpen(false);
   };
 
-  // Quando seleciona um pacote, carregar seus serviços
+  // Funções para gerenciar múltiplos serviços no agendamento simples
+  const adicionarServicoSimples = () => {
+    setServicosSelecionadosSimples([
+      ...servicosSelecionadosSimples,
+      { instanceId: crypto.randomUUID(), nome: "", valor: 0 }
+    ]);
+  };
+
+  const removerServicoSimples = (instanceId: string) => {
+    if (servicosSelecionadosSimples.length > 1) {
+      setServicosSelecionadosSimples(
+        servicosSelecionadosSimples.filter((s) => s.instanceId !== instanceId)
+      );
+    }
+  };
+
+  const atualizarServicoSimples = (instanceId: string, servicoNome: string) => {
+    const servicoEncontrado = servicos.find((s) => s.nome === servicoNome);
+    setServicosSelecionadosSimples(
+      servicosSelecionadosSimples.map((s) =>
+        s.instanceId === instanceId
+          ? { ...s, nome: servicoNome, valor: servicoEncontrado?.valor || 0 }
+          : s
+      )
+    );
+    setOpenServicoComboboxIndex(null);
+  };
+
   const handlePacoteSelect = (nomePacote: string) => {
     setPacoteFormData({
       ...pacoteFormData,
@@ -1936,112 +1992,89 @@ const Agendamentos = () => {
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="servico" className="text-xs">
-                      Serviço *
-                    </Label>
-                    <Popover open={openServicoCombobox} onOpenChange={setOpenServicoCombobox}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openServicoCombobox}
-                          className="h-8 w-full justify-between text-xs font-normal"
-                        >
-                          {formData.servico || "Selecione um serviço"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0 bg-background z-50">
-                        <Command>
-                          <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
-                          <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
-                            Nenhum serviço encontrado.
-                          </CommandEmpty>
-                          {servicos.length > 0 && (
-                            <CommandGroup heading="Serviços Individuais" className="text-xs">
-                              {servicos.map((servico) => (
-                                <CommandItem
-                                  key={`servico-${servico.id}`}
-                                  value={servico.nome}
-                                  onSelect={(currentValue) => {
-                                    const isPacote = false;
-                                    setIsPacoteSelecionado(isPacote);
-                                    setFormData({
-                                      ...formData,
-                                      servico: currentValue,
-                                      numeroServicoPacote: "",
-                                    });
-                                    setOpenServicoCombobox(false);
-                                  }}
-                                  className="text-xs"
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.servico === servico.nome ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {servico.nome}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                  <div className="space-y-1 col-span-1">
+                    <Label className="text-xs">Serviço(s) *</Label>
+                    <div className="space-y-2">
+                      {servicosSelecionadosSimples.map((servicoItem, index) => (
+                        <div key={servicoItem.instanceId} className="flex items-center gap-1">
+                          <Popover 
+                            open={openServicoComboboxIndex === index} 
+                            onOpenChange={(open) => setOpenServicoComboboxIndex(open ? index : null)}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openServicoComboboxIndex === index}
+                                className="h-8 flex-1 justify-between text-xs font-normal"
+                              >
+                                {servicoItem.nome || "Selecione um serviço"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0 bg-background z-50">
+                              <Command>
+                                <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
+                                <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
+                                  Nenhum serviço encontrado.
+                                </CommandEmpty>
+                                {servicos.length > 0 && (
+                                  <CommandGroup heading="Serviços" className="text-xs">
+                                    {servicos.map((servico) => (
+                                      <CommandItem
+                                        key={`servico-${servico.id}`}
+                                        value={servico.nome}
+                                        onSelect={(currentValue) => {
+                                          atualizarServicoSimples(servicoItem.instanceId, currentValue);
+                                        }}
+                                        className="text-xs"
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            servicoItem.nome === servico.nome ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {servico.nome}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                )}
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          
+                          {/* Botão X para remover (vermelho, discreto) */}
+                          {servicosSelecionadosSimples.length > 1 && (
+                            <Button 
+                              type="button"
+                              variant="ghost" 
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => removerServicoSimples(servicoItem.instanceId)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
                           )}
-                          {pacotes.length > 0 && (
-                            <CommandGroup heading="Pacotes de Serviços" className="text-xs">
-                              {pacotes.map((pacote) => (
-                                <CommandItem
-                                  key={`pacote-${pacote.id}`}
-                                  value={pacote.nome}
-                                  onSelect={(currentValue) => {
-                                    const isPacote = true;
-                                    setIsPacoteSelecionado(isPacote);
-                                    setFormData({
-                                      ...formData,
-                                      servico: currentValue,
-                                      numeroServicoPacote: formData.numeroServicoPacote,
-                                    });
-                                    setOpenServicoCombobox(false);
-                                  }}
-                                  className="text-xs"
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.servico === pacote.nome ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {pacote.nome}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                          
+                          {/* Botão "+ Serviço" ao lado do último campo */}
+                          {index === servicosSelecionadosSimples.length - 1 && servicoItem.nome && (
+                            <Button 
+                              type="button"
+                              variant="ghost" 
+                              size="sm"
+                              className="h-6 px-2 text-xs text-primary hover:text-primary/80"
+                              onClick={adicionarServicoSimples}
+                            >
+                              + Serviço
+                            </Button>
                           )}
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {isPacoteSelecionado && (
-                  <div className="space-y-1">
-                    <Label htmlFor="numeroServicoPacote" className="text-xs">
-                      Número do Serviço do Pacote *
-                    </Label>
-                    <Input
-                      id="numeroServicoPacote"
-                      value={formData.numeroServicoPacote}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          numeroServicoPacote: e.target.value,
-                        })
-                      }
-                      placeholder="Ex: 01/02, 01/04"
-                      className="h-8 text-xs"
-                      required
-                    />
-                  </div>
-                )}
 
                 <div className="space-y-1">
                   <Label htmlFor="groomer" className="text-xs">
