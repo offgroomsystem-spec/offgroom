@@ -29,6 +29,7 @@ export type Database = {
           pet: string
           raca: string
           servico: string
+          servicos: Json | null
           status: string
           taxi_dog: string
           tempo_servico: string
@@ -50,6 +51,7 @@ export type Database = {
           pet: string
           raca: string
           servico: string
+          servicos?: Json | null
           status: string
           taxi_dog: string
           tempo_servico: string
@@ -71,6 +73,7 @@ export type Database = {
           pet?: string
           raca?: string
           servico?: string
+          servicos?: Json | null
           status?: string
           taxi_dog?: string
           tempo_servico?: string
