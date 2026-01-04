@@ -19,6 +19,7 @@ interface DadosAgendamentoPacote {
 }
 
 interface DadosAgendamentoMultiplosServicos {
+  agendamentoId: string; // UUID do agendamento criado
   nomeCliente: string;
   nomePet: string;
   servicos: Array<{ nome: string; valor: number }>;
@@ -248,14 +249,21 @@ export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPac
 
 export const criarLancamentoFinanceiroMultiplosServicos = async (dados: DadosAgendamentoMultiplosServicos) => {
   try {
-    const { nomeCliente, nomePet, servicos, dataAgendamento, dataVenda, ownerId } = dados;
+    const { agendamentoId, nomeCliente, nomePet, servicos, dataAgendamento, dataVenda, ownerId } = dados;
 
     if (servicos.length === 0) {
       console.warn("Nenhum serviço para criar lançamento financeiro");
       return;
     }
 
-    // 1. Buscar cliente_id pelo nome
+    // 1. Verificar se já existe lançamento para este agendamento (upsert lógico)
+    const { data: lancamentoExistente } = await supabase
+      .from("lancamentos_financeiros")
+      .select("id")
+      .eq("agendamento_id", agendamentoId)
+      .maybeSingle();
+
+    // 2. Buscar cliente_id pelo nome
     const { data: clientesData } = await supabase
       .from("clientes")
       .select("id")
@@ -265,7 +273,7 @@ export const criarLancamentoFinanceiroMultiplosServicos = async (dados: DadosAge
 
     const clienteId = clientesData?.[0]?.id || null;
 
-    // 2. Buscar pet_id pelo nome e cliente_id
+    // 3. Buscar pet_id pelo nome e cliente_id
     let petId: string | null = null;
     if (clienteId) {
       const { data: petsData } = await supabase
@@ -288,10 +296,10 @@ export const criarLancamentoFinanceiroMultiplosServicos = async (dados: DadosAge
       petId = petsData?.[0]?.id || null;
     }
 
-    // 3. Calcular valor total somando todos os serviços
+    // 4. Calcular valor total somando todos os serviços
     const valorTotal = servicos.reduce((acc, s) => acc + s.valor, 0);
 
-    // 4. Buscar primeira conta bancária
+    // 5. Buscar primeira conta bancária
     const { data: contasData } = await supabase
       .from("contas_bancarias")
       .select("id")
@@ -301,38 +309,75 @@ export const criarLancamentoFinanceiroMultiplosServicos = async (dados: DadosAge
 
     const contaId = contasData?.[0]?.id || null;
 
-    // 5. Extrair ano e mês da data do agendamento
+    // 6. Extrair ano e mês da data do agendamento
     const [ano, mes] = dataAgendamento.split("-");
 
-    // 6. Criar UM ÚNICO lançamento financeiro com o valor total
-    const { data: lancamentoData, error: lancamentoError } = await supabase
-      .from("lancamentos_financeiros")
-      .insert([
-        {
-          user_id: ownerId,
+    let lancamentoId: string;
+
+    if (lancamentoExistente) {
+      // UPDATE: Atualizar lançamento existente
+      const { error: updateError } = await supabase
+        .from("lancamentos_financeiros")
+        .update({
           ano: ano,
           mes_competencia: mes,
-          tipo: "Receita",
-          descricao1: "Receita Operacional",
           cliente_id: clienteId,
           pet_ids: petId ? [petId] : [],
           valor_total: valorTotal,
           data_pagamento: dataVenda,
           conta_id: contaId,
-          pago: false,
-        },
-      ])
-      .select("id")
-      .single();
+        })
+        .eq("id", lancamentoExistente.id);
 
-    if (lancamentoError) {
-      console.error("Erro ao criar lançamento financeiro:", lancamentoError);
-      return;
+      if (updateError) {
+        console.error("Erro ao atualizar lançamento financeiro:", updateError);
+        return;
+      }
+
+      lancamentoId = lancamentoExistente.id;
+
+      // Remover itens antigos antes de inserir os novos
+      await supabase
+        .from("lancamentos_financeiros_itens")
+        .delete()
+        .eq("lancamento_id", lancamentoId);
+
+      console.log(`Lançamento financeiro atualizado para agendamento ${agendamentoId}`);
+    } else {
+      // INSERT: Criar novo lançamento financeiro com agendamento_id
+      const { data: lancamentoData, error: lancamentoError } = await supabase
+        .from("lancamentos_financeiros")
+        .insert([
+          {
+            user_id: ownerId,
+            agendamento_id: agendamentoId,
+            ano: ano,
+            mes_competencia: mes,
+            tipo: "Receita",
+            descricao1: "Receita Operacional",
+            cliente_id: clienteId,
+            pet_ids: petId ? [petId] : [],
+            valor_total: valorTotal,
+            data_pagamento: dataVenda,
+            conta_id: contaId,
+            pago: false,
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (lancamentoError) {
+        console.error("Erro ao criar lançamento financeiro:", lancamentoError);
+        return;
+      }
+
+      lancamentoId = lancamentoData.id;
+      console.log(`Lançamento financeiro criado para agendamento ${agendamentoId}`);
     }
 
     // 7. Criar MÚLTIPLOS itens do lançamento (um para cada serviço)
     const itensParaInserir = servicos.map((servico) => ({
-      lancamento_id: lancamentoData.id,
+      lancamento_id: lancamentoId,
       descricao2: "Serviços",
       produto_servico: servico.nome,
       valor: servico.valor,
@@ -347,7 +392,7 @@ export const criarLancamentoFinanceiroMultiplosServicos = async (dados: DadosAge
       console.error("Erro ao criar itens do lançamento:", itemError);
     }
 
-    console.log(`Lançamento financeiro criado com ${servicos.length} serviços, total: R$ ${valorTotal.toFixed(2)}`);
+    console.log(`Lançamento financeiro com ${servicos.length} serviços, total: R$ ${valorTotal.toFixed(2)}`);
   } catch (error) {
     console.error("Erro na automação de lançamento financeiro (múltiplos serviços):", error);
   }

@@ -913,7 +913,8 @@ const Agendamentos = () => {
     const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
 
     try {
-      const { error } = await supabase.from("agendamentos").insert([
+      // Inserir agendamento e obter o ID
+      const { data: agendamentoData, error } = await supabase.from("agendamentos").insert([
         {
           user_id: user.id,
           cliente: formData.cliente,
@@ -932,12 +933,13 @@ const Agendamentos = () => {
           taxi_dog: formData.taxiDog,
           status: "confirmado",
         },
-      ]);
+      ]).select("id").single();
 
       if (error) throw error;
 
       // Criar UM ÚNICO lançamento financeiro consolidado com múltiplos itens
       await criarLancamentoFinanceiroMultiplosServicos({
+        agendamentoId: agendamentoData.id,
         nomeCliente: formData.cliente,
         nomePet: formData.pet,
         servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
