@@ -475,6 +475,7 @@ export type Database = {
       }
       lancamentos_financeiros: {
         Row: {
+          agendamento_id: string | null
           ano: string
           cliente_id: string | null
           conta_id: string | null
@@ -495,6 +496,7 @@ export type Database = {
           valor_total: number
         }
         Insert: {
+          agendamento_id?: string | null
           ano: string
           cliente_id?: string | null
           conta_id?: string | null
@@ -515,6 +517,7 @@ export type Database = {
           valor_total?: number
         }
         Update: {
+          agendamento_id?: string | null
           ano?: string
           cliente_id?: string | null
           conta_id?: string | null
@@ -535,6 +538,13 @@ export type Database = {
           valor_total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lancamentos_financeiros_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lancamentos_financeiros_cliente_id_fkey"
             columns: ["cliente_id"]
