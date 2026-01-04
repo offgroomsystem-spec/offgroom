@@ -18,6 +18,15 @@ interface DadosAgendamentoPacote {
   ownerId: string;
 }
 
+interface DadosAgendamentoMultiplosServicos {
+  nomeCliente: string;
+  nomePet: string;
+  servicos: Array<{ nome: string; valor: number }>;
+  dataAgendamento: string; // formato YYYY-MM-DD
+  dataVenda: string; // formato YYYY-MM-DD
+  ownerId: string;
+}
+
 export const criarLancamentoFinanceiroAvulso = async (dados: DadosAgendamentoAvulso) => {
   try {
     const { nomeCliente, nomePet, nomeServico, dataAgendamento, dataVenda, ownerId } = dados;
@@ -234,5 +243,112 @@ export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPac
     console.log("Lançamento financeiro criado automaticamente para agendamento de pacote");
   } catch (error) {
     console.error("Erro na automação de lançamento financeiro (pacote):", error);
+  }
+};
+
+export const criarLancamentoFinanceiroMultiplosServicos = async (dados: DadosAgendamentoMultiplosServicos) => {
+  try {
+    const { nomeCliente, nomePet, servicos, dataAgendamento, dataVenda, ownerId } = dados;
+
+    if (servicos.length === 0) {
+      console.warn("Nenhum serviço para criar lançamento financeiro");
+      return;
+    }
+
+    // 1. Buscar cliente_id pelo nome
+    const { data: clientesData } = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("user_id", ownerId)
+      .ilike("nome_cliente", nomeCliente)
+      .limit(1);
+
+    const clienteId = clientesData?.[0]?.id || null;
+
+    // 2. Buscar pet_id pelo nome e cliente_id
+    let petId: string | null = null;
+    if (clienteId) {
+      const { data: petsData } = await supabase
+        .from("pets")
+        .select("id")
+        .eq("user_id", ownerId)
+        .eq("cliente_id", clienteId)
+        .ilike("nome_pet", nomePet)
+        .limit(1);
+      
+      petId = petsData?.[0]?.id || null;
+    } else {
+      const { data: petsData } = await supabase
+        .from("pets")
+        .select("id")
+        .eq("user_id", ownerId)
+        .ilike("nome_pet", nomePet)
+        .limit(1);
+      
+      petId = petsData?.[0]?.id || null;
+    }
+
+    // 3. Calcular valor total somando todos os serviços
+    const valorTotal = servicos.reduce((acc, s) => acc + s.valor, 0);
+
+    // 4. Buscar primeira conta bancária
+    const { data: contasData } = await supabase
+      .from("contas_bancarias")
+      .select("id")
+      .eq("user_id", ownerId)
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    const contaId = contasData?.[0]?.id || null;
+
+    // 5. Extrair ano e mês da data do agendamento
+    const [ano, mes] = dataAgendamento.split("-");
+
+    // 6. Criar UM ÚNICO lançamento financeiro com o valor total
+    const { data: lancamentoData, error: lancamentoError } = await supabase
+      .from("lancamentos_financeiros")
+      .insert([
+        {
+          user_id: ownerId,
+          ano: ano,
+          mes_competencia: mes,
+          tipo: "Receita",
+          descricao1: "Receita Operacional",
+          cliente_id: clienteId,
+          pet_ids: petId ? [petId] : [],
+          valor_total: valorTotal,
+          data_pagamento: dataVenda,
+          conta_id: contaId,
+          pago: false,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (lancamentoError) {
+      console.error("Erro ao criar lançamento financeiro:", lancamentoError);
+      return;
+    }
+
+    // 7. Criar MÚLTIPLOS itens do lançamento (um para cada serviço)
+    const itensParaInserir = servicos.map((servico) => ({
+      lancamento_id: lancamentoData.id,
+      descricao2: "Serviços",
+      produto_servico: servico.nome,
+      valor: servico.valor,
+      quantidade: 1,
+    }));
+
+    const { error: itemError } = await supabase
+      .from("lancamentos_financeiros_itens")
+      .insert(itensParaInserir);
+
+    if (itemError) {
+      console.error("Erro ao criar itens do lançamento:", itemError);
+    }
+
+    console.log(`Lançamento financeiro criado com ${servicos.length} serviços, total: R$ ${valorTotal.toFixed(2)}`);
+  } catch (error) {
+    console.error("Erro na automação de lançamento financeiro (múltiplos serviços):", error);
   }
 };

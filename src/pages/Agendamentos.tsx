@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote } from "@/hooks/useCriarLancamentoAutomatico";
+import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos } from "@/hooks/useCriarLancamentoAutomatico";
 
 // Interfaces
 
@@ -936,17 +936,15 @@ const Agendamentos = () => {
 
       if (error) throw error;
 
-      // Criar lançamento financeiro para CADA serviço
-      for (const servico of servicosValidos) {
-        await criarLancamentoFinanceiroAvulso({
-          nomeCliente: formData.cliente,
-          nomePet: formData.pet,
-          nomeServico: servico.nome,
-          dataAgendamento: formData.data,
-          dataVenda: formData.dataVenda,
-          ownerId: ownerId || user.id,
-        });
-      }
+      // Criar UM ÚNICO lançamento financeiro consolidado com múltiplos itens
+      await criarLancamentoFinanceiroMultiplosServicos({
+        nomeCliente: formData.cliente,
+        nomePet: formData.pet,
+        servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
+        dataAgendamento: formData.data,
+        dataVenda: formData.dataVenda,
+        ownerId: ownerId || user.id,
+      });
 
       toast.success("Agendamento criado com sucesso!");
       await loadAgendamentos();
