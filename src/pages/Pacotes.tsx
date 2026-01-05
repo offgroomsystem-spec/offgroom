@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pencil, Trash2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,11 +19,18 @@ interface Servico {
   porte: string;
 }
 
-interface ServicoSelecionado {
-  instanceId: string; // ID único da instância
-  id: string; // ID do serviço original
+interface ServicoExtra {
+  id: string;
   nome: string;
   valor: number;
+}
+
+interface ServicoSelecionado {
+  instanceId: string;
+  id: string;
+  nome: string;
+  valor: number;
+  servicosExtras?: ServicoExtra[];
 }
 
 interface Pacote {
@@ -137,8 +145,49 @@ const Pacotes = () => {
     }
   }, [formData.porte, servicos]);
 
-  // Calcular valor total dos serviços
-  const valorTotalServicos = servicosSelecionados.reduce((acc, s) => acc + s.valor, 0);
+  // Calcular valor total dos serviços (incluindo extras)
+  const valorTotalServicos = servicosSelecionados.reduce((acc, s) => {
+    const valorExtras = (s.servicosExtras || []).reduce((sum, extra) => sum + extra.valor, 0);
+    return acc + s.valor + valorExtras;
+  }, 0);
+
+  // Adicionar serviço extra a um banho específico
+  const handleAddServicoExtra = (instanceId: string, servicoExtraId: string) => {
+    const servicoExtra = servicos.find(s => s.id === servicoExtraId);
+    if (!servicoExtra) return;
+    
+    setServicosSelecionados(prev => prev.map(servico => {
+      if (servico.instanceId === instanceId) {
+        const extras = servico.servicosExtras || [];
+        if (extras.some(e => e.id === servicoExtraId)) {
+          toast.error("Este serviço extra já foi adicionado");
+          return servico;
+        }
+        return {
+          ...servico,
+          servicosExtras: [...extras, {
+            id: servicoExtra.id,
+            nome: servicoExtra.nome,
+            valor: servicoExtra.valor
+          }]
+        };
+      }
+      return servico;
+    }));
+  };
+
+  // Remover serviço extra
+  const handleRemoveServicoExtra = (instanceId: string, servicoExtraId: string) => {
+    setServicosSelecionados(prev => prev.map(servico => {
+      if (servico.instanceId === instanceId) {
+        return {
+          ...servico,
+          servicosExtras: (servico.servicosExtras || []).filter(e => e.id !== servicoExtraId)
+        };
+      }
+      return servico;
+    }));
+  };
 
   // Calcular desconto em valor quando percentual é alterado
   const handleDescontoPercentualChange = (value: string) => {
@@ -211,8 +260,11 @@ const Pacotes = () => {
     }
 
     try {
-      // Calcular valores
-      const valorTotalSemDesconto = servicosSelecionados.reduce((acc, s) => acc + s.valor, 0);
+      // Calcular valores (incluindo extras)
+      const valorTotalSemDesconto = servicosSelecionados.reduce((acc, s) => {
+        const valorExtras = (s.servicosExtras || []).reduce((sum, extra) => sum + extra.valor, 0);
+        return acc + s.valor + valorExtras;
+      }, 0);
       const descontoValor = parseFloat(formData.descontoValor) || 0;
       const descontoPercentual = parseFloat(formData.descontoPercentual) || 0;
       const valorFinal = valorTotalSemDesconto - descontoValor;
@@ -409,26 +461,79 @@ const Pacotes = () => {
                 </div>
                 
                 {servicosSelecionados.length > 0 && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 space-y-2">
                     {servicosSelecionados.map((servico, index) => {
                       const total = servicosSelecionados.length;
                       const numero = String(index + 1).padStart(2, '0');
                       const totalFormatado = String(total).padStart(2, '0');
+                      const valorExtras = (servico.servicosExtras || []).reduce((sum, e) => sum + e.valor, 0);
+                      const valorTotalBanho = servico.valor + valorExtras;
                       
                       return (
-                        <div key={servico.instanceId} className="flex items-center justify-between bg-secondary/50 p-2 rounded text-xs">
-                          <span>
-                            <span className="font-semibold text-primary">{numero}/{totalFormatado}</span> - {servico.nome} - {formatCurrency(servico.valor)}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveServico(servico.instanceId)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                        <div key={servico.instanceId} className="bg-secondary/50 p-2 rounded text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span>
+                              <span className="font-semibold text-primary">{numero}/{totalFormatado}</span> - {servico.nome} - {formatCurrency(servico.valor)}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2">
+                                    + Serviço Extra
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-2" align="end">
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-medium">Selecione um serviço extra:</p>
+                                    <Select onValueChange={(value) => handleAddServicoExtra(servico.instanceId, value)}>
+                                      <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue placeholder="Selecione..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {servicosFiltrados.map((s) => (
+                                          <SelectItem key={s.id} value={s.id}>
+                                            {s.nome} - {formatCurrency(s.valor)}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveServico(servico.instanceId)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Lista de serviços extras */}
+                          {servico.servicosExtras && servico.servicosExtras.length > 0 && (
+                            <div className="ml-8 space-y-1">
+                              {servico.servicosExtras.map((extra) => (
+                                <div key={extra.id} className="flex items-center justify-between text-muted-foreground">
+                                  <span>+ {extra.nome} - {formatCurrency(extra.valor)}</span>
+                                  <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleRemoveServicoExtra(servico.instanceId, extra.id)} 
+                                    className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                  >
+                                    <X className="h-2 w-2" />
+                                  </Button>
+                                </div>
+                              ))}
+                              <div className="font-medium text-accent text-[10px]">
+                                Subtotal banho: {formatCurrency(valorTotalBanho)}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -551,18 +656,28 @@ const Pacotes = () => {
                       </td>
                       <td className="py-2 px-3 text-xs">
                         {(() => {
-                          const servicosAgrupados = pacote.servicos.reduce((acc, servico) => {
-                            const existing = acc.find(s => s.id === servico.id);
+                          // Agrupar serviços considerando extras
+                          const servicosDescricao = pacote.servicos.map(servico => {
+                            const extras = ((servico as any).servicosExtras || []) as ServicoExtra[];
+                            if (extras.length > 0) {
+                              return `${servico.nome} + ${extras.map(e => e.nome).join(' + ')}`;
+                            }
+                            return servico.nome;
+                          });
+                          
+                          // Agrupar descrições iguais
+                          const agrupados = servicosDescricao.reduce((acc, desc) => {
+                            const existing = acc.find(s => s.desc === desc);
                             if (existing) {
                               existing.quantidade++;
                             } else {
-                              acc.push({ id: servico.id, nome: servico.nome, quantidade: 1 });
+                              acc.push({ desc, quantidade: 1 });
                             }
                             return acc;
-                          }, [] as Array<{id: string, nome: string, quantidade: number}>);
+                          }, [] as Array<{desc: string, quantidade: number}>);
                           
-                          return servicosAgrupados.map(s => 
-                            s.quantidade > 1 ? `${s.nome} x${s.quantidade}` : s.nome
+                          return agrupados.map(s => 
+                            s.quantidade > 1 ? `${s.desc} x${s.quantidade}` : s.desc
                           ).join(", ");
                         })()}
                       </td>
