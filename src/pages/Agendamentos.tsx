@@ -81,6 +81,7 @@ interface ServicoAgendamento {
   horarioInicio: string;
   tempoServico: string; // Agora em formato hh:mm
   horarioTermino: string;
+  servicosExtras?: { id: string; nome: string; valor: number }[];
 }
 interface AgendamentoPacote {
   id: string;
@@ -1041,6 +1042,8 @@ const Agendamentos = () => {
       const servicosInit: ServicoAgendamento[] = pacoteSelecionado.servicos.map((servico, index) => {
         const total = pacoteSelecionado.servicos.length;
         const numero = `${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`;
+        // Preservar servicosExtras do pacote
+        const extras = (servico as any).servicosExtras || [];
         return {
           numero,
           nomeServico: servico.nome,
@@ -1048,6 +1051,7 @@ const Agendamentos = () => {
           horarioInicio: "",
           tempoServico: "",
           horarioTermino: "",
+          servicosExtras: extras,
         };
       });
       setServicosAgendamento(servicosInit);
@@ -1453,20 +1457,29 @@ const Agendamentos = () => {
     const agendamentosPacote = agendamentosPacotes.flatMap((p) =>
       p.servicos
         .filter((s) => s.data === dateStr)
-        .map((s) => ({
-          tipo: "pacote" as const,
-          horarioInicio: s.horarioInicio,
-          horarioFim: s.horarioTermino,
-          cliente: p.nomeCliente,
-          pet: p.nomePet,
-          raca: p.raca,
-          servico: s.nomeServico,
-          pacote: p.nomePacote,
-          numeroPacote: s.numero,
-          taxiDog: p.taxiDog,
-          agendamentoPacote: p,
-          servicoAgendamento: s,
-        })),
+        .map((s) => {
+          // Montar nome do serviço com extras
+          const extras = (s as any).servicosExtras || [];
+          const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
+          const servicoCompleto = nomesExtras 
+            ? `${s.nomeServico} + ${nomesExtras}` 
+            : s.nomeServico;
+          
+          return {
+            tipo: "pacote" as const,
+            horarioInicio: s.horarioInicio,
+            horarioFim: s.horarioTermino,
+            cliente: p.nomeCliente,
+            pet: p.nomePet,
+            raca: p.raca,
+            servico: servicoCompleto,
+            pacote: p.nomePacote,
+            numeroPacote: s.numero,
+            taxiDog: p.taxiDog,
+            agendamentoPacote: p,
+            servicoAgendamento: s,
+          };
+        }),
     );
     return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
       return a.horarioInicio.localeCompare(b.horarioInicio);
@@ -1496,26 +1509,35 @@ const Agendamentos = () => {
       agendamentoOriginal: a,
     }));
     const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap((p) =>
-      p.servicos.map((s) => ({
-        id: `${p.id}-${s.numero}`,
-        tipo: "pacote" as const,
-        data: s.data,
-        horarioInicio: s.horarioInicio,
-        horarioTermino: s.horarioTermino,
-        cliente: p.nomeCliente,
-        pet: p.nomePet,
-        raca: p.raca,
-        servico: s.nomeServico,
-        nomePacote: p.nomePacote,
-        numeroPacote: s.numero,
-        taxiDog: p.taxiDog,
-        dataVenda: p.dataVenda,
-        whatsapp: p.whatsapp,
-        tempoServico: s.tempoServico,
-        groomer: "",
-        pacoteOriginal: p,
-        servicoOriginal: s,
-      })),
+      p.servicos.map((s) => {
+        // Montar nome do serviço com extras
+        const extras = (s as any).servicosExtras || [];
+        const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
+        const servicoCompleto = nomesExtras 
+          ? `${s.nomeServico} + ${nomesExtras}` 
+          : s.nomeServico;
+        
+        return {
+          id: `${p.id}-${s.numero}`,
+          tipo: "pacote" as const,
+          data: s.data,
+          horarioInicio: s.horarioInicio,
+          horarioTermino: s.horarioTermino,
+          cliente: p.nomeCliente,
+          pet: p.nomePet,
+          raca: p.raca,
+          servico: servicoCompleto,
+          nomePacote: p.nomePacote,
+          numeroPacote: s.numero,
+          taxiDog: p.taxiDog,
+          dataVenda: p.dataVenda,
+          whatsapp: p.whatsapp,
+          tempoServico: s.tempoServico,
+          groomer: "",
+          pacoteOriginal: p,
+          servicoOriginal: s,
+        };
+      }),
     );
     return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
       const dataCompare = a.data.localeCompare(b.data);
