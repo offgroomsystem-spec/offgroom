@@ -1565,7 +1565,7 @@ const Agendamentos = () => {
       taxiDog: a.taxiDog || "",
       dataVenda: a.dataVenda,
       whatsapp: a.whatsapp,
-      tempoServico: "",
+      tempoServico: a.tempoServico || "",
       groomer: a.groomer || "",
       agendamentoOriginal: a,
     }));
@@ -1766,6 +1766,8 @@ const Agendamentos = () => {
             servicos: todosServicosArray,
             data: editandoAgendamento.data,
             horario: editandoAgendamento.horarioInicio,
+            tempo_servico: editandoAgendamento.tempoServico,
+            horario_termino: editandoAgendamento.horarioTermino,
             data_venda: editandoAgendamento.dataVenda,
             updated_at: new Date().toISOString(),
           })
