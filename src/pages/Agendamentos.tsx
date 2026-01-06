@@ -172,6 +172,62 @@ interface AgendamentoUnificado {
   pacoteOriginal?: AgendamentoPacote;
   servicoOriginal?: ServicoAgendamento;
 }
+
+// Componente auxiliar para combobox de serviço extra
+const ServicoExtraCombobox = ({ 
+  extra, 
+  index, 
+  servicos, 
+  onSelect 
+}: { 
+  extra: { id: string; nome: string; valor: number }; 
+  index: number;
+  servicos: Servico[];
+  onSelect: (servico: Servico) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="flex-1 h-8 text-xs justify-between"
+        >
+          {extra.nome || "Selecione serviço extra..."}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0 z-50 bg-popover">
+        <Command>
+          <CommandInput placeholder="Buscar serviço..." className="h-9" />
+          <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
+          <CommandGroup className="max-h-[200px] overflow-y-auto">
+            {servicos.map((s) => (
+              <CommandItem
+                key={s.id}
+                value={s.nome}
+                onSelect={() => {
+                  onSelect(s);
+                  setOpen(false);
+                }}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    extra.nome === s.nome ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {s.nome} - R$ {s.valor?.toFixed(2)}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const Agendamentos = () => {
   const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -238,9 +294,9 @@ const Agendamentos = () => {
         whatsapp: ag.whatsapp,
         servico: ag.servico,
         data: ag.data,
-        horario: ag.horario,
-        tempoServico: ag.tempo_servico,
-        horarioTermino: ag.horario_termino,
+        horario: ag.horario ? ag.horario.substring(0, 5) : "",
+        tempoServico: ag.tempo_servico ? ag.tempo_servico.substring(0, 5) : "",
+        horarioTermino: ag.horario_termino ? ag.horario_termino.substring(0, 5) : "",
         dataVenda: ag.data_venda,
         groomer: ag.groomer,
         taxiDog: ag.taxi_dog,
@@ -462,6 +518,11 @@ const Agendamentos = () => {
   const [editDialogGerenciamento, setEditDialogGerenciamento] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [agendamentoParaDeletar, setAgendamentoParaDeletar] = useState<AgendamentoUnificado | null>(null);
+  
+  // Estados para edição de serviços extras
+  const [servicosExtrasEdicao, setServicosExtrasEdicao] = useState<{id: string; nome: string; valor: number}[]>([]);
+  const [openServicoEdicao, setOpenServicoEdicao] = useState(false);
+  const [servicoPrincipalEdicao, setServicoPrincipalEdicao] = useState("");
 
   // Load agendamentos pacotes from Supabase
   const loadAgendamentosPacotes = async () => {
@@ -1633,6 +1694,43 @@ const Agendamentos = () => {
   // Abrir edição
   const handleEditarClick = (agendamento: AgendamentoUnificado) => {
     setEditandoAgendamento(agendamento);
+    
+    // Inicializar serviços extras a partir do agendamento
+    if (agendamento.tipo === "pacote" && agendamento.servicoOriginal) {
+      const extras = (agendamento.servicoOriginal as any).servicosExtras || [];
+      setServicosExtrasEdicao(extras);
+      // O serviço principal é o nomeServico sem os extras concatenados
+      setServicoPrincipalEdicao(agendamento.servicoOriginal.nomeServico);
+    } else if (agendamento.tipo === "simples" && agendamento.agendamentoOriginal) {
+      // Para agendamentos simples, verificar se há servicos no campo JSON
+      const todosServicos = (agendamento.agendamentoOriginal as any).servicos || [];
+      if (todosServicos.length > 1) {
+        // O primeiro é o principal, os demais são extras
+        setServicoPrincipalEdicao(todosServicos[0]?.nome || agendamento.servico.split(' + ')[0]);
+        setServicosExtrasEdicao(todosServicos.slice(1).map((s: any) => ({
+          id: s.id || crypto.randomUUID(),
+          nome: s.nome,
+          valor: s.valor || 0
+        })));
+      } else {
+        // Sem extras, usar o serviço direto (pode ter sido salvo concatenado)
+        const partesServico = agendamento.servico.split(' + ');
+        setServicoPrincipalEdicao(partesServico[0]);
+        if (partesServico.length > 1) {
+          setServicosExtrasEdicao(partesServico.slice(1).map(nome => ({
+            id: crypto.randomUUID(),
+            nome: nome.trim(),
+            valor: 0
+          })));
+        } else {
+          setServicosExtrasEdicao([]);
+        }
+      }
+    } else {
+      setServicosExtrasEdicao([]);
+      setServicoPrincipalEdicao(agendamento.servico.split(' + ')[0]);
+    }
+    
     setEditDialogGerenciamento(true);
   };
 
@@ -1641,6 +1739,21 @@ const Agendamentos = () => {
     if (!editandoAgendamento || !user) return;
 
     try {
+      // Montar nome do serviço concatenado (principal + extras)
+      const extrasNomes = servicosExtrasEdicao
+        .filter(e => e.nome)
+        .map(e => e.nome);
+      const servicoCompleto = extrasNomes.length > 0
+        ? `${servicoPrincipalEdicao} + ${extrasNomes.join(' + ')}`
+        : servicoPrincipalEdicao;
+
+      // Montar array de serviços para persistência
+      const servicoPrincipalObj = servicos.find(s => s.nome === servicoPrincipalEdicao);
+      const todosServicosArray = [
+        { id: servicoPrincipalObj?.id || '', nome: servicoPrincipalEdicao, valor: servicoPrincipalObj?.valor || 0 },
+        ...servicosExtrasEdicao.filter(e => e.nome)
+      ];
+
       if (editandoAgendamento.tipo === "simples" && editandoAgendamento.agendamentoOriginal) {
         const { error } = await supabase
           .from("agendamentos")
@@ -1649,7 +1762,8 @@ const Agendamentos = () => {
             pet: editandoAgendamento.pet,
             raca: editandoAgendamento.raca,
             whatsapp: editandoAgendamento.whatsapp,
-            servico: editandoAgendamento.servico,
+            servico: servicoCompleto,
+            servicos: todosServicosArray,
             data: editandoAgendamento.data,
             horario: editandoAgendamento.horarioInicio,
             data_venda: editandoAgendamento.dataVenda,
@@ -1670,7 +1784,8 @@ const Agendamentos = () => {
           s.numero === editandoAgendamento.servicoOriginal!.numero
             ? {
                 ...s,
-                nomeServico: editandoAgendamento.servico,
+                nomeServico: servicoPrincipalEdicao,
+                servicosExtras: servicosExtrasEdicao.filter(e => e.nome),
                 data: editandoAgendamento.data,
                 horarioInicio: editandoAgendamento.horarioInicio,
                 tempoServico: editandoAgendamento.tempoServico,
@@ -1682,10 +1797,12 @@ const Agendamentos = () => {
             : s,
         );
 
+        // Também atualizar whatsapp no pacote se foi alterado
         const { error } = await supabase
           .from("agendamentos_pacotes")
           .update({
             servicos: updatedServicos as any,
+            whatsapp: editandoAgendamento.whatsapp,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editandoAgendamento.pacoteOriginal.id);
@@ -1698,6 +1815,8 @@ const Agendamentos = () => {
 
       setEditDialogGerenciamento(false);
       setEditandoAgendamento(null);
+      setServicosExtrasEdicao([]);
+      setServicoPrincipalEdicao("");
     } catch (error) {
       console.error("Erro ao atualizar agendamento:", error);
       toast.error("Erro ao atualizar agendamento");
@@ -2769,19 +2888,105 @@ const Agendamentos = () => {
                     </div>
                   </div>
 
+                  {/* Serviço Principal - Dropdown Pesquisável */}
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço</Label>
-                    <Input
-                      value={editandoAgendamento.servico}
-                      onChange={(e) =>
-                        setEditandoAgendamento({
-                          ...editandoAgendamento,
-                          servico: e.target.value,
-                        })
-                      }
-                      className="h-8 text-xs"
-                    />
+                    <div className="flex gap-2">
+                      <Popover open={openServicoEdicao} onOpenChange={setOpenServicoEdicao}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openServicoEdicao}
+                            className="flex-1 h-8 text-xs justify-between"
+                          >
+                            {servicoPrincipalEdicao || "Selecione o serviço..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0 z-50 bg-popover">
+                          <Command>
+                            <CommandInput placeholder="Buscar serviço..." className="h-9" />
+                            <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
+                            <CommandGroup className="max-h-[200px] overflow-y-auto">
+                              {servicos.map((s) => (
+                                <CommandItem
+                                  key={s.id}
+                                  value={s.nome}
+                                  onSelect={() => {
+                                    setServicoPrincipalEdicao(s.nome);
+                                    setOpenServicoEdicao(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      servicoPrincipalEdicao === s.nome ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {s.nome} - R$ {s.valor?.toFixed(2)}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      
+                      {/* Botão + Serviço */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs whitespace-nowrap"
+                        onClick={() => {
+                          setServicosExtrasEdicao([
+                            ...servicosExtrasEdicao,
+                            { id: crypto.randomUUID(), nome: "", valor: 0 }
+                          ]);
+                        }}
+                      >
+                        + Serviço
+                      </Button>
+                    </div>
                   </div>
+
+                  {/* Serviços Extras */}
+                  {servicosExtrasEdicao.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Serviços Extras</Label>
+                      {servicosExtrasEdicao.map((extra, index) => (
+                        <div key={extra.id} className="flex gap-2 items-center">
+                          <ServicoExtraCombobox
+                            extra={extra}
+                            index={index}
+                            servicos={servicos}
+                            onSelect={(selectedServico) => {
+                              const novosExtras = [...servicosExtrasEdicao];
+                              novosExtras[index] = { 
+                                id: selectedServico.id, 
+                                nome: selectedServico.nome, 
+                                valor: selectedServico.valor 
+                              };
+                              setServicosExtrasEdicao(novosExtras);
+                            }}
+                          />
+                          
+                          {/* Botão Remover */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setServicosExtrasEdicao(servicosExtrasEdicao.filter((_, i) => i !== index));
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {editandoAgendamento.tipo === "simples" && (
                     <div className="space-y-1">
