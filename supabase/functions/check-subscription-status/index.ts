@@ -121,150 +121,160 @@ serve(async (req) => {
 
     logStep("Trial calculation", { trialEndDate: trialEndDate.toISOString(), trialDaysRemaining });
 
-    // 2️⃣ CHECK ACTIVE STRIPE SUBSCRIPTION
+    // 2️⃣ CHECK ACTIVE STRIPE SUBSCRIPTION (with isolated error handling)
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    let stripeCheckFailed = false;
+    
     if (!stripeKey) {
       logStep("WARNING: STRIPE_SECRET_KEY not configured");
+      stripeCheckFailed = true;
     } else {
-      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+      try {
+        const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-      // Find Stripe customer by email (owner's email for staff)
-      const customers = await stripe.customers.list({ email: emailToCheck, limit: 1 });
-      
-      if (customers.data.length > 0) {
-        const customerId = customers.data[0].id;
-        logStep("Stripe customer found", { customerId, email: emailToCheck });
+        // Find Stripe customer by email (owner's email for staff)
+        const customers = await stripe.customers.list({ email: emailToCheck, limit: 1 });
+        
+        if (customers.data.length > 0) {
+          const customerId = customers.data[0].id;
+          logStep("Stripe customer found", { customerId, email: emailToCheck });
 
-        // Check for active subscriptions first
-        const activeSubscriptions = await stripe.subscriptions.list({
-          customer: customerId,
-          status: 'active',
-          limit: 10,
-        });
-
-        logStep("Active subscriptions found", { count: activeSubscriptions.data.length });
-
-        // Also check for canceled subscriptions that still have valid paid period
-        const canceledSubscriptions = await stripe.subscriptions.list({
-          customer: customerId,
-          status: 'canceled',
-          limit: 10,
-        });
-
-        logStep("Canceled subscriptions found", { count: canceledSubscriptions.data.length });
-
-        // Combine both lists for processing
-        const allSubscriptions = [...activeSubscriptions.data, ...canceledSubscriptions.data];
-
-        for (const subscription of allSubscriptions) {
-          const subscriptionItem = subscription.items.data[0];
-          if (!subscriptionItem) {
-            logStep("No subscription item found", { subscriptionId: subscription.id });
-            continue;
-          }
-
-          const productId = subscriptionItem.price.product as string;
-          const productConfig = STRIPE_PRODUCTS[productId];
-
-          logStep("Processing subscription", { 
-            subscriptionId: subscription.id,
-            productId,
-            status: subscription.status,
-            hasProductConfig: !!productConfig
+          // Check for active subscriptions first
+          const activeSubscriptions = await stripe.subscriptions.list({
+            customer: customerId,
+            status: 'active',
+            limit: 10,
           });
 
-          if (productConfig) {
-            // Get period dates from Stripe subscription
-            const periodStart = subscription.current_period_start;
-            const periodEnd = subscription.current_period_end;
-            
-            logStep("Period data", { 
-              periodStart, 
-              periodEnd,
-              subscriptionStatus: subscription.status,
-              subscriptionCreated: subscription.created,
-              subscriptionStartDate: subscription.start_date
-            });
+          logStep("Active subscriptions found", { count: activeSubscriptions.data.length });
 
-            // Calculate subscription end based on period or product days
-            let subscriptionStart: Date;
-            let subscriptionEnd: Date;
+          // Also check for canceled subscriptions that still have valid paid period
+          const canceledSubscriptions = await stripe.subscriptions.list({
+            customer: customerId,
+            status: 'canceled',
+            limit: 10,
+          });
 
-            if (periodEnd) {
-              // Use actual period dates from Stripe
-              subscriptionStart = new Date(periodStart * 1000);
-              subscriptionEnd = new Date(periodEnd * 1000);
-            } else {
-              // Fallback: use subscription start date + product days
-              const startTimestamp = subscription.start_date || subscription.created;
-              subscriptionStart = new Date(startTimestamp * 1000);
-              subscriptionEnd = new Date(subscriptionStart.getTime() + (productConfig.days * 24 * 60 * 60 * 1000));
+          logStep("Canceled subscriptions found", { count: canceledSubscriptions.data.length });
+
+          // Combine both lists for processing
+          const allSubscriptions = [...activeSubscriptions.data, ...canceledSubscriptions.data];
+
+          for (const subscription of allSubscriptions) {
+            const subscriptionItem = subscription.items.data[0];
+            if (!subscriptionItem) {
+              logStep("No subscription item found", { subscriptionId: subscription.id });
+              continue;
             }
 
-            const now = Date.now();
-            const daysRemaining = Math.floor((subscriptionEnd.getTime() - now) / (1000 * 60 * 60 * 24));
+            const productId = subscriptionItem.price.product as string;
+            const productConfig = STRIPE_PRODUCTS[productId];
 
-            logStep("Subscription period calculated", {
+            logStep("Processing subscription", { 
               subscriptionId: subscription.id,
-              productName: productConfig.name,
-              subscriptionStart: subscriptionStart.toISOString(),
-              subscriptionEnd: subscriptionEnd.toISOString(),
-              daysRemaining,
-              isWithinPaidPeriod: subscriptionEnd.getTime() > now
+              productId,
+              status: subscription.status,
+              hasProductConfig: !!productConfig
             });
 
-            // Check if subscription is still within paid period
-            if (subscriptionEnd.getTime() > now) {
-              logStep("Active subscription access granted", {
-                subscriptionId: subscription.id,
-                productId,
-                productName: productConfig.name,
-                daysRemaining,
-                status: subscription.status
+            if (productConfig) {
+              // Get period dates from Stripe subscription
+              const periodStart = subscription.current_period_start;
+              const periodEnd = subscription.current_period_end;
+              
+              logStep("Period data", { 
+                periodStart, 
+                periodEnd,
+                subscriptionStatus: subscription.status,
+                subscriptionCreated: subscription.created,
+                subscriptionStartDate: subscription.start_date
               });
 
-              // Update subscriptions table
-              await supabaseClient
-                .from('subscriptions')
-                .upsert({
-                  user_id: profileId,
-                  stripe_customer_id: customerId,
-                  stripe_subscription_id: subscription.id,
-                  stripe_product_id: productId,
-                  plan_name: productConfig.name,
-                  subscription_start: subscriptionStart.toISOString(),
-                  subscription_end: subscriptionEnd.toISOString(),
-                  is_active: true,
-                  status: subscription.status === 'active' ? 'active' : 'canceled_with_access',
-                  updated_at: new Date().toISOString()
-                }, {
-                  onConflict: 'stripe_subscription_id'
+              // Calculate subscription end based on period or product days
+              let subscriptionStart: Date;
+              let subscriptionEnd: Date;
+
+              if (periodEnd) {
+                // Use actual period dates from Stripe
+                subscriptionStart = new Date(periodStart * 1000);
+                subscriptionEnd = new Date(periodEnd * 1000);
+              } else {
+                // Fallback: use subscription start date + product days
+                const startTimestamp = subscription.start_date || subscription.created;
+                subscriptionStart = new Date(startTimestamp * 1000);
+                subscriptionEnd = new Date(subscriptionStart.getTime() + (productConfig.days * 24 * 60 * 60 * 1000));
+              }
+
+              const now = Date.now();
+              const daysRemaining = Math.floor((subscriptionEnd.getTime() - now) / (1000 * 60 * 60 * 24));
+
+              logStep("Subscription period calculated", {
+                subscriptionId: subscription.id,
+                productName: productConfig.name,
+                subscriptionStart: subscriptionStart.toISOString(),
+                subscriptionEnd: subscriptionEnd.toISOString(),
+                daysRemaining,
+                isWithinPaidPeriod: subscriptionEnd.getTime() > now
+              });
+
+              // Check if subscription is still within paid period
+              if (subscriptionEnd.getTime() > now) {
+                logStep("Active subscription access granted", {
+                  subscriptionId: subscription.id,
+                  productId,
+                  productName: productConfig.name,
+                  daysRemaining,
+                  status: subscription.status
                 });
 
-              return new Response(JSON.stringify({
-                hasAccess: true,
-                type: 'subscription',
-                productId,
-                productName: productConfig.name,
-                daysRemaining: Math.max(0, daysRemaining),
-                subscriptionEnd: subscriptionEnd.toISOString(),
-                message: `Plano ${productConfig.name} ativo`
-              }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
-              });
-            } else {
-              logStep("Subscription period expired", {
-                subscriptionId: subscription.id,
-                subscriptionEnd: subscriptionEnd.toISOString()
-              });
+                // Update subscriptions table
+                await supabaseClient
+                  .from('subscriptions')
+                  .upsert({
+                    user_id: profileId,
+                    stripe_customer_id: customerId,
+                    stripe_subscription_id: subscription.id,
+                    stripe_product_id: productId,
+                    plan_name: productConfig.name,
+                    subscription_start: subscriptionStart.toISOString(),
+                    subscription_end: subscriptionEnd.toISOString(),
+                    is_active: true,
+                    status: subscription.status === 'active' ? 'active' : 'canceled_with_access',
+                    updated_at: new Date().toISOString()
+                  }, {
+                    onConflict: 'stripe_subscription_id'
+                  });
+
+                return new Response(JSON.stringify({
+                  hasAccess: true,
+                  type: 'subscription',
+                  productId,
+                  productName: productConfig.name,
+                  daysRemaining: Math.max(0, daysRemaining),
+                  subscriptionEnd: subscriptionEnd.toISOString(),
+                  message: `Plano ${productConfig.name} ativo`
+                }), {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                  status: 200,
+                });
+              } else {
+                logStep("Subscription period expired", {
+                  subscriptionId: subscription.id,
+                  subscriptionEnd: subscriptionEnd.toISOString()
+                });
+              }
             }
           }
-        }
 
-        logStep("No matching active Stripe subscriptions found with valid period");
-      } else {
-        logStep("No Stripe customer found for email", { email: emailToCheck });
+          logStep("No matching active Stripe subscriptions found with valid period");
+        } else {
+          logStep("No Stripe customer found for email", { email: emailToCheck });
+        }
+      } catch (stripeError) {
+        // Stripe API error - don't block user, continue to trial check
+        const errorMsg = stripeError instanceof Error ? stripeError.message : String(stripeError);
+        logStep("Stripe API error - continuing to trial check", { error: errorMsg });
+        stripeCheckFailed = true;
       }
     }
 
