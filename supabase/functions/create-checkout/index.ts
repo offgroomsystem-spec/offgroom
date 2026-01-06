@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,6 +23,18 @@ serve(async (req) => {
   );
 
   try {
+    logStep("Function started");
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey || !stripeKey.startsWith('sk_')) {
+      logStep("ERROR: Invalid Stripe key format", { 
+        hasKey: !!stripeKey,
+        startsWithSk: stripeKey?.startsWith('sk_') || false 
+      });
+      throw new Error("Stripe API key is not properly configured. Please update the STRIPE_SECRET_KEY.");
+    }
+    logStep("Stripe key verified");
+
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -26,14 +43,16 @@ serve(async (req) => {
     if (!user?.email) {
       throw new Error("User not authenticated or email not available");
     }
+    logStep("User authenticated", { email: user.email });
 
     const { price_id } = await req.json();
     
     if (!price_id) {
       throw new Error("price_id is required");
     }
+    logStep("Price ID received", { price_id });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -43,6 +62,9 @@ serve(async (req) => {
     
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      logStep("Existing customer found", { customerId });
+    } else {
+      logStep("No existing customer, will create new");
     }
 
     // Create checkout session
@@ -60,6 +82,8 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/pagamento`,
     });
 
+    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
@@ -67,6 +91,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error creating checkout session:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
