@@ -48,9 +48,6 @@ export const PricingContent = () => {
         console.error('Erro ao criar checkout:', error);
         toast.error('Erro ao processar pagamento');
       }
-    } else {
-      console.log("Checkout iniciado para o plano:", planId);
-      toast.info("Em breve: plano Master 60");
     }
   };
 
@@ -102,7 +99,7 @@ export const PricingContent = () => {
           </div>
 
           {/* Cards de Planos - Grid Responsivo */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-8 mb-16 max-w-4xl mx-auto">
             {/* Plano Offgroom Flex */}
             <Card className="relative flex flex-col transition-all duration-300 hover:scale-105 hover:shadow-xl">
               <CardHeader>
@@ -207,58 +204,6 @@ export const PricingContent = () => {
                   className="w-full py-6 text-lg font-semibold bg-primary hover:bg-primary/90 animate-pulse"
                 >
                   Quero o plano mais vantajoso
-                </Button>
-              </CardFooter>
-            </Card>
-
-            {/* Plano Offgroom Master 60 */}
-            <Card className="relative flex flex-col transition-all duration-300 hover:scale-105 hover:shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold">Offgroom Master 60</CardTitle>
-                <CardDescription>Máxima economia a longo prazo</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <div className="mb-6">
-                  <p className="text-sm text-muted-foreground line-through mb-1">
-                    De R$ 8.820 (60 × R$ 147)
-                  </p>
-                  <p className="text-4xl font-bold text-foreground">
-                    R$ 1.497<span className="text-lg text-muted-foreground">/60 meses</span>
-                  </p>
-                  <p className="text-lg font-semibold text-accent mt-2">
-                    R$ 24,95/mês • Economia de R$ 7.323
-                  </p>
-                </div>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <span className="text-sm">Todos os recursos do Power 12</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <span className="text-sm">Economia de 83% no valor mensal</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <span className="text-sm">Suporte VIP 24/7</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <span className="text-sm">Consultoria personalizada</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <span className="text-sm">Acesso antecipado a novos recursos</span>
-                  </li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  onClick={() => handleCheckout("master60")}
-                  className="w-full py-6 text-lg font-semibold"
-                  variant="outline"
-                >
-                  Garantir 5 anos
                 </Button>
               </CardFooter>
             </Card>
