@@ -91,13 +91,13 @@ export const PricingContent = () => {
               R$ 147<span className="text-xl">/mês</span>
             </p>
             <p className="text-sm text-muted-foreground mb-3">
-              Com o plano Power 24, você paga apenas:
+              Com o plano Power 12, você paga apenas:
             </p>
             <p className="text-5xl md:text-6xl font-bold text-primary mb-2">
-              R$ 37,37<span className="text-2xl">/mês</span>
+              R$ 73,92<span className="text-2xl">/mês</span>
             </p>
             <p className="text-sm font-semibold text-accent">
-              💰 Economia de 75% com compromisso de 2 anos
+              💰 Economia de 50% com compromisso de 1 ano
             </p>
           </div>
 
@@ -150,7 +150,7 @@ export const PricingContent = () => {
               </CardFooter>
             </Card>
 
-            {/* Plano Offgroom Power 24 - DESTAQUE */}
+            {/* Plano Offgroom Power 12 - DESTAQUE */}
             <Card className="relative flex flex-col transition-all duration-300 scale-105 shadow-2xl border-[3px] border-amber-500 bg-gradient-to-br from-amber-50/50 to-card md:mt-0 -mt-4">
               {/* Badge "Mais Escolhido" */}
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
@@ -160,19 +160,19 @@ export const PricingContent = () => {
               </div>
 
               <CardHeader className="pt-8">
-                <CardTitle className="text-2xl font-bold">Offgroom Power 24</CardTitle>
+                <CardTitle className="text-2xl font-bold">Offgroom Power 12</CardTitle>
                 <CardDescription>O melhor custo-benefício</CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
                 <div className="mb-6">
                   <p className="text-sm text-muted-foreground line-through mb-1">
-                    De R$ 3.528 (24 × R$ 147)
+                    De R$ 1.764 (12 × R$ 147)
                   </p>
                   <p className="text-5xl font-bold text-primary">
-                    R$ 897<span className="text-lg text-muted-foreground">/24 meses</span>
+                    R$ 887<span className="text-lg text-muted-foreground">/12 meses</span>
                   </p>
                   <p className="text-lg font-semibold text-accent mt-2">
-                    R$ 37,37/mês • Economia de R$ 2.631
+                    R$ 73,92/mês • Economia de R$ 877
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     💡 82% dos clientes escolhem este plano
@@ -185,7 +185,7 @@ export const PricingContent = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <span className="text-sm font-semibold">Economia de 75% no valor mensal</span>
+                    <span className="text-sm font-semibold">Economia de 50% no valor mensal</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
@@ -203,7 +203,7 @@ export const PricingContent = () => {
               </CardContent>
               <CardFooter>
                 <Button 
-                  onClick={() => handleCheckout("power24")}
+                  onClick={() => handleCheckout("power12")}
                   className="w-full py-6 text-lg font-semibold bg-primary hover:bg-primary/90 animate-pulse"
                 >
                   Quero o plano mais vantajoso
@@ -232,7 +232,7 @@ export const PricingContent = () => {
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <span className="text-sm">Todos os recursos do Power 24</span>
+                    <span className="text-sm">Todos os recursos do Power 12</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
@@ -264,23 +264,23 @@ export const PricingContent = () => {
             </Card>
           </div>
 
-          {/* Seção Copy de Vendas - Por que Power 24? */}
+          {/* Seção Copy de Vendas - Por que Power 12? */}
           <div className="bg-gradient-to-br from-amber-50/50 to-muted/30 p-8 md:p-12 rounded-2xl border border-amber-200 mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-6 text-foreground">
-              Por que a maioria escolhe o Power 24?
+              Por que a maioria escolhe o Power 12?
             </h2>
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground">💰 Economia Real</h3>
                 <p className="text-muted-foreground">
-                  Com o plano de 24 meses, você economiza <span className="font-bold text-primary">R$ 2.631</span> comparado 
-                  ao plano mensal. É como ganhar quase 18 meses grátis!
+                  Com o plano anual, você economiza <span className="font-bold text-primary">R$ 877</span> comparado 
+                  ao plano mensal. É como ganhar 6 meses grátis!
                 </p>
               </div>
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground">🚀 Crescimento Garantido</h3>
                 <p className="text-muted-foreground">
-                  2 anos é o tempo ideal para estabelecer processos eficientes e ver resultados consistentes 
+                  1 ano é o tempo ideal para estabelecer processos eficientes e ver resultados consistentes 
                   no seu petshop com o Offgroom.
                 </p>
               </div>
@@ -294,7 +294,7 @@ export const PricingContent = () => {
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground">🏆 Suporte Prioritário</h3>
                 <p className="text-muted-foreground">
-                  Clientes Power 24 têm prioridade no atendimento e acesso a treinamentos 
+                  Clientes Power 12 têm prioridade no atendimento e acesso a treinamentos 
                   exclusivos para maximizar os resultados.
                 </p>
               </div>
@@ -343,11 +343,11 @@ export const PricingContent = () => {
               com o Offgroom.
             </p>
             <Button 
-              onClick={() => handleCheckout("power24")}
+              onClick={() => handleCheckout("power12")}
               size="lg"
               className="text-lg px-12 py-6 bg-primary hover:bg-primary/90 shadow-lg"
             >
-              Começar Agora com Power 24
+              Começar Agora com Power 12
             </Button>
             <p className="text-sm text-muted-foreground mt-4">
               ⚡ Ativação imediata • 🔒 Pagamento 100% seguro
