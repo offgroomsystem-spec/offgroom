@@ -13,10 +13,10 @@ const VIP_EMAILS = [
   'offgroom.system@gmail.com'
 ];
 
-// Stripe product configurations
+// Stripe product configurations (Production)
 const STRIPE_PRODUCTS = {
-  'prod_TVzSAVPqB5ye8V': { name: 'Offgroom Flex', days: 31 },
-  'prod_TUsA6Cvxwh3CAM': { name: 'Offgroom Power 24', days: 730 }
+  'prod_Tk9Vbm7j8e0lRx': { name: 'Offgroom Power 12', days: 365 }
+  // Offgroom Flex is a recurring monthly subscription, days calculated from Stripe period
 };
 
 const TRIAL_DAYS = 30;
