@@ -2,7 +2,7 @@ import { StoreLayout } from "@/components/store/StoreLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Zap, TrendingUp, Crown, Shield, Clock, Lock, Headphones, Sparkles } from "lucide-react";
+import { Check, Zap, TrendingUp, Shield, Clock, Lock, Headphones, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -36,9 +36,6 @@ const Pagamento = () => {
         console.error('Erro ao criar checkout:', error);
         toast.error('Erro ao processar pagamento');
       }
-    } else {
-      console.log("Checkout para plano:", planId);
-      toast.info("Em breve: plano Master 60");
     }
   };
 
@@ -74,13 +71,13 @@ const Pagamento = () => {
               De <span className="line-through">R$ 147/mês</span> →
             </p>
             <p className="text-3xl font-bold text-primary">
-              por apenas <span className="text-green-600">R$ 37,37/mês</span>
+              por apenas <span className="text-green-600">R$ 73,92/mês</span>
             </p>
-            <p className="text-sm text-muted-foreground mt-2">no plano Power 24</p>
+            <p className="text-sm text-muted-foreground mt-2">no plano Power 12</p>
           </div>
 
           {/* Cards de Planos */}
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8 mb-16 max-w-4xl mx-auto">
             {/* Card 1 - Offgroom Flex */}
             <Card className="relative flex flex-col transition-all duration-300 hover:shadow-lg">
               <CardHeader>
@@ -127,7 +124,7 @@ const Pagamento = () => {
               </CardFooter>
             </Card>
 
-            {/* Card 2 - Offgroom Power 24 - DESTAQUE */}
+            {/* Card 2 - Offgroom Power 12 - DESTAQUE */}
             <Card className="relative flex flex-col transition-all duration-300 scale-105 shadow-2xl border-[3px] border-amber-500 bg-gradient-to-br from-amber-50/50 to-card md:mt-0 -mt-4">
               {/* Badge "Mais Escolhido" */}
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
@@ -141,18 +138,18 @@ const Pagamento = () => {
                   <Zap className="mr-1 h-3 w-3" />
                   Melhor Custo-Benefício
                 </Badge>
-                <CardTitle className="text-3xl">Offgroom Power 24</CardTitle>
-                <CardDescription className="text-base">2 anos de acesso total</CardDescription>
+                <CardTitle className="text-3xl">Offgroom Power 12</CardTitle>
+                <CardDescription className="text-base">1 ano de acesso total</CardDescription>
                 <div className="mt-4">
-                  <p className="text-5xl font-bold text-foreground">R$ 897</p>
-                  <p className="text-muted-foreground">pagamento único por 24 meses</p>
+                  <p className="text-5xl font-bold text-foreground">R$ 887</p>
+                  <p className="text-muted-foreground">pagamento único por 12 meses</p>
                   <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-xl font-bold text-green-700">
-                      Custo: apenas R$ 37,37/mês
+                      Custo: apenas R$ 73,92/mês
                     </p>
                   </div>
                   <Badge variant="destructive" className="mt-3 text-sm">
-                    Economize R$ 2.631
+                    Economize R$ 877
                   </Badge>
                 </div>
               </CardHeader>
@@ -164,11 +161,11 @@ const Pagamento = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                    <span className="text-sm font-medium">Zero mensalidade pelos próximos 24 meses</span>
+                    <span className="text-sm font-medium">Zero mensalidade pelos próximos 12 meses</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                    <span className="text-sm font-medium">Economize R$ 2.631 comparado ao plano mensal</span>
+                    <span className="text-sm font-medium">Economize R$ 877 comparado ao plano mensal</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
@@ -185,7 +182,7 @@ const Pagamento = () => {
                     ✓ Mais economia, zero preocupação
                   </p>
                   <p className="text-sm font-semibold text-amber-900">
-                    ✓ Pague uma vez e fique tranquilo por 2 anos inteiros
+                    ✓ Pague uma vez e fique tranquilo por 1 ano inteiro
                   </p>
                   <p className="text-sm font-semibold text-amber-900">
                     ✓ A escolha inteligente para quem quer lucrar mais
@@ -194,63 +191,12 @@ const Pagamento = () => {
               </CardContent>
               <CardFooter>
                 <Button
-                  onClick={() => handleCheckout("power24")}
+                  onClick={() => handleCheckout("power12")}
                   className="w-full animate-pulse"
                   size="lg"
                 >
                   <Sparkles className="mr-2 h-5 w-5" />
                   Quero o plano mais vantajoso
-                </Button>
-              </CardFooter>
-            </Card>
-
-            {/* Card 3 - Offgroom Master 60 */}
-            <Card className="relative flex flex-col transition-all duration-300 hover:shadow-lg border-green-200">
-              <CardHeader>
-                <Badge variant="secondary" className="w-fit mb-4 bg-green-100 text-green-700">
-                  <Crown className="mr-1 h-3 w-3" />
-                  🏆 Economia Máxima
-                </Badge>
-                <CardTitle className="text-2xl">Offgroom Master 60</CardTitle>
-                <CardDescription>Longo Prazo</CardDescription>
-                <div className="mt-4">
-                  <p className="text-4xl font-bold text-foreground">R$ 1.497</p>
-                  <p className="text-muted-foreground">pagamento único por 5 anos</p>
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-lg font-bold text-green-700">
-                      Custo: apenas R$ 24,95/mês
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                    <span className="text-sm">Economia máxima no longo prazo</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                    <span className="text-sm">60 meses de acesso sem preocupação</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                    <span className="text-sm">Ideal para quem quer estabilidade total</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                    <span className="text-sm">Todas as atualizações inclusas</span>
-                  </li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  onClick={() => handleCheckout("master60")}
-                  variant="outline"
-                  className="w-full border-green-600 text-green-700 hover:bg-green-50"
-                  size="lg"
-                >
-                  Garantir 5 anos de acesso
                 </Button>
               </CardFooter>
             </Card>
@@ -260,16 +206,16 @@ const Pagamento = () => {
           <div className="max-w-4xl mx-auto mb-16">
             <Card className="p-8 md:p-12">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6 text-center">
-                ⭐ Por que a maioria dos pet shops escolhem o plano Power 24?
+                ⭐ Por que a maioria dos pet shops escolhem o plano Power 12?
               </h2>
               <p className="text-lg text-muted-foreground mb-6 text-center">
                 Porque ele reúne <strong>tudo o que você precisa</strong> com o menor custo mensal percebido:
               </p>
               <div className="text-center mb-8 p-6 bg-green-50 rounded-xl border border-green-200">
                 <p className="text-2xl md:text-3xl font-bold text-green-700">
-                  💡 Apenas R$ 37,37 por mês
+                  💡 Apenas R$ 73,92 por mês
                 </p>
-                <p className="text-muted-foreground mt-2">sem mensalidades durante 2 anos</p>
+                <p className="text-muted-foreground mt-2">sem mensalidades durante 1 ano</p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -337,7 +283,7 @@ const Pagamento = () => {
 
               <div className="text-center p-6 bg-primary/5 rounded-xl border border-primary/20">
                 <p className="text-lg font-semibold text-foreground">
-                  O <span className="text-primary">Power 24</span> é o plano com o{" "}
+                  O <span className="text-primary">Power 12</span> é o plano com o{" "}
                   <span className="text-green-600">maior retorno financeiro</span> e a{" "}
                   <span className="text-green-600">maior taxa de satisfação</span> dos clientes.
                 </p>
@@ -362,42 +308,45 @@ const Pagamento = () => {
                 <Clock className="h-12 w-12 text-primary mx-auto mb-4" />
                 <h3 className="font-semibold mb-2">Cancele quando quiser</h3>
                 <p className="text-sm text-muted-foreground">
-                  Sem burocracias ou taxas escondidas
+                  Sem multas ou taxas de cancelamento
                 </p>
               </div>
               <div className="text-center p-6 bg-card rounded-xl border border-border">
                 <Lock className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">Dados 100% seguros</h3>
+                <h3 className="font-semibold mb-2">Dados seguros</h3>
                 <p className="text-sm text-muted-foreground">
-                  Criptografia de ponta a ponta
+                  Proteção total das suas informações
                 </p>
               </div>
               <div className="text-center p-6 bg-card rounded-xl border border-border">
                 <Headphones className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">Suporte em português</h3>
+                <h3 className="font-semibold mb-2">Suporte humanizado</h3>
                 <p className="text-sm text-muted-foreground">
-                  Equipe pronta para te ajudar
+                  Atendimento real, não robô
                 </p>
               </div>
             </div>
           </div>
 
           {/* CTA Final */}
-          <div className="text-center max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold mb-4">
-              Pronto para transformar seu petshop?
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+              Comece agora e transforme seu petshop
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Escolha o plano ideal e comece agora mesmo
+              Junte-se a centenas de petshops que já descobriram como economizar tempo e ganhar mais dinheiro com o Offgroom.
             </p>
             <Button
-              onClick={() => handleCheckout("power24")}
+              onClick={() => handleCheckout("power12")}
               size="lg"
-              className="text-lg px-12 py-7 animate-pulse"
+              className="text-lg px-12 py-6"
             >
-              <Sparkles className="mr-2 h-6 w-6" />
-              Quero começar com o Power 24
+              <Sparkles className="mr-2 h-5 w-5" />
+              Quero o Power 12 agora
             </Button>
+            <p className="text-sm text-muted-foreground mt-4">
+              ⚡ Ativação imediata • 🔒 Pagamento 100% seguro
+            </p>
           </div>
         </div>
       </section>
