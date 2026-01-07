@@ -786,30 +786,48 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          data_fim_liberacao_extra: string | null
+          data_fim_periodo_gratis: string | null
+          data_inicio_periodo_gratis: string | null
+          dias_liberacao_extra: number
           email_hotmart: string
           id: string
+          liberacao_manual_ativa: boolean
           login_count: number
           nome_completo: string
+          periodo_gratis_dias: number
           trial_end_date: string | null
           updated_at: string | null
           whatsapp: string
         }
         Insert: {
           created_at?: string | null
+          data_fim_liberacao_extra?: string | null
+          data_fim_periodo_gratis?: string | null
+          data_inicio_periodo_gratis?: string | null
+          dias_liberacao_extra?: number
           email_hotmart: string
           id: string
+          liberacao_manual_ativa?: boolean
           login_count?: number
           nome_completo: string
+          periodo_gratis_dias?: number
           trial_end_date?: string | null
           updated_at?: string | null
           whatsapp: string
         }
         Update: {
           created_at?: string | null
+          data_fim_liberacao_extra?: string | null
+          data_fim_periodo_gratis?: string | null
+          data_inicio_periodo_gratis?: string | null
+          dias_liberacao_extra?: number
           email_hotmart?: string
           id?: string
+          liberacao_manual_ativa?: boolean
           login_count?: number
           nome_completo?: string
+          periodo_gratis_dias?: number
           trial_end_date?: string | null
           updated_at?: string | null
           whatsapp?: string

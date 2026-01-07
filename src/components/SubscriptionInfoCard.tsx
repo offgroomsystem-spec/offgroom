@@ -15,18 +15,26 @@ export const SubscriptionInfoCard = () => {
   const productName = subscriptionStatus?.productName;
   const isSubscription = tipo === 'subscription';
   const isVip = tipo === 'vip';
+  const isLiberacaoManual = tipo === 'liberacao_manual';
 
-  // Se é VIP ou assinante ativo, não mostrar o card de conversão
-  if (isVip || isSubscription) {
+  // Se é VIP, assinante ativo ou liberação manual, mostrar card de sucesso
+  if (isVip || isSubscription || isLiberacaoManual) {
     return <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200/50 dark:border-green-800/50">
         <div className="p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <span>
-              {isVip ? "Você tem acesso vitalício ao Offgroom!" : <>
-                  Plano <span className="font-semibold text-foreground">{productName || 'Ativo'}</span> - 
-                  {diasRestantes > 0 && ` ${diasRestantes} dias restantes`}
-                </>}
+              {isVip ? "Você tem acesso vitalício ao Offgroom!" : 
+               isLiberacaoManual ? (
+                 <>
+                   Acesso liberado manualmente - <span className="font-semibold text-foreground">{diasRestantes} dias restantes</span>
+                 </>
+               ) : (
+                 <>
+                   Plano <span className="font-semibold text-foreground">{productName || 'Ativo'}</span> - 
+                   {diasRestantes > 0 && ` ${diasRestantes} dias restantes`}
+                 </>
+               )}
             </span>
           </div>
         </div>

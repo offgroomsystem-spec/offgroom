@@ -14,7 +14,7 @@ interface Profile {
 
 interface SubscriptionStatus {
   hasAccess: boolean;
-  type: 'vip' | 'trial' | 'subscription' | 'expired' | 'error';
+  type: 'vip' | 'trial' | 'subscription' | 'liberacao_manual' | 'expired' | 'error';
   daysRemaining?: number;
   productId?: string;
   productName?: string;

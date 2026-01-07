@@ -19,8 +19,6 @@ const STRIPE_PRODUCTS: Record<string, { name: string; days: number; recurring?: 
   'prod_Tk9UwGhMcEFuql': { name: 'Offgroom Flex', days: 31, recurring: true }
 };
 
-const TRIAL_DAYS = 30;
-
 const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION-STATUS] ${step}${details ? ` - ${JSON.stringify(details)}` : ''}`);
 };
@@ -92,11 +90,20 @@ serve(async (req) => {
       });
     }
 
-    // Get user profile to check trial (use owner's profile for staff)
+    // Get user profile to check trial and manual release (use owner's profile for staff)
     const profileId = staffAccount?.owner_id || user.id;
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('created_at, trial_end_date')
+      .select(`
+        created_at, 
+        trial_end_date,
+        periodo_gratis_dias,
+        data_inicio_periodo_gratis,
+        data_fim_periodo_gratis,
+        dias_liberacao_extra,
+        data_fim_liberacao_extra,
+        liberacao_manual_ativa
+      `)
       .eq('id', profileId)
       .single();
 
@@ -104,24 +111,42 @@ serve(async (req) => {
       logStep("Error fetching profile", { error: profileError });
     }
 
-    // Calculate trial end date - use manual override if set, otherwise calculate from created_at
-    let trialEndDate: Date;
-    if (profile?.trial_end_date) {
-      // Manual override set in Supabase
-      trialEndDate = new Date(profile.trial_end_date);
-      logStep("Using manual trial_end_date override", { trialEndDate: trialEndDate.toISOString() });
-    } else {
-      // Default calculation: created_at + 30 days
-      const createdAt = profile?.created_at ? new Date(profile.created_at) : new Date();
-      trialEndDate = new Date(createdAt.getTime() + (TRIAL_DAYS * 24 * 60 * 60 * 1000));
-      logStep("Using calculated trial end date", { createdAt: createdAt.toISOString(), trialEndDate: trialEndDate.toISOString() });
+    logStep("Profile data loaded", {
+      periodoGratisDias: profile?.periodo_gratis_dias,
+      dataFimPeriodoGratis: profile?.data_fim_periodo_gratis,
+      diasLiberacaoExtra: profile?.dias_liberacao_extra,
+      dataFimLiberacaoExtra: profile?.data_fim_liberacao_extra,
+      liberacaoManualAtiva: profile?.liberacao_manual_ativa
+    });
+
+    // 2️⃣ CHECK LIBERAÇÃO MANUAL ATIVA (temporary access for overdue payments)
+    if (profile?.liberacao_manual_ativa && profile?.data_fim_liberacao_extra) {
+      const liberacaoEnd = new Date(profile.data_fim_liberacao_extra);
+      const now = new Date();
+      
+      if (liberacaoEnd > now) {
+        const diasRestantes = Math.ceil((liberacaoEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        logStep("Manual release active - access granted", { 
+          dataFimLiberacaoExtra: liberacaoEnd.toISOString(),
+          diasRestantes 
+        });
+        
+        return new Response(JSON.stringify({
+          hasAccess: true,
+          type: 'liberacao_manual',
+          daysRemaining: diasRestantes,
+          message: `Acesso liberado manualmente: ${diasRestantes} dias restantes`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      } else {
+        logStep("Manual release expired", { dataFimLiberacaoExtra: liberacaoEnd.toISOString() });
+      }
     }
 
-    const trialDaysRemaining = Math.floor((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-
-    logStep("Trial calculation", { trialEndDate: trialEndDate.toISOString(), trialDaysRemaining });
-
-    // 2️⃣ CHECK ACTIVE STRIPE SUBSCRIPTION (with isolated error handling)
+    // 3️⃣ CHECK ACTIVE STRIPE SUBSCRIPTION (with isolated error handling)
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     let stripeCheckFailed = false;
     
@@ -278,7 +303,37 @@ serve(async (req) => {
       }
     }
 
-    // 3️⃣ CHECK TRIAL PERIOD
+    // 4️⃣ CHECK TRIAL PERIOD (using new data_fim_periodo_gratis column)
+    let trialDaysRemaining = 0;
+    
+    if (profile?.data_fim_periodo_gratis) {
+      // Use the new calculated field
+      const trialEnd = new Date(profile.data_fim_periodo_gratis);
+      trialDaysRemaining = Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      logStep("Trial calculated from data_fim_periodo_gratis", { 
+        dataFimPeriodoGratis: trialEnd.toISOString(), 
+        trialDaysRemaining 
+      });
+    } else if (profile?.trial_end_date) {
+      // Fallback to legacy field
+      const trialEnd = new Date(profile.trial_end_date);
+      trialDaysRemaining = Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      logStep("Trial calculated from legacy trial_end_date", { 
+        trialEndDate: trialEnd.toISOString(), 
+        trialDaysRemaining 
+      });
+    } else if (profile?.created_at) {
+      // Final fallback: calculate from created_at + 30 days
+      const createdAt = new Date(profile.created_at);
+      const trialEnd = new Date(createdAt.getTime() + (30 * 24 * 60 * 60 * 1000));
+      trialDaysRemaining = Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      logStep("Trial calculated from created_at + 30 days", { 
+        createdAt: createdAt.toISOString(),
+        trialEnd: trialEnd.toISOString(), 
+        trialDaysRemaining 
+      });
+    }
+
     if (trialDaysRemaining > 0) {
       logStep("Trial period active", { daysRemaining: trialDaysRemaining });
       return new Response(JSON.stringify({
@@ -292,8 +347,8 @@ serve(async (req) => {
       });
     }
 
-    // 4️⃣ NO ACCESS - EXPIRED
-    logStep("Access denied - trial expired, no active subscription");
+    // 5️⃣ NO ACCESS - EXPIRED
+    logStep("Access denied - trial expired, no active subscription, no manual release");
     return new Response(JSON.stringify({
       hasAccess: false,
       type: 'expired',
