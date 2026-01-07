@@ -11,7 +11,7 @@ const Pagamento = () => {
     if (planId === "flex") {
       try {
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { price_id: 'price_1SmfB9K9Xi4XQP5iFzDJweC6' }
+          body: { price_id: 'price_1SmkDqKHKMPhWHpBqNjYmTPc' }
         });
         
         if (error) throw error;
@@ -25,7 +25,7 @@ const Pagamento = () => {
     } else if (planId === "power12") {
       try {
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { price_id: 'price_1SmfCBK9Xi4XQP5ieiZHwude' }
+          body: { price_id: 'price_1SmkCmKHKMPhWHpBTLLT9f3o' }
         });
         
         if (error) throw error;
