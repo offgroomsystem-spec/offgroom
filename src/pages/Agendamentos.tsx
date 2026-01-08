@@ -1800,11 +1800,12 @@ const Agendamentos = () => {
         );
 
         // Também atualizar whatsapp no pacote se foi alterado
-        const { error } = await supabase
+const { error } = await supabase
           .from("agendamentos_pacotes")
           .update({
             servicos: updatedServicos as any,
             whatsapp: editandoAgendamento.whatsapp,
+            data_venda: editandoAgendamento.dataVenda,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editandoAgendamento.pacoteOriginal.id);
