@@ -99,7 +99,21 @@ export const calcularProximoPasso = (
 
   // ===== LÓGICA 3: REUNIÃO AGENDADA =====
   if (lead.agendou_reuniao && lead.data_reuniao) {
-    return lead.data_reuniao; // Próximo passo é a data da reunião
+    const dataReuniao = new Date(lead.data_reuniao);
+    const hojeNormalizado = new Date();
+    hojeNormalizado.setHours(0, 0, 0, 0);
+    dataReuniao.setHours(0, 0, 0, 0);
+    
+    // Se a reunião ainda não aconteceu, próximo passo é a data da reunião
+    if (dataReuniao >= hojeNormalizado) {
+      return lead.data_reuniao;
+    }
+    
+    // Se a reunião já passou e ainda não iniciou acesso grátis,
+    // próximo passo é 2 dias úteis após a reunião
+    if (!lead.usando_acesso_gratis) {
+      return addBusinessDays(dataReuniao, 2).toISOString().split('T')[0];
+    }
   }
 
   // ===== LÓGICA 2: CLIENTE RESPONDEU (SEM REUNIÃO) =====
