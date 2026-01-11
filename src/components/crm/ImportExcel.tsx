@@ -31,6 +31,7 @@ const ImportExcel = () => {
   const [rawData, setRawData] = useState("");
   const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [duplicatesRemoved, setDuplicatesRemoved] = useState(0);
   const { importLeads } = useCRMLeads();
 
   const parseExcelData = (data: string): ParsedLead[] => {
@@ -43,13 +44,14 @@ const ImportExcel = () => {
       // Separar por TAB (padrão do Excel ao colar)
       const columns = line.split("\t");
       
-      if (columns.length >= 4) {
+      // Coluna A (0) = Nome, B (1) = Telefone, D (3) = Nota, E (4) = Avaliações
+      if (columns.length >= 2) {
         const nome_empresa = columns[0]?.trim() || "";
-        const nota_google = columns[1]?.trim() ? parseFloat(columns[1].replace(",", ".")) : null;
-        const qtd_avaliacoes = columns[2]?.trim() ? parseInt(columns[2].replace(/\D/g, "")) : null;
-        const telefone_empresa = columns[3]?.trim() || "";
+        const telefone_empresa = columns[1]?.trim() || "";
+        const nota_google = columns[3]?.trim() ? parseFloat(columns[3].replace(",", ".")) : null;
+        const qtd_avaliacoes = columns[4]?.trim() ? parseInt(columns[4].replace(/\D/g, "")) : null;
 
-        if (nome_empresa && telefone_empresa) {
+        if (nome_empresa) {
           leads.push({
             nome_empresa,
             nota_google: isNaN(nota_google!) ? null : nota_google,
@@ -63,9 +65,29 @@ const ImportExcel = () => {
     return leads;
   };
 
+  const removeDuplicates = (leads: ParsedLead[]): ParsedLead[] => {
+    const seen = new Set<string>();
+    return leads.filter(lead => {
+      // Se não tem telefone, mantém (não entra na validação de duplicidade)
+      if (!lead.telefone_empresa) return true;
+      
+      // Normalizar telefone (remover espaços, parênteses, traços)
+      const normalizedPhone = lead.telefone_empresa.replace(/[\s\(\)\-]/g, "");
+      
+      if (seen.has(normalizedPhone)) {
+        return false; // Já existe, ignorar
+      }
+      
+      seen.add(normalizedPhone);
+      return true; // Primeiro registro com esse telefone
+    });
+  };
+
   const handleParse = () => {
-    const leads = parseExcelData(rawData);
-    setParsedLeads(leads);
+    const allLeads = parseExcelData(rawData);
+    const uniqueLeads = removeDuplicates(allLeads);
+    setDuplicatesRemoved(allLeads.length - uniqueLeads.length);
+    setParsedLeads(uniqueLeads);
     setShowPreview(true);
   };
 
@@ -84,6 +106,7 @@ const ImportExcel = () => {
     setRawData("");
     setParsedLeads([]);
     setShowPreview(false);
+    setDuplicatesRemoved(0);
   };
 
   return (
@@ -98,7 +121,7 @@ const ImportExcel = () => {
           <DialogHeader>
             <DialogTitle>Importar Contatos do Excel</DialogTitle>
             <DialogDescription>
-              Cole os dados copiados do Excel. O formato deve ter 4 colunas: Nome da Empresa, Nota Google, Qtd Avaliações, Telefone.
+              Cole os dados copiados do Excel. Colunas: Nome (A), Telefone (B), Nota Google (D), Qtd Avaliações (E). Duplicados por telefone serão removidos automaticamente.
             </DialogDescription>
           </DialogHeader>
 
@@ -107,8 +130,8 @@ const ImportExcel = () => {
               <div className="bg-muted/50 p-3 rounded-lg text-sm">
                 <p className="font-medium mb-2">Formato esperado (separado por TAB):</p>
                 <code className="text-xs block bg-background p-2 rounded">
-                  Pet Shop Feliz{"\t"}4.5{"\t"}89{"\t"}11999998888<br />
-                  Banho & Tosa XYZ{"\t"}4.8{"\t"}156{"\t"}11988887777
+                  Pet Shop Feliz{"\t"}(11) 99999-8888{"\t"}{"\t"}4.5{"\t"}89<br />
+                  Banho & Tosa XYZ{"\t"}(11) 98888-7777{"\t"}{"\t"}4.8{"\t"}156
                 </code>
               </div>
 
@@ -135,6 +158,11 @@ const ImportExcel = () => {
               <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-lg">
                 <p className="text-sm text-green-700 dark:text-green-400">
                   {parsedLeads.length} contatos prontos para importar
+                  {duplicatesRemoved > 0 && (
+                    <span className="text-muted-foreground ml-2">
+                      ({duplicatesRemoved} duplicado{duplicatesRemoved > 1 ? 's' : ''} removido{duplicatesRemoved > 1 ? 's' : ''})
+                    </span>
+                  )}
                 </p>
               </div>
 
