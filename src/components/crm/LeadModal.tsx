@@ -183,7 +183,7 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 2, 3, 4, 5].map(n => (
+                    {[0, 1, 2, 3, 4, 5].map(n => (
                       <SelectItem key={n} value={String(n)}>{n}</SelectItem>
                     ))}
                   </SelectContent>
