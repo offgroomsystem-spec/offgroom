@@ -1,9 +1,11 @@
-import { Phone, Star, MessageSquare, Calendar, AlertCircle, Pause } from "lucide-react";
+import { Phone, Star, MessageSquare, Calendar, AlertCircle, Pause, Send } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CRMLead } from "@/hooks/useCRMLeads";
+import { Button } from "@/components/ui/button";
+import { CRMLead, useCRMLeads, useCRMMensagens, getFaseLead, calcularProximoPasso, calcularStatus, useMensagensPorFase } from "@/hooks/useCRMLeads";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
 
 interface LeadCardProps {
   lead: CRMLead;
@@ -21,6 +23,11 @@ const statusColors: Record<string, string> = {
 };
 
 const LeadCard = ({ lead, onClick }: LeadCardProps) => {
+  const { updateLead } = useCRMLeads();
+  const { createMensagem } = useCRMMensagens(lead.id);
+  const fase = getFaseLead(lead);
+  const mensagensNaFase = useMensagensPorFase(lead.id, fase);
+
   const formatPhone = (phone: string) => {
     const cleaned = phone.replace(/\D/g, "");
     if (cleaned.length === 11) {
@@ -36,6 +43,52 @@ const LeadCard = ({ lead, onClick }: LeadCardProps) => {
     e.stopPropagation();
     const cleaned = lead.telefone_empresa.replace(/\D/g, "");
     window.open(`https://wa.me/55${cleaned}`, "_blank");
+  };
+
+  const handleSendMessage = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      const novaTentativa = fase === "prospecao" ? (lead.tentativa || 0) + 1 : (lead.tentativa || 0);
+      const novasMensagensNaFase = mensagensNaFase + 1;
+      
+      // Registrar mensagem
+      await createMensagem.mutateAsync({
+        lead_id: lead.id,
+        tentativa: novaTentativa,
+        fase,
+        observacao: null,
+      });
+
+      // Calcular novo próximo passo e status
+      const proximoPasso = calcularProximoPasso(
+        { ...lead, tentativa: novaTentativa },
+        novasMensagensNaFase,
+        new Date()
+      );
+      const novoStatus = calcularStatus(
+        { ...lead, tentativa: novaTentativa },
+        novasMensagensNaFase
+      );
+
+      // Atualizar lead
+      await updateLead.mutateAsync({
+        id: lead.id,
+        tentativa: novaTentativa,
+        proximo_passo: proximoPasso,
+        status: novoStatus,
+      });
+
+      toast({
+        title: "Mensagem registrada!",
+        description: `Tentativa ${novaTentativa} - Próximo passo atualizado`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao registrar mensagem",
+        variant: "destructive",
+      });
+    }
   };
 
   // Verificar se o próximo passo está atrasado
@@ -85,13 +138,24 @@ const LeadCard = ({ lead, onClick }: LeadCardProps) => {
         </div>
 
         <div className="flex items-center justify-between mt-2 pt-2 border-t">
-          <button
-            onClick={handlePhoneClick}
-            className="flex items-center gap-1 text-xs text-primary hover:underline"
-          >
-            <Phone className="h-3 w-3" />
-            {formatPhone(lead.telefone_empresa)}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePhoneClick}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <Phone className="h-3 w-3" />
+              {formatPhone(lead.telefone_empresa)}
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={handleSendMessage}
+              title="Registrar envio de mensagem"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </Button>
+          </div>
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {!isStandby && <span>Tentativa: {lead.tentativa}/5</span>}

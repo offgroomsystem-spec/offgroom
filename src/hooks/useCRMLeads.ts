@@ -116,13 +116,13 @@ export const calcularProximoPasso = (
   }
 
   // Dias úteis para próximo contato baseado na tentativa atual
-  // Tentativa 1 = lead novo (ainda não contatado)
+  // Tentativa 0 = lead novo (ainda não contatado)
   const diasPorTentativa: Record<number, number> = {
-    1: 2, // Lead novo - próxima tentativa em 2 dias úteis
-    2: 2, // Após tentativa 2 - próxima em 2 dias úteis
+    0: 2, // Lead novo - próxima tentativa em 2 dias úteis
+    1: 2, // Após tentativa 1 - próxima em 2 dias úteis
+    2: 3, // Após tentativa 2 - próxima em 3 dias úteis
     3: 3, // Após tentativa 3 - próxima em 3 dias úteis
-    4: 3, // Após tentativa 4 - próxima em 3 dias úteis
-    5: 4, // Após tentativa 5 - Standby (mas caso não caia no if anterior)
+    4: 4, // Após tentativa 4 - próxima em 4 dias úteis
   };
 
   const diasUteis = diasPorTentativa[tentativa] ?? 2;
@@ -291,7 +291,7 @@ export const useCRMLeads = () => {
       const leadsToInsert = newLeadsData.map(lead => {
         const newLead = {
           ...lead,
-          tentativa: 1, // Começa em 1 para respeitar constraint CHECK (tentativa >= 1)
+          tentativa: 0, // Começa em 0 - lead novo ainda não contatado
           teve_resposta: false,
           agendou_reuniao: false,
           usando_acesso_gratis: false,
