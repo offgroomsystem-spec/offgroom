@@ -11,16 +11,19 @@ import { useCRMLeads, useCRMAccess } from "@/hooks/useCRMLeads";
 import { Loader2, ShieldX, LayoutList, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { startOfDay, startOfWeek, startOfMonth, isBefore } from "date-fns";
+
 
 const CRMOffgroom = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("");
   const [activeTab, setActiveTab] = useState("leads");
   const [advancedFilters, setAdvancedFilters] = useState<CRMFiltersState>({
-    status: "all",
-    tentativa: "all",
-    periodo: "all",
+    enviouMensagem: "",
+    tentativa: "",
+    teveResposta: "",
+    agendouReuniao: "",
+    usandoAcessoGratis: "",
+    iniciouAcessoPago: "",
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   
@@ -56,45 +59,45 @@ const CRMOffgroom = () => {
       );
     }
 
-    // Filtro por status
-    if (advancedFilters.status !== "all") {
-      result = result.filter(l => l.status === advancedFilters.status);
+    // Filtro: Enviou mensagem?
+    if (advancedFilters.enviouMensagem === "sim") {
+      result = result.filter(l => (l.tentativa ?? 0) > 0);
+    } else if (advancedFilters.enviouMensagem === "nao") {
+      result = result.filter(l => (l.tentativa ?? 0) === 0);
     }
 
-    // Filtro por tentativa
-    if (advancedFilters.tentativa !== "all") {
+    // Filtro: Tentativa
+    if (advancedFilters.tentativa !== "") {
       const tentativa = parseInt(advancedFilters.tentativa);
-      if (tentativa === 5) {
-        result = result.filter(l => l.tentativa >= 5);
-      } else {
-        result = result.filter(l => l.tentativa === tentativa);
-      }
+      result = result.filter(l => (l.tentativa ?? 0) === tentativa);
     }
 
-    // Filtro por período (baseado no próximo passo)
-    if (advancedFilters.periodo !== "all") {
-      const hoje = startOfDay(new Date());
-      const inicioSemana = startOfWeek(new Date(), { weekStartsOn: 1 });
-      const inicioMes = startOfMonth(new Date());
+    // Filtro: Teve Resposta?
+    if (advancedFilters.teveResposta === "sim") {
+      result = result.filter(l => l.teve_resposta === true);
+    } else if (advancedFilters.teveResposta === "nao") {
+      result = result.filter(l => l.teve_resposta !== true);
+    }
 
-      result = result.filter(l => {
-        if (!l.proximo_passo) return advancedFilters.periodo === "overdue" ? false : false;
-        
-        const proximoPasso = startOfDay(new Date(l.proximo_passo));
+    // Filtro: Agendou Reunião?
+    if (advancedFilters.agendouReuniao === "sim") {
+      result = result.filter(l => l.agendou_reuniao === true);
+    } else if (advancedFilters.agendouReuniao === "nao") {
+      result = result.filter(l => l.agendou_reuniao !== true);
+    }
 
-        switch (advancedFilters.periodo) {
-          case "today":
-            return proximoPasso.getTime() === hoje.getTime();
-          case "week":
-            return proximoPasso >= inicioSemana && proximoPasso <= new Date();
-          case "month":
-            return proximoPasso >= inicioMes && proximoPasso <= new Date();
-          case "overdue":
-            return isBefore(proximoPasso, hoje) && l.status !== "Standby" && l.status !== "Sem interesse";
-          default:
-            return true;
-        }
-      });
+    // Filtro: Usando Acesso Grátis?
+    if (advancedFilters.usandoAcessoGratis === "sim") {
+      result = result.filter(l => l.usando_acesso_gratis === true);
+    } else if (advancedFilters.usandoAcessoGratis === "nao") {
+      result = result.filter(l => l.usando_acesso_gratis !== true);
+    }
+
+    // Filtro: Iniciou acesso pago?
+    if (advancedFilters.iniciouAcessoPago === "sim") {
+      result = result.filter(l => l.iniciou_acesso_pago === true);
+    } else if (advancedFilters.iniciouAcessoPago === "nao") {
+      result = result.filter(l => l.iniciou_acesso_pago !== true);
     }
 
     return result;
@@ -169,7 +172,7 @@ const CRMOffgroom = () => {
           {/* Stats */}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span>{leads.length} leads cadastrados</span>
-            {(filter || advancedFilters.status !== "all" || advancedFilters.tentativa !== "all" || advancedFilters.periodo !== "all") && (
+            {(filter || Object.values(advancedFilters).some(v => v !== "")) && (
               <span>• {filteredLeads.length} encontrados</span>
             )}
           </div>
