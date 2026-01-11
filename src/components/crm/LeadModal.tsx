@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Phone, Star, MessageSquare, ExternalLink, Trash2 } from "lucide-react";
+import { Phone, Star, MessageSquare, ExternalLink, Trash2, Pencil, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,8 @@ interface LeadModalProps {
 const LeadModal = ({ lead, onClose }: LeadModalProps) => {
   const { updateLead, deleteLead } = useCRMLeads();
   const [formData, setFormData] = useState<Partial<CRMLead>>({});
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [tempPhone, setTempPhone] = useState("");
 
   useEffect(() => {
     if (lead) {
@@ -114,16 +116,63 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
                 <span>Avaliações: {lead.qtd_avaliacoes ?? "-"}</span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openWhatsApp(lead.telefone_empresa)}
-              className="w-full"
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              {lead.telefone_empresa}
-              <ExternalLink className="h-3 w-3 ml-2" />
-            </Button>
+            {isEditingPhone ? (
+              <div className="flex gap-1 w-full">
+                <Input
+                  value={tempPhone}
+                  onChange={(e) => setTempPhone(e.target.value)}
+                  placeholder="Telefone da empresa"
+                  className="h-9 text-sm flex-1"
+                  autoFocus
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 text-green-600 hover:text-green-700"
+                  onClick={() => {
+                    updateField("telefone_empresa", tempPhone);
+                    setIsEditingPhone(false);
+                  }}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    setTempPhone(formData.telefone_empresa || "");
+                    setIsEditingPhone(false);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-1 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openWhatsApp(formData.telefone_empresa || lead.telefone_empresa)}
+                  className="flex-1"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  {formData.telefone_empresa || lead.telefone_empresa}
+                  <ExternalLink className="h-3 w-3 ml-2" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => {
+                    setTempPhone(formData.telefone_empresa || lead.telefone_empresa);
+                    setIsEditingPhone(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           <Separator />
