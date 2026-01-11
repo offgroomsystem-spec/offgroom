@@ -28,6 +28,7 @@ import Store from "./pages/Store";
 import Pagamento from "./pages/Pagamento";
 import Home from "./pages/Home";
 import Logins from "./pages/Logins";
+import CRMOffgroom from "./pages/CRMOffgroom";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route path="/store" element={<Store />} />
             <Route path="/pagamento" element={<Pagamento />} />
+            <Route path="/crmoffgroom" element={<CRMOffgroom />} />
             <Route path="/" element={<Navigate to="/store" replace />} />
             
             {/* Rotas protegidas */}
