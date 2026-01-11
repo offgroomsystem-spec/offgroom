@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { addDays } from "date-fns";
+import { addBusinessDays } from "@/utils/diasUteis";
 
 export interface CRMLead {
   id: string;
@@ -34,61 +34,128 @@ export interface CRMMensagem {
   tentativa: number;
   data_envio: string;
   observacao: string | null;
+  fase: string | null;
   created_by: string | null;
   created_at: string;
 }
 
-// Função para calcular o próximo passo automaticamente
-export const calcularProximoPasso = (lead: Partial<CRMLead>): string | null => {
-  const hoje = new Date();
+// Tipo para representar a fase atual do lead
+export type FaseLead = "prospecao" | "acesso_gratis" | "acesso_pago";
 
-  // Se iniciou acesso pago, não há próximo passo
-  if (lead.iniciou_acesso_pago) {
-    return null;
-  }
-
-  // Se está usando acesso grátis, próximo passo é o fim do acesso
-  if (lead.usando_acesso_gratis && lead.data_inicio_acesso_gratis) {
-    const dataInicio = new Date(lead.data_inicio_acesso_gratis);
-    const diasGratis = lead.dias_acesso_gratis || 30;
-    const dataFim = addDays(dataInicio, diasGratis);
-    return dataFim.toISOString().split('T')[0];
-  }
-
-  // Se agendou reunião, próximo passo é a data da reunião
-  if (lead.agendou_reuniao && lead.data_reuniao) {
-    return lead.data_reuniao;
-  }
-
-  // Baseado na tentativa atual
-  const tentativa = lead.tentativa || 1;
-  
-  if (tentativa >= 5 && !lead.teve_resposta) {
-    // 5ª tentativa sem resposta - marcar como sem interesse
-    return null;
-  }
-
-  // Dias até próximo contato baseado na tentativa
-  const diasPorTentativa: Record<number, number> = {
-    1: 3,
-    2: 5,
-    3: 7,
-    4: 14,
-    5: 0
-  };
-
-  const dias = diasPorTentativa[tentativa] || 3;
-  return addDays(hoje, dias).toISOString().split('T')[0];
+// Função para determinar a fase atual do lead
+export const getFaseLead = (lead: Partial<CRMLead>): FaseLead => {
+  if (lead.iniciou_acesso_pago) return "acesso_pago";
+  if (lead.usando_acesso_gratis) return "acesso_gratis";
+  return "prospecao";
 };
 
-// Função para calcular o status automaticamente
-export const calcularStatus = (lead: Partial<CRMLead>): string => {
-  if (lead.iniciou_acesso_pago) return "Acesso pago";
-  if (lead.usando_acesso_gratis) return "Acesso grátis";
+/**
+ * Calcula o próximo passo automaticamente baseado nas regras de negócio
+ * Considera apenas dias úteis (segunda a sexta)
+ */
+export const calcularProximoPasso = (
+  lead: Partial<CRMLead>,
+  mensagensNaFase: number = 0,
+  ultimoEnvio?: Date
+): string | null => {
+  const hoje = new Date();
+  const fase = getFaseLead(lead);
+  const baseDate = ultimoEnvio || hoje;
+
+  // ===== LÓGICA 5: ACESSO PAGO =====
+  if (fase === "acesso_pago") {
+    // Se já enviou pelo menos 1 mensagem na fase acesso_pago, vai para Standby
+    if (mensagensNaFase >= 1) {
+      return null; // Standby - sem próximo passo
+    }
+    // Primeiro contato: 3 dias úteis após início do acesso pago
+    if (lead.data_inicio_acesso_pago) {
+      const dataInicio = new Date(lead.data_inicio_acesso_pago);
+      return addBusinessDays(dataInicio, 3).toISOString().split('T')[0];
+    }
+    return addBusinessDays(hoje, 3).toISOString().split('T')[0];
+  }
+
+  // ===== LÓGICA 4: ACESSO GRÁTIS =====
+  if (fase === "acesso_gratis") {
+    // Intervalos de contato durante acesso grátis (6 momentos)
+    const intervalosAcessoGratis = [3, 5, 6, 6, 5, 2];
+    
+    if (mensagensNaFase >= 6) {
+      // Após 6 contatos, aguarda conversão ou fim do período
+      return null;
+    }
+    
+    if (mensagensNaFase === 0 && lead.data_inicio_acesso_gratis) {
+      // Primeiro contato: 3 dias úteis após início do acesso grátis
+      const dataInicio = new Date(lead.data_inicio_acesso_gratis);
+      return addBusinessDays(dataInicio, 3).toISOString().split('T')[0];
+    }
+    
+    // Próximo contato baseado no último envio
+    const diasAteProximo = intervalosAcessoGratis[mensagensNaFase] || 5;
+    return addBusinessDays(baseDate, diasAteProximo).toISOString().split('T')[0];
+  }
+
+  // ===== LÓGICA 3: REUNIÃO AGENDADA =====
+  if (lead.agendou_reuniao && lead.data_reuniao) {
+    return lead.data_reuniao; // Próximo passo é a data da reunião
+  }
+
+  // ===== LÓGICA 2: CLIENTE RESPONDEU (SEM REUNIÃO) =====
+  if (lead.teve_resposta && !lead.agendou_reuniao) {
+    return addBusinessDays(baseDate, 1).toISOString().split('T')[0];
+  }
+
+  // ===== LÓGICA 1: SEM RESPOSTA DO CLIENTE =====
+  const tentativa = lead.tentativa || 0;
+
+  // Tentativa 5+ sem resposta = Standby
+  if (tentativa >= 5) {
+    return null; // Standby
+  }
+
+  // Dias úteis para próximo contato baseado na tentativa atual
+  const diasPorTentativa: Record<number, number> = {
+    0: 2, // Novo lead - próxima tentativa em 2 dias úteis
+    1: 2, // Após tentativa 1 - próxima em 2 dias úteis
+    2: 3, // Após tentativa 2 - próxima em 3 dias úteis
+    3: 3, // Após tentativa 3 - próxima em 3 dias úteis
+    4: 4, // Após tentativa 4 - próxima em 4 dias úteis
+  };
+
+  const diasUteis = diasPorTentativa[tentativa] ?? 2;
+  return addBusinessDays(baseDate, diasUteis).toISOString().split('T')[0];
+};
+
+/**
+ * Calcula o status automaticamente baseado no estado do lead
+ */
+export const calcularStatus = (lead: Partial<CRMLead>, mensagensNaFase: number = 0): string => {
+  const fase = getFaseLead(lead);
+
+  // Acesso pago
+  if (fase === "acesso_pago") {
+    if (mensagensNaFase >= 1) return "Standby"; // Após primeiro contato
+    return "Acesso pago";
+  }
+
+  // Acesso grátis
+  if (fase === "acesso_gratis") {
+    return "Acesso grátis";
+  }
+
+  // Reunião agendada
   if (lead.agendou_reuniao) return "Reunião agendada";
-  if (lead.tentativa && lead.tentativa >= 5 && !lead.teve_resposta) return "Sem interesse";
+
+  // Tentativa 5+ sem resposta = Standby (antes era "Sem interesse")
+  const tentativa = lead.tentativa || 0;
+  if (tentativa >= 5 && !lead.teve_resposta) return "Standby";
+
+  // Em contato (respondeu ou tentativas em andamento)
   if (lead.teve_resposta) return "Em contato";
-  if (lead.tentativa && lead.tentativa > 1) return "Em contato";
+  if (tentativa > 0) return "Em contato";
+
   return "Novo";
 };
 
@@ -140,9 +207,9 @@ export const useCRMLeads = () => {
   });
 
   const updateLead = useMutation({
-    mutationFn: async ({ id, ...lead }: Partial<CRMLead> & { id: string }) => {
-      const proximo_passo = calcularProximoPasso(lead);
-      const status = calcularStatus(lead);
+    mutationFn: async ({ id, mensagensNaFase = 0, ultimoEnvio, ...lead }: Partial<CRMLead> & { id: string; mensagensNaFase?: number; ultimoEnvio?: Date }) => {
+      const proximo_passo = calcularProximoPasso(lead, mensagensNaFase, ultimoEnvio);
+      const status = calcularStatus(lead, mensagensNaFase);
 
       const { data, error } = await supabase
         .from("crm_leads")
@@ -189,18 +256,24 @@ export const useCRMLeads = () => {
     mutationFn: async (leadsData: Array<{ nome_empresa: string; nota_google: number | null; qtd_avaliacoes: number | null; telefone_empresa: string }>) => {
       const { data: userData } = await supabase.auth.getUser();
       
-      const leadsToInsert = leadsData.map(lead => ({
-        ...lead,
-        tentativa: 1,
-        teve_resposta: false,
-        agendou_reuniao: false,
-        usando_acesso_gratis: false,
-        dias_acesso_gratis: 30,
-        iniciou_acesso_pago: false,
-        proximo_passo: addDays(new Date(), 3).toISOString().split('T')[0],
-        status: "Novo",
-        created_by: userData.user?.id,
-      }));
+      const leadsToInsert = leadsData.map(lead => {
+        const newLead = {
+          ...lead,
+          tentativa: 0,
+          teve_resposta: false,
+          agendou_reuniao: false,
+          usando_acesso_gratis: false,
+          dias_acesso_gratis: 30,
+          iniciou_acesso_pago: false,
+        };
+        
+        return {
+          ...newLead,
+          proximo_passo: calcularProximoPasso(newLead),
+          status: "Novo",
+          created_by: userData.user?.id,
+        };
+      });
 
       const { data, error } = await supabase
         .from("crm_leads")
@@ -252,7 +325,7 @@ export const useCRMMensagens = (leadId: string | null) => {
   });
 
   const createMensagem = useMutation({
-    mutationFn: async ({ lead_id, tentativa, observacao }: { lead_id: string; tentativa: number; observacao?: string }) => {
+    mutationFn: async ({ lead_id, tentativa, observacao, fase }: { lead_id: string; tentativa: number; observacao?: string; fase?: string }) => {
       const { data: userData } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
@@ -261,6 +334,7 @@ export const useCRMMensagens = (leadId: string | null) => {
           lead_id,
           tentativa,
           observacao,
+          fase: fase || "prospecao",
           created_by: userData.user?.id,
         })
         .select()
@@ -305,4 +379,28 @@ export const useCRMAccess = () => {
   });
 
   return { hasAccess: hasAccess ?? false, isLoading };
+};
+
+/**
+ * Hook para contar mensagens por fase do lead
+ */
+export const useMensagensPorFase = (leadId: string | null, fase: FaseLead) => {
+  const { data: count = 0 } = useQuery({
+    queryKey: ["crm-mensagens-fase", leadId, fase],
+    queryFn: async () => {
+      if (!leadId) return 0;
+      
+      const { count, error } = await supabase
+        .from("crm_mensagens")
+        .select("*", { count: "exact", head: true })
+        .eq("lead_id", leadId)
+        .eq("fase", fase);
+
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!leadId,
+  });
+
+  return count;
 };

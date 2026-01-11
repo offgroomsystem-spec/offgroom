@@ -365,6 +365,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_envio: string
+          fase: string | null
           id: string
           lead_id: string
           observacao: string | null
@@ -374,6 +375,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_envio?: string
+          fase?: string | null
           id?: string
           lead_id: string
           observacao?: string | null
@@ -383,6 +385,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_envio?: string
+          fase?: string | null
           id?: string
           lead_id?: string
           observacao?: string | null
