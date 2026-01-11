@@ -44,12 +44,12 @@ const ImportExcel = () => {
       // Separar por TAB (padrão do Excel ao colar)
       const columns = line.split("\t");
       
-      // Coluna A (0) = Nome, B (1) = Telefone, D (3) = Nota, E (4) = Avaliações
+      // Coluna A (0) = Nome, B (1) = Telefone, C (2) = Nota, D (3) = Avaliações
       if (columns.length >= 2) {
         const nome_empresa = columns[0]?.trim() || "";
         const telefone_empresa = columns[1]?.trim() || "";
-        const nota_google = columns[3]?.trim() ? parseFloat(columns[3].replace(",", ".")) : null;
-        const qtd_avaliacoes = columns[4]?.trim() ? parseInt(columns[4].replace(/\D/g, "")) : null;
+        const nota_google = columns[2]?.trim() ? parseFloat(columns[2].replace(",", ".")) : null;
+        const qtd_avaliacoes = columns[3]?.trim() ? parseInt(columns[3].replace(/\D/g, "")) : null;
 
         if (nome_empresa) {
           leads.push({
