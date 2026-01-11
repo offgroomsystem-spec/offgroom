@@ -1,8 +1,8 @@
-import { Phone, Star, MessageSquare, Calendar } from "lucide-react";
+import { Phone, Star, MessageSquare, Calendar, AlertCircle, Pause } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CRMLead } from "@/hooks/useCRMLeads";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface LeadCardProps {
@@ -11,11 +11,12 @@ interface LeadCardProps {
 }
 
 const statusColors: Record<string, string> = {
-  "Novo": "bg-gray-500",
-  "Em contato": "bg-blue-500",
-  "Reunião agendada": "bg-yellow-500",
-  "Acesso grátis": "bg-emerald-400",
+  "Novo": "bg-blue-500",
+  "Em contato": "bg-yellow-500",
+  "Reunião agendada": "bg-orange-500",
+  "Acesso grátis": "bg-green-400",
   "Acesso pago": "bg-green-600",
+  "Standby": "bg-yellow-600",
   "Sem interesse": "bg-red-500",
 };
 
@@ -37,9 +38,22 @@ const LeadCard = ({ lead, onClick }: LeadCardProps) => {
     window.open(`https://wa.me/55${cleaned}`, "_blank");
   };
 
+  // Verificar se o próximo passo está atrasado
+  const isOverdue = () => {
+    if (!lead.proximo_passo || lead.status === "Standby" || lead.status === "Sem interesse") {
+      return false;
+    }
+    const hoje = startOfDay(new Date());
+    const proximoPasso = startOfDay(parseISO(lead.proximo_passo));
+    return isBefore(proximoPasso, hoje);
+  };
+
+  const overdue = isOverdue();
+  const isStandby = lead.status === "Standby";
+
   return (
     <Card 
-      className="cursor-pointer hover:shadow-md transition-shadow border-l-4"
+      className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${overdue ? "ring-2 ring-red-500/50" : ""}`}
       style={{ borderLeftColor: statusColors[lead.status]?.replace("bg-", "") || "#6b7280" }}
       onClick={onClick}
     >
@@ -80,13 +94,19 @@ const LeadCard = ({ lead, onClick }: LeadCardProps) => {
           </button>
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span>Tentativa: {lead.tentativa}/5</span>
-            {lead.proximo_passo && (
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {format(parseISO(lead.proximo_passo), "dd/MM", { locale: ptBR })}
+            {!isStandby && <span>Tentativa: {lead.tentativa}/5</span>}
+            {isStandby ? (
+              <span className="flex items-center gap-1 text-yellow-600">
+                <Pause className="h-3 w-3" />
+                Standby
               </span>
-            )}
+            ) : lead.proximo_passo ? (
+              <span className={`flex items-center gap-1 ${overdue ? "text-red-500 font-medium" : ""}`}>
+                {overdue ? <AlertCircle className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
+                {format(parseISO(lead.proximo_passo), "dd/MM", { locale: ptBR })}
+                {overdue && " (atrasado)"}
+              </span>
+            ) : null}
           </div>
         </div>
       </CardContent>
