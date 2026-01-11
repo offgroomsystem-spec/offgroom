@@ -285,6 +285,140 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_leads: {
+        Row: {
+          agendou_reuniao: boolean | null
+          created_at: string
+          created_by: string | null
+          data_inicio_acesso_gratis: string | null
+          data_inicio_acesso_pago: string | null
+          data_reuniao: string | null
+          dias_acesso_gratis: number | null
+          id: string
+          iniciou_acesso_pago: boolean | null
+          nome_dono: string | null
+          nome_empresa: string
+          nota_google: number | null
+          plano_contratado: string | null
+          proximo_passo: string | null
+          qtd_avaliacoes: number | null
+          status: string | null
+          telefone_dono: string | null
+          telefone_empresa: string
+          tentativa: number | null
+          teve_resposta: boolean | null
+          updated_at: string
+          usando_acesso_gratis: boolean | null
+        }
+        Insert: {
+          agendou_reuniao?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          data_inicio_acesso_gratis?: string | null
+          data_inicio_acesso_pago?: string | null
+          data_reuniao?: string | null
+          dias_acesso_gratis?: number | null
+          id?: string
+          iniciou_acesso_pago?: boolean | null
+          nome_dono?: string | null
+          nome_empresa: string
+          nota_google?: number | null
+          plano_contratado?: string | null
+          proximo_passo?: string | null
+          qtd_avaliacoes?: number | null
+          status?: string | null
+          telefone_dono?: string | null
+          telefone_empresa: string
+          tentativa?: number | null
+          teve_resposta?: boolean | null
+          updated_at?: string
+          usando_acesso_gratis?: boolean | null
+        }
+        Update: {
+          agendou_reuniao?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          data_inicio_acesso_gratis?: string | null
+          data_inicio_acesso_pago?: string | null
+          data_reuniao?: string | null
+          dias_acesso_gratis?: number | null
+          id?: string
+          iniciou_acesso_pago?: boolean | null
+          nome_dono?: string | null
+          nome_empresa?: string
+          nota_google?: number | null
+          plano_contratado?: string | null
+          proximo_passo?: string | null
+          qtd_avaliacoes?: number | null
+          status?: string | null
+          telefone_dono?: string | null
+          telefone_empresa?: string
+          tentativa?: number | null
+          teve_resposta?: boolean | null
+          updated_at?: string
+          usando_acesso_gratis?: boolean | null
+        }
+        Relationships: []
+      }
+      crm_mensagens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_envio: string
+          id: string
+          lead_id: string
+          observacao: string | null
+          tentativa: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_envio?: string
+          id?: string
+          lead_id: string
+          observacao?: string | null
+          tentativa: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_envio?: string
+          id?: string
+          lead_id?: string
+          observacao?: string | null
+          tentativa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_mensagens_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_usuarios_autorizados: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string | null
+        }
+        Relationships: []
+      }
       despesas: {
         Row: {
           categoria: string | null
@@ -1124,6 +1258,7 @@ export type Database = {
         Returns: boolean
       }
       is_administrador: { Args: { _user_id: string }; Returns: boolean }
+      is_crm_user: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "administrador" | "taxi_dog" | "recepcionista"
