@@ -116,12 +116,13 @@ export const calcularProximoPasso = (
   }
 
   // Dias úteis para próximo contato baseado na tentativa atual
+  // Tentativa 1 = lead novo (ainda não contatado)
   const diasPorTentativa: Record<number, number> = {
-    0: 2, // Novo lead - próxima tentativa em 2 dias úteis
-    1: 2, // Após tentativa 1 - próxima em 2 dias úteis
-    2: 3, // Após tentativa 2 - próxima em 3 dias úteis
+    1: 2, // Lead novo - próxima tentativa em 2 dias úteis
+    2: 2, // Após tentativa 2 - próxima em 2 dias úteis
     3: 3, // Após tentativa 3 - próxima em 3 dias úteis
-    4: 4, // Após tentativa 4 - próxima em 4 dias úteis
+    4: 3, // Após tentativa 4 - próxima em 3 dias úteis
+    5: 4, // Após tentativa 5 - Standby (mas caso não caia no if anterior)
   };
 
   const diasUteis = diasPorTentativa[tentativa] ?? 2;
@@ -256,10 +257,41 @@ export const useCRMLeads = () => {
     mutationFn: async (leadsData: Array<{ nome_empresa: string; nota_google: number | null; qtd_avaliacoes: number | null; telefone_empresa: string }>) => {
       const { data: userData } = await supabase.auth.getUser();
       
-      const leadsToInsert = leadsData.map(lead => {
+      // Função para normalizar telefone
+      const normalizePhone = (phone: string | null | undefined): string => {
+        if (!phone) return "";
+        return phone.replace(/[\s\(\)\-\+]/g, "");
+      };
+
+      // Buscar telefones existentes no banco
+      const { data: existingLeads } = await supabase
+        .from("crm_leads")
+        .select("telefone_empresa");
+
+      const existingPhones = new Set(
+        (existingLeads || [])
+          .map(l => normalizePhone(l.telefone_empresa))
+          .filter(p => p !== "")
+      );
+
+      // Filtrar leads que não existem no banco (por telefone)
+      const newLeadsData = leadsData.filter(lead => {
+        if (!lead.telefone_empresa) return true; // Sem telefone, permite importar
+        const normalized = normalizePhone(lead.telefone_empresa);
+        return !existingPhones.has(normalized);
+      });
+
+      const duplicatesSkipped = leadsData.length - newLeadsData.length;
+
+      // Se não houver leads novos, retornar early
+      if (newLeadsData.length === 0) {
+        return { inserted: [], duplicatesSkipped };
+      }
+
+      const leadsToInsert = newLeadsData.map(lead => {
         const newLead = {
           ...lead,
-          tentativa: 0,
+          tentativa: 1, // Começa em 1 para respeitar constraint CHECK (tentativa >= 1)
           teve_resposta: false,
           agendou_reuniao: false,
           usando_acesso_gratis: false,
@@ -281,11 +313,26 @@ export const useCRMLeads = () => {
         .select();
 
       if (error) throw error;
-      return data;
+      return { inserted: data, duplicatesSkipped };
     },
-    onSuccess: (data) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["crm-leads"] });
-      toast({ title: `${data.length} leads importados com sucesso!` });
+      const { inserted, duplicatesSkipped } = result;
+      
+      if (inserted.length === 0 && duplicatesSkipped > 0) {
+        toast({ 
+          title: "Nenhum lead novo importado", 
+          description: `${duplicatesSkipped} contato${duplicatesSkipped > 1 ? 's' : ''} já existe${duplicatesSkipped > 1 ? 'm' : ''} na base.`,
+          variant: "default" 
+        });
+      } else if (duplicatesSkipped > 0) {
+        toast({ 
+          title: `${inserted.length} lead${inserted.length > 1 ? 's' : ''} importado${inserted.length > 1 ? 's' : ''}!`,
+          description: `${duplicatesSkipped} duplicado${duplicatesSkipped > 1 ? 's' : ''} ignorado${duplicatesSkipped > 1 ? 's' : ''}.`
+        });
+      } else {
+        toast({ title: `${inserted.length} lead${inserted.length > 1 ? 's' : ''} importado${inserted.length > 1 ? 's' : ''} com sucesso!` });
+      }
     },
     onError: (error) => {
       toast({ title: "Erro ao importar leads", description: error.message, variant: "destructive" });
