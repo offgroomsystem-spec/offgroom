@@ -116,9 +116,9 @@ export const calcularProximoPasso = (
   }
 
   // Dias úteis para próximo contato baseado na tentativa atual
-  // Tentativa 0 = lead novo (ainda não contatado)
+  // Tentativa 0 = lead novo (ainda não contatado) - próximo passo é HOJE
   const diasPorTentativa: Record<number, number> = {
-    0: 2, // Lead novo - próxima tentativa em 2 dias úteis
+    0: 0, // Lead novo - próximo passo é HOJE (0 dias úteis)
     1: 2, // Após tentativa 1 - próxima em 2 dias úteis
     2: 3, // Após tentativa 2 - próxima em 3 dias úteis
     3: 3, // Após tentativa 3 - próxima em 3 dias úteis
