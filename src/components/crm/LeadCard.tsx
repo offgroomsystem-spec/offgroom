@@ -93,6 +93,10 @@ const LeadCard = ({ lead, onClick }: LeadCardProps) => {
 
   // Verificar se o próximo passo está atrasado
   const isOverdue = () => {
+    // Tentativa 0 nunca é considerada atrasada (sempre recalcula para "hoje")
+    if (lead.tentativa === 0) {
+      return false;
+    }
     if (!lead.proximo_passo || lead.status === "Standby" || lead.status === "Sem interesse") {
       return false;
     }

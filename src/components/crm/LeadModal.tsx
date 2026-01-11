@@ -176,7 +176,7 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
               <div>
                 <Label className="text-xs">Tentativa</Label>
                 <Select
-                  value={String(formData.tentativa || 1)}
+                  value={String(formData.tentativa ?? 1)}
                   onValueChange={(v) => updateField("tentativa", parseInt(v))}
                 >
                   <SelectTrigger className="h-9 text-sm">
