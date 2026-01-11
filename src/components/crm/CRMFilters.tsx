@@ -26,6 +26,7 @@ const statusOptions = [
 
 const tentativaOptions = [
   { value: "all", label: "Todas as tentativas" },
+  { value: "0", label: "Tentativa 0" },
   { value: "1", label: "Tentativa 1" },
   { value: "2", label: "Tentativa 2" },
   { value: "3", label: "Tentativa 3" },
