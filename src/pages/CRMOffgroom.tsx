@@ -8,7 +8,7 @@ import LeadsList from "@/components/crm/LeadsList";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import CRMFilters, { CRMFiltersState } from "@/components/crm/CRMFilters";
 import { useCRMLeads, useCRMAccess } from "@/hooks/useCRMLeads";
-import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy } from "lucide-react";
+import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
@@ -734,6 +734,16 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
   const handleCopyWhatsappMessage = async () => {
     const message = getMessageForFilters(advancedFilters);
     
+    // Verifica se é a mensagem de fallback (não configurada)
+    if (message === "Mensagem ainda não configurada para esta combinação de filtros.") {
+      toast({
+        title: "Mensagem não configurada",
+        description: "Mensagem ainda não configurada para esta combinação de filtros.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       await navigator.clipboard.writeText(message);
       toast({
@@ -747,6 +757,69 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
         variant: "destructive",
       });
     }
+  };
+
+  // Função para formatar telefone para exportação
+  const formatPhoneForExport = (phone: string): string => {
+    // Remove caracteres não numéricos
+    const cleaned = phone.replace(/\D/g, "");
+    
+    // Se o telefone já tiver 11 dígitos (DDD + número celular)
+    if (cleaned.length === 11) {
+      const ddd = cleaned.substring(0, 2);
+      const firstPart = cleaned.substring(2, 7);
+      const secondPart = cleaned.substring(7, 11);
+      return `+55 ${ddd} ${firstPart}-${secondPart}`;
+    }
+    
+    // Se o telefone tiver 10 dígitos (DDD + número fixo)
+    if (cleaned.length === 10) {
+      const ddd = cleaned.substring(0, 2);
+      const firstPart = cleaned.substring(2, 6);
+      const secondPart = cleaned.substring(6, 10);
+      return `+55 ${ddd} ${firstPart}-${secondPart}`;
+    }
+    
+    // Fallback: retorna com +55 na frente
+    return `+55 ${cleaned}`;
+  };
+
+  // Função para exportar leads
+  const handleExportLeads = () => {
+    // Filtrar leads com telefone válido
+    const leadsWithPhone = filteredLeads.filter(lead => lead.telefone_empresa);
+    
+    if (leadsWithPhone.length === 0) {
+      toast({
+        title: "Nenhum lead encontrado",
+        description: "Não há leads com telefone para exportar com os filtros aplicados.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Formatar telefones
+    const phones = leadsWithPhone.map(lead => formatPhoneForExport(lead.telefone_empresa));
+    
+    // Criar conteúdo CSV (apenas coluna A com telefones)
+    const csvContent = phones.join("\n");
+    
+    // Criar blob e fazer download
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `leads_telefones_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Leads exportados!",
+      description: `${phones.length} telefones exportados com sucesso.`,
+    });
   };
 
   // Verificar autenticação
@@ -887,14 +960,24 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
               <div className="flex gap-2 items-center">
                 <CRMFilters filters={advancedFilters} onChange={setAdvancedFilters} />
                 {hasActiveFilters && (
-                  <Button 
-                    variant="outline" 
-                    className="h-9 gap-2"
-                    onClick={handleCopyWhatsappMessage}
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copiar msg Whatsapp
-                  </Button>
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="h-9 gap-2"
+                      onClick={handleCopyWhatsappMessage}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar msg Whatsapp
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-9 gap-2"
+                      onClick={handleExportLeads}
+                    >
+                      <Download className="h-4 w-4" />
+                      Extrair leads
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
