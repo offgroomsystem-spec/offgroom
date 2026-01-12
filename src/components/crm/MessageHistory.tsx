@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface MessageHistoryProps {
   lead: CRMLead;
+  onMessageRegistered?: (novaTentativa: number) => void;
 }
 
 const faseBadgeColors: Record<string, string> = {
@@ -32,7 +33,7 @@ const faseLabels: Record<string, string> = {
   acesso_pago: "Acesso Pago",
 };
 
-const MessageHistory = ({ lead }: MessageHistoryProps) => {
+const MessageHistory = ({ lead, onMessageRegistered }: MessageHistoryProps) => {
   const [observacao, setObservacao] = useState("");
   const { mensagens, isLoading, createMensagem } = useCRMMensagens(lead.id);
   const { updateLead } = useCRMLeads();
@@ -72,6 +73,9 @@ const MessageHistory = ({ lead }: MessageHistoryProps) => {
       mensagensNaFase,
       ultimoEnvio: new Date(),
     });
+
+    // Notificar o componente pai sobre a nova tentativa
+    onMessageRegistered?.(novaTentativa);
 
     setObservacao("");
   };
