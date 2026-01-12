@@ -254,6 +254,161 @@ Criei o Offgroom, um sistema que une gestão financeira e controle total de agen
 Gostaria de agendar uma apresentação online rápida (max. 1 hora) para te mostrar a ferramenta por dentro.
 
 Se fizer sentido para você, me avise qual o melhor turno (manhã ou tarde) que eu te passo as datas! 🚀`,
+
+      // =====================================================
+      // Leads que AGENDARAM REUNIÃO mas NÃO ativaram acesso grátis
+      // (Aplica para Teve Resposta: SIM ou NÃO)
+      // =====================================================
+
+      // Tentativa 0 - Agendou reunião, sem acesso grátis, sem acesso pago
+      "0_sim_sim_nao_nao": `Olá! Tudo bem?
+
+Fiquei pensando na nossa conversa sobre como a organização _(e a recorrência)_ podem mudar o jogo da sua empresa. 🛁
+
+Percebi que você ainda não ativou seu acesso gratuito ao _Offgroom_ .
+
+Lembre-se: a ferramenta só funciona se você der o primeiro passo. O sistema está pronto para começar a confirmar seus agendamentos e organizar seu financeiro.
+
+Não deixe para depois o lucro que você pode começar a construir hoje.
+
+*O link para seus 30 dias grátis continua válido:* 🚀 offgroom.com.br
+
+Qualquer dificuldade no cadastro, me chama aqui que eu ajudo!`,
+
+      "0_nao_sim_nao_nao": `Olá! Tudo bem?
+
+Fiquei pensando na nossa conversa sobre como a organização _(e a recorrência)_ podem mudar o jogo da sua empresa. 🛁
+
+Percebi que você ainda não ativou seu acesso gratuito ao _Offgroom_ .
+
+Lembre-se: a ferramenta só funciona se você der o primeiro passo. O sistema está pronto para começar a confirmar seus agendamentos e organizar seu financeiro.
+
+Não deixe para depois o lucro que você pode começar a construir hoje.
+
+*O link para seus 30 dias grátis continua válido:* 🚀 offgroom.com.br
+
+Qualquer dificuldade no cadastro, me chama aqui que eu ajudo!`,
+
+      // Tentativa 1 - Agendou reunião, sem acesso grátis, sem acesso pago
+      "1_sim_sim_nao_nao": `Olá! Tudo bem?
+
+Imagino que a correria aí no Banho e Tosa esteja grande e você acabou não tendo tempo de ver isso, mas notei que seu cadastro no Offgroom ainda está pendente.
+
+Estou passando só para não deixar essa oportunidade esfriar. A organização que conversamos na reunião está a um clique de distância. 🛁
+
+Que tal tirar 5 minutinhos hoje para ativar e já deixar o sistema pronto para a semana?
+
+Segue o link dos seus 30 dias gratuitos: 👉 offgroom.com.br
+
+Se tiver qualquer dúvida na hora de entrar, é só me gritar aqui!`,
+
+      "1_nao_sim_nao_nao": `Olá! Tudo bem?
+
+Imagino que a correria aí no Banho e Tosa esteja grande e você acabou não tendo tempo de ver isso, mas notei que seu cadastro no Offgroom ainda está pendente.
+
+Estou passando só para não deixar essa oportunidade esfriar. A organização que conversamos na reunião está a um clique de distância. 🛁
+
+Que tal tirar 5 minutinhos hoje para ativar e já deixar o sistema pronto para a semana?
+
+Segue o link dos seus 30 dias gratuitos: 👉 offgroom.com.br
+
+Se tiver qualquer dúvida na hora de entrar, é só me gritar aqui!`,
+
+      // Tentativa 2 - Agendou reunião, sem acesso grátis, sem acesso pago
+      "2_sim_sim_nao_nao": `Opa! Tudo certo?
+
+Estava revisando aqui e vi que você ainda não iniciou seu teste no Offgroom.
+
+Queria te lembrar de um ponto importante da nossa conversa: todo dia sem gestão é um dia correndo riscos desnecessários (seja de faltas na agenda ou furo no caixa). 💸
+
+A ferramenta para resolver isso já está liberada para você, de graça, por um mês. Não deixe para resolver o problema só quando ele apertar.
+
+Ative agora e comece a organizar a casa: 🚀 offgroom.com.br
+
+Qualquer coisa, estou à disposição!`,
+
+      "2_nao_sim_nao_nao": `Opa! Tudo certo?
+
+Estava revisando aqui e vi que você ainda não iniciou seu teste no Offgroom.
+
+Queria te lembrar de um ponto importante da nossa conversa: todo dia sem gestão é um dia correndo riscos desnecessários (seja de faltas na agenda ou furo no caixa). 💸
+
+A ferramenta para resolver isso já está liberada para você, de graça, por um mês. Não deixe para resolver o problema só quando ele apertar.
+
+Ative agora e comece a organizar a casa: 🚀 offgroom.com.br
+
+Qualquer coisa, estou à disposição!`,
+
+      // Tentativa 3 - Agendou reunião, sem acesso grátis, sem acesso pago
+      "3_sim_sim_nao_nao": `Oii! Tudo bem?
+
+Fiquei pensando no potencial que a sua empresa tem para crescer esse ano. Mas, para virar esse jogo, a gente precisa sair do papel e ir para a ação. 🔥
+
+O Offgroom é o motor que vai impulsionar essa mudança, mas eu preciso que você dê a partida.
+
+Seu acesso completo e gratuito já está te esperando. Vamos fazer acontecer?
+
+Clique abaixo e inicie sua transformação agora: 🚀 offgroom.com.br
+
+Conto com você nessa jornada!`,
+
+      "3_nao_sim_nao_nao": `Oii! Tudo bem?
+
+Fiquei pensando no potencial que a sua empresa tem para crescer esse ano. Mas, para virar esse jogo, a gente precisa sair do papel e ir para a ação. 🔥
+
+O Offgroom é o motor que vai impulsionar essa mudança, mas eu preciso que você dê a partida.
+
+Seu acesso completo e gratuito já está te esperando. Vamos fazer acontecer?
+
+Clique abaixo e inicie sua transformação agora: 🚀 offgroom.com.br
+
+Conto com você nessa jornada!`,
+
+      // Tentativa 4 - Agendou reunião, sem acesso grátis, sem acesso pago
+      "4_sim_sim_nao_nao": `Olá! Tudo bom?
+
+Notei aqui no sistema que seu período de teste de 30 dias ainda não foi ativado.
+
+Aconteceu alguma coisa? 🤔
+
+Às vezes pode parecer difícil começar um sistema novo, mas eu garanto: o Offgroom é muito intuitivo. Quero muito que você experimente a facilidade de ter a confirmação automática pelo WhatsApp rodando.
+
+O link continua válido, tente acessar: 👉 offgroom.com.br
+
+Se tiver tido qualquer dificuldade técnica, me avisa que eu resolvo agora pra você!`,
+
+      "4_nao_sim_nao_nao": `Olá! Tudo bom?
+
+Notei aqui no sistema que seu período de teste de 30 dias ainda não foi ativado.
+
+Aconteceu alguma coisa? 🤔
+
+Às vezes pode parecer difícil começar um sistema novo, mas eu garanto: o Offgroom é muito intuitivo. Quero muito que você experimente a facilidade de ter a confirmação automática pelo WhatsApp rodando.
+
+O link continua válido, tente acessar: 👉 offgroom.com.br
+
+Se tiver tido qualquer dificuldade técnica, me avisa que eu resolvo agora pra você!`,
+
+      // Tentativa 5 - Agendou reunião, sem acesso grátis, sem acesso pago
+      "5_sim_sim_nao_nao": `Olá, tudo bem?
+
+Passando para lembrar que seu acesso gratuito de 30 dias ao Offgroom está aguardando ativação.
+
+Conforme conversamos na reunião, o sistema é essencial para: ✅ Automatizar sua agenda. ✅ Controlar seu financeiro. ✅ Garantir a recorrência dos clientes.
+
+Não perca o prazo do benefício. É só entrar e usar: 🔗 offgroom.com.br
+
+Aguardo seu feedback sobre a ferramenta!`,
+
+      "5_nao_sim_nao_nao": `Olá, tudo bem?
+
+Passando para lembrar que seu acesso gratuito de 30 dias ao Offgroom está aguardando ativação.
+
+Conforme conversamos na reunião, o sistema é essencial para: ✅ Automatizar sua agenda. ✅ Controlar seu financeiro. ✅ Garantir a recorrência dos clientes.
+
+Não perca o prazo do benefício. É só entrar e usar: 🔗 offgroom.com.br
+
+Aguardo seu feedback sobre a ferramenta!`,
     };
 
     // Tratar valores vazios como "nao" para a geração da chave
