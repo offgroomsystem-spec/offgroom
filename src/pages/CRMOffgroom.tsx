@@ -8,9 +8,10 @@ import LeadsList from "@/components/crm/LeadsList";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import CRMFilters, { CRMFiltersState } from "@/components/crm/CRMFilters";
 import { useCRMLeads, useCRMAccess } from "@/hooks/useCRMLeads";
-import { Loader2, ShieldX, LayoutList, LayoutDashboard } from "lucide-react";
+import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
 
 
 const CRMOffgroom = () => {
@@ -29,6 +30,41 @@ const CRMOffgroom = () => {
   
   const { leads, isLoading: leadsLoading } = useCRMLeads();
   const { hasAccess, isLoading: accessLoading } = useCRMAccess();
+
+  // Verificar se há filtros ativos
+  const hasActiveFilters = Object.values(advancedFilters).some(v => v !== "");
+
+  // Mapa de mensagens por combinação de filtros (será configurado posteriormente)
+  const getMessageForFilters = (filters: CRMFiltersState): string => {
+    // Estrutura para configurar as mensagens
+    const messages: Record<string, string> = {
+      // Mensagens serão configuradas aqui pelo usuário
+      // Formato: "teveResposta_agendouReuniao_usandoAcessoGratis_iniciouAcessoPago": "Mensagem..."
+    };
+
+    const key = `${filters.teveResposta}_${filters.agendouReuniao}_${filters.usandoAcessoGratis}_${filters.iniciouAcessoPago}`;
+    
+    return messages[key] || "Mensagem ainda não configurada para esta combinação de filtros.";
+  };
+
+  // Função para copiar mensagem do WhatsApp
+  const handleCopyWhatsappMessage = async () => {
+    const message = getMessageForFilters(advancedFilters);
+    
+    try {
+      await navigator.clipboard.writeText(message);
+      toast({
+        title: "Mensagem copiada!",
+        description: "Cole em sua conversa de Whatsapp com seu cliente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar a mensagem.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Verificar autenticação
   useEffect(() => {
@@ -165,7 +201,19 @@ const CRMOffgroom = () => {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <FilterBar value={filter} onChange={setFilter} />
-              <CRMFilters filters={advancedFilters} onChange={setAdvancedFilters} />
+              <div className="flex gap-2 items-center">
+                <CRMFilters filters={advancedFilters} onChange={setAdvancedFilters} />
+                {hasActiveFilters && (
+                  <Button 
+                    variant="outline" 
+                    className="h-9 gap-2"
+                    onClick={handleCopyWhatsappMessage}
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar msg Whatsapp
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
