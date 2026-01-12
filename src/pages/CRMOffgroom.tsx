@@ -34,15 +34,138 @@ const CRMOffgroom = () => {
   // Verificar se há filtros ativos
   const hasActiveFilters = Object.values(advancedFilters).some(v => v !== "");
 
-  // Mapa de mensagens por combinação de filtros (será configurado posteriormente)
+  // Mapa de mensagens por combinação de filtros
   const getMessageForFilters = (filters: CRMFiltersState): string => {
-    // Estrutura para configurar as mensagens
     const messages: Record<string, string> = {
-      // Mensagens serão configuradas aqui pelo usuário
-      // Formato: "teveResposta_agendouReuniao_usandoAcessoGratis_iniciouAcessoPago": "Mensagem..."
+      // Tentativa 0 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "0_nao_nao_nao_nao": `Você saberia me dizer, agora, *quem são os clientes que vieram nos últimos 15 dias e não voltaram mais?* 🤔
+
+Se você não tem essa resposta, o seu lucro pode estar indo direto para a concorrência.
+
+Ter apenas um "bom serviço" não garante agenda cheia. Você precisa de *organização e inteligência* para garantir a recorrência.
+
+O _Offgroom_ é um sistema de gestão para quem quer deixar de ser apenas um "prestador de serviços" e se tornar uma *empresa lucrativa* .
+
+*Com o Offgroom você vai ter:* 
+
+✅ Controle total da Agenda e dos Pacotes. 
+
+✅ Confirmação de agendamento pelo WhatsApp
+
+✅ Gestão Financeira completa
+
+✅ Foco em Recorrência: saiba exatamente quem precisa voltar.
+
+🎁 _PRESENTE EXCLUSIVO PARA VOCÊ:_
+
+Eu confio tanto que o _Offgroom_ vai *organizar sua empresa e aumentar seu faturamento* , que liberei *30 DIAS DE ACESSO COMPLETO E GRATUITO.*
+
+Sem pegadinhas. É entrar, usar, organizar e ver o resultado no bolso.
+
+🚀 *Toque no link abaixo para ativar seus 30 dias grátis agora:* offgroom.com.br
+
+👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
+
+      // Tentativa 1 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "1_nao_nao_nao_nao": `Você deve ter assistido ao vídeo e pensado: _"O sistema é ótimo, mas deve ser caro..."_ 💸
+
+*Vou te surpreender* : o _Offgroom_ é muito mais barato do que você imagina.
+
+Na verdade, a minha proposta é que ele saia *de graça* para você. Como assim? 🤔
+
+É matemática simples: se as ferramentas de recorrência do Offgroom trouxerem de volta apenas 2 ou 3 clientes que sumiram da sua agenda, o sistema já se pagou sozinho.
+
+Ou seja: você paga a mensalidade com o próprio resultado que o sistema gera, sem sentir no bolso, e ainda sobra lucro.
+
+Não deixe o medo do custo impedir o crescimento da sua empresa.
+
+🎁 *PROVE VOCÊ MESMO (SEM PAGAR NADA):* Liberei *30 DIAS DE ACESSO GRÁTIS.* Use as ferramentas, recupere clientes e veja o dinheiro entrar antes mesmo de pensar em pagar o sistema.
+
+Toque no link e comece agora: 🚀 offgroom.com.br
+
+👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
+
+      // Tentativa 2 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "2_nao_nao_nao_nao": `A falta de gestão afeta o dia a dia. Mas eu sei que cada Banho e Tosa tem sua própria rotina.
+
+Por isso, mais do que "falar" sobre o sistema, eu quero te mostrar o Offgroom rodando na prática, dentro da realidade do seu negócio.
+
+📅 Vamos agendar uma demonstração online?
+
+Em uma conversa rápida de até 1 hora, eu vou:
+
+Entender o que você mais precisa hoje (Agenda? Financeiro? Recorrência?).
+
+Te mostrar na tela como o Offgroom resolve esses pontos.
+
+Tirar todas as suas dúvidas sobre a ferramenta.
+
+É sem compromisso. O objetivo é que você veja com seus próprios olhos se o sistema é para você.
+
+*Me confirma qual seria o dia e horário ideal para você?*`,
+
+      // Tentativa 3 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "3_nao_nao_nao_nao": `Seu concorrente já usa tecnologia para fidelizar os clientes dele... e você? 👀
+
+Gerir um Banho e Tosa apenas no "caderno" ou na "memória" é pedir para perder dinheiro. Sem processos definidos, o cliente esquece de voltar.
+
+Dê um basta na desorganização com o Offgroom. É a ferramenta completa para quem quer crescer de verdade: 
+
+✅ Agendamentos rápidos e organizados. 
+
+✅ Confirmação via Whatsapp _(adeus, faltas!)_ . 
+
+✅ Controle financeiro na palma da mão.
+
+🎁 *Liberei 30 DIAS DE ACESSO GRATUITO.*
+
+Organize sua empresa e aumente seu lucro agora: 🚀 offgroom.com.br
+
+👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
+
+      // Tentativa 4 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "4_nao_nao_nao_nao": `Quantos clientes te deixaram na mão essa semana porque esqueceram o horário? 😡
+
+A falha não é do cliente, é do processo. Confiar na memória ou no caderninho de papel abre margem para erros e prejuízo.
+
+O Offgroom funciona como seu "secretário virtual" para acabar com isso: 
+
+✅ Ele confirma os agendamentos pelo WhatsApp para você. 
+
+✅ Ele organiza a agenda para não encavalar horários. 
+
+✅ Ele te avisa quando o pacote do cliente está acabando.
+
+Chega de perder dinheiro por falha de comunicação.
+
+🎁 *TESTE POR MINHA CONTA:* Quero que você tenha paz de espírito para trabalhar. *Liberei 30 DIAS DE ACESSO GRÁTIS* ao sistema completo.
+
+Toque no link e comece a automatizar seu negócio: 🚀 offgroom.com.br
+
+👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
+
+      // Tentativa 5 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "5_nao_nao_nao_nao": `Você sente que trabalha muito, mas não vê a cor do dinheiro no final do mês? 💸
+
+Como falei no vídeo: o segredo não é só lavar bem, é ter *RECORRÊNCIA* .
+
+Pare de deixar dinheiro na mesa por falta de organização. O Offgroom chegou para centralizar sua gestão: 
+
+📍 Agenda inteligente _(com confirmação no Zap)_ . 
+
+📍 Financeiro que bate centavo por centavo. 
+
+📍 Controle de quem deve voltar _(recupere clientes inativos!)_ .
+
+💡 *OFERTA DE LANÇAMENTO:* Quer ver seu Pet Shop lucrar mais? Estou liberando *30 dias de acesso TOTALMENTE GRÁTIS* para você testar.
+
+Comece a usar agora e sinta a diferença: 🚀 offgroom.com.br
+
+👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
     };
 
-    const key = `${filters.teveResposta}_${filters.agendouReuniao}_${filters.usandoAcessoGratis}_${filters.iniciouAcessoPago}`;
+    // Chave inclui tentativa + outros filtros
+    const key = `${filters.tentativa}_${filters.teveResposta}_${filters.agendouReuniao}_${filters.usandoAcessoGratis}_${filters.iniciouAcessoPago}`;
     
     return messages[key] || "Mensagem ainda não configurada para esta combinação de filtros.";
   };
