@@ -12,6 +12,7 @@ import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download } from "l
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 
 const CRMOffgroom = () => {
@@ -801,20 +802,16 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
     // Formatar telefones
     const phones = leadsWithPhone.map(lead => formatPhoneForExport(lead.telefone_empresa));
     
-    // Criar conteúdo CSV (apenas coluna A com telefones)
-    const csvContent = phones.join("\n");
+    // Criar dados para Excel (cada telefone em uma linha na coluna A)
+    const data = phones.map(phone => [phone]);
     
-    // Criar blob e fazer download
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
+    // Criar workbook e worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, "Leads");
     
-    link.setAttribute("href", url);
-    link.setAttribute("download", `leads_telefones_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Gerar arquivo e fazer download
+    XLSX.writeFile(wb, `leads_telefones_${new Date().toISOString().split('T')[0]}.xlsx`);
     
     toast({
       title: "Leads exportados!",
