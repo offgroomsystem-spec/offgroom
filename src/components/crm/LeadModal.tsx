@@ -81,14 +81,30 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
     
     // Se está mudando de "Não" para "Sim", zera a tentativa
     if (value === true && currentValue !== true) {
-      setFormData(prev => ({ 
-        ...prev, 
-        [field]: value,
-        tentativa: 0 
-      }));
+      // Lógica adicional: Se está marcando "Agendou Reunião: Sim" 
+      // e "Teve Resposta" está como "Não", força para "Sim"
+      if (field === 'agendou_reuniao' && formData.teve_resposta !== true) {
+        setFormData(prev => ({ 
+          ...prev, 
+          [field]: value,
+          teve_resposta: true, // Força "Teve Resposta" para Sim
+          tentativa: 0 
+        }));
+      } else {
+        setFormData(prev => ({ 
+          ...prev, 
+          [field]: value,
+          tentativa: 0 
+        }));
+      }
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
+  };
+
+  // Callback para quando uma mensagem é registrada no MessageHistory
+  const handleMessageRegistered = (novaTentativa: number) => {
+    setFormData(prev => ({ ...prev, tentativa: novaTentativa }));
   };
 
   return (
@@ -400,7 +416,7 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
           <Separator />
 
           {/* Histórico de Mensagens */}
-          <MessageHistory lead={lead} />
+          <MessageHistory lead={lead} onMessageRegistered={handleMessageRegistered} />
 
           <Separator />
 
