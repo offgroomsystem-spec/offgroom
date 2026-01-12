@@ -72,6 +72,25 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Função para atualizar campos de progressão e zerar tentativa ao avançar de fase
+  const updateProgressField = (
+    field: 'teve_resposta' | 'agendou_reuniao' | 'usando_acesso_gratis' | 'iniciou_acesso_pago',
+    value: boolean
+  ) => {
+    const currentValue = formData[field];
+    
+    // Se está mudando de "Não" para "Sim", zera a tentativa
+    if (value === true && currentValue !== true) {
+      setFormData(prev => ({ 
+        ...prev, 
+        [field]: value,
+        tentativa: 0 
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
   return (
     <Dialog open={!!lead} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -244,7 +263,7 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
                 <Label className="text-xs">Teve Resposta?</Label>
                 <Select
                   value={formData.teve_resposta ? "sim" : "nao"}
-                  onValueChange={(v) => updateField("teve_resposta", v === "sim")}
+                  onValueChange={(v) => updateProgressField("teve_resposta", v === "sim")}
                 >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
@@ -261,7 +280,7 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
                 <Label className="text-xs">Agendou Reunião?</Label>
                 <Select
                   value={formData.agendou_reuniao ? "sim" : "nao"}
-                  onValueChange={(v) => updateField("agendou_reuniao", v === "sim")}
+                  onValueChange={(v) => updateProgressField("agendou_reuniao", v === "sim")}
                 >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
@@ -293,7 +312,7 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
                 <Label className="text-xs">Usando Acesso Grátis?</Label>
                 <Select
                   value={formData.usando_acesso_gratis ? "sim" : "nao"}
-                  onValueChange={(v) => updateField("usando_acesso_gratis", v === "sim")}
+                  onValueChange={(v) => updateProgressField("usando_acesso_gratis", v === "sim")}
                 >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
@@ -335,7 +354,7 @@ const LeadModal = ({ lead, onClose }: LeadModalProps) => {
                 <Label className="text-xs">Iniciou Acesso Pago?</Label>
                 <Select
                   value={formData.iniciou_acesso_pago ? "sim" : "nao"}
-                  onValueChange={(v) => updateField("iniciou_acesso_pago", v === "sim")}
+                  onValueChange={(v) => updateProgressField("iniciou_acesso_pago", v === "sim")}
                 >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
