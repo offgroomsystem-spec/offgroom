@@ -162,10 +162,107 @@ Pare de deixar dinheiro na mesa por falta de organização. O Offgroom chegou pa
 Comece a usar agora e sinta a diferença: 🚀 offgroom.com.br
 
 👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
+
+      // =====================================================
+      // Leads que RESPONDERAM mas NÃO agendaram reunião
+      // =====================================================
+
+      // Tentativa 0 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "0_sim_nao_nao_nao": `A falta de gestão afeta o dia a dia. Mas eu sei que cada Banho e Tosa tem sua própria rotina.
+
+Por isso, mais do que "falar" sobre o sistema, eu quero te mostrar o Offgroom rodando na prática, dentro da realidade do seu negócio.
+
+📅 *Vamos agendar uma demonstração online?*
+
+Em uma conversa rápida de até 1 hora, eu vou:
+
+Entender o que você mais precisa hoje (Agenda? Financeiro? Recorrência?).
+
+Te mostrar na tela como o Offgroom resolve esses pontos.
+
+Tirar todas as suas dúvidas sobre a ferramenta.
+
+É sem compromisso. O objetivo é que você veja com seus próprios olhos se o sistema é para você.
+
+*Me confirma qual seria o dia e horário ideal para você?*`,
+
+      // Tentativa 1 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "1_sim_nao_nao_nao": `Olá! Tudo bem?
+
+Criamos um sistema que centraliza Agenda, Financeiro e o principal: a Recorrência Automática dos seus clientes. É a tecnologia trabalhando para você faturar mais.
+
+📅 Topa uma reunião online de 1 hora? Quero te mostrar na tela do computador como o Offgroom assume a parte chata da gestão para você focar no que importa.
+
+Me diz um horário que fica bom para você?`,
+
+      // Tentativa 2 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "2_sim_nao_nao_nao": `Você sabe exatamente quantos clientes deixaram de ir ao seu Pet Shop no último mês? 💸
+
+A verdade é dura: *cliente que não volta é dinheiro que você perde.* E sem um sistema inteligente, é impossível controlar isso de cabeça.
+
+O Offgroom não é apenas uma agenda digital. Ele é uma ferramenta de inteligência de vendas. Ele identifica quem sumiu, organiza o retorno e confirma agendamentos pelo WhatsApp.
+
+Quero te apresentar essa "máquina de recorrência" em uma reunião rápida online.
+
+Em uma horinha eu te mostro como blindar sua carteira de clientes e aumentar seu faturamento.
+
+Vamos agendar? Tenho horários disponíveis para essa semana.`,
+
+      // Tentativa 3 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "3_sim_nao_nao_nao": `Olá! Como estão as coisas por aí na correria do dia a dia?
+
+Estou entrando em contato porque desenvolvemos uma solução chamada Offgroom, pensada especificamente para as dores reais de um Banho e Tosa: faltas de clientes, financeiro misturado e agenda confusa.
+
+Mas eu sei que cada negócio tem sua particularidade. Por isso, não quero só te "mandar um link".
+
+📅 Gostaria de te convidar para um diagnóstico online _(sem custo)_ .
+
+Seria uma conversa de vídeo, de no máximo 1 hora, onde eu vou:
+
+Ouvir seus maiores desafios hoje.
+
+Te mostrar como o sistema resolve cada um deles na prática.
+
+Sem compromisso de compra. É para você conhecer uma nova forma de gerir seu negócio.
+
+O que acha? Podemos marcar?`,
+
+      // Tentativa 4 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "4_sim_nao_nao_nao": `Chega de caderninho e planilhas que não batem! 🛑
+
+Para crescer, seu Banho e Tosa precisa de processos profissionais. O Offgroom é o sistema completo que traz a organização das grandes franquias para dentro da sua loja.
+
+✅ Confirmação via Whatsapp _(para acabar com os furos)_ . 
+
+✅ Dashboards financeiros _(para ver o lucro real)_ . 
+
+✅ Gestão de pacotes e serviços.
+
+Quero te mostrar que é possível ter uma empresa 100% organizada e no controle.
+
+Você tem 1 hora livre essa semana para eu te apresentar o sistema funcionando ao vivo? Prometo que vai valer cada minuto.
+
+Aguardo seu retorno!`,
+
+      // Tentativa 5 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
+      "5_sim_nao_nao_nao": `Olá! Tudo bem?
+
+Estou te escrevendo porque tenho certeza que posso ajudar a aumentar o faturamento do seu Banho e Tosa através da organização.
+
+Criei o Offgroom, um sistema que une gestão financeira e controle total de agenda com foco em recorrência. É a ferramenta completa que faltava para o seu negócio decolar.
+
+Gostaria de agendar uma apresentação online rápida (max. 1 hora) para te mostrar a ferramenta por dentro.
+
+Se fizer sentido para você, me avise qual o melhor turno (manhã ou tarde) que eu te passo as datas! 🚀`,
     };
 
-    // Chave inclui tentativa + outros filtros
-    const key = `${filters.tentativa}_${filters.teveResposta}_${filters.agendouReuniao}_${filters.usandoAcessoGratis}_${filters.iniciouAcessoPago}`;
+    // Tratar valores vazios como "nao" para a geração da chave
+    const teveResposta = filters.teveResposta || "nao";
+    const agendouReuniao = filters.agendouReuniao || "nao";
+    const usandoAcessoGratis = filters.usandoAcessoGratis || "nao";
+    const iniciouAcessoPago = filters.iniciouAcessoPago || "nao";
+
+    const key = `${filters.tentativa}_${teveResposta}_${agendouReuniao}_${usandoAcessoGratis}_${iniciouAcessoPago}`;
     
     return messages[key] || "Mensagem ainda não configurada para esta combinação de filtros.";
   };
