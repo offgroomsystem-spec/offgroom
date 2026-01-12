@@ -35,10 +35,16 @@ const CRMOffgroom = () => {
   const hasActiveFilters = Object.values(advancedFilters).some(v => v !== "");
 
   // Mapa de mensagens por combinação de filtros
+  // Estrutura da chave: {enviouMensagem}_{tentativa}_{teveResposta}_{agendouReuniao}_{usandoAcessoGratis}_{iniciouAcessoPago}
   const getMessageForFilters = (filters: CRMFiltersState): string => {
     const messages: Record<string, string> = {
+      // =====================================================
+      // FASE 1: Leads SEM resposta, SEM reunião, SEM acesso grátis, SEM acesso pago
+      // (Enviou Mensagem: Sim obrigatório para estas chaves)
+      // =====================================================
+
       // Tentativa 0 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "0_nao_nao_nao_nao": `Você saberia me dizer, agora, *quem são os clientes que vieram nos últimos 15 dias e não voltaram mais?* 🤔
+      "sim_0_nao_nao_nao_nao": `Você saberia me dizer, agora, *quem são os clientes que vieram nos últimos 15 dias e não voltaram mais?* 🤔
 
 Se você não tem essa resposta, o seu lucro pode estar indo direto para a concorrência.
 
@@ -67,7 +73,7 @@ Sem pegadinhas. É entrar, usar, organizar e ver o resultado no bolso.
 👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
 
       // Tentativa 1 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "1_nao_nao_nao_nao": `Você deve ter assistido ao vídeo e pensado: _"O sistema é ótimo, mas deve ser caro..."_ 💸
+      "sim_1_nao_nao_nao_nao": `Você deve ter assistido ao vídeo e pensado: _"O sistema é ótimo, mas deve ser caro..."_ 💸
 
 *Vou te surpreender* : o _Offgroom_ é muito mais barato do que você imagina.
 
@@ -86,7 +92,7 @@ Toque no link e comece agora: 🚀 offgroom.com.br
 👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
 
       // Tentativa 2 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "2_nao_nao_nao_nao": `A falta de gestão afeta o dia a dia. Mas eu sei que cada Banho e Tosa tem sua própria rotina.
+      "sim_2_nao_nao_nao_nao": `A falta de gestão afeta o dia a dia. Mas eu sei que cada Banho e Tosa tem sua própria rotina.
 
 Por isso, mais do que "falar" sobre o sistema, eu quero te mostrar o Offgroom rodando na prática, dentro da realidade do seu negócio.
 
@@ -105,7 +111,7 @@ Tirar todas as suas dúvidas sobre a ferramenta.
 *Me confirma qual seria o dia e horário ideal para você?*`,
 
       // Tentativa 3 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "3_nao_nao_nao_nao": `Seu concorrente já usa tecnologia para fidelizar os clientes dele... e você? 👀
+      "sim_3_nao_nao_nao_nao": `Seu concorrente já usa tecnologia para fidelizar os clientes dele... e você? 👀
 
 Gerir um Banho e Tosa apenas no "caderno" ou na "memória" é pedir para perder dinheiro. Sem processos definidos, o cliente esquece de voltar.
 
@@ -124,7 +130,7 @@ Organize sua empresa e aumente seu lucro agora: 🚀 offgroom.com.br
 👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
 
       // Tentativa 4 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "4_nao_nao_nao_nao": `Quantos clientes te deixaram na mão essa semana porque esqueceram o horário? 😡
+      "sim_4_nao_nao_nao_nao": `Quantos clientes te deixaram na mão essa semana porque esqueceram o horário? 😡
 
 A falha não é do cliente, é do processo. Confiar na memória ou no caderninho de papel abre margem para erros e prejuízo.
 
@@ -145,7 +151,7 @@ Toque no link e comece a automatizar seu negócio: 🚀 offgroom.com.br
 👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
 
       // Tentativa 5 - Sem resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "5_nao_nao_nao_nao": `Você sente que trabalha muito, mas não vê a cor do dinheiro no final do mês? 💸
+      "sim_5_nao_nao_nao_nao": `Você sente que trabalha muito, mas não vê a cor do dinheiro no final do mês? 💸
 
 Como falei no vídeo: o segredo não é só lavar bem, é ter *RECORRÊNCIA* .
 
@@ -164,11 +170,12 @@ Comece a usar agora e sinta a diferença: 🚀 offgroom.com.br
 👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
 
       // =====================================================
-      // Leads que RESPONDERAM mas NÃO agendaram reunião
+      // FASE 2: Leads que RESPONDERAM mas NÃO agendaram reunião
+      // (Enviou Mensagem: Sim obrigatório para estas chaves)
       // =====================================================
 
       // Tentativa 0 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "0_sim_nao_nao_nao": `A falta de gestão afeta o dia a dia. Mas eu sei que cada Banho e Tosa tem sua própria rotina.
+      "sim_0_sim_nao_nao_nao": `A falta de gestão afeta o dia a dia. Mas eu sei que cada Banho e Tosa tem sua própria rotina.
 
 Por isso, mais do que "falar" sobre o sistema, eu quero te mostrar o Offgroom rodando na prática, dentro da realidade do seu negócio.
 
@@ -187,7 +194,7 @@ Tirar todas as suas dúvidas sobre a ferramenta.
 *Me confirma qual seria o dia e horário ideal para você?*`,
 
       // Tentativa 1 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "1_sim_nao_nao_nao": `Olá! Tudo bem?
+      "sim_1_sim_nao_nao_nao": `Olá! Tudo bem?
 
 Criamos um sistema que centraliza Agenda, Financeiro e o principal: a Recorrência Automática dos seus clientes. É a tecnologia trabalhando para você faturar mais.
 
@@ -196,7 +203,7 @@ Criamos um sistema que centraliza Agenda, Financeiro e o principal: a Recorrênc
 Me diz um horário que fica bom para você?`,
 
       // Tentativa 2 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "2_sim_nao_nao_nao": `Você sabe exatamente quantos clientes deixaram de ir ao seu Pet Shop no último mês? 💸
+      "sim_2_sim_nao_nao_nao": `Você sabe exatamente quantos clientes deixaram de ir ao seu Pet Shop no último mês? 💸
 
 A verdade é dura: *cliente que não volta é dinheiro que você perde.* E sem um sistema inteligente, é impossível controlar isso de cabeça.
 
@@ -209,7 +216,7 @@ Em uma horinha eu te mostro como blindar sua carteira de clientes e aumentar seu
 Vamos agendar? Tenho horários disponíveis para essa semana.`,
 
       // Tentativa 3 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "3_sim_nao_nao_nao": `Olá! Como estão as coisas por aí na correria do dia a dia?
+      "sim_3_sim_nao_nao_nao": `Olá! Como estão as coisas por aí na correria do dia a dia?
 
 Estou entrando em contato porque desenvolvemos uma solução chamada Offgroom, pensada especificamente para as dores reais de um Banho e Tosa: faltas de clientes, financeiro misturado e agenda confusa.
 
@@ -228,7 +235,7 @@ Sem compromisso de compra. É para você conhecer uma nova forma de gerir seu ne
 O que acha? Podemos marcar?`,
 
       // Tentativa 4 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "4_sim_nao_nao_nao": `Chega de caderninho e planilhas que não batem! 🛑
+      "sim_4_sim_nao_nao_nao": `Chega de caderninho e planilhas que não batem! 🛑
 
 Para crescer, seu Banho e Tosa precisa de processos profissionais. O Offgroom é o sistema completo que traz a organização das grandes franquias para dentro da sua loja.
 
@@ -245,7 +252,7 @@ Você tem 1 hora livre essa semana para eu te apresentar o sistema funcionando a
 Aguardo seu retorno!`,
 
       // Tentativa 5 - Com resposta, sem reunião, sem acesso grátis, sem acesso pago
-      "5_sim_nao_nao_nao": `Olá! Tudo bem?
+      "sim_5_sim_nao_nao_nao": `Olá! Tudo bem?
 
 Estou te escrevendo porque tenho certeza que posso ajudar a aumentar o faturamento do seu Banho e Tosa através da organização.
 
@@ -256,12 +263,12 @@ Gostaria de agendar uma apresentação online rápida (max. 1 hora) para te most
 Se fizer sentido para você, me avise qual o melhor turno (manhã ou tarde) que eu te passo as datas! 🚀`,
 
       // =====================================================
-      // Leads que AGENDARAM REUNIÃO mas NÃO ativaram acesso grátis
-      // (Aplica para Teve Resposta: SIM ou NÃO)
+      // FASE 3: Leads que AGENDARAM REUNIÃO mas NÃO ativaram acesso grátis
+      // (Enviou Mensagem: Sim obrigatório, aplica para Teve Resposta: SIM ou NÃO)
       // =====================================================
 
       // Tentativa 0 - Agendou reunião, sem acesso grátis, sem acesso pago
-      "0_sim_sim_nao_nao": `Olá! Tudo bem?
+      "sim_0_sim_sim_nao_nao": `Olá! Tudo bem?
 
 Fiquei pensando na nossa conversa sobre como a organização _(e a recorrência)_ podem mudar o jogo da sua empresa. 🛁
 
@@ -275,7 +282,7 @@ Não deixe para depois o lucro que você pode começar a construir hoje.
 
 Qualquer dificuldade no cadastro, me chama aqui que eu ajudo!`,
 
-      "0_nao_sim_nao_nao": `Olá! Tudo bem?
+      "sim_0_nao_sim_nao_nao": `Olá! Tudo bem?
 
 Fiquei pensando na nossa conversa sobre como a organização _(e a recorrência)_ podem mudar o jogo da sua empresa. 🛁
 
@@ -290,7 +297,7 @@ Não deixe para depois o lucro que você pode começar a construir hoje.
 Qualquer dificuldade no cadastro, me chama aqui que eu ajudo!`,
 
       // Tentativa 1 - Agendou reunião, sem acesso grátis, sem acesso pago
-      "1_sim_sim_nao_nao": `Olá! Tudo bem?
+      "sim_1_sim_sim_nao_nao": `Olá! Tudo bem?
 
 Imagino que a correria aí no Banho e Tosa esteja grande e você acabou não tendo tempo de ver isso, mas notei que seu cadastro no Offgroom ainda está pendente.
 
@@ -302,7 +309,7 @@ Segue o link dos seus 30 dias gratuitos: 👉 offgroom.com.br
 
 Se tiver qualquer dúvida na hora de entrar, é só me gritar aqui!`,
 
-      "1_nao_sim_nao_nao": `Olá! Tudo bem?
+      "sim_1_nao_sim_nao_nao": `Olá! Tudo bem?
 
 Imagino que a correria aí no Banho e Tosa esteja grande e você acabou não tendo tempo de ver isso, mas notei que seu cadastro no Offgroom ainda está pendente.
 
@@ -315,7 +322,7 @@ Segue o link dos seus 30 dias gratuitos: 👉 offgroom.com.br
 Se tiver qualquer dúvida na hora de entrar, é só me gritar aqui!`,
 
       // Tentativa 2 - Agendou reunião, sem acesso grátis, sem acesso pago
-      "2_sim_sim_nao_nao": `Opa! Tudo certo?
+      "sim_2_sim_sim_nao_nao": `Opa! Tudo certo?
 
 Estava revisando aqui e vi que você ainda não iniciou seu teste no Offgroom.
 
@@ -327,7 +334,7 @@ Ative agora e comece a organizar a casa: 🚀 offgroom.com.br
 
 Qualquer coisa, estou à disposição!`,
 
-      "2_nao_sim_nao_nao": `Opa! Tudo certo?
+      "sim_2_nao_sim_nao_nao": `Opa! Tudo certo?
 
 Estava revisando aqui e vi que você ainda não iniciou seu teste no Offgroom.
 
@@ -340,7 +347,7 @@ Ative agora e comece a organizar a casa: 🚀 offgroom.com.br
 Qualquer coisa, estou à disposição!`,
 
       // Tentativa 3 - Agendou reunião, sem acesso grátis, sem acesso pago
-      "3_sim_sim_nao_nao": `Oii! Tudo bem?
+      "sim_3_sim_sim_nao_nao": `Oii! Tudo bem?
 
 Fiquei pensando no potencial que a sua empresa tem para crescer esse ano. Mas, para virar esse jogo, a gente precisa sair do papel e ir para a ação. 🔥
 
@@ -352,7 +359,7 @@ Clique abaixo e inicie sua transformação agora: 🚀 offgroom.com.br
 
 Conto com você nessa jornada!`,
 
-      "3_nao_sim_nao_nao": `Oii! Tudo bem?
+      "sim_3_nao_sim_nao_nao": `Oii! Tudo bem?
 
 Fiquei pensando no potencial que a sua empresa tem para crescer esse ano. Mas, para virar esse jogo, a gente precisa sair do papel e ir para a ação. 🔥
 
@@ -365,7 +372,7 @@ Clique abaixo e inicie sua transformação agora: 🚀 offgroom.com.br
 Conto com você nessa jornada!`,
 
       // Tentativa 4 - Agendou reunião, sem acesso grátis, sem acesso pago
-      "4_sim_sim_nao_nao": `Olá! Tudo bom?
+      "sim_4_sim_sim_nao_nao": `Olá! Tudo bom?
 
 Notei aqui no sistema que seu período de teste de 30 dias ainda não foi ativado.
 
@@ -377,7 +384,7 @@ O link continua válido, tente acessar: 👉 offgroom.com.br
 
 Se tiver tido qualquer dificuldade técnica, me avisa que eu resolvo agora pra você!`,
 
-      "4_nao_sim_nao_nao": `Olá! Tudo bom?
+      "sim_4_nao_sim_nao_nao": `Olá! Tudo bom?
 
 Notei aqui no sistema que seu período de teste de 30 dias ainda não foi ativado.
 
@@ -390,7 +397,7 @@ O link continua válido, tente acessar: 👉 offgroom.com.br
 Se tiver tido qualquer dificuldade técnica, me avisa que eu resolvo agora pra você!`,
 
       // Tentativa 5 - Agendou reunião, sem acesso grátis, sem acesso pago
-      "5_sim_sim_nao_nao": `Olá, tudo bem?
+      "sim_5_sim_sim_nao_nao": `Olá, tudo bem?
 
 Passando para lembrar que seu acesso gratuito de 30 dias ao Offgroom está aguardando ativação.
 
@@ -400,7 +407,7 @@ Não perca o prazo do benefício. É só entrar e usar: 🔗 offgroom.com.br
 
 Aguardo seu feedback sobre a ferramenta!`,
 
-      "5_nao_sim_nao_nao": `Olá, tudo bem?
+      "sim_5_nao_sim_nao_nao": `Olá, tudo bem?
 
 Passando para lembrar que seu acesso gratuito de 30 dias ao Offgroom está aguardando ativação.
 
@@ -411,155 +418,300 @@ Não perca o prazo do benefício. É só entrar e usar: 🔗 offgroom.com.br
 Aguardo seu feedback sobre a ferramenta!`,
 
       // =====================================================
-      // Leads USANDO ACESSO GRÁTIS (ainda não pagaram)
-      // (Aplica para Teve Resposta: QUALQUER, Agendou Reunião: QUALQUER)
+      // FASE 4: Leads USANDO ACESSO GRÁTIS (ainda não pagaram)
+      // IMPORTANTE: Enviou Mensagem pode ser "Sim" OU "Não" (leads orgânicos)
       // =====================================================
 
-      // Tentativa 0 - Usando acesso grátis
-      "0_sim_sim_sim_nao": `E aí! Tudo bem?
+      // Mensagem compartilhada para Tentativa 0 - Usando acesso grátis
+      // Todas as 8 combinações de enviouMensagem x teveResposta x agendouReuniao
+      "sim_0_sim_sim_sim_nao": `E aí! Tudo bem?
 
 Vi que você já começou a mexer no Offgroom. 🚀
 
 Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
 
-      "0_sim_nao_sim_nao": `E aí! Tudo bem?
+      "sim_0_sim_nao_sim_nao": `E aí! Tudo bem?
 
 Vi que você já começou a mexer no Offgroom. 🚀
 
 Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
 
-      "0_nao_sim_sim_nao": `E aí! Tudo bem?
+      "sim_0_nao_sim_sim_nao": `E aí! Tudo bem?
 
 Vi que você já começou a mexer no Offgroom. 🚀
 
 Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
 
-      "0_nao_nao_sim_nao": `E aí! Tudo bem?
+      "sim_0_nao_nao_sim_nao": `E aí! Tudo bem?
 
 Vi que você já começou a mexer no Offgroom. 🚀
 
 Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
 
-      // Tentativa 1 - Usando acesso grátis
-      "1_sim_sim_sim_nao": `Olá! Tudo certo?
+      "nao_0_sim_sim_sim_nao": `E aí! Tudo bem?
+
+Vi que você já começou a mexer no Offgroom. 🚀
+
+Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
+
+      "nao_0_sim_nao_sim_nao": `E aí! Tudo bem?
+
+Vi que você já começou a mexer no Offgroom. 🚀
+
+Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
+
+      "nao_0_nao_sim_sim_nao": `E aí! Tudo bem?
+
+Vi que você já começou a mexer no Offgroom. 🚀
+
+Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
+
+      "nao_0_nao_nao_sim_nao": `E aí! Tudo bem?
+
+Vi que você já começou a mexer no Offgroom. 🚀
+
+Passando só para saber se está tudo tranquilo por aí ou se surgiu alguma dúvida nesses primeiros passos? Se precisar de ajuda para configurar algo, é só chamar!`,
+
+      // Tentativa 1 - Usando acesso grátis (8 combinações)
+      "sim_1_sim_sim_sim_nao": `Olá! Tudo certo?
 
 Como estão sendo os primeiros dias com o Offgroom? 🐾
 
 Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
 
-      "1_sim_nao_sim_nao": `Olá! Tudo certo?
+      "sim_1_sim_nao_sim_nao": `Olá! Tudo certo?
 
 Como estão sendo os primeiros dias com o Offgroom? 🐾
 
 Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
 
-      "1_nao_sim_sim_nao": `Olá! Tudo certo?
+      "sim_1_nao_sim_sim_nao": `Olá! Tudo certo?
 
 Como estão sendo os primeiros dias com o Offgroom? 🐾
 
 Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
 
-      "1_nao_nao_sim_nao": `Olá! Tudo certo?
+      "sim_1_nao_nao_sim_nao": `Olá! Tudo certo?
 
 Como estão sendo os primeiros dias com o Offgroom? 🐾
 
 Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
 
-      // Tentativa 2 - Usando acesso grátis
-      "2_sim_sim_sim_nao": `Olá, tudo bem?
+      "nao_1_sim_sim_sim_nao": `Olá! Tudo certo?
+
+Como estão sendo os primeiros dias com o Offgroom? 🐾
+
+Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
+
+      "nao_1_sim_nao_sim_nao": `Olá! Tudo certo?
+
+Como estão sendo os primeiros dias com o Offgroom? 🐾
+
+Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
+
+      "nao_1_nao_sim_sim_nao": `Olá! Tudo certo?
+
+Como estão sendo os primeiros dias com o Offgroom? 🐾
+
+Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
+
+      "nao_1_nao_nao_sim_nao": `Olá! Tudo certo?
+
+Como estão sendo os primeiros dias com o Offgroom? 🐾
+
+Já conseguiu fazer os primeiros agendamentos ou lançamentos financeiros? Se tiver qualquer dificuldade ou dúvida em alguma tela, estou à disposição por aqui para te destravar, combinado?`,
+
+      // Tentativa 2 - Usando acesso grátis (8 combinações)
+      "sim_2_sim_sim_sim_nao": `Olá, tudo bem?
 
 Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
 
 O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
 
-      "2_sim_nao_sim_nao": `Olá, tudo bem?
+      "sim_2_sim_nao_sim_nao": `Olá, tudo bem?
 
 Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
 
 O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
 
-      "2_nao_sim_sim_nao": `Olá, tudo bem?
+      "sim_2_nao_sim_sim_nao": `Olá, tudo bem?
 
 Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
 
 O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
 
-      "2_nao_nao_sim_nao": `Olá, tudo bem?
+      "sim_2_nao_nao_sim_nao": `Olá, tudo bem?
 
 Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
 
 O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
 
-      // Tentativa 3 - Usando acesso grátis
-      "3_sim_sim_sim_nao": `Oi! Passando rapidinho. ⚡
+      "nao_2_sim_sim_sim_nao": `Olá, tudo bem?
+
+Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
+
+O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
+
+      "nao_2_sim_nao_sim_nao": `Olá, tudo bem?
+
+Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
+
+O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
+
+      "nao_2_nao_sim_sim_nao": `Olá, tudo bem?
+
+Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
+
+O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
+
+      "nao_2_nao_nao_sim_nao": `Olá, tudo bem?
+
+Estou acompanhando seu período de teste no Offgroom e gostaria de me colocar à disposição.
+
+O sistema é bem intuitivo, mas se você tiver qualquer dúvida técnica ou estratégica sobre como usar melhor alguma ferramenta, pode me acionar aqui direto. Conte comigo! 👊`,
+
+      // Tentativa 3 - Usando acesso grátis (8 combinações)
+      "sim_3_sim_sim_sim_nao": `Oi! Passando rapidinho. ⚡
 
 Alguma dúvida no uso do sistema até agora?
 
 Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
 
-      "3_sim_nao_sim_nao": `Oi! Passando rapidinho. ⚡
+      "sim_3_sim_nao_sim_nao": `Oi! Passando rapidinho. ⚡
 
 Alguma dúvida no uso do sistema até agora?
 
 Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
 
-      "3_nao_sim_sim_nao": `Oi! Passando rapidinho. ⚡
+      "sim_3_nao_sim_sim_nao": `Oi! Passando rapidinho. ⚡
 
 Alguma dúvida no uso do sistema até agora?
 
 Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
 
-      "3_nao_nao_sim_nao": `Oi! Passando rapidinho. ⚡
+      "sim_3_nao_nao_sim_nao": `Oi! Passando rapidinho. ⚡
 
 Alguma dúvida no uso do sistema até agora?
 
 Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
 
-      // Tentativa 4 - Usando acesso grátis
-      "4_sim_sim_sim_nao": `Oii, como você está ?
+      "nao_3_sim_sim_sim_nao": `Oi! Passando rapidinho. ⚡
+
+Alguma dúvida no uso do sistema até agora?
+
+Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
+
+      "nao_3_sim_nao_sim_nao": `Oi! Passando rapidinho. ⚡
+
+Alguma dúvida no uso do sistema até agora?
+
+Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
+
+      "nao_3_nao_sim_sim_nao": `Oi! Passando rapidinho. ⚡
+
+Alguma dúvida no uso do sistema até agora?
+
+Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
+
+      "nao_3_nao_nao_sim_nao": `Oi! Passando rapidinho. ⚡
+
+Alguma dúvida no uso do sistema até agora?
+
+Se precisar de um "help" para entender alguma função do Offgroom, estou por aqui!`,
+
+      // Tentativa 4 - Usando acesso grátis (8 combinações)
+      "sim_4_sim_sim_sim_nao": `Oii, como você está ?
 
 Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
 
 Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
 
-      "4_sim_nao_sim_nao": `Oii, como você está ?
+      "sim_4_sim_nao_sim_nao": `Oii, como você está ?
 
 Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
 
 Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
 
-      "4_nao_sim_sim_nao": `Oii, como você está ?
+      "sim_4_nao_sim_sim_nao": `Oii, como você está ?
 
 Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
 
 Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
 
-      "4_nao_nao_sim_nao": `Oii, como você está ?
+      "sim_4_nao_nao_sim_nao": `Oii, como você está ?
 
 Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
 
 Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
 
-      // Tentativa 5 - Usando acesso grátis
-      "5_sim_sim_sim_nao": `Olá! Tudo bem?
+      "nao_4_sim_sim_sim_nao": `Oii, como você está ?
+
+Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
+
+Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
+
+      "nao_4_sim_nao_sim_nao": `Oii, como você está ?
+
+Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
+
+Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
+
+      "nao_4_nao_sim_sim_nao": `Oii, como você está ?
+
+Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
+
+Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
+
+      "nao_4_nao_nao_sim_nao": `Oii, como você está ?
+
+Você já teve tempo de explorar o Offgroom? O que está achando da ferramenta?
+
+Quero garantir que você tire o máximo proveito desses 30 dias grátis. Se tiver qualquer pergunta, sou todo ouvidos! 👂`,
+
+      // Tentativa 5 - Usando acesso grátis (8 combinações)
+      "sim_5_sim_sim_sim_nao": `Olá! Tudo bem?
 
 Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
 
 Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom mais rápido, me avisa aqui. Estou à disposição para ajudar! 😉`,
 
-      "5_sim_nao_sim_nao": `Olá! Tudo bem?
+      "sim_5_sim_nao_sim_nao": `Olá! Tudo bem?
 
 Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
 
 Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom mais rápido, me avisa aqui. Estou à disposição para ajudar! 😉`,
 
-      "5_nao_sim_sim_nao": `Olá! Tudo bem?
+      "sim_5_nao_sim_sim_nao": `Olá! Tudo bem?
 
 Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
 
 Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom mais rápido, me avisa aqui. Estou à disposição para ajudar! 😉`,
 
-      "5_nao_nao_sim_nao": `Olá! Tudo bem?
+      "sim_5_nao_nao_sim_nao": `Olá! Tudo bem?
+
+Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
+
+Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom mais rápido, me avisa aqui. Estou à disposição para ajudar! 😉`,
+
+      "nao_5_sim_sim_sim_nao": `Olá! Tudo bem?
+
+Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
+
+Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom mais rápido, me avisa aqui. Estou à disposição para ajudar! 😉`,
+
+      "nao_5_sim_nao_sim_nao": `Olá! Tudo bem?
+
+Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
+
+Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom mais rápido, me avisa aqui. Estou à disposição para ajudar! 😉`,
+
+      "nao_5_nao_sim_sim_nao": `Olá! Tudo bem?
+
+Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
+
+Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom mais rápido, me avisa aqui. Estou à disposição para ajudar! 😉`,
+
+      "nao_5_nao_nao_sim_nao": `Olá! Tudo bem?
 
 Às vezes, começar um sistema novo gera algumas dúvidas no início, né?
 
@@ -567,12 +719,13 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
     };
 
     // Tratar valores vazios como "nao" para a geração da chave
+    const enviouMensagem = filters.enviouMensagem || "sim";
     const teveResposta = filters.teveResposta || "nao";
     const agendouReuniao = filters.agendouReuniao || "nao";
     const usandoAcessoGratis = filters.usandoAcessoGratis || "nao";
     const iniciouAcessoPago = filters.iniciouAcessoPago || "nao";
 
-    const key = `${filters.tentativa}_${teveResposta}_${agendouReuniao}_${usandoAcessoGratis}_${iniciouAcessoPago}`;
+    const key = `${enviouMensagem}_${filters.tentativa}_${teveResposta}_${agendouReuniao}_${usandoAcessoGratis}_${iniciouAcessoPago}`;
     
     return messages[key] || "Mensagem ainda não configurada para esta combinação de filtros.";
   };
