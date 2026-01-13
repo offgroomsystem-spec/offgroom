@@ -13,10 +13,10 @@ const VIP_EMAILS = [
   'offgroom.system@gmail.com'
 ];
 
-// Stripe product configurations (Production)
+// Stripe product configurations (Production) - IDs atualizados em 13/01/2026
 const STRIPE_PRODUCTS: Record<string, { name: string; days: number; recurring?: boolean }> = {
-  'prod_Tk9Vbm7j8e0lRx': { name: 'Offgroom Power 12', days: 365, recurring: false },
-  'prod_Tk9UwGhMcEFuql': { name: 'Offgroom Flex', days: 31, recurring: true }
+  'prod_TkEgedLF4KEFOY': { name: 'Offgroom Power 12', days: 365, recurring: false },
+  'prod_TkEhVLxoKBaa7Q': { name: 'Offgroom Flex', days: 31, recurring: true }
 };
 
 const logStep = (step: string, details?: any) => {
