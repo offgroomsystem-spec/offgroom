@@ -8,7 +8,7 @@ import LeadsList from "@/components/crm/LeadsList";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import CRMFilters, { CRMFiltersState } from "@/components/crm/CRMFilters";
 import { useCRMLeads, useCRMAccess } from "@/hooks/useCRMLeads";
-import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download } from "lucide-react";
+import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download, Smartphone, Phone, PhoneOff, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
@@ -28,12 +28,32 @@ const CRMOffgroom = () => {
     iniciouAcessoPago: "",
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [phoneTypeFilter, setPhoneTypeFilter] = useState<"todos" | "celular" | "fixo" | "sem_contato">("todos");
   
   const { leads, isLoading: leadsLoading } = useCRMLeads();
   const { hasAccess, isLoading: accessLoading } = useCRMAccess();
 
   // Verificar se há filtros ativos
   const hasActiveFilters = Object.values(advancedFilters).some(v => v !== "");
+
+  // Função para classificar tipo de telefone
+  const getPhoneType = (phone: string | null | undefined): "celular" | "fixo" | "sem_contato" => {
+    // Sem contato
+    if (!phone || phone.trim() === "") {
+      return "sem_contato";
+    }
+    
+    // Remove caracteres não numéricos
+    const cleaned = phone.replace(/\D/g, "");
+    
+    // Celular: 11 dígitos, terceiro dígito é 9
+    if (cleaned.length === 11 && cleaned.charAt(2) === "9") {
+      return "celular";
+    }
+    
+    // Fixo: 10 dígitos ou 11 dígitos sem 9 após DDD
+    return "fixo";
+  };
 
   // Mapa de mensagens por combinação de filtros
   // Estrutura da chave: {enviouMensagem}_{tentativa}_{teveResposta}_{agendouReuniao}_{usandoAcessoGratis}_{iniciouAcessoPago}
@@ -889,8 +909,13 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
       result = result.filter(l => l.iniciou_acesso_pago !== true);
     }
 
+    // Filtro: Tipo de Telefone (independente dos demais filtros)
+    if (phoneTypeFilter !== "todos") {
+      result = result.filter(lead => getPhoneType(lead.telefone_empresa) === phoneTypeFilter);
+    }
+
     return result;
-  }, [leads, filter, advancedFilters]);
+  }, [leads, filter, advancedFilters, phoneTypeFilter]);
 
   // Loading inicial
   if (isAuthenticated === null || accessLoading) {
@@ -978,12 +1003,57 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
                 )}
               </div>
             </div>
+
+            {/* Filtro por Tipo de Número */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-muted-foreground mr-2">Tipo de contato:</span>
+              
+              <Button
+                variant={phoneTypeFilter === "todos" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPhoneTypeFilter("todos")}
+                className="h-8"
+              >
+                <CheckSquare className="h-4 w-4 mr-1" />
+                Todos
+              </Button>
+              
+              <Button
+                variant={phoneTypeFilter === "celular" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPhoneTypeFilter("celular")}
+                className="h-8"
+              >
+                <Smartphone className="h-4 w-4 mr-1" />
+                Celular
+              </Button>
+              
+              <Button
+                variant={phoneTypeFilter === "fixo" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPhoneTypeFilter("fixo")}
+                className="h-8"
+              >
+                <Phone className="h-4 w-4 mr-1" />
+                Fixo
+              </Button>
+              
+              <Button
+                variant={phoneTypeFilter === "sem_contato" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPhoneTypeFilter("sem_contato")}
+                className="h-8"
+              >
+                <PhoneOff className="h-4 w-4 mr-1" />
+                Sem Contato
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span>{leads.length} leads cadastrados</span>
-            {(filter || Object.values(advancedFilters).some(v => v !== "")) && (
+            {(filter || Object.values(advancedFilters).some(v => v !== "") || phoneTypeFilter !== "todos") && (
               <span>• {filteredLeads.length} encontrados</span>
             )}
           </div>
