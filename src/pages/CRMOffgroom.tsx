@@ -60,6 +60,39 @@ const CRMOffgroom = () => {
   const getMessageForFilters = (filters: CRMFiltersState): string => {
     const messages: Record<string, string> = {
       // =====================================================
+      // FASE 0: Leads que NUNCA receberam mensagem (primeira prospecção)
+      // =====================================================
+      
+      // Tentativa 0 - Nunca recebeu mensagem (lead novo, primeira abordagem)
+      "nao_0_nao_nao_nao_nao": `Você saberia me dizer, agora, *quem são os clientes que vieram nos últimos 15 dias e não voltaram mais?* 🤔
+
+Se você não tem essa resposta, o seu lucro pode estar indo direto para a concorrência.
+
+Ter apenas um "bom serviço" não garante agenda cheia. Você precisa de *organização e inteligência* para garantir a recorrência.
+
+O _Offgroom_ é um sistema de gestão para quem quer deixar de ser apenas um "prestador de serviços" e se tornar uma *empresa lucrativa* .
+
+*Com o Offgroom você vai ter:* 
+
+✅ Controle total da Agenda e dos Pacotes. 
+
+✅ Confirmação de agendamento pelo WhatsApp
+
+✅ Gestão Financeira completa
+
+✅ Foco em Recorrência: saiba exatamente quem precisa voltar.
+
+🎁 _PRESENTE EXCLUSIVO PARA VOCÊ:_
+
+Eu confio tanto que o _Offgroom_ vai *organizar sua empresa e aumentar seu faturamento* , que liberei *30 DIAS DE ACESSO COMPLETO E GRATUITO.*
+
+Sem pegadinhas. É entrar, usar, organizar e ver o resultado no bolso.
+
+🚀 *Toque no link abaixo para ativar seus 30 dias grátis agora:* offgroom.com.br
+
+👨🏻‍💻 *Caso precise, podemos agendar uma reunião online para apresentarmos o Offgroom?*`,
+
+      // =====================================================
       // FASE 1: Leads SEM resposta, SEM reunião, SEM acesso grátis, SEM acesso pago
       // (Enviou Mensagem: Sim obrigatório para estas chaves)
       // =====================================================
