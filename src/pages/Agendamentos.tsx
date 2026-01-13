@@ -136,6 +136,7 @@ interface Servico {
   id: string;
   nome: string;
   valor: number;
+  porte: string;
 }
 interface EmpresaConfig {
   bordao: string;
@@ -257,6 +258,15 @@ const Agendamentos = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
+
+  // Função para normalizar porte (ignora capitalização e acentos)
+  const normalizarPorte = (porte: string): string => {
+    return porte
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  };
+
   const [empresaConfig, setEmpresaConfig] = useState<EmpresaConfig>({
     bordao: "",
     horarioInicio: "08:00",
@@ -394,6 +404,7 @@ const Agendamentos = () => {
             id: s.id,
             nome: s.nome,
             valor: Number(s.valor),
+            porte: s.porte || "",
           })),
         );
       }
@@ -462,6 +473,34 @@ const Agendamentos = () => {
     groomer: "",
     taxiDog: "",
   });
+
+  // Filtrar serviços pelo porte do pet selecionado (agendamento simples)
+  const servicosFiltradosPorPorte = useMemo(() => {
+    if (!formData.raca || !formData.pet) {
+      return servicos;
+    }
+    
+    let portePet = "";
+    for (const cliente of clientes) {
+      const pet = cliente.pets.find(
+        (p) => p.nome === formData.pet && p.raca === formData.raca
+      );
+      if (pet) {
+        portePet = pet.porte;
+        break;
+      }
+    }
+    
+    if (!portePet) {
+      return servicos;
+    }
+    
+    const porteNormalizado = normalizarPorte(portePet);
+    return servicos.filter(
+      (s) => normalizarPorte(s.porte) === porteNormalizado
+    );
+  }, [formData.pet, formData.raca, servicos, clientes]);
+
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
   const [openServicoCombobox, setOpenServicoCombobox] = useState(false);
   const [openEditServicoCombobox, setOpenEditServicoCombobox] = useState(false);
@@ -2160,11 +2199,13 @@ const { error } = await supabase
                               <Command>
                                 <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
                                 <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
-                                  Nenhum serviço encontrado.
+                                  {formData.raca 
+                                    ? "Nenhum serviço cadastrado para este porte."
+                                    : "Selecione cliente e pet primeiro"}
                                 </CommandEmpty>
-                                {servicos.length > 0 && (
+                                {servicosFiltradosPorPorte.length > 0 && (
                                   <CommandGroup heading="Serviços" className="text-xs">
-                                    {servicos.map((servico) => (
+                                    {servicosFiltradosPorPorte.map((servico) => (
                                       <CommandItem
                                         key={`servico-${servico.id}`}
                                         value={servico.nome}
