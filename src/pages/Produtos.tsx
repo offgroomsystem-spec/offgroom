@@ -378,40 +378,41 @@ const Produtos = () => {
       return { valorVenda: 0, lucroUnitario: 0, margemCalculada: 0 };
     }
     
-    if (margemLucro > 0) {
-      const percentualTotal = (margemLucro + imposto + taxaCartao) / 100;
-      const valorVenda = precoCusto / (1 - percentualTotal);
-      
-      const lucroUnitario = valorVenda - precoCusto - (valorVenda * imposto / 100) - (valorVenda * taxaCartao / 100);
-      
-      return { 
-        valorVenda: parseFloat(valorVenda.toFixed(2)), 
-        lucroUnitario: parseFloat(lucroUnitario.toFixed(2)),
-        margemCalculada: margemLucro
-      };
-    } 
-    else if (formData.valorVenda) {
-      const valorVenda = parseFloat(formData.valorVenda) || 0;
-      
-      if (valorVenda <= precoCusto) {
-        return { valorVenda, lucroUnitario: 0, margemCalculada: 0 };
-      }
-      
-      const lucroUnitario = valorVenda - precoCusto - (valorVenda * imposto / 100) - (valorVenda * taxaCartao / 100);
-      const margemCalculada = ((valorVenda - precoCusto) / valorVenda) * 100 - imposto - taxaCartao;
-      
-      return { 
-        valorVenda, 
-        lucroUnitario: parseFloat(lucroUnitario.toFixed(2)),
-        margemCalculada: parseFloat(margemCalculada.toFixed(2))
-      };
+    // Calcular valor base considerando a margem de lucro
+    // Fórmula: ValorBase = PrecoCusto / (1 - Margem%)
+    let valorBase = precoCusto;
+    if (margemLucro > 0 && margemLucro < 100) {
+      valorBase = precoCusto / (1 - margemLucro / 100);
     }
     
-    return { valorVenda: precoCusto, lucroUnitario: 0, margemCalculada: 0 };
-  }, [formData.precoCusto, formData.margemLucro, formData.imposto, formData.taxaCartao, formData.valorVenda]);
+    // Aplicar taxa de cartão e imposto sobre o valor base
+    // Fórmula: ValorVenda = ValorBase × (1 + TaxaCartao%) × (1 + Imposto%)
+    const fatorTaxaCartao = 1 + (taxaCartao / 100);
+    const fatorImposto = 1 + (imposto / 100);
+    const valorVenda = valorBase * fatorTaxaCartao * fatorImposto;
+    
+    // Calcular lucro unitário
+    // Fórmula: LucroUnitario = ValorVenda - PrecoCusto - (ValorVenda × TaxaCartao%) - (ValorVenda × Imposto%)
+    const custoTaxaCartao = valorVenda * (taxaCartao / 100);
+    const custoImposto = valorVenda * (imposto / 100);
+    const lucroUnitario = valorVenda - precoCusto - custoTaxaCartao - custoImposto;
+    
+    // Calcular margem efetiva
+    const margemCalculada = margemLucro > 0 
+      ? margemLucro 
+      : (precoCusto > 0 ? ((valorVenda - precoCusto) / valorVenda) * 100 : 0);
+    
+    return { 
+      valorVenda: parseFloat(valorVenda.toFixed(2)), 
+      lucroUnitario: parseFloat(Math.max(0, lucroUnitario).toFixed(2)),
+      margemCalculada: parseFloat(margemCalculada.toFixed(2))
+    };
+  }, [formData.precoCusto, formData.margemLucro, formData.imposto, formData.taxaCartao]);
 
   useEffect(() => {
-    if (formData.precoCusto && (formData.margemLucro || formData.imposto || formData.taxaCartao)) {
+    // Atualizar valor de venda automaticamente quando houver preço de custo
+    // e qualquer taxa/margem for preenchida (ou apenas o preço de custo)
+    if (formData.precoCusto && parseFloat(formData.precoCusto) > 0) {
       setFormData(prev => ({
         ...prev,
         valorVenda: calcularValores.valorVenda.toString()
