@@ -786,16 +786,8 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         />
       </div>
 
-      {/* Linha 2: Cards de Indicadores Adicionais (5 cards - clicáveis) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <KPICard
-          titulo="Taxa de Recorrência"
-          valor={isRecepcionista ? "0.0%" : `${kpis.taxaRecorrencia.toFixed(1)}%`}
-          subtitulo="clientes que retornaram"
-          icon={<Users />}
-          cor={isRecepcionista ? "default" : kpis.taxaRecorrencia >= 70 ? "green" : kpis.taxaRecorrencia >= 50 ? "yellow" : "red"}
-        />
-
+      {/* Linha 2: Cards de Indicadores Adicionais (4 cards - clicáveis) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           titulo="Clientes em Risco"
           valor={isRecepcionista ? "0 Clientes" : `${kpisAdicionais.clientesEmRisco} Clientes`}
