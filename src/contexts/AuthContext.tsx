@@ -120,7 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const hasRole = (role: string) => roles.includes(role);
 
-  const checkSubscription = async (): Promise<SubscriptionStatus> => {
+  const checkSubscription = async (retryCount = 0): Promise<SubscriptionStatus> => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 1000;
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -141,10 +144,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error checking subscription:', error);
+        
+        // Se ainda temos retries disponíveis, tentar novamente
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Retry attempt ${retryCount + 1}/${MAX_RETRIES} for subscription check`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+          return checkSubscription(retryCount + 1);
+        }
+        
+        // Após todas as tentativas, retornar erro mas NÃO bloquear
         const errorStatus: SubscriptionStatus = {
           hasAccess: false,
           type: 'error',
-          message: error.message
+          message: 'Erro ao verificar assinatura. Tente novamente.'
         };
         setSubscriptionStatus(errorStatus);
         return errorStatus;
@@ -155,6 +167,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return status;
     } catch (error) {
       console.error('Error in checkSubscription:', error);
+      
+      // Se ainda temos retries disponíveis, tentar novamente
+      if (retryCount < MAX_RETRIES) {
+        console.log(`Retry attempt ${retryCount + 1}/${MAX_RETRIES} for subscription check (exception)`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        return checkSubscription(retryCount + 1);
+      }
+      
       const errorStatus: SubscriptionStatus = {
         hasAccess: false,
         type: 'error',

@@ -30,8 +30,14 @@ const ProtectedRoute = () => {
   }
 
   // Verificar acesso baseado em assinatura (exceto para /pagamento)
-  if (location.pathname !== '/pagamento' && subscriptionStatus && !subscriptionStatus.hasAccess) {
-    return <Navigate to="/pagamento" replace />;
+  // IMPORTANTE: Não bloquear quando o tipo for 'error' - pode ser erro temporário de rede
+  if (location.pathname !== '/pagamento' && subscriptionStatus) {
+    if (subscriptionStatus.type === 'error') {
+      // Log para debug mas NÃO bloqueia - erros temporários não devem impedir acesso
+      console.warn('Erro ao verificar assinatura, permitindo acesso temporário:', subscriptionStatus.message);
+    } else if (!subscriptionStatus.hasAccess) {
+      return <Navigate to="/pagamento" replace />;
+    }
   }
 
   // Verificar se o usuário tem permissão para acessar esta rota

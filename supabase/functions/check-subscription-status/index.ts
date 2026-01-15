@@ -49,7 +49,11 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated");
     
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated", { 
+      userId: user.id, 
+      email: user.email,
+      timestamp: new Date().toISOString()
+    });
 
     // Check if user is a staff member and get owner's email for subscription check
     let emailToCheck = user.email;
