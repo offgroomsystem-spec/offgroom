@@ -7,12 +7,23 @@ import ImportExcel from "@/components/crm/ImportExcel";
 import LeadsList from "@/components/crm/LeadsList";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import CRMFilters, { CRMFiltersState } from "@/components/crm/CRMFilters";
-import { useCRMLeads, useCRMAccess } from "@/hooks/useCRMLeads";
-import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download, Smartphone, Phone, PhoneOff, CheckSquare } from "lucide-react";
+import { useCRMLeads, useCRMAccess, getFaseLead, calcularProximoPasso, calcularStatus } from "@/hooks/useCRMLeads";
+import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download, Smartphone, Phone, PhoneOff, CheckSquare, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 const CRMOffgroom = () => {
@@ -29,6 +40,9 @@ const CRMOffgroom = () => {
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [phoneTypeFilter, setPhoneTypeFilter] = useState<"todos" | "celular" | "fixo" | "sem_contato">("todos");
+  const [maxLeadsLimit, setMaxLeadsLimit] = useState<string>("");
+  const [showBulkMessageDialog, setShowBulkMessageDialog] = useState(false);
+  const [isBulkRegistering, setIsBulkRegistering] = useState(false);
   
   const { leads, isLoading: leadsLoading } = useCRMLeads();
   const { hasAccess, isLoading: accessLoading } = useCRMAccess();
@@ -838,10 +852,10 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
     return `+55 ${cleaned}`;
   };
 
-  // Função para exportar leads
-  const handleExportLeads = () => {
+  // Função para exportar leads - será redefinida após displayedLeads
+  const handleExportLeadsBase = (leadsToExport: typeof leads) => {
     // Filtrar leads com telefone válido
-    const leadsWithPhone = filteredLeads.filter(lead => lead.telefone_empresa);
+    const leadsWithPhone = leadsToExport.filter(lead => lead.telefone_empresa);
     
     if (leadsWithPhone.length === 0) {
       toast({
@@ -887,18 +901,42 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
     return () => subscription.unsubscribe();
   }, []);
 
+  // Normalizar telefone para comparação
+  const normalizePhone = (phone: string): string => {
+    return phone.replace(/\D/g, "");
+  };
+
   // Aplicar filtros
   const filteredLeads = useMemo(() => {
     let result = leads;
 
     // Filtro de texto (busca)
     if (filter) {
-      const lowerFilter = filter.toLowerCase();
-      result = result.filter(l => 
-        l.nome_empresa.toLowerCase().includes(lowerFilter) ||
-        l.telefone_empresa.includes(filter) ||
-        (l.nome_dono && l.nome_dono.toLowerCase().includes(lowerFilter))
-      );
+      // Verificar se são múltiplos números (contém quebra de linha)
+      if (filter.includes('\n')) {
+        const phoneNumbers = filter
+          .split('\n')
+          .map(line => normalizePhone(line))
+          .filter(num => num.length >= 8); // Números com pelo menos 8 dígitos
+        
+        if (phoneNumbers.length > 0) {
+          result = result.filter(lead => {
+            const leadPhone = normalizePhone(lead.telefone_empresa || '');
+            // Verificar se algum dos números colados corresponde
+            return phoneNumbers.some(num => 
+              leadPhone.includes(num) || num.includes(leadPhone)
+            );
+          });
+        }
+      } else {
+        // Busca simples existente
+        const lowerFilter = filter.toLowerCase();
+        result = result.filter(l => 
+          l.nome_empresa.toLowerCase().includes(lowerFilter) ||
+          l.telefone_empresa.includes(filter) ||
+          (l.nome_dono && l.nome_dono.toLowerCase().includes(lowerFilter))
+        );
+      }
     }
 
     // Filtro: Enviou mensagem?
@@ -949,6 +987,93 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
 
     return result;
   }, [leads, filter, advancedFilters, phoneTypeFilter]);
+
+  // Aplicar limite de leads para exibição e exportação
+  const displayedLeads = useMemo(() => {
+    const limit = parseInt(maxLeadsLimit);
+    if (!isNaN(limit) && limit > 0) {
+      return filteredLeads.slice(0, limit);
+    }
+    return filteredLeads;
+  }, [filteredLeads, maxLeadsLimit]);
+
+  // Handler de exportação usando displayedLeads
+  const handleExportLeads = () => handleExportLeadsBase(displayedLeads);
+
+  // Função para registrar mensagem em massa
+  const handleBulkRegisterMessage = async () => {
+    setIsBulkRegistering(true);
+    
+    try {
+      const leadsToUpdate = displayedLeads.filter(lead => lead.telefone_empresa);
+      
+      if (leadsToUpdate.length === 0) {
+        toast({
+          title: "Nenhum lead encontrado",
+          description: "Não há leads para registrar mensagem com os filtros aplicados.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      let successCount = 0;
+
+      for (const lead of leadsToUpdate) {
+        const fase = getFaseLead(lead);
+        const novaTentativa = fase === "prospecao" ? (lead.tentativa || 0) + 1 : (lead.tentativa || 0);
+        
+        // Inserir registro de mensagem
+        const { error: msgError } = await supabase
+          .from("crm_mensagens")
+          .insert({
+            lead_id: lead.id,
+            tentativa: novaTentativa,
+            fase,
+            created_by: userData.user?.id,
+          });
+
+        if (msgError) continue;
+
+        // Atualizar lead com nova tentativa e recalcular campos
+        const updatedLead = {
+          ...lead,
+          tentativa: novaTentativa,
+        };
+        
+        const proximo_passo = calcularProximoPasso(updatedLead, 0, new Date());
+        const status = calcularStatus(updatedLead, 0);
+
+        const { error: leadError } = await supabase
+          .from("crm_leads")
+          .update({
+            tentativa: novaTentativa,
+            proximo_passo,
+            status,
+          })
+          .eq("id", lead.id);
+
+        if (!leadError) successCount++;
+      }
+
+      toast({
+        title: "Mensagens registradas!",
+        description: `${successCount} de ${leadsToUpdate.length} leads atualizados com sucesso.`,
+      });
+
+      // Recarregar leads
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Erro ao registrar mensagens",
+        description: "Ocorreu um erro ao processar as mensagens.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBulkRegistering(false);
+      setShowBulkMessageDialog(false);
+    }
+  };
 
   // Loading inicial
   if (isAuthenticated === null || accessLoading) {
@@ -1012,7 +1137,7 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <FilterBar value={filter} onChange={setFilter} />
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-wrap gap-2 items-center">
                 <CRMFilters filters={advancedFilters} onChange={setAdvancedFilters} />
                 {hasActiveFilters && (
                   <>
@@ -1024,6 +1149,14 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
                       <Copy className="h-4 w-4" />
                       Copiar msg Whatsapp
                     </Button>
+                    <Input
+                      type="number"
+                      placeholder="Até quantos leads?"
+                      value={maxLeadsLimit}
+                      onChange={(e) => setMaxLeadsLimit(e.target.value)}
+                      className="w-[160px] h-9"
+                      min={1}
+                    />
                     <Button 
                       variant="outline" 
                       className="h-9 gap-2"
@@ -1031,6 +1164,14 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
                     >
                       <Download className="h-4 w-4" />
                       Extrair leads
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-9 gap-2"
+                      onClick={() => setShowBulkMessageDialog(true)}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Registrar Mensagem
                     </Button>
                   </>
                 )}
@@ -1086,14 +1227,14 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
           {/* Stats */}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span>{leads.length} leads cadastrados</span>
-            {(filter || Object.values(advancedFilters).some(v => v !== "") || phoneTypeFilter !== "todos") && (
-              <span>• {filteredLeads.length} encontrados</span>
+            {(filter || Object.values(advancedFilters).some(v => v !== "") || phoneTypeFilter !== "todos" || maxLeadsLimit) && (
+              <span>• {displayedLeads.length} exibidos {maxLeadsLimit && `(limitado a ${maxLeadsLimit})`}</span>
             )}
           </div>
 
           {/* Lista de Leads */}
           <LeadsList 
-            leads={filteredLeads} 
+            leads={displayedLeads} 
             isLoading={leadsLoading} 
             filter="" 
           />
@@ -1103,6 +1244,34 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
           <CRMDashboard leads={leads} />
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de confirmação para registrar mensagem em massa */}
+      <AlertDialog open={showBulkMessageDialog} onOpenChange={setShowBulkMessageDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Registrar mensagem em massa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que gostaria de registrar mensagem enviada para todos os {displayedLeads.length} contatos selecionados?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkRegistering}>Não</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkRegisterMessage}
+              disabled={isBulkRegistering}
+            >
+              {isBulkRegistering ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Registrando...
+                </>
+              ) : (
+                "Sim"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CRMLayout>
   );
 };
