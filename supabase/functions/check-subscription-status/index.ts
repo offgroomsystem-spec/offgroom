@@ -10,7 +10,8 @@ const corsHeaders = {
 // VIP users with vitalício (lifetime) access
 const VIP_EMAILS = [
   'rodrygo.sv12@gmail.com',
-  'offgroom.system@gmail.com'
+  'offgroom.system@gmail.com',
+  'rodrigocampelo87@gmail.com'
 ];
 
 // Stripe product configurations (Production) - IDs atualizados em 13/01/2026
