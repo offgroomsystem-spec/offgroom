@@ -184,7 +184,8 @@ export const useCRMLeads = () => {
       const { data, error } = await supabase
         .from("crm_leads")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(0, 10000); // Suporta até 10.000 leads
 
       if (error) throw error;
       return data as CRMLead[];
