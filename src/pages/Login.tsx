@@ -69,24 +69,43 @@ const Login = () => {
 
       if (subError) {
         console.error('Error checking subscription:', subError);
-        toast.error('Erro ao verificar assinatura');
+        // Não bloquear por erro temporário - permitir acesso e logar
+        console.warn('Erro temporário ao verificar assinatura, permitindo acesso');
+      }
+
+      // Tratamento por tipo de acesso
+      if (subscriptionData?.type === 'payment_overdue') {
+        toast.error('Favor regularizar pagamento da assinatura');
+        navigate('/pagamento');
         return;
       }
 
-      // Se não tem acesso, redirecionar para página de pagamento
-      if (!subscriptionData?.hasAccess) {
-        toast.error(subscriptionData?.message || 'Acesso expirado. Por favor, assine um plano.');
+      if (subscriptionData?.type === 'expired') {
+        toast.warning('Que pena, você usou todo o periodo grátis, que tal ativarmos algum plano para ter acesso novamente?!');
+        navigate('/pagamento');
+        return;
+      }
+
+      // Se não tem acesso por outro motivo
+      if (subscriptionData && !subscriptionData.hasAccess && subscriptionData.type !== 'error') {
+        toast.error(subscriptionData.message || 'Acesso não disponível. Por favor, assine um plano.');
         navigate('/pagamento');
         return;
       }
 
       // Exibir mensagem de boas-vindas baseada no tipo de acesso
-      if (subscriptionData.type === 'vip') {
-        toast.success('🌟 Bem-vindo! Acesso vitalício ativo.');
-      } else if (subscriptionData.type === 'trial') {
-        toast.success(`✨ Bem-vindo! ${subscriptionData.daysRemaining} dias de trial restantes.`);
-      } else if (subscriptionData.type === 'subscription') {
-        toast.success(`🎉 Bem-vindo! Plano ${subscriptionData.productName} ativo.`);
+      if (subscriptionData?.type === 'vip') {
+        toast.success('🌟 Bem vindo(a) ao Offgroom! Acesso vitalício ativo.');
+      } else if (subscriptionData?.type === 'trial') {
+        toast.success(`✨ Bem vindo(a) ao Offgroom! ${subscriptionData.daysRemaining} dias de trial restantes.`);
+      } else if (subscriptionData?.type === 'subscription') {
+        toast.success(`🎉 Bem vindo(a) ao Offgroom! Plano ${subscriptionData.productName} ativo.`);
+      } else if (subscriptionData?.type === 'liberacao_manual') {
+        toast.success(`✨ Bem vindo(a) ao Offgroom! ${subscriptionData.daysRemaining} dias de acesso liberado.`);
+      } else if (subscriptionData?.type === 'error') {
+        // Erro ao verificar, mas não bloquear
+        console.warn('Erro ao verificar assinatura, permitindo acesso temporário');
+        toast.info('Bem vindo(a) ao Offgroom!');
       }
       
       // Carregar tipo de login do usuário

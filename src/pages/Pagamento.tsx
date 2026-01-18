@@ -2,11 +2,38 @@ import { StoreLayout } from "@/components/store/StoreLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Zap, TrendingUp, Shield, Clock, Lock, Headphones, Sparkles } from "lucide-react";
+import { Check, Zap, TrendingUp, Shield, Clock, Lock, Headphones, Sparkles, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useLocation } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Pagamento = () => {
+  const location = useLocation();
+  const reason = location.state?.reason;
+
+  // Mensagens específicas baseadas no motivo do redirecionamento
+  const getAlertContent = () => {
+    if (reason === 'payment_overdue') {
+      return {
+        variant: 'destructive' as const,
+        icon: <AlertTriangle className="h-5 w-5" />,
+        title: 'Pagamento Pendente',
+        description: 'Favor regularizar pagamento da assinatura para continuar usando o Offgroom.'
+      };
+    }
+    if (reason === 'expired') {
+      return {
+        variant: 'default' as const,
+        icon: <Clock className="h-5 w-5" />,
+        title: 'Período Grátis Encerrado',
+        description: 'Que pena, você usou todo o periodo grátis, que tal ativarmos algum plano para ter acesso novamente?!'
+      };
+    }
+    return null;
+  };
+
+  const alertContent = getAlertContent();
   const handleCheckout = async (planId: string) => {
     if (planId === "flex") {
       try {
@@ -41,6 +68,23 @@ const Pagamento = () => {
 
   return (
     <StoreLayout>
+      {/* Alert de Status */}
+      {alertContent && (
+        <section className="py-4 bg-background">
+          <div className="container max-w-4xl">
+            <Alert variant={alertContent.variant} className="border-2">
+              <div className="flex items-center gap-2">
+                {alertContent.icon}
+                <AlertTitle className="text-lg">{alertContent.title}</AlertTitle>
+              </div>
+              <AlertDescription className="mt-2 text-base">
+                {alertContent.description}
+              </AlertDescription>
+            </Alert>
+          </div>
+        </section>
+      )}
+
       {/* Hero Section */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-background to-muted/30">
         <div className="container max-w-7xl">

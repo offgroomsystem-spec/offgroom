@@ -12,9 +12,9 @@ interface Profile {
   created_at: string | null;
 }
 
-interface SubscriptionStatus {
+export interface SubscriptionStatus {
   hasAccess: boolean;
-  type: 'vip' | 'trial' | 'subscription' | 'liberacao_manual' | 'expired' | 'error';
+  type: 'vip' | 'trial' | 'subscription' | 'liberacao_manual' | 'expired' | 'payment_overdue' | 'error';
   daysRemaining?: number;
   productId?: string;
   productName?: string;

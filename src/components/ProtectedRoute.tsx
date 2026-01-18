@@ -30,12 +30,25 @@ const ProtectedRoute = () => {
   }
 
   // Verificar acesso baseado em assinatura (exceto para /pagamento)
-  // IMPORTANTE: Não bloquear quando o tipo for 'error' - pode ser erro temporário de rede
   if (location.pathname !== '/pagamento' && subscriptionStatus) {
+    // NUNCA bloquear por erro temporário de rede/API
     if (subscriptionStatus.type === 'error') {
-      // Log para debug mas NÃO bloqueia - erros temporários não devem impedir acesso
       console.warn('Erro ao verificar assinatura, permitindo acesso temporário:', subscriptionStatus.message);
-    } else if (!subscriptionStatus.hasAccess) {
+      // Continua sem bloquear
+    } 
+    // Pagamento atrasado - bloquear
+    else if (subscriptionStatus.type === 'payment_overdue') {
+      console.log('Pagamento atrasado, redirecionando para /pagamento');
+      return <Navigate to="/pagamento" state={{ reason: 'payment_overdue' }} replace />;
+    }
+    // Trial expirado sem plano - bloquear
+    else if (subscriptionStatus.type === 'expired') {
+      console.log('Trial expirado, redirecionando para /pagamento');
+      return <Navigate to="/pagamento" state={{ reason: 'expired' }} replace />;
+    }
+    // Qualquer outro caso sem acesso - bloquear
+    else if (!subscriptionStatus.hasAccess) {
+      console.log('Sem acesso, redirecionando para /pagamento');
       return <Navigate to="/pagamento" replace />;
     }
   }

@@ -932,7 +932,9 @@ export type Database = {
           liberacao_manual_ativa: boolean
           login_count: number
           nome_completo: string
+          pagamento_em_dia: string | null
           periodo_gratis_dias: number
+          plano_ativo: string | null
           trial_end_date: string | null
           updated_at: string | null
           whatsapp: string
@@ -948,7 +950,9 @@ export type Database = {
           liberacao_manual_ativa?: boolean
           login_count?: number
           nome_completo: string
+          pagamento_em_dia?: string | null
           periodo_gratis_dias?: number
+          plano_ativo?: string | null
           trial_end_date?: string | null
           updated_at?: string | null
           whatsapp: string
@@ -964,7 +968,9 @@ export type Database = {
           liberacao_manual_ativa?: boolean
           login_count?: number
           nome_completo?: string
+          pagamento_em_dia?: string | null
           periodo_gratis_dias?: number
+          plano_ativo?: string | null
           trial_end_date?: string | null
           updated_at?: string | null
           whatsapp?: string
