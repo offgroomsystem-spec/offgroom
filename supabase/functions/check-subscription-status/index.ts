@@ -273,7 +273,7 @@ serve(async (req) => {
                 // Update profile with active plan
                 await updateProfileStatus(productConfig.name, 'Sim');
 
-                // Update subscriptions table
+                // Update subscriptions table (includes customer_email)
                 try {
                   await supabaseClient
                     .from('subscriptions')
@@ -283,6 +283,7 @@ serve(async (req) => {
                       stripe_subscription_id: subscription.id,
                       stripe_product_id: productId,
                       plan_name: productConfig.name,
+                      customer_email: emailToCheck,
                       subscription_start: subscriptionStart.toISOString(),
                       subscription_end: subscriptionEnd.toISOString(),
                       is_active: true,

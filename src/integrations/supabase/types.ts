@@ -1171,6 +1171,7 @@ export type Database = {
       subscriptions: {
         Row: {
           created_at: string | null
+          customer_email: string | null
           end_date: string | null
           hotmart_transaction_id: string | null
           id: string
@@ -1188,6 +1189,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          customer_email?: string | null
           end_date?: string | null
           hotmart_transaction_id?: string | null
           id?: string
@@ -1205,6 +1207,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          customer_email?: string | null
           end_date?: string | null
           hotmart_transaction_id?: string | null
           id?: string
