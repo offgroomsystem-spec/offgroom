@@ -181,14 +181,35 @@ export const useCRMLeads = () => {
   const { data: leads = [], isLoading, error } = useQuery({
     queryKey: ["crm-leads"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("crm_leads")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(0, 10000); // Suporta até 10.000 leads
+      // Buscar todos os leads em páginas de 1000 para contornar limite do Supabase
+      const PAGE_SIZE = 1000;
+      const allLeads: CRMLead[] = [];
+      let offset = 0;
+      let hasMore = true;
 
-      if (error) throw error;
-      return data as CRMLead[];
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("crm_leads")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allLeads.push(...(data as CRMLead[]));
+          offset += PAGE_SIZE;
+          // Se retornou menos que PAGE_SIZE, é a última página
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+
+        // Fail-safe: máximo de 100.000 leads
+        if (offset >= 100000) break;
+      }
+
+      return allLeads;
     },
   });
 
@@ -278,16 +299,32 @@ export const useCRMLeads = () => {
         return phone.replace(/[\s\(\)\-\+]/g, "");
       };
 
-      // Buscar telefones existentes no banco
-      const { data: existingLeads } = await supabase
-        .from("crm_leads")
-        .select("telefone_empresa");
+      // Buscar todos os telefones existentes no banco (em páginas de 1000)
+      const PAGE_SIZE = 1000;
+      const allExistingPhones: string[] = [];
+      let offset = 0;
+      let hasMore = true;
 
-      const existingPhones = new Set(
-        (existingLeads || [])
-          .map(l => normalizePhone(l.telefone_empresa))
-          .filter(p => p !== "")
-      );
+      while (hasMore) {
+        const { data: existingLeads } = await supabase
+          .from("crm_leads")
+          .select("telefone_empresa")
+          .range(offset, offset + PAGE_SIZE - 1);
+
+        if (existingLeads && existingLeads.length > 0) {
+          allExistingPhones.push(
+            ...existingLeads.map(l => normalizePhone(l.telefone_empresa)).filter(p => p !== "")
+          );
+          offset += PAGE_SIZE;
+          hasMore = existingLeads.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+
+        if (offset >= 100000) break;
+      }
+
+      const existingPhones = new Set(allExistingPhones);
 
       // Filtrar leads que não existem no banco (por telefone)
       const newLeadsData = leadsData.filter(lead => {

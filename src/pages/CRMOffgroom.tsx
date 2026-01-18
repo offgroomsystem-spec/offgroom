@@ -8,7 +8,7 @@ import LeadsList from "@/components/crm/LeadsList";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import CRMFilters, { CRMFiltersState } from "@/components/crm/CRMFilters";
 import { useCRMLeads, useCRMAccess, getFaseLead, calcularProximoPasso, calcularStatus } from "@/hooks/useCRMLeads";
-import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download, Smartphone, Phone, PhoneOff, CheckSquare, MessageSquare } from "lucide-react";
+import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download, Smartphone, Phone, PhoneOff, CheckSquare, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +43,8 @@ const CRMOffgroom = () => {
   const [maxLeadsLimit, setMaxLeadsLimit] = useState<string>("");
   const [showBulkMessageDialog, setShowBulkMessageDialog] = useState(false);
   const [isBulkRegistering, setIsBulkRegistering] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 1000; // Leads por página
   
   const { leads, isLoading: leadsLoading } = useCRMLeads();
   const { hasAccess, isLoading: accessLoading } = useCRMAccess();
@@ -997,6 +999,19 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
     return filteredLeads;
   }, [filteredLeads, maxLeadsLimit]);
 
+  // Paginação: calcular leads da página atual
+  const totalPages = Math.ceil(displayedLeads.length / PAGE_SIZE);
+  const paginatedLeads = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+    return displayedLeads.slice(startIndex, endIndex);
+  }, [displayedLeads, currentPage, PAGE_SIZE]);
+
+  // Resetar página quando filtros mudam
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, advancedFilters, phoneTypeFilter, maxLeadsLimit]);
+
   // Handler de exportação usando displayedLeads
   const handleExportLeads = () => handleExportLeadsBase(displayedLeads);
 
@@ -1232,9 +1247,41 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
             )}
           </div>
 
+          {/* Controles de Paginação */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-b py-3">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {((currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(currentPage * PAGE_SIZE, displayedLeads.length)} de {displayedLeads.length} leads
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Anterior
+                </Button>
+                <span className="text-sm font-medium px-3">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Lista de Leads */}
           <LeadsList 
-            leads={displayedLeads} 
+            leads={paginatedLeads} 
             isLoading={leadsLoading} 
             filter="" 
           />
