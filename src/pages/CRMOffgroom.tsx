@@ -908,36 +908,63 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
     return phone.replace(/\D/g, "");
   };
 
+  // Extrair os últimos dígitos significativos do telefone (8-9 dígitos)
+  const extractSignificantDigits = (phone: string): string => {
+    const digits = phone.replace(/\D/g, '');
+    // Pegar os últimos 8-9 dígitos (número sem DDD/país)
+    return digits.slice(-Math.min(digits.length, 9));
+  };
+
   // Aplicar filtros
   const filteredLeads = useMemo(() => {
     let result = leads;
 
     // Filtro de texto (busca)
     if (filter) {
+      // Normalizar quebras de linha (Windows \r\n, Mac \r, Linux \n)
+      const normalizedFilter = filter.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      
       // Verificar se são múltiplos números (contém quebra de linha)
-      if (filter.includes('\n')) {
-        const phoneNumbers = filter
+      if (normalizedFilter.includes('\n')) {
+        const phoneNumbers = normalizedFilter
           .split('\n')
-          .map(line => normalizePhone(line))
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .map(line => extractSignificantDigits(line))
           .filter(num => num.length >= 8); // Números com pelo menos 8 dígitos
         
         if (phoneNumbers.length > 0) {
           result = result.filter(lead => {
-            const leadPhone = normalizePhone(lead.telefone_empresa || '');
-            // Verificar se algum dos números colados corresponde
-            return phoneNumbers.some(num => 
-              leadPhone.includes(num) || num.includes(leadPhone)
+            const leadPhoneSignificant = extractSignificantDigits(lead.telefone_empresa || '');
+            // Verificar correspondência nos últimos dígitos
+            return phoneNumbers.some(searchNum => 
+              leadPhoneSignificant === searchNum ||
+              leadPhoneSignificant.endsWith(searchNum) ||
+              searchNum.endsWith(leadPhoneSignificant)
             );
           });
         }
       } else {
-        // Busca simples existente
-        const lowerFilter = filter.toLowerCase();
-        result = result.filter(l => 
-          l.nome_empresa.toLowerCase().includes(lowerFilter) ||
-          l.telefone_empresa.includes(filter) ||
-          (l.nome_dono && l.nome_dono.toLowerCase().includes(lowerFilter))
-        );
+        // Verificar se é busca por telefone (apenas dígitos, 8+ chars)
+        const digitsOnly = normalizedFilter.replace(/\D/g, '');
+        const isPhoneSearch = digitsOnly.length >= 8;
+        
+        if (isPhoneSearch) {
+          // Busca por telefone único - comparar pelos dígitos significativos
+          const searchDigits = extractSignificantDigits(normalizedFilter);
+          result = result.filter(l => {
+            const leadDigits = extractSignificantDigits(l.telefone_empresa || '');
+            return leadDigits === searchDigits ||
+              leadDigits.endsWith(searchDigits) ||
+              searchDigits.endsWith(leadDigits);
+          });
+        } else {
+          // Busca por texto - APENAS no nome da empresa
+          const lowerFilter = normalizedFilter.toLowerCase().trim();
+          result = result.filter(l => 
+            l.nome_empresa.toLowerCase().includes(lowerFilter)
+          );
+        }
       }
     }
 
