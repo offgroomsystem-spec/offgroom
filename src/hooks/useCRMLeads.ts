@@ -191,7 +191,9 @@ export const useCRMLeads = () => {
         const { data, error } = await supabase
           .from("crm_leads")
           .select("*")
+          // Ordenação estável: created_at + id para evitar duplicatas entre páginas
           .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
 
         if (error) throw error;
@@ -209,7 +211,15 @@ export const useCRMLeads = () => {
         if (offset >= 100000) break;
       }
 
-      return allLeads;
+      // Deduplicar por ID para garantir que não há leads repetidos
+      const uniqueLeadsMap = new Map<string, CRMLead>();
+      for (const lead of allLeads) {
+        if (!uniqueLeadsMap.has(lead.id)) {
+          uniqueLeadsMap.set(lead.id, lead);
+        }
+      }
+
+      return Array.from(uniqueLeadsMap.values());
     },
   });
 

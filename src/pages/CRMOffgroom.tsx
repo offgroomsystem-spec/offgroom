@@ -908,11 +908,41 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
     return phone.replace(/\D/g, "");
   };
 
-  // Extrair os últimos dígitos significativos do telefone (8-9 dígitos)
-  const extractSignificantDigits = (phone: string): string => {
-    const digits = phone.replace(/\D/g, '');
-    // Pegar os últimos 8-9 dígitos (número sem DDD/país)
-    return digits.slice(-Math.min(digits.length, 9));
+  // Extrair telefones de um texto (suporta múltiplos separados por espaço, vírgula, quebra de linha)
+  const extractPhonesFromText = (text: string): string[] => {
+    // Normalizar separadores: quebras de linha, tabs, vírgulas, ponto-e-vírgula → espaço
+    const normalized = text
+      .replace(/\r\n/g, ' ')
+      .replace(/\r/g, ' ')
+      .replace(/\n/g, ' ')
+      .replace(/[,;|\t]/g, ' ');
+    
+    // Regex para capturar padrões de telefone brasileiro
+    // Aceita: +55 11 98797-4737, (11) 98797-4737, 11987974737, 987974737, etc.
+    const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?[\s.-]?)?\d{4,5}[\s.-]?\d{4}/g;
+    const matches = normalized.match(phoneRegex) || [];
+    
+    // Extrair apenas dígitos de cada match e filtrar válidos
+    return matches
+      .map(match => match.replace(/\D/g, ''))
+      .filter(digits => digits.length >= 8 && digits.length <= 13);
+  };
+
+  // Normalizar telefone para comparação (10-11 dígitos: DDD + número)
+  const normalizePhoneForComparison = (phone: string): string => {
+    let digits = phone.replace(/\D/g, '');
+    
+    // Se começar com 55 e tiver mais de 11 dígitos, remover código do país
+    if (digits.startsWith('55') && digits.length > 11) {
+      digits = digits.slice(2);
+    }
+    
+    // Retornar os últimos 10-11 dígitos (DDD + número)
+    if (digits.length >= 10) {
+      return digits.slice(-11); // Pega até 11 dígitos (DDD + 9 dígitos)
+    }
+    // Se tiver menos de 10, retorna os últimos 8-9 (só o número sem DDD)
+    return digits.slice(-9);
   };
 
   // Aplicar filtros
@@ -921,50 +951,35 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
 
     // Filtro de texto (busca)
     if (filter) {
-      // Normalizar quebras de linha (Windows \r\n, Mac \r, Linux \n)
-      const normalizedFilter = filter.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const trimmedFilter = filter.trim();
       
-      // Verificar se são múltiplos números (contém quebra de linha)
-      if (normalizedFilter.includes('\n')) {
-        const phoneNumbers = normalizedFilter
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0)
-          .map(line => extractSignificantDigits(line))
-          .filter(num => num.length >= 8); // Números com pelo menos 8 dígitos
+      // Tentar extrair telefones do texto
+      const extractedPhones = extractPhonesFromText(trimmedFilter);
+      
+      if (extractedPhones.length > 0) {
+        // Modo telefone: criar Set de telefones normalizados para busca exata
+        const searchPhonesSet = new Set(
+          extractedPhones.map(p => normalizePhoneForComparison(p))
+        );
         
-        if (phoneNumbers.length > 0) {
-          result = result.filter(lead => {
-            const leadPhoneSignificant = extractSignificantDigits(lead.telefone_empresa || '');
-            // Verificar correspondência nos últimos dígitos
-            return phoneNumbers.some(searchNum => 
-              leadPhoneSignificant === searchNum ||
-              leadPhoneSignificant.endsWith(searchNum) ||
-              searchNum.endsWith(leadPhoneSignificant)
-            );
-          });
-        }
+        result = result.filter(lead => {
+          const leadPhone = lead.telefone_empresa || '';
+          const leadDigits = leadPhone.replace(/\D/g, '');
+          
+          // Ignorar leads com telefone vazio ou muito curto
+          if (leadDigits.length < 8) return false;
+          
+          const leadNormalized = normalizePhoneForComparison(leadPhone);
+          
+          // Match exato com qualquer número da busca
+          return searchPhonesSet.has(leadNormalized);
+        });
       } else {
-        // Verificar se é busca por telefone (apenas dígitos, 8+ chars)
-        const digitsOnly = normalizedFilter.replace(/\D/g, '');
-        const isPhoneSearch = digitsOnly.length >= 8;
-        
-        if (isPhoneSearch) {
-          // Busca por telefone único - comparar pelos dígitos significativos
-          const searchDigits = extractSignificantDigits(normalizedFilter);
-          result = result.filter(l => {
-            const leadDigits = extractSignificantDigits(l.telefone_empresa || '');
-            return leadDigits === searchDigits ||
-              leadDigits.endsWith(searchDigits) ||
-              searchDigits.endsWith(leadDigits);
-          });
-        } else {
-          // Busca por texto - APENAS no nome da empresa
-          const lowerFilter = normalizedFilter.toLowerCase().trim();
-          result = result.filter(l => 
-            l.nome_empresa.toLowerCase().includes(lowerFilter)
-          );
-        }
+        // Modo texto: buscar APENAS no nome da empresa
+        const lowerFilter = trimmedFilter.toLowerCase();
+        result = result.filter(l => 
+          l.nome_empresa.toLowerCase().includes(lowerFilter)
+        );
       }
     }
 
