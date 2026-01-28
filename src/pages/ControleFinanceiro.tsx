@@ -656,18 +656,21 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     }).format(value);
   };
 
-  // Filtrar pets baseado no cliente selecionado
+  // Filtrar pets baseado no cliente selecionado (suporta múltiplos clientes com mesmo nome)
   const petsFormulario = useMemo(() => {
     if (!formData.nomeCliente) {
       // Se não há cliente selecionado, retorna todos os pets
       return [...new Set(pets.map((p) => p.nomePet))];
     }
-    // Encontrar o ID do cliente selecionado
-    const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-    if (!clienteSelecionado) return [];
+    // Encontrar TODOS os clientes com o mesmo nome
+    const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+    if (clientesComMesmoNome.length === 0) return [];
 
-    // Retornar apenas os pets deste cliente
-    return pets.filter((p) => p.clienteId === clienteSelecionado.id).map((p) => p.nomePet);
+    // Retornar os pets de TODOS os clientes com esse nome
+    const petsDoCliente = pets.filter((p) => 
+      clientesComMesmoNome.some((c) => c.id === p.clienteId)
+    );
+    return [...new Set(petsDoCliente.map((p) => p.nomePet))];
   }, [formData.nomeCliente, clientes, pets]);
 
   // Filtrar clientes baseado no pet selecionado
@@ -759,22 +762,38 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       const clientePetObrigatorios = formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional";
 
       if (clientePetObrigatorios) {
-        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+        // Encontrar TODOS os clientes com o mesmo nome
+        const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+        
+        // Procurar o pet em qualquer um desses clientes
+        let clienteEncontrado: Cliente | null = null;
+        let petEncontrado: Pet | null = null;
+        
+        for (const cliente of clientesComMesmoNome) {
+          const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+          if (pet) {
+            clienteEncontrado = cliente;
+            petEncontrado = pet;
+            break;
+          }
+        }
 
-        if (!pet || !cliente) {
+        if (!petEncontrado || !clienteEncontrado) {
           toast.error("Cliente/Pet não encontrado ou não correspondem!");
           return;
         }
 
-        clienteId = cliente.id;
+        clienteId = clienteEncontrado.id;
       } else if (formData.nomeCliente && formData.nomePet) {
         // Para Receita Não Operacional, se preencheu, deve validar
-        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+        const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
         
-        if (cliente && pet) {
-          clienteId = cliente.id;
+        for (const cliente of clientesComMesmoNome) {
+          const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+          if (pet) {
+            clienteId = cliente.id;
+            break;
+          }
         }
       }
 
@@ -785,8 +804,17 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
 
       // Preparar array de pet IDs (pet principal + pets adicionais)
-      const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-      const petPrincipal = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+      // Encontrar o cliente correto baseado no pet selecionado
+      const clientesComMesmoNomeParaPet = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+      let petPrincipal: Pet | null = null;
+      
+      for (const cliente of clientesComMesmoNomeParaPet) {
+        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+        if (pet) {
+          petPrincipal = pet;
+          break;
+        }
+      }
       const petIds = petPrincipal ? [petPrincipal.id, ...formData.petsSelecionados.map((p) => p.id)] : [];
 
       // Insert main record
@@ -917,22 +945,38 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       const clientePetObrigatorios = formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional";
 
       if (clientePetObrigatorios) {
-        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+        // Encontrar TODOS os clientes com o mesmo nome
+        const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+        
+        // Procurar o pet em qualquer um desses clientes
+        let clienteEncontrado: Cliente | null = null;
+        let petEncontrado: Pet | null = null;
+        
+        for (const cliente of clientesComMesmoNome) {
+          const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+          if (pet) {
+            clienteEncontrado = cliente;
+            petEncontrado = pet;
+            break;
+          }
+        }
 
-        if (!pet || !cliente) {
+        if (!petEncontrado || !clienteEncontrado) {
           toast.error("Cliente/Pet não encontrado ou não correspondem!");
           return;
         }
 
-        clienteId = cliente.id;
+        clienteId = clienteEncontrado.id;
       } else if (formData.nomeCliente && formData.nomePet) {
         // Para Receita Não Operacional ou Despesa, se preencheu, deve validar
-        const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+        const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
         
-        if (cliente && pet) {
-          clienteId = cliente.id;
+        for (const cliente of clientesComMesmoNome) {
+          const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+          if (pet) {
+            clienteId = cliente.id;
+            break;
+          }
         }
       }
 
@@ -943,8 +987,17 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
 
       // Preparar array de pet IDs (pet principal + pets adicionais)
-      const cliente = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-      const petPrincipal = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente?.id);
+      // Encontrar o cliente correto baseado no pet selecionado
+      const clientesComMesmoNomeParaPet = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+      let petPrincipal: Pet | null = null;
+      
+      for (const cliente of clientesComMesmoNomeParaPet) {
+        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+        if (pet) {
+          petPrincipal = pet;
+          break;
+        }
+      }
       const petIds = petPrincipal ? [petPrincipal.id, ...formData.petsSelecionados.map((p) => p.id)] : [];
 
       await supabase

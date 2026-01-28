@@ -142,37 +142,45 @@ export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPac
   try {
     const { nomeCliente, nomePet, nomePacote, dataVenda, primeiraDataServico, ownerId } = dados;
 
-    // 1. Buscar cliente_id pelo nome
+    console.log(`Iniciando lançamento financeiro de pacote - Cliente: ${nomeCliente}, Pet: ${nomePet}, Pacote: ${nomePacote}`);
+
+    // 1. Primeiro buscar o pet pelo nome (pode retornar múltiplos)
+    const { data: petsData } = await supabase
+      .from("pets")
+      .select("id, cliente_id")
+      .eq("user_id", ownerId)
+      .ilike("nome_pet", nomePet);
+
+    // 2. Buscar todos os clientes com o nome fornecido
     const { data: clientesData } = await supabase
       .from("clientes")
       .select("id")
       .eq("user_id", ownerId)
-      .ilike("nome_cliente", nomeCliente)
-      .limit(1);
+      .ilike("nome_cliente", nomeCliente);
 
-    const clienteId = clientesData?.[0]?.id || null;
-
-    // 2. Buscar pet_id pelo nome e cliente_id
+    // 3. Encontrar o pet que pertence a um cliente com o nome correto
     let petId: string | null = null;
-    if (clienteId) {
-      const { data: petsData } = await supabase
-        .from("pets")
-        .select("id")
-        .eq("user_id", ownerId)
-        .eq("cliente_id", clienteId)
-        .ilike("nome_pet", nomePet)
-        .limit(1);
+    let clienteId: string | null = null;
+
+    if (petsData && clientesData) {
+      const clienteIds = clientesData.map((c: any) => c.id);
+      const petDoCliente = petsData.find((p: any) => clienteIds.includes(p.cliente_id));
       
-      petId = petsData?.[0]?.id || null;
-    } else {
-      const { data: petsData } = await supabase
-        .from("pets")
-        .select("id")
-        .eq("user_id", ownerId)
-        .ilike("nome_pet", nomePet)
-        .limit(1);
-      
-      petId = petsData?.[0]?.id || null;
+      if (petDoCliente) {
+        petId = petDoCliente.id;
+        clienteId = petDoCliente.cliente_id;
+        console.log(`Encontrado par cliente/pet correto - ClienteId: ${clienteId}, PetId: ${petId}`);
+      }
+    }
+
+    // Fallback: se não encontrou combinação, usar o primeiro de cada
+    if (!clienteId && clientesData && clientesData.length > 0) {
+      clienteId = clientesData[0].id;
+      console.log(`Fallback: usando primeiro cliente - ClienteId: ${clienteId}`);
+    }
+    if (!petId && petsData && petsData.length > 0) {
+      petId = petsData[0].id;
+      console.log(`Fallback: usando primeiro pet - PetId: ${petId}`);
     }
 
     // 3. Buscar valor_final do pacote
