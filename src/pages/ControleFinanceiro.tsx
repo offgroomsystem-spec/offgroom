@@ -1316,12 +1316,20 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       value={formData.tipo === "Despesa" ? "Não aplicável" : formData.nomeCliente}
                       onChange={(value) => {
                         if (formData.tipo === "Despesa") return;
-                        const novoCliente = clientes.find((c) => c.nomeCliente === value);
-                        if (novoCliente && formData.nomePet) {
+                        
+                        // Buscar TODOS os clientes com o mesmo nome
+                        const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === value);
+                        
+                        if (clientesComMesmoNome.length > 0 && formData.nomePet) {
+                          // Verificar se o pet atual pertence a ALGUM cliente com esse nome
                           const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
-                          if (petAtual && petAtual.clienteId !== novoCliente.id) {
-                            setFormData({ ...formData, nomeCliente: value, nomePet: "" });
+                          const petPertenceAoCliente = petAtual && clientesComMesmoNome.some(c => c.id === petAtual.clienteId);
+                          
+                          if (!petPertenceAoCliente) {
+                            // Pet não pertence a nenhum cliente com esse nome, limpar
+                            setFormData({ ...formData, nomeCliente: value, nomePet: "", petsSelecionados: [] });
                           } else {
+                            // Pet pertence a um dos clientes com esse nome, manter
                             setFormData({ ...formData, nomeCliente: value });
                           }
                         } else {
@@ -1453,15 +1461,31 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                                 setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
                               }
                             } else {
-                              const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                              const petSelecionado = pets.find(
-                                (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
+                              // Buscar TODOS os clientes com o mesmo nome
+                              const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+                              
+                              // Verificar se o pet pertence a ALGUM cliente com esse nome
+                              const petPertenceAAlgum = pets.find(
+                                (p) => p.nomePet === value && clientesComMesmoNome.some(c => c.id === p.clienteId)
                               );
 
-                              if (petSelecionado) {
-                                setFormData({ ...formData, nomePet: value, petsSelecionados: [] }); // Reset pets adicionais
+                              if (petPertenceAAlgum) {
+                                // Pet pertence a um dos clientes com esse nome, manter cliente
+                                setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
                               } else {
-                                setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                                // Pet não pertence a nenhum cliente com esse nome
+                                // Buscar o dono real do pet e atualizar o cliente
+                                const petReal = pets.find((p) => p.nomePet === value);
+                                if (petReal) {
+                                  const donoReal = clientes.find((c) => c.id === petReal.clienteId);
+                                  if (donoReal) {
+                                    setFormData({ ...formData, nomePet: value, nomeCliente: donoReal.nomeCliente, petsSelecionados: [] });
+                                  } else {
+                                    setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                                  }
+                                } else {
+                                  setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                                }
                               }
                             }
                           }}
