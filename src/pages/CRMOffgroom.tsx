@@ -8,7 +8,11 @@ import LeadsList from "@/components/crm/LeadsList";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import CRMFilters, { CRMFiltersState } from "@/components/crm/CRMFilters";
 import { useCRMLeads, useCRMAccess, getFaseLead, calcularProximoPasso, calcularStatus } from "@/hooks/useCRMLeads";
-import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download, Smartphone, Phone, PhoneOff, CheckSquare, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ShieldX, LayoutList, LayoutDashboard, Copy, Download, Smartphone, Phone, PhoneOff, CheckSquare, MessageSquare, ChevronLeft, ChevronRight, MapPin, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,6 +48,7 @@ const CRMOffgroom = () => {
   const [showBulkMessageDialog, setShowBulkMessageDialog] = useState(false);
   const [isBulkRegistering, setIsBulkRegistering] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedDDDs, setSelectedDDDs] = useState<string[]>([]);
   const PAGE_SIZE = 1000; // Leads por página
   
   const { leads, isLoading: leadsLoading } = useCRMLeads();
@@ -1029,8 +1034,19 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
       result = result.filter(lead => getPhoneType(lead.telefone_empresa) === phoneTypeFilter);
     }
 
+    // Filtro: DDDs selecionados
+    if (selectedDDDs.length > 0) {
+      result = result.filter(lead => {
+        const phone = lead.telefone_empresa || '';
+        const digits = phone.replace(/\D/g, '');
+        if (digits.length < 10) return false;
+        const ddd = digits.substring(0, 2);
+        return selectedDDDs.includes(ddd);
+      });
+    }
+
     return result;
-  }, [leads, filter, advancedFilters, phoneTypeFilter]);
+  }, [leads, filter, advancedFilters, phoneTypeFilter, selectedDDDs]);
 
   // Aplicar limite de leads para exibição e exportação
   const displayedLeads = useMemo(() => {
@@ -1052,7 +1068,27 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
   // Resetar página quando filtros mudam
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, advancedFilters, phoneTypeFilter, maxLeadsLimit]);
+  }, [filter, advancedFilters, phoneTypeFilter, maxLeadsLimit, selectedDDDs]);
+
+  // Calcular DDDs disponíveis
+  const availableDDDs = useMemo(() => {
+    const dddCount = new Map<string, number>();
+    
+    leads.forEach(lead => {
+      const phone = lead.telefone_empresa || '';
+      const digits = phone.replace(/\D/g, '');
+      
+      if (digits.length >= 10) {
+        const ddd = digits.substring(0, 2);
+        dddCount.set(ddd, (dddCount.get(ddd) || 0) + 1);
+      }
+    });
+    
+    // Ordenar por quantidade de leads (maior primeiro)
+    return Array.from(dddCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([ddd, count]) => ({ ddd, count }));
+  }, [leads]);
 
   // Handler de exportação usando displayedLeads
   const handleExportLeads = () => handleExportLeadsBase(displayedLeads);
@@ -1278,6 +1314,64 @@ Se você travou em alguma parte ou quer uma dica de como configurar o Offgroom m
                 <PhoneOff className="h-4 w-4 mr-1" />
                 Sem Contato
               </Button>
+
+              {/* Filtro por DDD */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Filtrar DDD
+                    {selectedDDDs.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                        {selectedDDDs.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3" align="start">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Selecionar DDDs</span>
+                      {selectedDDDs.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedDDDs([])}
+                          className="h-7 px-2 text-xs"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Limpar
+                        </Button>
+                      )}
+                    </div>
+                    <ScrollArea className="h-[200px] pr-3">
+                      <div className="space-y-2">
+                        {availableDDDs.map(({ ddd, count }) => (
+                          <div key={ddd} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`ddd-${ddd}`}
+                              checked={selectedDDDs.includes(ddd)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDDDs([...selectedDDDs, ddd]);
+                                } else {
+                                  setSelectedDDDs(selectedDDDs.filter(d => d !== ddd));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`ddd-${ddd}`}
+                              className="text-sm flex-1 cursor-pointer"
+                            >
+                              {ddd} - {count.toLocaleString()} leads
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
