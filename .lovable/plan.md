@@ -1,170 +1,211 @@
 
+# Plano: Resetar Leads e Adicionar Filtro por DDD
 
-# Plano: Corrigir Loop Infinito na Seleção de Cliente/Pet com Nomes Duplicados
+## Resumo do Pedido
 
-## Diagnóstico do Problema
+O usuário precisa de duas funcionalidades:
 
-### Causa Raiz Identificada
+1. **Resetar todos os leads** que têm mensagens enviadas ("Enviou Mensagem: Sim") para o estado inicial:
+   - Tentativa: 0/5
+   - Enviou Mensagem: Não
+   - Status: Novo
+   - Próximo Passo: Recalculado
 
-O loop infinito ocorre porque **ambos os handlers** (`onChange` do Cliente e `onChange` do Pet) usam `clientes.find()` que sempre retorna a **primeira** Jessica (dona do Pingo), mas a Amora e Pompom pertencem à **segunda** Jessica.
+2. **Novo filtro por DDD** ao lado do botão "Sem Contato":
+   - Permite selecionar múltiplos DDDs
+   - Lista todos os DDDs disponíveis no banco
+   - Se nenhum DDD selecionado, não filtra
+   - Botão para limpar seleção
 
-**Fluxo do bug:**
+---
+
+## Parte 1: Resetar Leads (Operação Única no Banco)
+
+### Dados Atuais do Banco
+
+| Situação | Quantidade |
+|----------|------------|
+| Leads com tentativa > 0 | 350 |
+| Registros em crm_mensagens | 351 |
+
+### Ações Necessárias
+
+1. **Atualizar tabela `crm_leads`**:
+   - SET `tentativa = 0`
+   - SET `status = 'Novo'`
+   - SET `proximo_passo` = data de hoje (lead novo volta à primeira abordagem)
+   - WHERE `tentativa > 0`
+
+2. **Limpar tabela `crm_mensagens`**:
+   - DELETE todos os registros (histórico de mensagens enviadas)
+
+### SQL a Executar via Migração
+
+```sql
+-- Resetar todos os leads com mensagens enviadas
+UPDATE crm_leads 
+SET 
+  tentativa = 0,
+  status = 'Novo',
+  proximo_passo = CURRENT_DATE,
+  updated_at = NOW()
+WHERE tentativa > 0;
+
+-- Limpar histórico de mensagens
+DELETE FROM crm_mensagens;
+```
+
+---
+
+## Parte 2: Novo Filtro por DDD
+
+### DDDs Disponíveis (dados reais do banco)
+
+| DDD | Cidade/Região | Total de Leads |
+|-----|---------------|----------------|
+| 11 | São Paulo | 2.335 |
+| 19 | Campinas | 117 |
+| 61 | Brasília | 24 |
+| 67 | Campo Grande | 13 |
+| 12 | Vale do Paraíba | 6 |
+| 51 | Porto Alegre | 5 |
+| 21 | Rio de Janeiro | 4 |
+| + outros | ... | ... |
+
+### Implementação no Código
+
+#### 1. Novo Estado para DDDs Selecionados
+
+```typescript
+const [selectedDDDs, setSelectedDDDs] = useState<string[]>([]);
+```
+
+#### 2. Calcular DDDs Disponíveis (useMemo)
+
+```typescript
+const availableDDDs = useMemo(() => {
+  const dddCount = new Map<string, number>();
+  
+  leads.forEach(lead => {
+    const phone = lead.telefone_empresa || '';
+    const digits = phone.replace(/\D/g, '');
+    
+    if (digits.length >= 10) {
+      const ddd = digits.substring(0, 2);
+      dddCount.set(ddd, (dddCount.get(ddd) || 0) + 1);
+    }
+  });
+  
+  // Ordenar por quantidade de leads (maior primeiro)
+  return Array.from(dddCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([ddd, count]) => ({ ddd, count }));
+}, [leads]);
+```
+
+#### 3. Componente de Seleção Multi-DDD
+
+Vou criar um Popover com checkboxes para cada DDD, similar ao padrão do Popover já usado no projeto:
 
 ```text
-┌──────────────────────────────────────────────────────────────────┐
-│  1. Usuário seleciona Cliente "Jessica"                         │
-│     → find() retorna Jessica 1 (ID: e6c5..., dona do Pingo)     │
-│     → Pet atual = "Pompom" (pertence à Jessica 2)               │
-│     → petAtual.clienteId !== novoCliente.id = TRUE              │
-│     → Executa: setFormData(..., nomePet: "")  ← LIMPA PET!     │
-├──────────────────────────────────────────────────────────────────┤
-│  2. Re-render → Usuário tenta selecionar Pet "Pompom"           │
-│     → Cliente selecionado = "Jessica"                            │
-│     → find() retorna Jessica 1 (ID: e6c5...)                    │
-│     → Pompom não pertence à Jessica 1                            │
-│     → petSelecionado = undefined                                 │
-│     → Executa: setFormData(..., nomeCliente: "") ← LIMPA CLIENTE│
-├──────────────────────────────────────────────────────────────────┤
-│  3. Re-render → Loop infinito!                                   │
-└──────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│  Tipo de contato: [Todos] [Celular] [Fixo] [Sem Contato]  [DDD ▼]  │
+│                                                           ─────── │
+│                                                           Badge   │
+└────────────────────────────────────────────────────────────────────┘
+                                                              │
+                                                              ▼
+                                               ┌─────────────────────┐
+                                               │ ☑ 11 - 2.335 leads  │
+                                               │ ☐ 19 - 117 leads    │
+                                               │ ☐ 61 - 24 leads     │
+                                               │ ☐ 67 - 13 leads     │
+                                               │ ...                 │
+                                               │ ─────────────────── │
+                                               │ [Limpar Seleção]    │
+                                               └─────────────────────┘
+```
+
+#### 4. Adicionar Filtro no `filteredLeads`
+
+```typescript
+// Filtro: DDD selecionados
+if (selectedDDDs.length > 0) {
+  result = result.filter(lead => {
+    const phone = lead.telefone_empresa || '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) return false;
+    const ddd = digits.substring(0, 2);
+    return selectedDDDs.includes(ddd);
+  });
+}
 ```
 
 ---
 
-## Solução
+## Arquivos a Modificar
 
-Modificar **ambos os handlers** para usar `clientes.filter()` e fazer a validação **correta** considerando todos os clientes com o mesmo nome.
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/CRMOffgroom.tsx` | Adicionar estado `selectedDDDs`, useMemo `availableDDDs`, Popover de seleção de DDDs, filtro no `filteredLeads` |
+| Migração SQL | Resetar leads (tentativa=0, status='Novo') e limpar crm_mensagens |
 
 ---
 
-## Implementação Detalhada
+## Detalhes da Interface do Filtro DDD
 
-### Arquivo: `src/pages/ControleFinanceiro.tsx`
+### Posicionamento
 
-#### Alteração 1: Handler `onChange` do Cliente (linhas 1317-1329)
+O botão ficará à **direita** do botão "Sem Contato", na mesma linha:
 
-**Problema atual:**
-```typescript
-onChange={(value) => {
-  if (formData.tipo === "Despesa") return;
-  const novoCliente = clientes.find((c) => c.nomeCliente === value);
-  if (novoCliente && formData.nomePet) {
-    const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
-    if (petAtual && petAtual.clienteId !== novoCliente.id) {
-      setFormData({ ...formData, nomeCliente: value, nomePet: "" }); // LIMPA PET!
-    } else {
-      setFormData({ ...formData, nomeCliente: value });
-    }
-  } else {
-    setFormData({ ...formData, nomeCliente: value });
-  }
-}}
+```text
+Tipo de contato: [Todos] [Celular] [Fixo] [Sem Contato] [Filtrar DDD (3)]
 ```
 
-**Solução:**
-```typescript
-onChange={(value) => {
-  if (formData.tipo === "Despesa") return;
-  
-  // Buscar TODOS os clientes com o mesmo nome
-  const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === value);
-  
-  if (clientesComMesmoNome.length > 0 && formData.nomePet) {
-    // Verificar se o pet atual pertence a ALGUM cliente com esse nome
-    const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
-    const petPertenceAoCliente = petAtual && clientesComMesmoNome.some(c => c.id === petAtual.clienteId);
-    
-    if (!petPertenceAoCliente) {
-      // Pet não pertence a nenhum cliente com esse nome, limpar
-      setFormData({ ...formData, nomeCliente: value, nomePet: "", petsSelecionados: [] });
-    } else {
-      // Pet pertence a um dos clientes com esse nome, manter
-      setFormData({ ...formData, nomeCliente: value });
-    }
-  } else {
-    setFormData({ ...formData, nomeCliente: value });
-  }
-}}
-```
+### Comportamento
 
-#### Alteração 2: Handler `onChange` do Pet (linhas 1455-1466)
+1. **Nenhum DDD selecionado**: Não filtra por DDD (mostra todos)
+2. **Um ou mais DDDs selecionados**: Mostra apenas leads com DDDs selecionados
+3. **Badge**: Mostra quantidade de DDDs selecionados
+4. **Botão Limpar**: Dentro do Popover, limpa toda a seleção
 
-**Problema atual:**
-```typescript
-} else {
-  const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-  const petSelecionado = pets.find(
-    (p) => p.nomePet === value && p.clienteId === clienteSelecionado?.id,
-  );
+### Exemplo de Uso
 
-  if (petSelecionado) {
-    setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
-  } else {
-    setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] }); // LIMPA CLIENTE!
-  }
-}
-```
+- Usuário quer enviar mensagens apenas para leads de São Paulo (11):
+  1. Clica em "Filtrar DDD"
+  2. Marca checkbox "11 - 2.335 leads"
+  3. Lista mostra apenas leads com DDD 11
 
-**Solução:**
-```typescript
-} else {
-  // Buscar TODOS os clientes com o mesmo nome
-  const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
-  
-  // Verificar se o pet pertence a ALGUM cliente com esse nome
-  const petPertenceAAlgum = pets.find(
-    (p) => p.nomePet === value && clientesComMesmoNome.some(c => c.id === p.clienteId)
-  );
-
-  if (petPertenceAAlgum) {
-    // Pet pertence a um dos clientes com esse nome, manter cliente
-    setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
-  } else {
-    // Pet não pertence a nenhum cliente com esse nome
-    // Buscar o dono real do pet e atualizar o cliente
-    const petReal = pets.find((p) => p.nomePet === value);
-    if (petReal) {
-      const donoReal = clientes.find((c) => c.id === petReal.clienteId);
-      if (donoReal) {
-        setFormData({ ...formData, nomePet: value, nomeCliente: donoReal.nomeCliente, petsSelecionados: [] });
-      } else {
-        setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
-      }
-    } else {
-      setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
-    }
-  }
-}
-```
+- Usuário quer enviar para São Paulo e Campinas:
+  1. Marca checkboxes "11" e "19"
+  2. Lista mostra leads de ambos os DDDs
 
 ---
 
 ## Resumo das Alterações
 
-| Local | Linha | Problema | Solução |
-|-------|-------|----------|---------|
-| onChange Cliente | 1317-1329 | `find()` retorna só o primeiro cliente | Usar `filter()` e verificar se pet pertence a **algum** cliente com esse nome |
-| onChange Pet | 1455-1466 | `find()` retorna só o primeiro cliente | Usar `filter()` e verificar se pet pertence a **algum** cliente com esse nome |
+### Migração (SQL)
+- UPDATE `crm_leads` SET tentativa=0, status='Novo', proximo_passo=CURRENT_DATE WHERE tentativa > 0
+- DELETE FROM `crm_mensagens`
+
+### Código (CRMOffgroom.tsx)
+- Novo estado: `selectedDDDs`
+- Novo useMemo: `availableDDDs`
+- Novo componente: Popover com checkboxes de DDDs
+- Modificação: `filteredLeads` para incluir filtro por DDD
+- Adicionar import: `MapPin` do lucide-react para ícone do DDD
 
 ---
 
-## Testes a Realizar Após Implementação
+## Testes a Realizar
 
-1. **Testar seleção Cliente → Pet:**
-   - Selecionar "Jessica" no Cliente
-   - Selecionar "Pompom" no Pet
-   - **Esperado:** Ambos permanecem selecionados, SEM loop
+1. **Após migração:**
+   - Verificar que todos os leads estão com tentativa = 0
+   - Verificar que todos os leads estão com status = "Novo"
+   - Verificar que crm_mensagens está vazia
 
-2. **Testar seleção Pet → Cliente:**
-   - Selecionar "Amora" no Pet (sem cliente selecionado)
-   - **Esperado:** Cliente "Jessica" é preenchido automaticamente
-
-3. **Testar cliente com pet único:**
-   - Selecionar "Jessica" e depois "Pingo"
-   - **Esperado:** Funciona normalmente, sem loop
-
-4. **Testar troca de pet entre clientes diferentes:**
-   - Selecionar Jessica → Pompom
-   - Depois selecionar outro cliente (ex: "Maria")
-   - **Esperado:** Pet deve ser limpo (porque Pompom não pertence a Maria)
-
+2. **Filtro DDD:**
+   - Selecionar DDD 11 → mostra apenas leads de SP
+   - Selecionar DDDs 11 e 19 → mostra leads de SP e Campinas
+   - Limpar seleção → mostra todos novamente
+   - Verificar que o badge mostra quantidade correta
