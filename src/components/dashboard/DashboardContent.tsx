@@ -580,7 +580,17 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       });
     }
 
-    return dados;
+    // Calcular variação percentual para cada dia
+    return dados.map((d, index) => {
+      if (index === 0 || isRecepcionista) {
+        return { ...d, variacaoReceitas: 0, variacaoDespesas: 0 };
+      }
+      const receitasAnterior = dados[index - 1].receitas;
+      const despesasAnterior = dados[index - 1].despesas;
+      const variacaoReceitas = receitasAnterior > 0 ? ((d.receitas - receitasAnterior) / receitasAnterior) * 100 : 0;
+      const variacaoDespesas = despesasAnterior > 0 ? ((d.despesas - despesasAnterior) / despesasAnterior) * 100 : 0;
+      return { ...d, variacaoReceitas, variacaoDespesas };
+    });
   }, [lancamentos, isRecepcionista]);
 
   // Dados para gráfico de crescimento de agendamentos (últimos 12 meses)
@@ -709,7 +719,15 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       });
     }
 
-    return dados;
+    // Calcular variação percentual para cada mês
+    return dados.map((d, index) => {
+      if (index === 0 || isRecepcionista) {
+        return { ...d, variacao: 0 };
+      }
+      const mediaAnterior = dados[index - 1].media;
+      const variacao = mediaAnterior > 0 ? ((d.media - mediaAnterior) / mediaAnterior) * 100 : 0;
+      return { ...d, variacao };
+    });
   }, [agendamentos, agendamentosPacotes, diasFuncionamento, isRecepcionista]);
 
   // Dados para gráfico de Faturamento/Despesas (últimos 12 meses)
@@ -755,7 +773,17 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       });
     }
 
-    return dados;
+    // Calcular variação percentual para cada mês
+    return dados.map((d, index) => {
+      if (index === 0 || isRecepcionista) {
+        return { ...d, variacaoReceitas: 0, variacaoDespesas: 0 };
+      }
+      const receitasAnterior = dados[index - 1].receitas;
+      const despesasAnterior = dados[index - 1].despesas;
+      const variacaoReceitas = receitasAnterior > 0 ? ((d.receitas - receitasAnterior) / receitasAnterior) * 100 : 0;
+      const variacaoDespesas = despesasAnterior > 0 ? ((d.despesas - despesasAnterior) / despesasAnterior) * 100 : 0;
+      return { ...d, variacaoReceitas, variacaoDespesas };
+    });
   }, [lancamentos, isRecepcionista]);
 
   const handleKPIClick = (reportId: string) => {
@@ -885,12 +913,40 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
                 <YAxis width={40} tick={{ fontSize: 12 }} />
                 <Tooltip
-                  formatter={(value: number) =>
-                    new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(value)
-                  }
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const formatCurrency = (value: number) =>
+                        new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(value);
+                      return (
+                        <div className="bg-background border rounded-lg p-3 shadow-lg">
+                          <p className="font-semibold">{data.mes}</p>
+                          <p className="text-sm text-green-600">Receitas: {formatCurrency(data.receitas)}</p>
+                          {data.variacaoReceitas !== 0 && (
+                            <p
+                              className={`text-xs font-medium ${data.variacaoReceitas > 0 ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {data.variacaoReceitas > 0 ? "+" : ""}
+                              {data.variacaoReceitas.toFixed(1)}% vs mês anterior
+                            </p>
+                          )}
+                          <p className="text-sm text-red-600 mt-1">Despesas: {formatCurrency(data.despesas)}</p>
+                          {data.variacaoDespesas !== 0 && (
+                            <p
+                              className={`text-xs font-medium ${data.variacaoDespesas > 0 ? "text-red-600" : "text-green-600"}`}
+                            >
+                              {data.variacaoDespesas > 0 ? "+" : ""}
+                              {data.variacaoDespesas.toFixed(1)}% vs mês anterior
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Legend />
                 <Line 
@@ -928,12 +984,40 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                 <XAxis dataKey="data" tick={{ fontSize: 12 }} />
                 <YAxis width={30} tick={{ fontSize: 12 }} />
                 <Tooltip
-                  formatter={(value: number) =>
-                    new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(value)
-                  }
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const formatCurrency = (value: number) =>
+                        new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(value);
+                      return (
+                        <div className="bg-background border rounded-lg p-3 shadow-lg">
+                          <p className="font-semibold">{data.data}</p>
+                          <p className="text-sm text-green-600">Receitas: {formatCurrency(data.receitas)}</p>
+                          {data.variacaoReceitas !== 0 && (
+                            <p
+                              className={`text-xs font-medium ${data.variacaoReceitas > 0 ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {data.variacaoReceitas > 0 ? "+" : ""}
+                              {data.variacaoReceitas.toFixed(1)}% vs dia anterior
+                            </p>
+                          )}
+                          <p className="text-sm text-red-600 mt-1">Despesas: {formatCurrency(data.despesas)}</p>
+                          {data.variacaoDespesas !== 0 && (
+                            <p
+                              className={`text-xs font-medium ${data.variacaoDespesas > 0 ? "text-red-600" : "text-green-600"}`}
+                            >
+                              {data.variacaoDespesas > 0 ? "+" : ""}
+                              {data.variacaoDespesas.toFixed(1)}% vs dia anterior
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Legend />
                 <Line type="monotone" dataKey="receitas" stroke="#22c55e" name="Receitas" strokeWidth={2} />
@@ -1013,6 +1097,14 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                         <div className="bg-background border rounded-lg p-3 shadow-lg">
                           <p className="font-semibold">{data.mes}</p>
                           <p className="text-sm">Média: {data.media.toFixed(1)} atendimentos/dia</p>
+                          {data.variacao !== 0 && (
+                            <p
+                              className={`text-sm font-medium ${data.variacao > 0 ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {data.variacao > 0 ? "+" : ""}
+                              {data.variacao.toFixed(1)}% vs mês anterior
+                            </p>
+                          )}
                         </div>
                       );
                     }
