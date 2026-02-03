@@ -1,211 +1,200 @@
 
-# Plano: Resetar Leads e Adicionar Filtro por DDD
+# Plano: Novo Gráfico "Faturamento/Despesas dos Últimos 12 Meses"
 
 ## Resumo do Pedido
 
-O usuário precisa de duas funcionalidades:
-
-1. **Resetar todos os leads** que têm mensagens enviadas ("Enviou Mensagem: Sim") para o estado inicial:
-   - Tentativa: 0/5
-   - Enviou Mensagem: Não
-   - Status: Novo
-   - Próximo Passo: Recalculado
-
-2. **Novo filtro por DDD** ao lado do botão "Sem Contato":
-   - Permite selecionar múltiplos DDDs
-   - Lista todos os DDDs disponíveis no banco
-   - Se nenhum DDD selecionado, não filtra
-   - Botão para limpar seleção
+Criar um novo gráfico de linhas que exiba receitas (linha verde) e despesas (linha vermelha) dos últimos 12 meses, posicionado à **esquerda** do gráfico "Fluxo de Caixa - Últimos 30 dias", resultando em 4 gráficos lado a lado no desktop.
 
 ---
 
-## Parte 1: Resetar Leads (Operação Única no Banco)
+## Problema Identificado: Consulta Limitada
 
-### Dados Atuais do Banco
+Atualmente, a consulta de lançamentos financeiros está limitada aos **últimos 90 dias**:
 
-| Situação | Quantidade |
-|----------|------------|
-| Leads com tentativa > 0 | 350 |
-| Registros em crm_mensagens | 351 |
-
-### Ações Necessárias
-
-1. **Atualizar tabela `crm_leads`**:
-   - SET `tentativa = 0`
-   - SET `status = 'Novo'`
-   - SET `proximo_passo` = data de hoje (lead novo volta à primeira abordagem)
-   - WHERE `tentativa > 0`
-
-2. **Limpar tabela `crm_mensagens`**:
-   - DELETE todos os registros (histórico de mensagens enviadas)
-
-### SQL a Executar via Migração
-
-```sql
--- Resetar todos os leads com mensagens enviadas
-UPDATE crm_leads 
-SET 
-  tentativa = 0,
-  status = 'Novo',
-  proximo_passo = CURRENT_DATE,
-  updated_at = NOW()
-WHERE tentativa > 0;
-
--- Limpar histórico de mensagens
-DELETE FROM crm_mensagens;
+```typescript
+// Linha 80-84 - Consulta atual (PROBLEMA)
+const { data: lancamentosData } = await supabase
+  .from("lancamentos_financeiros")
+  .select("*, lancamentos_financeiros_itens(*)")
+  .eq("user_id", ownerId)
+  .gte("data_pagamento", format(ultimos90Dias, "yyyy-MM-dd"));
 ```
+
+Para exibir 12 meses, precisamos buscar lançamentos dos **últimos 365 dias**.
 
 ---
 
-## Parte 2: Novo Filtro por DDD
+## Implementação
 
-### DDDs Disponíveis (dados reais do banco)
+### 1. Alterar a Consulta de Lançamentos (Linha 80-84)
 
-| DDD | Cidade/Região | Total de Leads |
-|-----|---------------|----------------|
-| 11 | São Paulo | 2.335 |
-| 19 | Campinas | 117 |
-| 61 | Brasília | 24 |
-| 67 | Campo Grande | 13 |
-| 12 | Vale do Paraíba | 6 |
-| 51 | Porto Alegre | 5 |
-| 21 | Rio de Janeiro | 4 |
-| + outros | ... | ... |
-
-### Implementação no Código
-
-#### 1. Novo Estado para DDDs Selecionados
+Buscar lançamentos dos últimos 365 dias em vez de 90:
 
 ```typescript
-const [selectedDDDs, setSelectedDDDs] = useState<string[]>([]);
+const ultimos365Dias = subDays(hoje, 365);
+
+const { data: lancamentosData } = await supabase
+  .from("lancamentos_financeiros")
+  .select("*, lancamentos_financeiros_itens(*)")
+  .eq("user_id", ownerId)
+  .gte("data_pagamento", format(ultimos365Dias, "yyyy-MM-dd"));
 ```
 
-#### 2. Calcular DDDs Disponíveis (useMemo)
+### 2. Criar `useMemo` para Dados do Novo Gráfico
+
+Adicionar após `dadosCrescimentoAgendamentos` (linha ~640):
 
 ```typescript
-const availableDDDs = useMemo(() => {
-  const dddCount = new Map<string, number>();
-  
-  leads.forEach(lead => {
-    const phone = lead.telefone_empresa || '';
-    const digits = phone.replace(/\D/g, '');
-    
-    if (digits.length >= 10) {
-      const ddd = digits.substring(0, 2);
-      dddCount.set(ddd, (dddCount.get(ddd) || 0) + 1);
+// Dados para gráfico de Faturamento/Despesas (últimos 12 meses)
+const dadosFaturamentoDespesas12Meses = useMemo(() => {
+  const dados: any[] = [];
+
+  for (let i = 11; i >= 0; i--) {
+    const mes = subMonths(new Date(), i);
+    const inicioMes = startOfMonth(mes);
+    const fimMes = endOfMonth(mes);
+
+    if (isRecepcionista) {
+      dados.push({
+        mes: format(mes, "MMM/yy", { locale: ptBR }),
+        receitas: 0,
+        despesas: 0,
+      });
+      continue;
     }
-  });
-  
-  // Ordenar por quantidade de leads (maior primeiro)
-  return Array.from(dddCount.entries())
-    .sort((a, b) => b[1] - a[1])
-    .map(([ddd, count]) => ({ ddd, count }));
-}, [leads]);
+
+    // Receitas do mês (pagas)
+    const receitas = lancamentos
+      .filter((l) => {
+        if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+        const data = new Date(l.data_pagamento);
+        return data >= inicioMes && data <= fimMes;
+      })
+      .reduce((acc, l) => acc + Number(l.valor_total), 0);
+
+    // Despesas do mês (pagas)
+    const despesas = lancamentos
+      .filter((l) => {
+        if (l.tipo !== "Despesa" || !l.pago || !l.data_pagamento) return false;
+        const data = new Date(l.data_pagamento);
+        return data >= inicioMes && data <= fimMes;
+      })
+      .reduce((acc, l) => acc + Number(l.valor_total), 0);
+
+    dados.push({
+      mes: format(mes, "MMM/yy", { locale: ptBR }),
+      receitas,
+      despesas,
+    });
+  }
+
+  return dados;
+}, [lancamentos, isRecepcionista]);
 ```
 
-#### 3. Componente de Seleção Multi-DDD
+### 3. Alterar Layout dos Gráficos (Linha 829)
 
-Vou criar um Popover com checkboxes para cada DDD, similar ao padrão do Popover já usado no projeto:
-
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│  Tipo de contato: [Todos] [Celular] [Fixo] [Sem Contato]  [DDD ▼]  │
-│                                                           ─────── │
-│                                                           Badge   │
-└────────────────────────────────────────────────────────────────────┘
-                                                              │
-                                                              ▼
-                                               ┌─────────────────────┐
-                                               │ ☑ 11 - 2.335 leads  │
-                                               │ ☐ 19 - 117 leads    │
-                                               │ ☐ 61 - 24 leads     │
-                                               │ ☐ 67 - 13 leads     │
-                                               │ ...                 │
-                                               │ ─────────────────── │
-                                               │ [Limpar Seleção]    │
-                                               └─────────────────────┘
-```
-
-#### 4. Adicionar Filtro no `filteredLeads`
+Mudar de 3 colunas para **4 colunas** no desktop:
 
 ```typescript
-// Filtro: DDD selecionados
-if (selectedDDDs.length > 0) {
-  result = result.filter(lead => {
-    const phone = lead.telefone_empresa || '';
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10) return false;
-    const ddd = digits.substring(0, 2);
-    return selectedDDDs.includes(ddd);
-  });
-}
+<div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+```
+
+### 4. Adicionar o Novo Gráfico (Antes do "Fluxo de Caixa")
+
+```typescript
+{/* Gráfico Faturamento/Despesas - 12 Meses */}
+<Card>
+  <CardHeader>
+    <CardTitle className="text-lg">Faturamento/Despesas dos últimos 12 meses</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={dadosFaturamentoDespesas12Meses} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+        <YAxis width={40} tick={{ fontSize: 12 }} />
+        <Tooltip
+          formatter={(value: number) =>
+            new Intl.NumberFormat("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            }).format(value)
+          }
+        />
+        <Legend />
+        <Line 
+          type="monotone" 
+          dataKey="receitas" 
+          stroke="#22c55e" 
+          name="Receitas" 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+          activeDot={{ r: 6 }}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="despesas" 
+          stroke="#ef4444" 
+          name="Despesas" 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+          activeDot={{ r: 6 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </CardContent>
+</Card>
 ```
 
 ---
 
-## Arquivos a Modificar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/CRMOffgroom.tsx` | Adicionar estado `selectedDDDs`, useMemo `availableDDDs`, Popover de seleção de DDDs, filtro no `filteredLeads` |
-| Migração SQL | Resetar leads (tentativa=0, status='Novo') e limpar crm_mensagens |
-
----
-
-## Detalhes da Interface do Filtro DDD
-
-### Posicionamento
-
-O botão ficará à **direita** do botão "Sem Contato", na mesma linha:
+## Layout Final em Desktop (4 colunas)
 
 ```text
-Tipo de contato: [Todos] [Celular] [Fixo] [Sem Contato] [Filtrar DDD (3)]
+┌───────────────────┬───────────────────┬───────────────────┬───────────────────┐
+│  Faturamento/     │  Fluxo de Caixa   │  Evolução de      │  Média do Mês de  │
+│  Despesas dos     │  Últimos 30 dias  │  Atendimentos     │  Atendimentos     │
+│  últimos 12 meses │                   │  Últimos 12 meses │  Realizados       │
+│                   │                   │                   │                   │
+│  📈 Linha Verde   │  📈 Linha Verde   │  📈 Linha Azul    │  📈 Linha Roxa    │
+│     (Receitas)    │     (Receitas)    │     (Qtd)         │     (Média)       │
+│  📉 Linha Vermelha│  📉 Linha Vermelha│                   │                   │
+│     (Despesas)    │     (Despesas)    │                   │                   │
+└───────────────────┴───────────────────┴───────────────────┴───────────────────┘
 ```
-
-### Comportamento
-
-1. **Nenhum DDD selecionado**: Não filtra por DDD (mostra todos)
-2. **Um ou mais DDDs selecionados**: Mostra apenas leads com DDDs selecionados
-3. **Badge**: Mostra quantidade de DDDs selecionados
-4. **Botão Limpar**: Dentro do Popover, limpa toda a seleção
-
-### Exemplo de Uso
-
-- Usuário quer enviar mensagens apenas para leads de São Paulo (11):
-  1. Clica em "Filtrar DDD"
-  2. Marca checkbox "11 - 2.335 leads"
-  3. Lista mostra apenas leads com DDD 11
-
-- Usuário quer enviar para São Paulo e Campinas:
-  1. Marca checkboxes "11" e "19"
-  2. Lista mostra leads de ambos os DDDs
 
 ---
 
 ## Resumo das Alterações
 
-### Migração (SQL)
-- UPDATE `crm_leads` SET tentativa=0, status='Novo', proximo_passo=CURRENT_DATE WHERE tentativa > 0
-- DELETE FROM `crm_mensagens`
+| Arquivo | Linha | Alteração |
+|---------|-------|-----------|
+| `DashboardContent.tsx` | 55 | Adicionar variável `ultimos365Dias` |
+| `DashboardContent.tsx` | 80-84 | Alterar filtro de lançamentos para 365 dias |
+| `DashboardContent.tsx` | ~641 | Adicionar `useMemo` para `dadosFaturamentoDespesas12Meses` |
+| `DashboardContent.tsx` | 829 | Alterar grid para `xl:grid-cols-4` |
+| `DashboardContent.tsx` | 830 | Inserir novo Card com gráfico antes do Fluxo de Caixa |
 
-### Código (CRMOffgroom.tsx)
-- Novo estado: `selectedDDDs`
-- Novo useMemo: `availableDDDs`
-- Novo componente: Popover com checkboxes de DDDs
-- Modificação: `filteredLeads` para incluir filtro por DDD
-- Adicionar import: `MapPin` do lucide-react para ícone do DDD
+---
+
+## Detalhes Técnicos
+
+### Cores das Linhas
+- **Receitas**: `#22c55e` (verde - Tailwind green-500)
+- **Despesas**: `#ef4444` (vermelho - Tailwind red-500)
+
+### Período do Gráfico
+Se hoje é fevereiro de 2026, o gráfico mostrará:
+- Fev/25, Mar/25, Abr/25, Mai/25, Jun/25, Jul/25, Ago/25, Set/25, Out/25, Nov/25, Dez/25, Jan/26, Fev/26
+
+### Tooltip
+Formatação em moeda brasileira (R$) para valores de receitas e despesas.
 
 ---
 
 ## Testes a Realizar
 
-1. **Após migração:**
-   - Verificar que todos os leads estão com tentativa = 0
-   - Verificar que todos os leads estão com status = "Novo"
-   - Verificar que crm_mensagens está vazia
-
-2. **Filtro DDD:**
-   - Selecionar DDD 11 → mostra apenas leads de SP
-   - Selecionar DDDs 11 e 19 → mostra leads de SP e Campinas
-   - Limpar seleção → mostra todos novamente
-   - Verificar que o badge mostra quantidade correta
+1. **Verificar dados do gráfico**: Confirmar que os valores de receitas e despesas correspondem aos lançamentos financeiros reais de cada mês
+2. **Responsividade**: Verificar layout em desktop (4 colunas) e mobile (1 coluna)
+3. **Recepcionista**: Verificar que o gráfico mostra valores zerados para usuários com perfil de recepcionista
