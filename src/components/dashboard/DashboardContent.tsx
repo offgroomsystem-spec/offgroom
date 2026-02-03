@@ -53,7 +53,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         const inicioMes = startOfMonth(hoje);
         const fimMes = endOfMonth(hoje);
         const ultimos30Dias = subDays(hoje, 30);
-        const ultimos90Dias = subDays(hoje, 90);
+        const ultimos365Dias = subDays(hoje, 365);
 
         // Carregar agendamentos
         const { data: agendamentosData } = await supabase
@@ -66,22 +66,22 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
 
         setAgendamentos(agendamentosData || []);
 
-        // Carregar agendamentos de pacotes
+        // Carregar agendamentos de pacotes (últimos 365 dias para suportar gráfico de 12 meses)
         const { data: agendamentosPacotesData } = await supabase
           .from("agendamentos_pacotes")
           .select("*")
           .eq("user_id", ownerId)
-          .gte("data_venda", format(ultimos90Dias, "yyyy-MM-dd"))
+          .gte("data_venda", format(ultimos365Dias, "yyyy-MM-dd"))
           .order("data_venda", { ascending: true });
 
         setAgendamentosPacotes(agendamentosPacotesData || []);
 
-        // Carregar lançamentos financeiros
+        // Carregar lançamentos financeiros (últimos 365 dias para suportar gráfico de 12 meses)
         const { data: lancamentosData } = await supabase
           .from("lancamentos_financeiros")
           .select("*, lancamentos_financeiros_itens(*)")
           .eq("user_id", ownerId)
-          .gte("data_pagamento", format(ultimos90Dias, "yyyy-MM-dd"));
+          .gte("data_pagamento", format(ultimos365Dias, "yyyy-MM-dd"));
 
         setLancamentos(lancamentosData || []);
 
@@ -712,6 +712,52 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
     return dados;
   }, [agendamentos, agendamentosPacotes, diasFuncionamento, isRecepcionista]);
 
+  // Dados para gráfico de Faturamento/Despesas (últimos 12 meses)
+  const dadosFaturamentoDespesas12Meses = useMemo(() => {
+    const dados: any[] = [];
+
+    for (let i = 11; i >= 0; i--) {
+      const mes = subMonths(new Date(), i);
+      const inicioMes = startOfMonth(mes);
+      const fimMes = endOfMonth(mes);
+
+      if (isRecepcionista) {
+        dados.push({
+          mes: format(mes, "MMM/yy", { locale: ptBR }),
+          receitas: 0,
+          despesas: 0,
+        });
+        continue;
+      }
+
+      // Receitas do mês (pagas)
+      const receitas = lancamentos
+        .filter((l) => {
+          if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+          const data = new Date(l.data_pagamento);
+          return data >= inicioMes && data <= fimMes;
+        })
+        .reduce((acc, l) => acc + Number(l.valor_total), 0);
+
+      // Despesas do mês (pagas)
+      const despesas = lancamentos
+        .filter((l) => {
+          if (l.tipo !== "Despesa" || !l.pago || !l.data_pagamento) return false;
+          const data = new Date(l.data_pagamento);
+          return data >= inicioMes && data <= fimMes;
+        })
+        .reduce((acc, l) => acc + Number(l.valor_total), 0);
+
+      dados.push({
+        mes: format(mes, "MMM/yy", { locale: ptBR }),
+        receitas,
+        despesas,
+      });
+    }
+
+    return dados;
+  }, [lancamentos, isRecepcionista]);
+
   const handleKPIClick = (reportId: string) => {
     if (onNavigateToRelatorio) {
       onNavigateToRelatorio(reportId);
@@ -825,8 +871,51 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         />
       </div>
 
-      {/* Linha 2: Gráficos Principais */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Linha 2: Gráficos Principais (4 colunas no desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+        {/* Gráfico Faturamento/Despesas - 12 Meses */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Faturamento/Despesas dos últimos 12 meses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={dadosFaturamentoDespesas12Meses} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+                <YAxis width={40} tick={{ fontSize: 12 }} />
+                <Tooltip
+                  formatter={(value: number) =>
+                    new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(value)
+                  }
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="receitas" 
+                  stroke="#22c55e" 
+                  name="Receitas" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="despesas" 
+                  stroke="#ef4444" 
+                  name="Despesas" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
         {/* Gráfico Fluxo de Caixa */}
         <Card>
           <CardHeader>
