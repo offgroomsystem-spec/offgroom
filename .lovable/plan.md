@@ -1,200 +1,285 @@
 
-# Plano: Novo Gráfico "Faturamento/Despesas dos Últimos 12 Meses"
+# Plano: Configurar Campos Fiscais para Emissao de NFe/NFSe
 
-## Resumo do Pedido
+## Resumo
 
-Criar um novo gráfico de linhas que exiba receitas (linha verde) e despesas (linha vermelha) dos últimos 12 meses, posicionado à **esquerda** do gráfico "Fluxo de Caixa - Últimos 30 dias", resultando em 4 gráficos lado a lado no desktop.
-
----
-
-## Problema Identificado: Consulta Limitada
-
-Atualmente, a consulta de lançamentos financeiros está limitada aos **últimos 90 dias**:
-
-```typescript
-// Linha 80-84 - Consulta atual (PROBLEMA)
-const { data: lancamentosData } = await supabase
-  .from("lancamentos_financeiros")
-  .select("*, lancamentos_financeiros_itens(*)")
-  .eq("user_id", ownerId)
-  .gte("data_pagamento", format(ultimos90Dias, "yyyy-MM-dd"));
-```
-
-Para exibir 12 meses, precisamos buscar lançamentos dos **últimos 365 dias**.
+Adicionar campos fiscais obrigatorios e opcionais nas tabelas `empresa_config` (dados do emissor), `clientes` (dados do destinatario), `servicos` e `produtos` (dados tributarios), alem de atualizar as interfaces de usuario correspondentes.
 
 ---
 
-## Implementação
+## Parte 1: Alteracoes no Banco de Dados
 
-### 1. Alterar a Consulta de Lançamentos (Linha 80-84)
+### 1.1 Tabela `empresa_config` (Dados do Emissor)
 
-Buscar lançamentos dos últimos 365 dias em vez de 90:
+**Campos OBRIGATORIOS para NFe/NFSe:**
 
-```typescript
-const ultimos365Dias = subDays(hoje, 365);
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| cnpj | TEXT | Sim | CNPJ da empresa (14 digitos) |
+| razao_social | TEXT | Sim | Razao Social completa |
+| inscricao_estadual | TEXT | Sim (NFe) | IE para emissao de NFe de produto |
+| inscricao_municipal | TEXT | Sim (NFSe) | IM para emissao de NFSe de servico |
+| regime_tributario | TEXT | Sim | 1=Simples Nacional, 2=Simples Excesso, 3=Lucro Presumido/Real |
 
-const { data: lancamentosData } = await supabase
-  .from("lancamentos_financeiros")
-  .select("*, lancamentos_financeiros_itens(*)")
-  .eq("user_id", ownerId)
-  .gte("data_pagamento", format(ultimos365Dias, "yyyy-MM-dd"));
-```
+**Campos de ENDERECO (obrigatorios):**
 
-### 2. Criar `useMemo` para Dados do Novo Gráfico
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| cep | TEXT | Sim | CEP (8 digitos) |
+| logradouro | TEXT | Sim | Rua/Avenida |
+| numero | TEXT | Sim | Numero |
+| complemento | TEXT | Nao | Complemento |
+| bairro | TEXT | Sim | Bairro |
+| cidade | TEXT | Sim | Nome da cidade |
+| codigo_ibge_cidade | TEXT | Sim | Codigo IBGE da cidade (7 digitos) |
+| uf | TEXT | Sim | Sigla do estado (2 caracteres) |
 
-Adicionar após `dadosCrescimentoAgendamentos` (linha ~640):
+**Campos OPCIONAIS:**
 
-```typescript
-// Dados para gráfico de Faturamento/Despesas (últimos 12 meses)
-const dadosFaturamentoDespesas12Meses = useMemo(() => {
-  const dados: any[] = [];
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| email_fiscal | TEXT | Nao | Email para recebimento de NFe |
+| codigo_cnae | TEXT | Nao | CNAE principal da empresa |
+| certificado_digital_senha | TEXT | Nao | Para integracao futura com API |
 
-  for (let i = 11; i >= 0; i--) {
-    const mes = subMonths(new Date(), i);
-    const inicioMes = startOfMonth(mes);
-    const fimMes = endOfMonth(mes);
+### 1.2 Tabela `clientes` (Dados do Destinatario)
 
-    if (isRecepcionista) {
-      dados.push({
-        mes: format(mes, "MMM/yy", { locale: ptBR }),
-        receitas: 0,
-        despesas: 0,
-      });
-      continue;
-    }
+**Campos OBRIGATORIOS para NFe/NFSe:**
 
-    // Receitas do mês (pagas)
-    const receitas = lancamentos
-      .filter((l) => {
-        if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
-        const data = new Date(l.data_pagamento);
-        return data >= inicioMes && data <= fimMes;
-      })
-      .reduce((acc, l) => acc + Number(l.valor_total), 0);
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| cpf_cnpj | TEXT | Nao* | CPF ou CNPJ do cliente |
+| email | TEXT | Nao | Email para envio da NFe |
 
-    // Despesas do mês (pagas)
-    const despesas = lancamentos
-      .filter((l) => {
-        if (l.tipo !== "Despesa" || !l.pago || !l.data_pagamento) return false;
-        const data = new Date(l.data_pagamento);
-        return data >= inicioMes && data <= fimMes;
-      })
-      .reduce((acc, l) => acc + Number(l.valor_total), 0);
+**Campos de ENDERECO (para NFe de produto - opcionais):**
 
-    dados.push({
-      mes: format(mes, "MMM/yy", { locale: ptBR }),
-      receitas,
-      despesas,
-    });
-  }
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| cep | TEXT | Nao | CEP |
+| logradouro | TEXT | Nao | Rua/Avenida |
+| numero | TEXT | Nao | Numero |
+| complemento | TEXT | Nao | Complemento |
+| bairro | TEXT | Nao | Bairro |
+| cidade | TEXT | Nao | Cidade |
+| codigo_ibge_cidade | TEXT | Nao | Codigo IBGE |
+| uf | TEXT | Nao | Estado |
 
-  return dados;
-}, [lancamentos, isRecepcionista]);
-```
+*Nota: CPF/CNPJ e obrigatorio apenas quando o cliente solicitar a nota fiscal
 
-### 3. Alterar Layout dos Gráficos (Linha 829)
+### 1.3 Tabela `servicos` (Dados Tributarios de Servico)
 
-Mudar de 3 colunas para **4 colunas** no desktop:
+**Campos para NFSe:**
 
-```typescript
-<div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-```
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| codigo_servico_municipal | TEXT | Nao | Codigo do servico na prefeitura |
+| aliquota_iss | NUMERIC | Nao | Aliquota de ISS (%) |
 
-### 4. Adicionar o Novo Gráfico (Antes do "Fluxo de Caixa")
+### 1.4 Tabela `produtos` (Dados Tributarios de Produto)
 
-```typescript
-{/* Gráfico Faturamento/Despesas - 12 Meses */}
-<Card>
-  <CardHeader>
-    <CardTitle className="text-lg">Faturamento/Despesas dos últimos 12 meses</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={dadosFaturamentoDespesas12Meses} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-        <YAxis width={40} tick={{ fontSize: 12 }} />
-        <Tooltip
-          formatter={(value: number) =>
-            new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(value)
-          }
-        />
-        <Legend />
-        <Line 
-          type="monotone" 
-          dataKey="receitas" 
-          stroke="#22c55e" 
-          name="Receitas" 
-          strokeWidth={2}
-          dot={{ r: 4 }}
-          activeDot={{ r: 6 }}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="despesas" 
-          stroke="#ef4444" 
-          name="Despesas" 
-          strokeWidth={2}
-          dot={{ r: 4 }}
-          activeDot={{ r: 6 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  </CardContent>
-</Card>
-```
+**Campos para NFe:**
+
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| ncm | TEXT | Nao | NCM do produto (8 digitos) |
+| cfop | TEXT | Nao | CFOP padrao (ex: 5102) |
+| unidade_medida | TEXT | Nao | UN, KG, L, etc. |
+| origem | TEXT | Nao | 0=Nacional, 1=Estrangeira |
 
 ---
 
-## Layout Final em Desktop (4 colunas)
+## Parte 2: Alteracoes na Interface
+
+### 2.1 Pagina Empresa (`src/pages/Empresa.tsx`)
+
+Adicionar novo Card "Dados Fiscais" com os seguintes campos organizados:
 
 ```text
-┌───────────────────┬───────────────────┬───────────────────┬───────────────────┐
-│  Faturamento/     │  Fluxo de Caixa   │  Evolução de      │  Média do Mês de  │
-│  Despesas dos     │  Últimos 30 dias  │  Atendimentos     │  Atendimentos     │
-│  últimos 12 meses │                   │  Últimos 12 meses │  Realizados       │
-│                   │                   │                   │                   │
-│  📈 Linha Verde   │  📈 Linha Verde   │  📈 Linha Azul    │  📈 Linha Roxa    │
-│     (Receitas)    │     (Receitas)    │     (Qtd)         │     (Média)       │
-│  📉 Linha Vermelha│  📉 Linha Vermelha│                   │                   │
-│     (Despesas)    │     (Despesas)    │                   │                   │
-└───────────────────┴───────────────────┴───────────────────┴───────────────────┘
++----------------------------------------------------------+
+|  Dados Fiscais da Empresa                                 |
++----------------------------------------------------------+
+| CNPJ *         [____________]  Razao Social * [________] |
+| Regime Trib. * [v Simples Nacional    ]                  |
+|                                                           |
+| Inscricao Estadual (IE)   [____________]                 |
+| Inscricao Municipal (IM)  [____________]                 |
++----------------------------------------------------------+
+| Endereco Fiscal                                           |
++----------------------------------------------------------+
+| CEP *      [________]  [Buscar]                          |
+| Logradouro * [____________________________]              |
+| Numero *   [______]   Complemento [______________]       |
+| Bairro *   [____________]                                 |
+| Cidade *   [____________]  Codigo IBGE * [_______]       |
+| UF *       [v SP]                                         |
++----------------------------------------------------------+
+| Informacoes Adicionais                                    |
++----------------------------------------------------------+
+| Email Fiscal   [____________________]                     |
+| CNAE Principal [____________]                             |
++----------------------------------------------------------+
+```
+
+**Funcionalidades extras:**
+- Mascara automatica para CNPJ (00.000.000/0000-00)
+- Busca de CEP via API ViaCEP (preenchimento automatico)
+- Validacao de CNPJ
+
+### 2.2 Pagina Clientes (`src/pages/Clientes.tsx`)
+
+Adicionar campos fiscais no Dialog de cadastro/edicao:
+
+```text
++----------------------------------------------------------+
+| Dados Fiscais (opcional)                                  |
++----------------------------------------------------------+
+| CPF/CNPJ [_______________]  Email [__________________]   |
+|                                                           |
+| [ ] Preencher endereco completo para NFe                  |
+|                                                           |
+| (Se marcado, exibe campos de endereco detalhado)          |
+| CEP [________] Logradouro [____________________]         |
+| Numero [____] Complemento [______________]               |
+| Bairro [____________] Cidade [____________]              |
+| UF [v SP] Codigo IBGE [_______]                          |
++----------------------------------------------------------+
+```
+
+### 2.3 Pagina Servicos (`src/pages/Servicos.tsx`)
+
+Adicionar campos tributarios no formulario:
+
+```text
++----------------------------------------------------------+
+| Informacoes Fiscais (opcional)                            |
++----------------------------------------------------------+
+| Codigo Servico Municipal [____________]                   |
+| Aliquota ISS (%)         [_____%]                         |
++----------------------------------------------------------+
+```
+
+### 2.4 Pagina Produtos (`src/pages/Produtos.tsx`)
+
+Adicionar campos tributarios no formulario:
+
+```text
++----------------------------------------------------------+
+| Informacoes Fiscais (opcional)                            |
++----------------------------------------------------------+
+| NCM [____________]   CFOP [______]                        |
+| Unidade Medida [v UN]  Origem [v Nacional]               |
++----------------------------------------------------------+
 ```
 
 ---
 
-## Resumo das Alterações
+## Parte 3: Migrations SQL
 
-| Arquivo | Linha | Alteração |
-|---------|-------|-----------|
-| `DashboardContent.tsx` | 55 | Adicionar variável `ultimos365Dias` |
-| `DashboardContent.tsx` | 80-84 | Alterar filtro de lançamentos para 365 dias |
-| `DashboardContent.tsx` | ~641 | Adicionar `useMemo` para `dadosFaturamentoDespesas12Meses` |
-| `DashboardContent.tsx` | 829 | Alterar grid para `xl:grid-cols-4` |
-| `DashboardContent.tsx` | 830 | Inserir novo Card com gráfico antes do Fluxo de Caixa |
+### Migration 1: Campos em empresa_config
+
+```sql
+ALTER TABLE empresa_config 
+ADD COLUMN IF NOT EXISTS cnpj TEXT,
+ADD COLUMN IF NOT EXISTS razao_social TEXT,
+ADD COLUMN IF NOT EXISTS inscricao_estadual TEXT,
+ADD COLUMN IF NOT EXISTS inscricao_municipal TEXT,
+ADD COLUMN IF NOT EXISTS regime_tributario TEXT,
+ADD COLUMN IF NOT EXISTS cep TEXT,
+ADD COLUMN IF NOT EXISTS logradouro TEXT,
+ADD COLUMN IF NOT EXISTS numero_endereco TEXT,
+ADD COLUMN IF NOT EXISTS complemento TEXT,
+ADD COLUMN IF NOT EXISTS bairro TEXT,
+ADD COLUMN IF NOT EXISTS cidade TEXT,
+ADD COLUMN IF NOT EXISTS codigo_ibge_cidade TEXT,
+ADD COLUMN IF NOT EXISTS uf TEXT,
+ADD COLUMN IF NOT EXISTS email_fiscal TEXT,
+ADD COLUMN IF NOT EXISTS codigo_cnae TEXT;
+```
+
+### Migration 2: Campos em clientes
+
+```sql
+ALTER TABLE clientes 
+ADD COLUMN IF NOT EXISTS cpf_cnpj TEXT,
+ADD COLUMN IF NOT EXISTS email TEXT,
+ADD COLUMN IF NOT EXISTS cep TEXT,
+ADD COLUMN IF NOT EXISTS logradouro TEXT,
+ADD COLUMN IF NOT EXISTS numero_endereco TEXT,
+ADD COLUMN IF NOT EXISTS complemento TEXT,
+ADD COLUMN IF NOT EXISTS bairro TEXT,
+ADD COLUMN IF NOT EXISTS cidade TEXT,
+ADD COLUMN IF NOT EXISTS codigo_ibge_cidade TEXT,
+ADD COLUMN IF NOT EXISTS uf TEXT;
+```
+
+### Migration 3: Campos em servicos
+
+```sql
+ALTER TABLE servicos 
+ADD COLUMN IF NOT EXISTS codigo_servico_municipal TEXT,
+ADD COLUMN IF NOT EXISTS aliquota_iss NUMERIC DEFAULT 0;
+```
+
+### Migration 4: Campos em produtos
+
+```sql
+ALTER TABLE produtos 
+ADD COLUMN IF NOT EXISTS ncm TEXT,
+ADD COLUMN IF NOT EXISTS cfop TEXT,
+ADD COLUMN IF NOT EXISTS unidade_medida TEXT DEFAULT 'UN',
+ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT '0';
+```
 
 ---
 
-## Detalhes Técnicos
+## Parte 4: Arquivos a Modificar
 
-### Cores das Linhas
-- **Receitas**: `#22c55e` (verde - Tailwind green-500)
-- **Despesas**: `#ef4444` (vermelho - Tailwind red-500)
-
-### Período do Gráfico
-Se hoje é fevereiro de 2026, o gráfico mostrará:
-- Fev/25, Mar/25, Abr/25, Mai/25, Jun/25, Jul/25, Ago/25, Set/25, Out/25, Nov/25, Dez/25, Jan/26, Fev/26
-
-### Tooltip
-Formatação em moeda brasileira (R$) para valores de receitas e despesas.
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/Empresa.tsx` | Adicionar Card "Dados Fiscais" com todos os campos fiscais e busca de CEP |
+| `src/pages/Clientes.tsx` | Adicionar secao "Dados Fiscais" no Dialog com campos opcionais |
+| `src/pages/Servicos.tsx` | Adicionar campos de codigo municipal e aliquota ISS |
+| `src/pages/Produtos.tsx` | Adicionar campos NCM, CFOP, unidade e origem |
 
 ---
 
-## Testes a Realizar
+## Parte 5: Validacoes e Mascaras
 
-1. **Verificar dados do gráfico**: Confirmar que os valores de receitas e despesas correspondem aos lançamentos financeiros reais de cada mês
-2. **Responsividade**: Verificar layout em desktop (4 colunas) e mobile (1 coluna)
-3. **Recepcionista**: Verificar que o gráfico mostra valores zerados para usuários com perfil de recepcionista
+### Campos Obrigatorios (empresa_config)
+- CNPJ (com validacao de digitos verificadores)
+- Razao Social
+- Regime Tributario
+- CEP, Logradouro, Numero, Bairro, Cidade, Codigo IBGE, UF
+
+### Campos Opcionais (todos os demais)
+- Inscricao Estadual (obrigatoria apenas se emitir NFe de produto)
+- Inscricao Municipal (obrigatoria apenas se emitir NFSe)
+- Complemento, Email, CNAE
+
+### Mascaras de Input
+- CNPJ: 00.000.000/0000-00
+- CPF: 000.000.000-00
+- CEP: 00000-000
+- Codigo IBGE: 7 digitos
+
+---
+
+## Resumo de Campos
+
+### Empresa (Obrigatorios)
+- CNPJ, Razao Social, Regime Tributario
+- CEP, Logradouro, Numero, Bairro, Cidade, Codigo IBGE, UF
+
+### Empresa (Opcionais)
+- Inscricao Estadual, Inscricao Municipal
+- Complemento, Email Fiscal, CNAE
+
+### Clientes (Todos Opcionais)
+- CPF/CNPJ, Email
+- Endereco completo (CEP, Logradouro, etc.)
+
+### Servicos (Opcionais)
+- Codigo Servico Municipal, Aliquota ISS
+
+### Produtos (Opcionais)
+- NCM, CFOP, Unidade Medida, Origem
