@@ -138,31 +138,61 @@ export type Database = {
       }
       clientes: {
         Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          codigo_ibge_cidade: string | null
+          complemento: string | null
+          cpf_cnpj: string | null
           created_at: string | null
+          email: string | null
           endereco: string | null
           id: string
+          logradouro: string | null
           nome_cliente: string
+          numero_endereco: string | null
           observacao: string | null
+          uf: string | null
           updated_at: string | null
           user_id: string
           whatsapp: string
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          codigo_ibge_cidade?: string | null
+          complemento?: string | null
+          cpf_cnpj?: string | null
           created_at?: string | null
+          email?: string | null
           endereco?: string | null
           id?: string
+          logradouro?: string | null
           nome_cliente: string
+          numero_endereco?: string | null
           observacao?: string | null
+          uf?: string | null
           updated_at?: string | null
           user_id: string
           whatsapp: string
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          codigo_ibge_cidade?: string | null
+          complemento?: string | null
+          cpf_cnpj?: string | null
           created_at?: string | null
+          email?: string | null
           endereco?: string | null
           id?: string
+          logradouro?: string | null
           nome_cliente?: string
+          numero_endereco?: string | null
           observacao?: string | null
+          uf?: string | null
           updated_at?: string | null
           user_id?: string
           whatsapp?: string
@@ -465,44 +495,89 @@ export type Database = {
       }
       empresa_config: {
         Row: {
+          bairro_fiscal: string | null
           bordao: string | null
+          cep_fiscal: string | null
+          cidade_fiscal: string | null
+          cnpj: string | null
+          codigo_cnae: string | null
+          codigo_ibge_cidade: string | null
+          complemento_fiscal: string | null
           created_at: string | null
           dias_funcionamento: Json | null
+          email_fiscal: string | null
           endereco: string | null
           horario_fim: string | null
           horario_inicio: string | null
           id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          logradouro_fiscal: string | null
           meta_faturamento_mensal: number | null
           nome_empresa: string | null
+          numero_endereco_fiscal: string | null
+          razao_social: string | null
+          regime_tributario: string | null
           telefone: string | null
+          uf_fiscal: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          bairro_fiscal?: string | null
           bordao?: string | null
+          cep_fiscal?: string | null
+          cidade_fiscal?: string | null
+          cnpj?: string | null
+          codigo_cnae?: string | null
+          codigo_ibge_cidade?: string | null
+          complemento_fiscal?: string | null
           created_at?: string | null
           dias_funcionamento?: Json | null
+          email_fiscal?: string | null
           endereco?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro_fiscal?: string | null
           meta_faturamento_mensal?: number | null
           nome_empresa?: string | null
+          numero_endereco_fiscal?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
           telefone?: string | null
+          uf_fiscal?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          bairro_fiscal?: string | null
           bordao?: string | null
+          cep_fiscal?: string | null
+          cidade_fiscal?: string | null
+          cnpj?: string | null
+          codigo_cnae?: string | null
+          codigo_ibge_cidade?: string | null
+          complemento_fiscal?: string | null
           created_at?: string | null
           dias_funcionamento?: Json | null
+          email_fiscal?: string | null
           endereco?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro_fiscal?: string | null
           meta_faturamento_mensal?: number | null
           nome_empresa?: string | null
+          numero_endereco_fiscal?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
           telefone?: string | null
+          uf_fiscal?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -857,6 +932,7 @@ export type Database = {
       }
       produtos: {
         Row: {
+          cfop: string | null
           codigo: string
           created_at: string | null
           data_ultima_compra: string | null
@@ -868,13 +944,17 @@ export type Database = {
           imposto: number
           lucro_unitario: number
           margem_lucro: number
+          ncm: string | null
           nome: string
+          origem: string | null
           preco_custo: number
           taxa_cartao: number
+          unidade_medida: string | null
           user_id: string
           valor: number
         }
         Insert: {
+          cfop?: string | null
           codigo?: string
           created_at?: string | null
           data_ultima_compra?: string | null
@@ -886,13 +966,17 @@ export type Database = {
           imposto?: number
           lucro_unitario?: number
           margem_lucro?: number
+          ncm?: string | null
           nome: string
+          origem?: string | null
           preco_custo?: number
           taxa_cartao?: number
+          unidade_medida?: string | null
           user_id: string
           valor: number
         }
         Update: {
+          cfop?: string | null
           codigo?: string
           created_at?: string | null
           data_ultima_compra?: string | null
@@ -904,9 +988,12 @@ export type Database = {
           imposto?: number
           lucro_unitario?: number
           margem_lucro?: number
+          ncm?: string | null
           nome?: string
+          origem?: string | null
           preco_custo?: number
           taxa_cartao?: number
+          unidade_medida?: string | null
           user_id?: string
           valor?: number
         }
@@ -1065,6 +1152,8 @@ export type Database = {
       }
       servicos: {
         Row: {
+          aliquota_iss: number | null
+          codigo_servico_municipal: string | null
           created_at: string | null
           id: string
           nome: string
@@ -1074,6 +1163,8 @@ export type Database = {
           valor: number
         }
         Insert: {
+          aliquota_iss?: number | null
+          codigo_servico_municipal?: string | null
           created_at?: string | null
           id?: string
           nome: string
@@ -1083,6 +1174,8 @@ export type Database = {
           valor: number
         }
         Update: {
+          aliquota_iss?: number | null
+          codigo_servico_municipal?: string | null
           created_at?: string | null
           id?: string
           nome?: string

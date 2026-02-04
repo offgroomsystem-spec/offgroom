@@ -4,10 +4,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SubscriptionInfoCard } from "@/components/SubscriptionInfoCard";
+import { Search, Loader2 } from "lucide-react";
+import { 
+  formatCNPJ, 
+  formatCEP, 
+  validarCNPJ, 
+  buscarCEP, 
+  UF_BRASIL, 
+  REGIMES_TRIBUTARIOS,
+  unformatDocument
+} from "@/utils/fiscalUtils";
 
 interface DiasSemana {
   segunda: boolean;
@@ -26,6 +38,22 @@ interface EmpresaConfig {
   horarioFim: string;
   metaFaturamentoMensal: number;
   diasFuncionamento: DiasSemana;
+  // Dados Fiscais
+  cnpj: string;
+  razaoSocial: string;
+  inscricaoEstadual: string;
+  inscricaoMunicipal: string;
+  regimeTributario: string;
+  cepFiscal: string;
+  logradouroFiscal: string;
+  numeroEnderecoFiscal: string;
+  complementoFiscal: string;
+  bairroFiscal: string;
+  cidadeFiscal: string;
+  codigoIbgeCidade: string;
+  ufFiscal: string;
+  emailFiscal: string;
+  codigoCnae: string;
 }
 
 interface Groomer {
@@ -49,11 +77,28 @@ const Empresa = () => {
       sabado: false,
       domingo: false,
     },
+    // Dados Fiscais
+    cnpj: "",
+    razaoSocial: "",
+    inscricaoEstadual: "",
+    inscricaoMunicipal: "",
+    regimeTributario: "",
+    cepFiscal: "",
+    logradouroFiscal: "",
+    numeroEnderecoFiscal: "",
+    complementoFiscal: "",
+    bairroFiscal: "",
+    cidadeFiscal: "",
+    codigoIbgeCidade: "",
+    ufFiscal: "",
+    emailFiscal: "",
+    codigoCnae: "",
   });
   const [groomers, setGroomers] = useState<Groomer[]>([]);
   const [novoGroomer, setNovoGroomer] = useState("");
   const [editandoGroomer, setEditandoGroomer] = useState<Groomer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [buscandoCep, setBuscandoCep] = useState(false);
 
   // Fetch empresa config from Supabase
   useEffect(() => {
@@ -85,6 +130,22 @@ const Empresa = () => {
             sabado: false,
             domingo: false,
           },
+          // Dados Fiscais
+          cnpj: empresaData.cnpj || '',
+          razaoSocial: empresaData.razao_social || '',
+          inscricaoEstadual: empresaData.inscricao_estadual || '',
+          inscricaoMunicipal: empresaData.inscricao_municipal || '',
+          regimeTributario: empresaData.regime_tributario || '',
+          cepFiscal: empresaData.cep_fiscal || '',
+          logradouroFiscal: empresaData.logradouro_fiscal || '',
+          numeroEnderecoFiscal: empresaData.numero_endereco_fiscal || '',
+          complementoFiscal: empresaData.complemento_fiscal || '',
+          bairroFiscal: empresaData.bairro_fiscal || '',
+          cidadeFiscal: empresaData.cidade_fiscal || '',
+          codigoIbgeCidade: empresaData.codigo_ibge_cidade || '',
+          ufFiscal: empresaData.uf_fiscal || '',
+          emailFiscal: empresaData.email_fiscal || '',
+          codigoCnae: empresaData.codigo_cnae || '',
         });
       }
       setLoading(false);
@@ -117,6 +178,32 @@ const Empresa = () => {
     fetchGroomers();
   }, [user]);
 
+  const handleBuscarCep = async () => {
+    if (!formData.cepFiscal || formData.cepFiscal.replace(/\D/g, '').length !== 8) {
+      toast.error("CEP inválido. Informe 8 dígitos.");
+      return;
+    }
+
+    setBuscandoCep(true);
+    const resultado = await buscarCEP(formData.cepFiscal);
+    setBuscandoCep(false);
+
+    if (resultado) {
+      setFormData({
+        ...formData,
+        logradouroFiscal: resultado.logradouro,
+        bairroFiscal: resultado.bairro,
+        cidadeFiscal: resultado.localidade,
+        ufFiscal: resultado.uf,
+        codigoIbgeCidade: resultado.ibge,
+        complementoFiscal: resultado.complemento || formData.complementoFiscal,
+      });
+      toast.success("Endereço preenchido automaticamente!");
+    } else {
+      toast.error("CEP não encontrado.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -131,17 +218,35 @@ const Empresa = () => {
       return;
     }
 
+    const updateData: any = {
+      bordao: formData.bordao,
+      horario_inicio: formData.horarioInicio,
+      horario_fim: formData.horarioFim,
+      meta_faturamento_mensal: formData.metaFaturamentoMensal,
+      dias_funcionamento: formData.diasFuncionamento as any,
+      // Dados Fiscais
+      cnpj: unformatDocument(formData.cnpj),
+      razao_social: formData.razaoSocial,
+      inscricao_estadual: formData.inscricaoEstadual,
+      inscricao_municipal: formData.inscricaoMunicipal,
+      regime_tributario: formData.regimeTributario,
+      cep_fiscal: unformatDocument(formData.cepFiscal),
+      logradouro_fiscal: formData.logradouroFiscal,
+      numero_endereco_fiscal: formData.numeroEnderecoFiscal,
+      complemento_fiscal: formData.complementoFiscal,
+      bairro_fiscal: formData.bairroFiscal,
+      cidade_fiscal: formData.cidadeFiscal,
+      codigo_ibge_cidade: formData.codigoIbgeCidade,
+      uf_fiscal: formData.ufFiscal,
+      email_fiscal: formData.emailFiscal,
+      codigo_cnae: formData.codigoCnae,
+    };
+
     if (formData.id) {
       // Update existing
       const { error } = await supabase
         .from('empresa_config')
-        .update({
-          bordao: formData.bordao,
-          horario_inicio: formData.horarioInicio,
-          horario_fim: formData.horarioFim,
-          meta_faturamento_mensal: formData.metaFaturamentoMensal,
-          dias_funcionamento: formData.diasFuncionamento as any,
-        })
+        .update(updateData)
         .eq('id', formData.id)
         .eq('user_id', ownerId);
         
@@ -157,11 +262,7 @@ const Empresa = () => {
         .from('empresa_config')
         .insert({
           user_id: ownerId,
-          bordao: formData.bordao,
-          horario_inicio: formData.horarioInicio,
-          horario_fim: formData.horarioFim,
-          meta_faturamento_mensal: formData.metaFaturamentoMensal,
-          dias_funcionamento: formData.diasFuncionamento as any,
+          ...updateData,
         } as any)
         .select()
         .single();
@@ -282,6 +383,233 @@ const Empresa = () => {
 
       <SubscriptionInfoCard />
 
+      {/* Card Dados Fiscais */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Dados Fiscais da Empresa</CardTitle>
+          <CardDescription>
+            Informações necessárias para emissão de NFe/NFSe
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Identificação da Empresa */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Identificação</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cnpj">CNPJ *</Label>
+                  <Input
+                    id="cnpj"
+                    placeholder="00.000.000/0000-00"
+                    value={formData.cnpj}
+                    onChange={(e) => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
+                    maxLength={18}
+                  />
+                  {formData.cnpj && formData.cnpj.replace(/\D/g, '').length === 14 && !validarCNPJ(formData.cnpj) && (
+                    <p className="text-xs text-destructive">CNPJ inválido</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="razaoSocial">Razão Social *</Label>
+                  <Input
+                    id="razaoSocial"
+                    placeholder="Razão Social da empresa"
+                    value={formData.razaoSocial}
+                    onChange={(e) => setFormData({ ...formData, razaoSocial: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="regimeTributario">Regime Tributário *</Label>
+                  <Select
+                    value={formData.regimeTributario}
+                    onValueChange={(value) => setFormData({ ...formData, regimeTributario: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o regime" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REGIMES_TRIBUTARIOS.map((regime) => (
+                        <SelectItem key={regime.value} value={regime.value}>
+                          {regime.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="inscricaoEstadual">Inscrição Estadual (IE)</Label>
+                  <Input
+                    id="inscricaoEstadual"
+                    placeholder="Somente números"
+                    value={formData.inscricaoEstadual}
+                    onChange={(e) => setFormData({ ...formData, inscricaoEstadual: e.target.value.replace(/\D/g, '') })}
+                  />
+                  <p className="text-xs text-muted-foreground">Obrigatório para NFe de produto</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="inscricaoMunicipal">Inscrição Municipal (IM)</Label>
+                  <Input
+                    id="inscricaoMunicipal"
+                    placeholder="Somente números"
+                    value={formData.inscricaoMunicipal}
+                    onChange={(e) => setFormData({ ...formData, inscricaoMunicipal: e.target.value.replace(/\D/g, '') })}
+                  />
+                  <p className="text-xs text-muted-foreground">Obrigatório para NFSe de serviço</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Endereço Fiscal */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Endereço Fiscal</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cepFiscal">CEP *</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="cepFiscal"
+                      placeholder="00000-000"
+                      value={formData.cepFiscal}
+                      onChange={(e) => setFormData({ ...formData, cepFiscal: formatCEP(e.target.value) })}
+                      maxLength={9}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleBuscarCep}
+                      disabled={buscandoCep}
+                    >
+                      {buscandoCep ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2 md:col-span-3">
+                  <Label htmlFor="logradouroFiscal">Logradouro *</Label>
+                  <Input
+                    id="logradouroFiscal"
+                    placeholder="Rua, Avenida, etc."
+                    value={formData.logradouroFiscal}
+                    onChange={(e) => setFormData({ ...formData, logradouroFiscal: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="numeroEnderecoFiscal">Número *</Label>
+                  <Input
+                    id="numeroEnderecoFiscal"
+                    placeholder="Nº"
+                    value={formData.numeroEnderecoFiscal}
+                    onChange={(e) => setFormData({ ...formData, numeroEnderecoFiscal: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="complementoFiscal">Complemento</Label>
+                  <Input
+                    id="complementoFiscal"
+                    placeholder="Sala, Bloco, etc."
+                    value={formData.complementoFiscal}
+                    onChange={(e) => setFormData({ ...formData, complementoFiscal: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="bairroFiscal">Bairro *</Label>
+                  <Input
+                    id="bairroFiscal"
+                    placeholder="Bairro"
+                    value={formData.bairroFiscal}
+                    onChange={(e) => setFormData({ ...formData, bairroFiscal: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="cidadeFiscal">Cidade *</Label>
+                  <Input
+                    id="cidadeFiscal"
+                    placeholder="Cidade"
+                    value={formData.cidadeFiscal}
+                    onChange={(e) => setFormData({ ...formData, cidadeFiscal: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="codigoIbgeCidade">Código IBGE *</Label>
+                  <Input
+                    id="codigoIbgeCidade"
+                    placeholder="7 dígitos"
+                    value={formData.codigoIbgeCidade}
+                    onChange={(e) => setFormData({ ...formData, codigoIbgeCidade: e.target.value.replace(/\D/g, '').slice(0, 7) })}
+                    maxLength={7}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ufFiscal">UF *</Label>
+                  <Select
+                    value={formData.ufFiscal}
+                    onValueChange={(value) => setFormData({ ...formData, ufFiscal: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UF_BRASIL.map((uf) => (
+                        <SelectItem key={uf.sigla} value={uf.sigla}>
+                          {uf.sigla}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Informações Adicionais */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Informações Adicionais (Opcionais)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emailFiscal">Email Fiscal</Label>
+                  <Input
+                    id="emailFiscal"
+                    type="email"
+                    placeholder="fiscal@empresa.com.br"
+                    value={formData.emailFiscal}
+                    onChange={(e) => setFormData({ ...formData, emailFiscal: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">Email para recebimento de notas fiscais</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="codigoCnae">CNAE Principal</Label>
+                  <Input
+                    id="codigoCnae"
+                    placeholder="Ex: 9609-2/08"
+                    value={formData.codigoCnae}
+                    onChange={(e) => setFormData({ ...formData, codigoCnae: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full">
+              Salvar Dados Fiscais
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Card Dados Gerais */}
       <Card>
         <CardHeader>
           <CardTitle>Dados da Empresa</CardTitle>

@@ -5,11 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, Plus, Filter, X, TrendingUp, TrendingDown, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { UNIDADES_MEDIDA, ORIGENS_PRODUTO } from "@/utils/fiscalUtils";
 
 interface Produto {
   id: string;
@@ -24,6 +26,11 @@ interface Produto {
   dataCadastro: string;
   estoqueMinimo: number;
   estoqueAtual?: number;
+  // Campos fiscais
+  ncm?: string;
+  cfop?: string;
+  unidadeMedida?: string;
+  origem?: string;
 }
 
 interface CompraHistorico {
@@ -78,6 +85,11 @@ const Produtos = () => {
     codigo: "",
     valorVenda: "",
     estoqueMinimo: "0",
+    // Campos fiscais
+    ncm: "",
+    cfop: "",
+    unidadeMedida: "UN",
+    origem: "0",
   });
 
   useEffect(() => {
@@ -141,7 +153,12 @@ const Produtos = () => {
               lucroUnitario: Number(p.lucro_unitario || 0),
               dataCadastro: p.created_at || new Date().toISOString(),
               estoqueMinimo: Number(p.estoque_minimo || 0),
-              estoqueAtual
+              estoqueAtual,
+              // Campos fiscais
+              ncm: p.ncm || '',
+              cfop: p.cfop || '',
+              unidadeMedida: p.unidade_medida || 'UN',
+              origem: p.origem || '0',
             };
           })
         );
@@ -462,7 +479,12 @@ const Produtos = () => {
         valor: parseFloat(formData.valorVenda),
         lucro_unitario: calcularValores.lucroUnitario,
         estoque_minimo: parseInt(formData.estoqueMinimo) || 0,
-        user_id: user.id
+        user_id: user.id,
+        // Campos fiscais
+        ncm: formData.ncm || null,
+        cfop: formData.cfop || null,
+        unidade_medida: formData.unidadeMedida || 'UN',
+        origem: formData.origem || '0',
       };
 
       if (produtoSelecionado) {
@@ -539,6 +561,11 @@ const Produtos = () => {
       codigo: produto.codigo,
       valorVenda: produto.valorVenda.toString(),
       estoqueMinimo: produto.estoqueMinimo.toString(),
+      // Campos fiscais
+      ncm: produto.ncm || "",
+      cfop: produto.cfop || "",
+      unidadeMedida: produto.unidadeMedida || "UN",
+      origem: produto.origem || "0",
     });
     
     setIsDialogOpen(true);
@@ -561,6 +588,10 @@ const Produtos = () => {
       codigo: "",
       valorVenda: "",
       estoqueMinimo: "0",
+      ncm: "",
+      cfop: "",
+      unidadeMedida: "UN",
+      origem: "0",
     });
     setProdutoSelecionado(null);
     setVariacaoPreco(null);
@@ -883,6 +914,65 @@ const Produtos = () => {
                       placeholder="0"
                       className="h-8 text-xs"
                     />
+                  </div>
+                </div>
+
+                {/* Campos Fiscais */}
+                <div className="border-t pt-3 mt-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-2">Informações Fiscais (Opcional)</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] font-semibold">NCM</Label>
+                      <Input
+                        value={formData.ncm}
+                        onChange={(e) => setFormData({ ...formData, ncm: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+                        placeholder="8 dígitos"
+                        maxLength={8}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] font-semibold">CFOP</Label>
+                      <Input
+                        value={formData.cfop}
+                        onChange={(e) => setFormData({ ...formData, cfop: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                        placeholder="Ex: 5102"
+                        maxLength={4}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] font-semibold">Unidade</Label>
+                      <Select
+                        value={formData.unidadeMedida}
+                        onValueChange={(value) => setFormData({ ...formData, unidadeMedida: value })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UNIDADES_MEDIDA.map((un) => (
+                            <SelectItem key={un.value} value={un.value}>{un.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] font-semibold">Origem</Label>
+                      <Select
+                        value={formData.origem}
+                        onValueChange={(value) => setFormData({ ...formData, origem: value })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ORIGENS_PRODUTO.map((or) => (
+                            <SelectItem key={or.value} value={or.value}>{or.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 

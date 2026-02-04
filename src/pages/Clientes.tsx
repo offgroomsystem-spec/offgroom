@@ -37,6 +37,9 @@ interface Cliente {
   endereco: string;
   observacao: string;
   pets: Pet[];
+  // Campos fiscais
+  cpf_cnpj?: string;
+  email?: string;
 }
 
 export default function Clientes() {
@@ -54,6 +57,9 @@ export default function Clientes() {
   const [observacaoCliente, setObservacaoCliente] = useState("");
   const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
   const [racaPopoverOpen, setRacaPopoverOpen] = useState<{ [key: number]: boolean }>({});
+  // Campos fiscais
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [emailCliente, setEmailCliente] = useState("");
 
   // ✅ Formata nomes automaticamente, respeitando espaços durante a digitação
   const formatarNome = (texto: string) => {
@@ -137,6 +143,8 @@ export default function Clientes() {
     setPets([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
     setEditingId(null);
     setRacaPopoverOpen({});
+    setCpfCnpj("");
+    setEmailCliente("");
   };
 
   const handleEdit = (cliente: Cliente) => {
@@ -146,6 +154,8 @@ export default function Clientes() {
     setEndereco(cliente.endereco || "");
     setObservacaoCliente(cliente.observacao || "");
     setPets(cliente.pets.length > 0 ? cliente.pets : [{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setCpfCnpj(cliente.cpf_cnpj || "");
+    setEmailCliente(cliente.email || "");
     setDialogOpen(true);
   };
 
@@ -197,6 +207,8 @@ export default function Clientes() {
             whatsapp,
             endereco,
             observacao: observacaoCliente,
+            cpf_cnpj: cpfCnpj || null,
+            email: emailCliente || null,
           })
           .eq("id", editingId);
 
@@ -251,6 +263,8 @@ export default function Clientes() {
             whatsapp,
             endereco,
             observacao: observacaoCliente,
+            cpf_cnpj: cpfCnpj || null,
+            email: emailCliente || null,
           })
           .select()
           .single();
@@ -370,6 +384,32 @@ export default function Clientes() {
                         onChange={(e) => setObservacaoCliente(e.target.value)}
                         rows={2}
                       />
+                    </div>
+
+                    {/* Campos Fiscais */}
+                    <div className="border-t pt-3 mt-3">
+                      <p className="text-sm font-semibold text-muted-foreground mb-2">Dados Fiscais (Opcional)</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
+                          <Input
+                            id="cpf_cnpj"
+                            value={cpfCnpj}
+                            onChange={(e) => setCpfCnpj(e.target.value.replace(/\D/g, '').slice(0, 14))}
+                            placeholder="Somente números"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email_cliente">Email</Label>
+                          <Input
+                            id="email_cliente"
+                            type="email"
+                            value={emailCliente}
+                            onChange={(e) => setEmailCliente(e.target.value)}
+                            placeholder="email@exemplo.com"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
