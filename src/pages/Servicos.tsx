@@ -16,6 +16,9 @@ interface Servico {
   nome: string;
   valor: number;
   porte: string;
+  // Campos fiscais
+  codigo_servico_municipal?: string;
+  aliquota_iss?: number;
 }
 
 const Servicos = () => {
@@ -30,6 +33,9 @@ const Servicos = () => {
     nome: "",
     valor: "",
     porte: "",
+    // Campos fiscais
+    codigo_servico_municipal: "",
+    aliquota_iss: "",
   });
 
   // Fetch servicos from Supabase
@@ -75,6 +81,8 @@ const Servicos = () => {
           nome: formData.nome,
           valor: parseFloat(formData.valor),
           porte: formData.porte,
+          codigo_servico_municipal: formData.codigo_servico_municipal || null,
+          aliquota_iss: formData.aliquota_iss ? parseFloat(formData.aliquota_iss) : 0,
         })
         .eq('id', editingServico.id)
         .eq('user_id', ownerId);
@@ -92,6 +100,8 @@ const Servicos = () => {
               nome: formData.nome, 
               valor: parseFloat(formData.valor),
               porte: formData.porte,
+              codigo_servico_municipal: formData.codigo_servico_municipal || undefined,
+              aliquota_iss: formData.aliquota_iss ? parseFloat(formData.aliquota_iss) : undefined,
             }
           : s
       ));
@@ -104,6 +114,8 @@ const Servicos = () => {
           nome: formData.nome,
           valor: parseFloat(formData.valor),
           porte: formData.porte,
+          codigo_servico_municipal: formData.codigo_servico_municipal || null,
+          aliquota_iss: formData.aliquota_iss ? parseFloat(formData.aliquota_iss) : 0,
         }])
         .select()
         .single();
@@ -124,7 +136,7 @@ const Servicos = () => {
   };
 
   const resetForm = () => {
-    setFormData({ nome: "", valor: "", porte: "" });
+    setFormData({ nome: "", valor: "", porte: "", codigo_servico_municipal: "", aliquota_iss: "" });
     setEditingServico(null);
     setIsDialogOpen(false);
   };
@@ -135,6 +147,8 @@ const Servicos = () => {
       nome: servico.nome, 
       valor: servico.valor.toString(),
       porte: servico.porte || "",
+      codigo_servico_municipal: servico.codigo_servico_municipal || "",
+      aliquota_iss: servico.aliquota_iss?.toString() || "",
     });
     setIsDialogOpen(true);
   };
@@ -236,6 +250,39 @@ const Servicos = () => {
                     <SelectItem value="Grande">Grande</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Campos Fiscais */}
+              <div className="border-t pt-3 mt-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Informações Fiscais (Opcional)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="codigo_servico_municipal" className="text-xs">Código Serviço Municipal</Label>
+                    <Input
+                      id="codigo_servico_municipal"
+                      value={formData.codigo_servico_municipal}
+                      onChange={(e) => setFormData({ ...formData, codigo_servico_municipal: e.target.value })}
+                      placeholder="Ex: 06.01"
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Código LC 116/2003</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="aliquota_iss" className="text-xs">Alíquota ISS (%)</Label>
+                    <Input
+                      id="aliquota_iss"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="5"
+                      value={formData.aliquota_iss}
+                      onChange={(e) => setFormData({ ...formData, aliquota_iss: e.target.value })}
+                      placeholder="Ex: 5.00"
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Geralmente entre 2% e 5%</p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2">
