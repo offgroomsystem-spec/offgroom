@@ -8,11 +8,50 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingDown, Calendar, Zap, Megaphone, Filter, Download, Edit2, Trash2, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+  TrendingDown,
+  Calendar,
+  Zap,
+  Megaphone,
+  Filter,
+  Download,
+  Edit2,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 interface ItemLancamento {
   id: string;
@@ -48,7 +87,7 @@ export function DespesasOperacionais() {
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [loading, setLoading] = useState(true);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  
+
   const [filtros, setFiltros] = useState({
     dataInicio: "",
     dataFim: "",
@@ -78,7 +117,7 @@ export function DespesasOperacionais() {
   });
 
   const [itensLancamento, setItensLancamento] = useState<ItemLancamento[]>([
-    { id: Date.now().toString(), descricao2: "", valor: 0 }
+    { id: Date.now().toString(), descricao2: "", valor: 0 },
   ]);
 
   // Estados para exclusão
@@ -92,16 +131,20 @@ export function DespesasOperacionais() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Carregar lançamentos
       const { data: lancamentosData, error: lancamentosError } = await supabase
         .from("lancamentos_financeiros")
-        .select(`
+        .select(
+          `
           *,
           lancamentos_financeiros_itens (*)
-        `)
+        `,
+        )
         .eq("user_id", user.id)
         .eq("tipo", "Despesa")
         .eq("descricao1", "Despesa Operacional")
@@ -124,7 +167,7 @@ export function DespesasOperacionais() {
       const lancamentosComItens = (lancamentosData || []).map((lanc: any) => {
         const cliente = clientes.find((c: any) => c.id === lanc.cliente_id);
         const conta = contas.find((c: any) => c.id === lanc.conta_id);
-        
+
         // Para pets, precisamos buscar pelos IDs no campo pet_ids (jsonb)
         let nomePet = null;
         if (lanc.pet_ids && Array.isArray(lanc.pet_ids) && lanc.pet_ids.length > 0) {
@@ -193,9 +236,7 @@ export function DespesasOperacionais() {
         const busca = filtros.busca.toLowerCase();
         const matchCliente = lanc.nomeCliente?.toLowerCase().includes(busca);
         const matchPet = lanc.nomePet?.toLowerCase().includes(busca);
-        const matchDescricao = lanc.itens.some((item) =>
-          item.descricao2.toLowerCase().includes(busca)
-        );
+        const matchDescricao = lanc.itens.some((item) => item.descricao2.toLowerCase().includes(busca));
         if (!matchCliente && !matchPet && !matchDescricao) return false;
       }
 
@@ -205,7 +246,7 @@ export function DespesasOperacionais() {
 
   const totalDespesas = useMemo(
     () => lancamentosFiltrados.reduce((acc, l) => acc + l.valorTotal, 0),
-    [lancamentosFiltrados]
+    [lancamentosFiltrados],
   );
 
   const mediaMensal = useMemo(() => {
@@ -223,11 +264,11 @@ export function DespesasOperacionais() {
       lancamentosFiltrados
         .filter((l) =>
           l.itens.some((i) =>
-            ["Contador", "Telefonia e internet", "Energia elétrica"].includes(i.descricao2)
-          )
+            ["Contador", "Freelancer", "Telefonia e internet", "Energia elétrica"].includes(i.descricao2),
+          ),
         )
         .reduce((acc, l) => acc + l.valorTotal, 0),
-    [lancamentosFiltrados]
+    [lancamentosFiltrados],
   );
 
   const marketing = useMemo(
@@ -235,12 +276,13 @@ export function DespesasOperacionais() {
       lancamentosFiltrados
         .filter((l) => l.itens.some((i) => i.descricao2 === "Publicidade e marketing"))
         .reduce((acc, l) => acc + l.valorTotal, 0),
-    [lancamentosFiltrados]
+    [lancamentosFiltrados],
   );
 
   const dadosGraficoBarras = useMemo(() => {
     const categorias = [
       "Contador",
+      "Freelancer",
       "Telefonia e internet",
       "Energia elétrica",
       "Água e esgoto",
@@ -311,7 +353,7 @@ export function DespesasOperacionais() {
         descricao2: item.descricao2,
         valor: item.valor,
         observacao: item.observacao || "",
-      }))
+      })),
     );
 
     setIsEditDialogOpen(true);
@@ -323,7 +365,9 @@ export function DespesasOperacionais() {
     if (!lancamentoSelecionado) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         toast({
           title: "Erro",
@@ -370,10 +414,7 @@ export function DespesasOperacionais() {
       if (updateError) throw updateError;
 
       // Deletar itens antigos
-      await supabase
-        .from("lancamentos_financeiros_itens")
-        .delete()
-        .eq("lancamento_id", lancamentoSelecionado.id);
+      await supabase.from("lancamentos_financeiros_itens").delete().eq("lancamento_id", lancamentoSelecionado.id);
 
       // Inserir novos itens
       const itensParaInserir = itensLancamento.map((item) => ({
@@ -383,9 +424,7 @@ export function DespesasOperacionais() {
         observacao: item.observacao || null,
       }));
 
-      const { error: itensError } = await supabase
-        .from("lancamentos_financeiros_itens")
-        .insert(itensParaInserir);
+      const { error: itensError } = await supabase.from("lancamentos_financeiros_itens").insert(itensParaInserir);
 
       if (itensError) throw itensError;
 
@@ -416,16 +455,10 @@ export function DespesasOperacionais() {
 
     try {
       // Deletar itens primeiro
-      await supabase
-        .from("lancamentos_financeiros_itens")
-        .delete()
-        .eq("lancamento_id", lancamentoParaExcluir);
+      await supabase.from("lancamentos_financeiros_itens").delete().eq("lancamento_id", lancamentoParaExcluir);
 
       // Deletar lançamento
-      const { error } = await supabase
-        .from("lancamentos_financeiros")
-        .delete()
-        .eq("id", lancamentoParaExcluir);
+      const { error } = await supabase.from("lancamentos_financeiros").delete().eq("id", lancamentoParaExcluir);
 
       if (error) throw error;
 
@@ -506,23 +539,13 @@ export function DespesasOperacionais() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Relatório de Despesas Operacionais</h2>
-          <p className="text-sm text-muted-foreground">
-            Análise detalhada de despesas operacionais do negócio
-          </p>
+          <p className="text-sm text-muted-foreground">Análise detalhada de despesas operacionais do negócio</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMostrarFiltros(!mostrarFiltros)}
-          >
+          <Button variant="outline" size="sm" onClick={() => setMostrarFiltros(!mostrarFiltros)}>
             <Filter className="h-4 w-4 mr-2" />
             Filtros
-            {mostrarFiltros ? (
-              <ChevronUp className="h-4 w-4 ml-2" />
-            ) : (
-              <ChevronDown className="h-4 w-4 ml-2" />
-            )}
+            {mostrarFiltros ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
           </Button>
           <Button variant="outline" size="sm" onClick={exportarCSV}>
             <Download className="h-4 w-4 mr-2" />
@@ -570,13 +593,12 @@ export function DespesasOperacionais() {
                   <SelectContent>
                     <SelectItem value="all">Todas as categorias</SelectItem>
                     <SelectItem value="Contador">Contador</SelectItem>
+                    <SelectItem value="Freelancer">Freelancer</SelectItem>
                     <SelectItem value="Telefonia e internet">Telefonia e internet</SelectItem>
                     <SelectItem value="Energia elétrica">Energia elétrica</SelectItem>
                     <SelectItem value="Água e esgoto">Água e esgoto</SelectItem>
                     <SelectItem value="Publicidade e marketing">Publicidade e marketing</SelectItem>
-                    <SelectItem value="Outras Despesas Operacionais">
-                      Outras Despesas Operacionais
-                    </SelectItem>
+                    <SelectItem value="Outras Despesas Operacionais">Outras Despesas Operacionais</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -604,10 +626,7 @@ export function DespesasOperacionais() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select
-                  value={filtros.pago}
-                  onValueChange={(value) => setFiltros({ ...filtros, pago: value as any })}
-                >
+                <Select value={filtros.pago} onValueChange={(value) => setFiltros({ ...filtros, pago: value as any })}>
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Todos os status" />
                   </SelectTrigger>
@@ -643,9 +662,7 @@ export function DespesasOperacionais() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-red-50 border-red-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-900">
-              Total de Despesas Operacionais
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-red-900">Total de Despesas Operacionais</CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -656,9 +673,7 @@ export function DespesasOperacionais() {
 
         <Card className="bg-blue-50 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-900">
-              Média Mensal de Despesas
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-900">Média Mensal de Despesas</CardTitle>
             <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -669,15 +684,11 @@ export function DespesasOperacionais() {
 
         <Card className="bg-purple-50 border-purple-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-900">
-              Contador + Telefonia + Energia
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-purple-900">Contador + Telefonia + Energia</CardTitle>
             <Zap className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {formatarMoeda(principaisDespesas)}
-            </div>
+            <div className="text-2xl font-bold text-purple-600">{formatarMoeda(principaisDespesas)}</div>
             <p className="text-xs text-purple-700 mt-1">Principais despesas operacionais</p>
           </CardContent>
         </Card>
@@ -698,9 +709,7 @@ export function DespesasOperacionais() {
       <Card>
         <CardHeader>
           <CardTitle>Lançamentos de Despesas Operacionais</CardTitle>
-          <CardDescription>
-            {lancamentosFiltrados.length} lançamento(s) encontrado(s)
-          </CardDescription>
+          <CardDescription>{lancamentosFiltrados.length} lançamento(s) encontrado(s)</CardDescription>
         </CardHeader>
         <CardContent>
           {lancamentosFiltrados.length === 0 ? (
@@ -735,16 +744,12 @@ export function DespesasOperacionais() {
                 <TableBody>
                   {lancamentosFiltrados.map((lancamento) => (
                     <TableRow key={lancamento.id}>
-                      <TableCell>
-                        {new Date(lancamento.dataPagamento).toLocaleDateString("pt-BR")}
-                      </TableCell>
+                      <TableCell>{new Date(lancamento.dataPagamento).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>
                         {lancamento.ano}/{lancamento.mesCompetencia}
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-                          {lancamento.tipo}
-                        </Badge>
+                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{lancamento.tipo}</Badge>
                       </TableCell>
                       <TableCell>{lancamento.nomeCliente || "-"}</TableCell>
                       <TableCell>{lancamento.nomePet || "-"}</TableCell>
@@ -759,19 +764,13 @@ export function DespesasOperacionais() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">{lancamento.itens.length}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatarMoeda(lancamento.valorTotal)}
-                      </TableCell>
+                      <TableCell className="text-right font-semibold">{formatarMoeda(lancamento.valorTotal)}</TableCell>
                       <TableCell>{lancamento.nomeBanco || "-"}</TableCell>
                       <TableCell>
                         {lancamento.pago ? (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                            Pago
-                          </Badge>
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Pago</Badge>
                         ) : (
-                          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-                            Pendente
-                          </Badge>
+                          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Pendente</Badge>
                         )}
                       </TableCell>
                       <TableCell>
@@ -851,17 +850,11 @@ export function DespesasOperacionais() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-red-600" />
-                <span className="text-sm font-semibold text-red-900">
-                  Total de Despesas Operacionais no Período:
-                </span>
+                <span className="text-sm font-semibold text-red-900">Total de Despesas Operacionais no Período:</span>
               </div>
-              <span className="text-2xl font-bold text-red-600">
-                {formatarMoeda(totalDespesas)}
-              </span>
+              <span className="text-2xl font-bold text-red-600">{formatarMoeda(totalDespesas)}</span>
             </div>
-            <p className="text-xs text-red-700 mt-2">
-              {lancamentosFiltrados.length} lançamento(s) encontrado(s)
-            </p>
+            <p className="text-xs text-red-700 mt-2">{lancamentosFiltrados.length} lançamento(s) encontrado(s)</p>
           </CardContent>
         </Card>
       )}
@@ -887,10 +880,7 @@ export function DespesasOperacionais() {
             <div className="grid grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-ano">Ano *</Label>
-                <Select
-                  value={formData.ano}
-                  onValueChange={(value) => setFormData({ ...formData, ano: value })}
-                >
+                <Select value={formData.ano} onValueChange={(value) => setFormData({ ...formData, ano: value })}>
                   <SelectTrigger id="edit-ano">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -1015,15 +1005,12 @@ export function DespesasOperacionais() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Contador">Contador</SelectItem>
+                        <SelectItem value="Freelancer">Freelancer</SelectItem>
                         <SelectItem value="Telefonia e internet">Telefonia e internet</SelectItem>
                         <SelectItem value="Energia elétrica">Energia elétrica</SelectItem>
                         <SelectItem value="Água e esgoto">Água e esgoto</SelectItem>
-                        <SelectItem value="Publicidade e marketing">
-                          Publicidade e marketing
-                        </SelectItem>
-                        <SelectItem value="Outras Despesas Operacionais">
-                          Outras Despesas Operacionais
-                        </SelectItem>
+                        <SelectItem value="Publicidade e marketing">Publicidade e marketing</SelectItem>
+                        <SelectItem value="Outras Despesas Operacionais">Outras Despesas Operacionais</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1117,11 +1104,7 @@ export function DespesasOperacionais() {
 
             {/* Botões de Ação */}
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
@@ -1143,10 +1126,7 @@ export function DespesasOperacionais() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmarExclusao}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={confirmarExclusao} className="bg-red-600 hover:bg-red-700">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

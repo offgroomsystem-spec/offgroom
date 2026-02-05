@@ -612,6 +612,7 @@ export const DRE = ({ filtros }: DREProps) => {
             {/* DESPESAS OPERACIONAIS */}
             <DRERow titulo="(-) Despesas Operacionais" valor={dre.despesasOperacionais} nivel={1} />
             <DRERow titulo="Contador" valor={dre.contador} nivel={2} />
+            <DRERow titulo="Freelancer" valor={dre.freelancer} nivel={2} />
             <DRERow titulo="Telefonia e Internet" valor={dre.telefonia} nivel={2} />
             <DRERow titulo="Energia Elétrica" valor={dre.energia} nivel={2} />
             <DRERow titulo="Água e Esgoto" valor={dre.agua} nivel={2} />
