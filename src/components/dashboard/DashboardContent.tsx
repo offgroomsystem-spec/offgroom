@@ -647,12 +647,21 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         continue;
       }
 
-      // Contar dias úteis do mês (até hoje se for mês corrente)
-      let diasUteis = 0;
+      // Contar dias úteis até a data final (para calcular média real)
+      let diasUteisAteAgora = 0;
       let dataAtual = new Date(inicioMes);
       while (dataAtual <= dataFinal) {
         const diaDaSemana = diasSemana[dataAtual.getDay()];
-        if (diasFuncionamento?.[diaDaSemana]) diasUteis++;
+        if (diasFuncionamento?.[diaDaSemana]) diasUteisAteAgora++;
+        dataAtual = addDays(dataAtual, 1);
+      }
+
+      // Contar dias úteis do mês completo (para calcular meta média)
+      let diasUteisMesCompleto = 0;
+      dataAtual = new Date(inicioMes);
+      while (dataAtual <= fimMes) {
+        const diaDaSemana = diasSemana[dataAtual.getDay()];
+        if (diasFuncionamento?.[diaDaSemana]) diasUteisMesCompleto++;
         dataAtual = addDays(dataAtual, 1);
       }
 
@@ -665,14 +674,15 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
-      const media = diasUteis > 0 ? receitas / diasUteis : 0;
-      const metaMedia = diasUteis > 0 ? metaFaturamentoMensal / diasUteis : 0;
+      const media = diasUteisAteAgora > 0 ? receitas / diasUteisAteAgora : 0;
+      // Meta média sempre usa os dias úteis do mês completo
+      const metaMedia = diasUteisMesCompleto > 0 ? metaFaturamentoMensal / diasUteisMesCompleto : 0;
 
       dados.push({
         mes: format(mes, "MMM/yy", { locale: ptBR }),
         media,
         metaMedia,
-        diasUteis,
+        diasUteis: diasUteisAteAgora,
       });
     }
 
