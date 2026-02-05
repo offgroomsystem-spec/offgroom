@@ -18,9 +18,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { ContasProximasVencimento } from "@/components/dashboard/ContasProximasVencimento";
-import { NovosClientes } from "@/components/dashboard/NovosClientes";
 
 interface DashboardContentProps {
   onNavigateToRelatorio?: (reportId: string) => void;
@@ -35,6 +35,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [diasFuncionamento, setDiasFuncionamento] = useState<any>(null);
+  const [metaFaturamentoMensal, setMetaFaturamentoMensal] = useState<number>(0);
   const [kpisAdicionais, setKpisAdicionais] = useState({
     clientesEmRisco: 0,
     pacotesExpirados: 0,
@@ -93,7 +94,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         // Carregar configuração da empresa para obter dias de funcionamento
         const { data: empresaConfig } = await supabase
           .from("empresa_config")
-          .select("dias_funcionamento")
+          .select("dias_funcionamento, meta_faturamento_mensal")
           .eq("user_id", ownerId)
           .single();
 
@@ -108,6 +109,8 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
             domingo: false,
           },
         );
+
+        setMetaFaturamentoMensal(empresaConfig?.meta_faturamento_mensal || 0);
 
         // Calcular KPIs adicionais
         const [clientesRisco, pacotesExp, pacotesAExp, produtosVenc] = await Promise.all([
@@ -542,27 +545,49 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
 
   // Dados para gráfico de fluxo de caixa (últimos 30 dias)
   const dadosFluxoCaixa = useMemo(() => {
+    const diasSemana = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+    
     if (isRecepcionista) {
       const dados: any[] = [];
-      const ultimos30Dias = subDays(new Date(), 30);
-      for (let i = 0; i < 30; i++) {
-        const data = addDays(ultimos30Dias, i);
+      const hoje = new Date();
+      for (let i = 29; i >= 0; i--) {
+        const data = subDays(hoje, i);
         dados.push({
           data: format(data, "dd/MM", { locale: ptBR }),
           receitas: 0,
           despesas: 0,
           lucro: 0,
+          metaDiaria: 0,
         });
       }
       return dados;
     }
 
-    const ultimos30Dias = subDays(new Date(), 30);
+    const hoje = new Date();
     const dados: any[] = [];
 
-    for (let i = 0; i < 30; i++) {
-      const data = addDays(ultimos30Dias, i);
+    // Função para calcular meta diária baseada no mês
+    const calcularMetaDiaria = (dataRef: Date) => {
+      if (metaFaturamentoMensal === 0) return 0;
+      const inicioMes = startOfMonth(dataRef);
+      const fimMes = endOfMonth(dataRef);
+      let diasUteisMes = 0;
+      let d = new Date(inicioMes);
+      while (d <= fimMes) {
+        const diaDaSemana = diasSemana[d.getDay()];
+        if (diasFuncionamento?.[diaDaSemana]) diasUteisMes++;
+        d = addDays(d, 1);
+      }
+      return diasUteisMes > 0 ? metaFaturamentoMensal / diasUteisMes : 0;
+    };
+
+    for (let i = 29; i >= 0; i--) {
+      const data = subDays(hoje, i);
       const dataStr = format(data, "yyyy-MM-dd");
+      const diaDaSemana = diasSemana[data.getDay()];
+
+      // Verificar se é dia de funcionamento
+      const eDiaFuncionamento = diasFuncionamento?.[diaDaSemana] === true;
 
       const receitas = lancamentos
         .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr)
@@ -572,12 +597,19 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr)
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
-      dados.push({
-        data: format(data, "dd/MM", { locale: ptBR }),
-        receitas,
-        despesas,
-        lucro: receitas - despesas,
-      });
+      // Verificar se teve faturamento (exceção para dias não trabalhados)
+      const teveFaturamento = receitas > 0 || despesas > 0;
+
+      // Incluir apenas se: é dia de funcionamento OU teve faturamento
+      if (eDiaFuncionamento || teveFaturamento) {
+        dados.push({
+          data: format(data, "dd/MM", { locale: ptBR }),
+          receitas,
+          despesas,
+          lucro: receitas - despesas,
+          metaDiaria: calcularMetaDiaria(data),
+        });
+      }
     }
 
     // Calcular variação percentual para cada dia
@@ -591,7 +623,61 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const variacaoDespesas = despesasAnterior > 0 ? ((d.despesas - despesasAnterior) / despesasAnterior) * 100 : 0;
       return { ...d, variacaoReceitas, variacaoDespesas };
     });
-  }, [lancamentos, isRecepcionista]);
+  }, [lancamentos, isRecepcionista, diasFuncionamento, metaFaturamentoMensal]);
+
+  // Dados para gráfico de Faturamento Médio do Mês (últimos 12 meses)
+  const dadosFaturamentoMedio12Meses = useMemo(() => {
+    const diasSemana = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+    const dados: any[] = [];
+
+    for (let i = 11; i >= 0; i--) {
+      const mes = subMonths(new Date(), i);
+      const inicioMes = startOfMonth(mes);
+      const fimMes = endOfMonth(mes);
+      const hoje = new Date();
+      const dataFinal = i === 0 ? hoje : fimMes;
+
+      if (isRecepcionista) {
+        dados.push({
+          mes: format(mes, "MMM/yy", { locale: ptBR }),
+          media: 0,
+          metaMedia: 0,
+          diasUteis: 0,
+        });
+        continue;
+      }
+
+      // Contar dias úteis do mês (até hoje se for mês corrente)
+      let diasUteis = 0;
+      let dataAtual = new Date(inicioMes);
+      while (dataAtual <= dataFinal) {
+        const diaDaSemana = diasSemana[dataAtual.getDay()];
+        if (diasFuncionamento?.[diaDaSemana]) diasUteis++;
+        dataAtual = addDays(dataAtual, 1);
+      }
+
+      // Calcular receitas do mês (pagas)
+      const receitas = lancamentos
+        .filter((l) => {
+          if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+          const data = new Date(l.data_pagamento);
+          return data >= inicioMes && data <= dataFinal;
+        })
+        .reduce((acc, l) => acc + Number(l.valor_total), 0);
+
+      const media = diasUteis > 0 ? receitas / diasUteis : 0;
+      const metaMedia = diasUteis > 0 ? metaFaturamentoMensal / diasUteis : 0;
+
+      dados.push({
+        mes: format(mes, "MMM/yy", { locale: ptBR }),
+        media,
+        metaMedia,
+        diasUteis,
+      });
+    }
+
+    return dados;
+  }, [lancamentos, diasFuncionamento, metaFaturamentoMensal, isRecepcionista]);
 
   // Dados para gráfico de crescimento de agendamentos (últimos 12 meses)
   const dadosCrescimentoAgendamentos = useMemo(() => {
@@ -900,7 +986,8 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       </div>
 
       {/* Linha 2: Gráficos Principais (4 colunas no desktop) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Linha 3: Gráficos Financeiros (3 colunas no desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Gráfico Faturamento/Despesas - 12 Meses */}
         <Card>
           <CardHeader>
@@ -942,6 +1029,11 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                               {data.variacaoDespesas.toFixed(1)}% vs mês anterior
                             </p>
                           )}
+                          {metaFaturamentoMensal > 0 && (
+                            <p className="text-sm text-gray-500 mt-1 border-t pt-1">
+                              Meta Mensal: {formatCurrency(metaFaturamentoMensal)}
+                            </p>
+                          )}
                         </div>
                       );
                     }
@@ -949,6 +1041,20 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                   }}
                 />
                 <Legend />
+                {metaFaturamentoMensal > 0 && (
+                  <ReferenceLine
+                    y={metaFaturamentoMensal}
+                    stroke="#9ca3af"
+                    strokeDasharray="5 5"
+                    strokeWidth={2}
+                    label={{
+                      value: "Meta",
+                      position: "insideTopRight",
+                      fill: "#9ca3af",
+                      fontSize: 12,
+                    }}
+                  />
+                )}
                 <Line 
                   type="monotone" 
                   dataKey="receitas" 
@@ -967,6 +1073,75 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
                 />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Gráfico Faturamento Médio do Mês */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Faturamento Médio do mês</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Média diária de faturamento considerando dias úteis trabalhados
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={dadosFaturamentoMedio12Meses} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+                <YAxis width={50} tick={{ fontSize: 12 }} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const formatCurrency = (value: number) =>
+                        new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(value);
+                      return (
+                        <div className="bg-background border rounded-lg p-3 shadow-lg">
+                          <p className="font-semibold">{data.mes}</p>
+                          <p className="text-sm text-green-600">
+                            Média Diária: {formatCurrency(data.media)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            ({data.diasUteis} dias úteis)
+                          </p>
+                          {data.metaMedia > 0 && (
+                            <p className="text-sm text-gray-500 mt-1 border-t pt-1">
+                              Meta Média: {formatCurrency(data.metaMedia)}/dia
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="media"
+                  stroke="#22c55e"
+                  name="Média Diária"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+                {metaFaturamentoMensal > 0 && (
+                  <Line
+                    type="monotone"
+                    dataKey="metaMedia"
+                    stroke="#9ca3af"
+                    name="Meta Média"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1013,6 +1188,11 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                               {data.variacaoDespesas.toFixed(1)}% vs dia anterior
                             </p>
                           )}
+                          {data.metaDiaria > 0 && (
+                            <p className="text-sm text-gray-500 mt-1 border-t pt-1">
+                              Meta Diária: {formatCurrency(data.metaDiaria)}
+                            </p>
+                          )}
                         </div>
                       );
                     }
@@ -1020,13 +1200,27 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
                   }}
                 />
                 <Legend />
+                {metaFaturamentoMensal > 0 && (
+                  <Line
+                    type="monotone"
+                    dataKey="metaDiaria"
+                    stroke="#9ca3af"
+                    name="Meta Diária"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                  />
+                )}
                 <Line type="monotone" dataKey="receitas" stroke="#22c55e" name="Receitas" strokeWidth={2} />
                 <Line type="monotone" dataKey="despesas" stroke="#ef4444" name="Despesas" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Linha 4: Gráficos de Atendimentos + Contas a Vencer (3 colunas no desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Gráfico Evolução de Agendamentos */}
         <Card>
           <CardHeader>
@@ -1125,12 +1319,9 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Linha 3: Mini Relatórios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Contas a Vencer */}
         <ContasProximasVencimento lancamentos={isRecepcionista ? [] : lancamentos} />
-        <NovosClientes clientes={isRecepcionista ? [] : clientes} />
       </div>
     </div>
   );
