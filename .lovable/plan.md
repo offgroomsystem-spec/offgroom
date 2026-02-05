@@ -1,285 +1,393 @@
 
-# Plano: Configurar Campos Fiscais para Emissao de NFe/NFSe
+# Plano: Melhorias nos Graficos do Dashboard
 
-## Resumo
+## Resumo das Solicitacoes
 
-Adicionar campos fiscais obrigatorios e opcionais nas tabelas `empresa_config` (dados do emissor), `clientes` (dados do destinatario), `servicos` e `produtos` (dados tributarios), alem de atualizar as interfaces de usuario correspondentes.
-
----
-
-## Parte 1: Alteracoes no Banco de Dados
-
-### 1.1 Tabela `empresa_config` (Dados do Emissor)
-
-**Campos OBRIGATORIOS para NFe/NFSe:**
-
-| Campo | Tipo | Obrigatorio | Descricao |
-|-------|------|-------------|-----------|
-| cnpj | TEXT | Sim | CNPJ da empresa (14 digitos) |
-| razao_social | TEXT | Sim | Razao Social completa |
-| inscricao_estadual | TEXT | Sim (NFe) | IE para emissao de NFe de produto |
-| inscricao_municipal | TEXT | Sim (NFSe) | IM para emissao de NFSe de servico |
-| regime_tributario | TEXT | Sim | 1=Simples Nacional, 2=Simples Excesso, 3=Lucro Presumido/Real |
-
-**Campos de ENDERECO (obrigatorios):**
-
-| Campo | Tipo | Obrigatorio | Descricao |
-|-------|------|-------------|-----------|
-| cep | TEXT | Sim | CEP (8 digitos) |
-| logradouro | TEXT | Sim | Rua/Avenida |
-| numero | TEXT | Sim | Numero |
-| complemento | TEXT | Nao | Complemento |
-| bairro | TEXT | Sim | Bairro |
-| cidade | TEXT | Sim | Nome da cidade |
-| codigo_ibge_cidade | TEXT | Sim | Codigo IBGE da cidade (7 digitos) |
-| uf | TEXT | Sim | Sigla do estado (2 caracteres) |
-
-**Campos OPCIONAIS:**
-
-| Campo | Tipo | Obrigatorio | Descricao |
-|-------|------|-------------|-----------|
-| email_fiscal | TEXT | Nao | Email para recebimento de NFe |
-| codigo_cnae | TEXT | Nao | CNAE principal da empresa |
-| certificado_digital_senha | TEXT | Nao | Para integracao futura com API |
-
-### 1.2 Tabela `clientes` (Dados do Destinatario)
-
-**Campos OBRIGATORIOS para NFe/NFSe:**
-
-| Campo | Tipo | Obrigatorio | Descricao |
-|-------|------|-------------|-----------|
-| cpf_cnpj | TEXT | Nao* | CPF ou CNPJ do cliente |
-| email | TEXT | Nao | Email para envio da NFe |
-
-**Campos de ENDERECO (para NFe de produto - opcionais):**
-
-| Campo | Tipo | Obrigatorio | Descricao |
-|-------|------|-------------|-----------|
-| cep | TEXT | Nao | CEP |
-| logradouro | TEXT | Nao | Rua/Avenida |
-| numero | TEXT | Nao | Numero |
-| complemento | TEXT | Nao | Complemento |
-| bairro | TEXT | Nao | Bairro |
-| cidade | TEXT | Nao | Cidade |
-| codigo_ibge_cidade | TEXT | Nao | Codigo IBGE |
-| uf | TEXT | Nao | Estado |
-
-*Nota: CPF/CNPJ e obrigatorio apenas quando o cliente solicitar a nota fiscal
-
-### 1.3 Tabela `servicos` (Dados Tributarios de Servico)
-
-**Campos para NFSe:**
-
-| Campo | Tipo | Obrigatorio | Descricao |
-|-------|------|-------------|-----------|
-| codigo_servico_municipal | TEXT | Nao | Codigo do servico na prefeitura |
-| aliquota_iss | NUMERIC | Nao | Aliquota de ISS (%) |
-
-### 1.4 Tabela `produtos` (Dados Tributarios de Produto)
-
-**Campos para NFe:**
-
-| Campo | Tipo | Obrigatorio | Descricao |
-|-------|------|-------------|-----------|
-| ncm | TEXT | Nao | NCM do produto (8 digitos) |
-| cfop | TEXT | Nao | CFOP padrao (ex: 5102) |
-| unidade_medida | TEXT | Nao | UN, KG, L, etc. |
-| origem | TEXT | Nao | 0=Nacional, 1=Estrangeira |
+1. **Grafico "Faturamento/Despesas dos ultimos 12 meses"**: Adicionar linha horizontal cinza com a meta de faturamento mensal
+2. **Novo Grafico "Faturamento Medio do mes"**: Calcular media diaria de faturamento por dias uteis trabalhados + linha de meta media
+3. **Grafico "Fluxo de Caixa - Ultimos 30 dias"**: Corrigir para incluir o dia atual + adicionar linha de meta diaria + filtrar apenas dias de funcionamento (com excecao para dias com faturamento)
+4. **Reorganizar Layout**: 3 graficos por linha em desktop
+5. **Remover "Clientes Recentes"**
 
 ---
 
-## Parte 2: Alteracoes na Interface
+## Parte 1: Carregar Meta de Faturamento Mensal
 
-### 2.1 Pagina Empresa (`src/pages/Empresa.tsx`)
+O campo `meta_faturamento_mensal` ja existe na tabela `empresa_config`. Preciso carregar este valor junto com os dias de funcionamento.
 
-Adicionar novo Card "Dados Fiscais" com os seguintes campos organizados:
+### Alteracao no `loadData()` (linha ~94-110)
 
-```text
-+----------------------------------------------------------+
-|  Dados Fiscais da Empresa                                 |
-+----------------------------------------------------------+
-| CNPJ *         [____________]  Razao Social * [________] |
-| Regime Trib. * [v Simples Nacional    ]                  |
-|                                                           |
-| Inscricao Estadual (IE)   [____________]                 |
-| Inscricao Municipal (IM)  [____________]                 |
-+----------------------------------------------------------+
-| Endereco Fiscal                                           |
-+----------------------------------------------------------+
-| CEP *      [________]  [Buscar]                          |
-| Logradouro * [____________________________]              |
-| Numero *   [______]   Complemento [______________]       |
-| Bairro *   [____________]                                 |
-| Cidade *   [____________]  Codigo IBGE * [_______]       |
-| UF *       [v SP]                                         |
-+----------------------------------------------------------+
-| Informacoes Adicionais                                    |
-+----------------------------------------------------------+
-| Email Fiscal   [____________________]                     |
-| CNAE Principal [____________]                             |
-+----------------------------------------------------------+
+```typescript
+// Carregar configuracao da empresa
+const { data: empresaConfig } = await supabase
+  .from("empresa_config")
+  .select("dias_funcionamento, meta_faturamento_mensal")
+  .eq("user_id", ownerId)
+  .single();
+
+setDiasFuncionamento(empresaConfig?.dias_funcionamento || {...});
+setMetaFaturamentoMensal(empresaConfig?.meta_faturamento_mensal || 0);
 ```
 
-**Funcionalidades extras:**
-- Mascara automatica para CNPJ (00.000.000/0000-00)
-- Busca de CEP via API ViaCEP (preenchimento automatico)
-- Validacao de CNPJ
+### Novo State
 
-### 2.2 Pagina Clientes (`src/pages/Clientes.tsx`)
-
-Adicionar campos fiscais no Dialog de cadastro/edicao:
-
-```text
-+----------------------------------------------------------+
-| Dados Fiscais (opcional)                                  |
-+----------------------------------------------------------+
-| CPF/CNPJ [_______________]  Email [__________________]   |
-|                                                           |
-| [ ] Preencher endereco completo para NFe                  |
-|                                                           |
-| (Se marcado, exibe campos de endereco detalhado)          |
-| CEP [________] Logradouro [____________________]         |
-| Numero [____] Complemento [______________]               |
-| Bairro [____________] Cidade [____________]              |
-| UF [v SP] Codigo IBGE [_______]                          |
-+----------------------------------------------------------+
-```
-
-### 2.3 Pagina Servicos (`src/pages/Servicos.tsx`)
-
-Adicionar campos tributarios no formulario:
-
-```text
-+----------------------------------------------------------+
-| Informacoes Fiscais (opcional)                            |
-+----------------------------------------------------------+
-| Codigo Servico Municipal [____________]                   |
-| Aliquota ISS (%)         [_____%]                         |
-+----------------------------------------------------------+
-```
-
-### 2.4 Pagina Produtos (`src/pages/Produtos.tsx`)
-
-Adicionar campos tributarios no formulario:
-
-```text
-+----------------------------------------------------------+
-| Informacoes Fiscais (opcional)                            |
-+----------------------------------------------------------+
-| NCM [____________]   CFOP [______]                        |
-| Unidade Medida [v UN]  Origem [v Nacional]               |
-+----------------------------------------------------------+
+```typescript
+const [metaFaturamentoMensal, setMetaFaturamentoMensal] = useState<number>(0);
 ```
 
 ---
 
-## Parte 3: Migrations SQL
+## Parte 2: Adicionar Linha de Meta no Grafico "Faturamento/Despesas 12 Meses"
 
-### Migration 1: Campos em empresa_config
+### Importar ReferenceLine do Recharts
 
-```sql
-ALTER TABLE empresa_config 
-ADD COLUMN IF NOT EXISTS cnpj TEXT,
-ADD COLUMN IF NOT EXISTS razao_social TEXT,
-ADD COLUMN IF NOT EXISTS inscricao_estadual TEXT,
-ADD COLUMN IF NOT EXISTS inscricao_municipal TEXT,
-ADD COLUMN IF NOT EXISTS regime_tributario TEXT,
-ADD COLUMN IF NOT EXISTS cep TEXT,
-ADD COLUMN IF NOT EXISTS logradouro TEXT,
-ADD COLUMN IF NOT EXISTS numero_endereco TEXT,
-ADD COLUMN IF NOT EXISTS complemento TEXT,
-ADD COLUMN IF NOT EXISTS bairro TEXT,
-ADD COLUMN IF NOT EXISTS cidade TEXT,
-ADD COLUMN IF NOT EXISTS codigo_ibge_cidade TEXT,
-ADD COLUMN IF NOT EXISTS uf TEXT,
-ADD COLUMN IF NOT EXISTS email_fiscal TEXT,
-ADD COLUMN IF NOT EXISTS codigo_cnae TEXT;
+```typescript
+import { ReferenceLine } from "recharts";
 ```
 
-### Migration 2: Campos em clientes
+### Adicionar ao Grafico
 
-```sql
-ALTER TABLE clientes 
-ADD COLUMN IF NOT EXISTS cpf_cnpj TEXT,
-ADD COLUMN IF NOT EXISTS email TEXT,
-ADD COLUMN IF NOT EXISTS cep TEXT,
-ADD COLUMN IF NOT EXISTS logradouro TEXT,
-ADD COLUMN IF NOT EXISTS numero_endereco TEXT,
-ADD COLUMN IF NOT EXISTS complemento TEXT,
-ADD COLUMN IF NOT EXISTS bairro TEXT,
-ADD COLUMN IF NOT EXISTS cidade TEXT,
-ADD COLUMN IF NOT EXISTS codigo_ibge_cidade TEXT,
-ADD COLUMN IF NOT EXISTS uf TEXT;
+A linha sera horizontal e constante, representando a meta mensal:
+
+```typescript
+<ReferenceLine
+  y={metaFaturamentoMensal}
+  stroke="#9ca3af"
+  strokeDasharray="5 5"
+  strokeWidth={2}
+  label={{
+    value: "Meta",
+    position: "insideTopRight",
+    fill: "#9ca3af",
+    fontSize: 12,
+  }}
+/>
 ```
 
-### Migration 3: Campos em servicos
+### Tooltip Personalizado
 
-```sql
-ALTER TABLE servicos 
-ADD COLUMN IF NOT EXISTS codigo_servico_municipal TEXT,
-ADD COLUMN IF NOT EXISTS aliquota_iss NUMERIC DEFAULT 0;
-```
+Adicionar deteccao de hover na linha de meta para mostrar o valor:
 
-### Migration 4: Campos em produtos
-
-```sql
-ALTER TABLE produtos 
-ADD COLUMN IF NOT EXISTS ncm TEXT,
-ADD COLUMN IF NOT EXISTS cfop TEXT,
-ADD COLUMN IF NOT EXISTS unidade_medida TEXT DEFAULT 'UN',
-ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT '0';
+```typescript
+// No tooltip, adicionar verificacao se o mouse esta sobre a linha de meta
 ```
 
 ---
 
-## Parte 4: Arquivos a Modificar
+## Parte 3: Novo Grafico "Faturamento Medio do Mes"
+
+### Logica de Calculo
+
+Para cada mes dos ultimos 12 meses:
+1. Calcular total de receitas pagas do mes
+2. Contar dias uteis trabalhados baseado no `dias_funcionamento`
+3. Dividir: `media = totalReceitas / diasUteis`
+
+### Linha de Meta Media
+
+Para cada mes, calcular a meta media:
+- `metaMedia = metaFaturamentoMensal / diasUteisMes`
+
+Essa linha NAO sera reta, pois cada mes tem quantidade diferente de dias uteis.
+
+### useMemo `dadosFaturamentoMedio12Meses`
+
+```typescript
+const dadosFaturamentoMedio12Meses = useMemo(() => {
+  const diasSemana = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+  const dados: any[] = [];
+
+  for (let i = 11; i >= 0; i--) {
+    const mes = subMonths(new Date(), i);
+    const inicioMes = startOfMonth(mes);
+    const fimMes = endOfMonth(mes);
+    const hoje = new Date();
+    const dataFinal = i === 0 ? hoje : fimMes;
+
+    // Contar dias uteis do mes
+    let diasUteis = 0;
+    let dataAtual = new Date(inicioMes);
+    while (dataAtual <= dataFinal) {
+      const diaDaSemana = diasSemana[dataAtual.getDay()];
+      if (diasFuncionamento?.[diaDaSemana]) diasUteis++;
+      dataAtual = addDays(dataAtual, 1);
+    }
+
+    // Calcular receitas do mes (pagas)
+    const receitas = lancamentos
+      .filter((l) => {
+        if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+        const data = new Date(l.data_pagamento);
+        return data >= inicioMes && data <= dataFinal;
+      })
+      .reduce((acc, l) => acc + Number(l.valor_total), 0);
+
+    const media = diasUteis > 0 ? receitas / diasUteis : 0;
+    const metaMedia = diasUteis > 0 ? metaFaturamentoMensal / diasUteis : 0;
+
+    dados.push({
+      mes: format(mes, "MMM/yy", { locale: ptBR }),
+      media,
+      metaMedia,
+      diasUteis,
+    });
+  }
+
+  return dados;
+}, [lancamentos, diasFuncionamento, metaFaturamentoMensal]);
+```
+
+### Componente do Grafico
+
+```typescript
+<Card>
+  <CardHeader>
+    <CardTitle className="text-lg">Faturamento Medio do mes</CardTitle>
+    <p className="text-xs text-muted-foreground">
+      Media diaria de faturamento considerando dias uteis trabalhados
+    </p>
+  </CardHeader>
+  <CardContent>
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={dadosFaturamentoMedio12Meses}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+        <YAxis width={50} tick={{ fontSize: 12 }} />
+        <Tooltip content={...} />
+        <Legend />
+        <Line 
+          type="monotone" 
+          dataKey="media" 
+          stroke="#22c55e" 
+          name="Media Diaria" 
+          strokeWidth={2}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="metaMedia" 
+          stroke="#9ca3af" 
+          name="Meta Media" 
+          strokeWidth={2}
+          strokeDasharray="5 5"
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </CardContent>
+</Card>
+```
+
+---
+
+## Parte 4: Corrigir "Fluxo de Caixa - Ultimos 30 dias"
+
+### Problemas Identificados
+
+1. **Nao mostra o dia atual**: O loop vai de `i = 0` ate `i < 30`, mas comeca em `ultimos30Dias = subDays(new Date(), 30)`, ou seja, mostra de 30 dias atras ate ontem.
+
+2. **Mostra dias nao trabalhados**: Precisa filtrar apenas dias de funcionamento, exceto se houver faturamento.
+
+### Correcao para Incluir Hoje
+
+```typescript
+// Mudar de:
+const ultimos30Dias = subDays(new Date(), 30);
+for (let i = 0; i < 30; i++) {
+  const data = addDays(ultimos30Dias, i);
+
+// Para:
+const ultimos30Dias = subDays(new Date(), 29); // 29 dias atras + hoje = 30 dias
+for (let i = 0; i <= 29; i++) { // Incluir hoje
+  const data = addDays(ultimos30Dias, i);
+```
+
+### Filtrar Dias de Funcionamento (com excecao)
+
+```typescript
+const dadosFluxoCaixa = useMemo(() => {
+  const diasSemana = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+  const dados: any[] = [];
+  const hoje = new Date();
+  
+  // Gerar todos os 30 dias
+  for (let i = 29; i >= 0; i--) {
+    const data = subDays(hoje, i);
+    const dataStr = format(data, "yyyy-MM-dd");
+    const diaDaSemana = diasSemana[data.getDay()];
+    
+    // Verificar se e dia de funcionamento
+    const eDiaFuncionamento = diasFuncionamento?.[diaDaSemana] === true;
+    
+    // Calcular receitas e despesas do dia
+    const receitas = lancamentos
+      .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr)
+      .reduce((acc, l) => acc + Number(l.valor_total), 0);
+    
+    const despesas = lancamentos
+      .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr)
+      .reduce((acc, l) => acc + Number(l.valor_total), 0);
+    
+    // Verificar se teve faturamento (excecao para dias nao trabalhados)
+    const teveFaturamento = receitas > 0 || despesas > 0;
+    
+    // Incluir apenas se: e dia de funcionamento OU teve faturamento
+    if (eDiaFuncionamento || teveFaturamento) {
+      dados.push({
+        data: format(data, "dd/MM", { locale: ptBR }),
+        dataCompleta: data,
+        receitas,
+        despesas,
+        metaDiaria, // Calcular baseado no mes
+      });
+    }
+  }
+  
+  return dados;
+}, [lancamentos, diasFuncionamento, metaFaturamentoMensal]);
+```
+
+### Adicionar Linha de Meta Diaria
+
+Para cada dia, a meta diaria = `metaFaturamentoMensal / diasUteisMes`:
+
+```typescript
+// Para cada dia, calcular quantos dias uteis tem no mes daquele dia
+const calcularMetaDiaria = (data: Date) => {
+  const inicioMes = startOfMonth(data);
+  const fimMes = endOfMonth(data);
+  let diasUteisMes = 0;
+  let d = new Date(inicioMes);
+  while (d <= fimMes) {
+    if (diasFuncionamento?.[diasSemana[d.getDay()]]) diasUteisMes++;
+    d = addDays(d, 1);
+  }
+  return diasUteisMes > 0 ? metaFaturamentoMensal / diasUteisMes : 0;
+};
+```
+
+---
+
+## Parte 5: Reorganizar Layout dos Graficos
+
+### Layout Atual (4 colunas)
+
+```text
+[Faturamento/Despesas] [Fluxo de Caixa] [Evolucao Atend.] [Media Atend.]
+```
+
+### Novo Layout (2 linhas de 3)
+
+**Linha 1:**
+```text
+[Faturamento/Despesas 12m] [Faturamento Medio mes] [Fluxo de Caixa 30d]
+```
+
+**Linha 2:**
+```text
+[Evolucao Atendimentos 12m] [Media Atendimentos] [Contas a Vencer]
+```
+
+### Alteracao no Grid (linha ~903)
+
+```typescript
+// Linha 1: 3 graficos financeiros
+<div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+  {/* Faturamento/Despesas 12 meses */}
+  {/* Faturamento Medio do mes (NOVO) */}
+  {/* Fluxo de Caixa 30 dias */}
+</div>
+
+// Linha 2: 2 graficos de atendimentos + Contas a Vencer
+<div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+  {/* Evolucao de Atendimentos */}
+  {/* Media de Atendimentos */}
+  {/* Contas a Vencer (movido de baixo) */}
+</div>
+```
+
+---
+
+## Parte 6: Remover "Clientes Recentes"
+
+Remover o componente `NovosClientes` da renderizacao (linha ~1133):
+
+```typescript
+// ANTES:
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <ContasProximasVencimento lancamentos={lancamentos} />
+  <NovosClientes clientes={clientes} /> // REMOVER
+</div>
+
+// DEPOIS:
+// O ContasProximasVencimento vai para a linha dos graficos
+```
+
+---
+
+## Resumo das Alteracoes
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/pages/Empresa.tsx` | Adicionar Card "Dados Fiscais" com todos os campos fiscais e busca de CEP |
-| `src/pages/Clientes.tsx` | Adicionar secao "Dados Fiscais" no Dialog com campos opcionais |
-| `src/pages/Servicos.tsx` | Adicionar campos de codigo municipal e aliquota ISS |
-| `src/pages/Produtos.tsx` | Adicionar campos NCM, CFOP, unidade e origem |
+| `DashboardContent.tsx` | Adicionar state `metaFaturamentoMensal` |
+| `DashboardContent.tsx` | Carregar `meta_faturamento_mensal` do banco |
+| `DashboardContent.tsx` | Importar `ReferenceLine` do recharts |
+| `DashboardContent.tsx` | Adicionar linha de meta no grafico de 12 meses |
+| `DashboardContent.tsx` | Criar `useMemo` para `dadosFaturamentoMedio12Meses` |
+| `DashboardContent.tsx` | Adicionar novo grafico "Faturamento Medio do mes" |
+| `DashboardContent.tsx` | Corrigir `dadosFluxoCaixa` para incluir hoje |
+| `DashboardContent.tsx` | Filtrar dias de funcionamento no Fluxo de Caixa |
+| `DashboardContent.tsx` | Adicionar meta diaria no grafico Fluxo de Caixa |
+| `DashboardContent.tsx` | Reorganizar layout para 3 graficos por linha |
+| `DashboardContent.tsx` | Mover ContasProximasVencimento para linha 2 |
+| `DashboardContent.tsx` | Remover NovosClientes |
 
 ---
 
-## Parte 5: Validacoes e Mascaras
+## Visualizacao do Layout Final (Desktop)
 
-### Campos Obrigatorios (empresa_config)
-- CNPJ (com validacao de digitos verificadores)
-- Razao Social
-- Regime Tributario
-- CEP, Logradouro, Numero, Bairro, Cidade, Codigo IBGE, UF
+```text
++----------------------------------------------------------+
+|                    CARDS DE KPIs (5 cards)                |
++----------------------------------------------------------+
+|                    CARDS DE KPIs (4 cards)                |
++----------------------------------------------------------+
 
-### Campos Opcionais (todos os demais)
-- Inscricao Estadual (obrigatoria apenas se emitir NFe de produto)
-- Inscricao Municipal (obrigatoria apenas se emitir NFSe)
-- Complemento, Email, CNAE
-
-### Mascaras de Input
-- CNPJ: 00.000.000/0000-00
-- CPF: 000.000.000-00
-- CEP: 00000-000
-- Codigo IBGE: 7 digitos
++----------------------------------------------------------+
+| Faturamento/Despesas  | Faturamento Medio   | Fluxo de   |
+| ultimos 12 meses      | do mes              | Caixa 30d  |
+| (com linha meta)      | (com linha meta)    | (filtrado) |
++----------------------------------------------------------+
+| Evolucao de           | Media do Mes de     | Contas a   |
+| Atendimentos 12m      | Atendimentos        | Vencer     |
++----------------------------------------------------------+
+```
 
 ---
 
-## Resumo de Campos
+## Detalhes Tecnicos
 
-### Empresa (Obrigatorios)
-- CNPJ, Razao Social, Regime Tributario
-- CEP, Logradouro, Numero, Bairro, Cidade, Codigo IBGE, UF
+### Cores das Linhas
+- **Receitas/Faturamento**: `#22c55e` (verde)
+- **Despesas**: `#ef4444` (vermelho)
+- **Meta**: `#9ca3af` (cinza) com `strokeDasharray="5 5"` (tracejada)
 
-### Empresa (Opcionais)
-- Inscricao Estadual, Inscricao Municipal
-- Complemento, Email Fiscal, CNAE
+### Tooltips das Linhas de Meta
+Quando o usuario passar o mouse sobre a linha de meta, o tooltip mostrara:
+- "Meta Mensal: R$ X.XXX,XX" (para o grafico de 12 meses)
+- "Meta Media: R$ X.XXX,XX/dia" (para o grafico de faturamento medio)
+- "Meta Diaria: R$ X.XXX,XX" (para o fluxo de caixa)
 
-### Clientes (Todos Opcionais)
-- CPF/CNPJ, Email
-- Endereco completo (CEP, Logradouro, etc.)
+### Calculo de Dias Uteis
+Baseado no campo `dias_funcionamento` da tabela `empresa_config`:
+```json
+{
+  "segunda": true,
+  "terca": true,
+  "quarta": true,
+  "quinta": true,
+  "sexta": true,
+  "sabado": false,
+  "domingo": false
+}
+```
 
-### Servicos (Opcionais)
-- Codigo Servico Municipal, Aliquota ISS
-
-### Produtos (Opcionais)
-- NCM, CFOP, Unidade Medida, Origem
+Se segunda a sexta = 5 dias uteis por semana.
