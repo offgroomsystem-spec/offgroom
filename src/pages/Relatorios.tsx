@@ -22,6 +22,7 @@ import { DespesasNaoOperacionais } from "@/components/relatorios/financeiros/Des
 import { PontoEquilibrio } from "@/components/relatorios/financeiros/PontoEquilibrio";
 import { AtendimentosRealizados } from "@/components/relatorios/servicos/AtendimentosRealizados";
 import { ProdutosProximosVencimento } from "@/components/relatorios/estoque/ProdutosProximosVencimento";
+import GraficosFinanceiros from "@/components/relatorios/financeiros/GraficosFinanceiros";
 
 const Relatorios = () => {
   const location = useLocation();
@@ -81,6 +82,7 @@ const Relatorios = () => {
         {relatorioAtivo === "controle-financeiro" && <ControleFinanceiro filtrosIniciais={filtrosControleFinanceiro} />}
         {relatorioAtivo === "fluxo-caixa" && <FluxoDeCaixa key={versaoFiltro} />}
         {relatorioAtivo === "dre" && <DRE filtros={filtros} />}
+        {relatorioAtivo === "graficos-financeiros" && <GraficosFinanceiros />}
         {relatorioAtivo === "inadimplencia" && <Inadimplencia />}
       {relatorioAtivo === "receita-operacional" && <ReceitaOperacional />}
       {relatorioAtivo === "receita-nao-operacional" && <ReceitaNaoOperacional />}
@@ -96,6 +98,7 @@ const Relatorios = () => {
         {relatorioAtivo === "produtos-vencimento" && <ProdutosProximosVencimento />}
 
       {![
+        "graficos-financeiros",
         "dashboard",
         "controle-financeiro",
         "fluxo-caixa",
@@ -183,6 +186,7 @@ const Relatorios = () => {
         <TabsContent value="financeiro" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
+              { id: "graficos-financeiros", titulo: "📊 Gráficos Financeiros", desc: "Painel completo de análise visual da saúde financeira da empresa" },
               { id: "fluxo-caixa", titulo: "Fluxo de Caixa", desc: "Entradas e saídas detalhadas por período" },
               {
                 id: "dre",
