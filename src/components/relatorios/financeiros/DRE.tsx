@@ -261,13 +261,13 @@ export const DRE = ({ filtros }: DREProps) => {
 
     // 4. DESPESAS OPERACIONAIS
     const contador = somarSubcategoria("Contador");
-    const contador = somarSubcategoria("Freelancer");
+    const freelancer = somarSubcategoria("Freelancer");
     const telefonia = somarSubcategoria("Telefonia e internet");
     const energia = somarSubcategoria("Energia elétrica");
     const agua = somarSubcategoria("Água e esgoto");
     const marketing = somarSubcategoria("Publicidade e marketing");
     const outrasDespOp = somarSubcategoria("Outras Despesas Operacionais");
-    const despesasOperacionais = contador + telefonia + energia + agua + marketing + outrasDespOp;
+    const despesasOperacionais = contador + freelancer + telefonia + energia + agua + marketing + outrasDespOp;
 
     // 5. DESPESAS FIXAS
     const aluguel = somarSubcategoria("Aluguel");
@@ -310,6 +310,7 @@ export const DRE = ({ filtros }: DREProps) => {
       // Despesas Operacionais
       despesasOperacionais,
       contador,
+      freelancer,
       telefonia,
       energia,
       agua,
