@@ -78,33 +78,34 @@ const PieChartCard = ({ title, data, colors }: { title: string; data: { name: st
   );
 };
 
-const getTooltipText = (tipo: string, comparativo: any): string => {
+const getTooltipText = (tipo: string, comparativo: any, periodo: "atual" | "anterior" = "atual"): string => {
   if (!comparativo) return "";
+  const label = periodo === "atual" ? "mês atual" : "mês anterior";
   switch (tipo) {
     case "receita": {
-      const base = "💰 Receita do mês atual. Todo o dinheiro que entrou no seu negócio neste mês.";
+      const base = `💰 Receita do ${label}. Todo o dinheiro que entrou no seu negócio neste período.`;
       if (comparativo.varReceita > 0) return `${base}\n📈 Seu faturamento aumentou! Você vendeu mais ou gerou mais receita neste período.`;
-      if (comparativo.varReceita < 0) return `${base}\n📉 Você faturou menos que no mês anterior. Pode indicar menos vendas ou menor ticket médio.`;
-      return `${base}\n➡️ Faturamento estável em relação ao mês anterior.`;
+      if (comparativo.varReceita < 0) return `${base}\n📉 Você faturou menos que no período anterior. Pode indicar menos vendas ou menor ticket médio.`;
+      return `${base}\n➡️ Faturamento estável em relação ao período anterior.`;
     }
     case "despesas": {
-      const base = "💸 Despesas do mês atual. Todos os gastos do negócio (aluguel, funcionários, insumos, etc.).";
+      const base = `💸 Despesas do ${label}. Todos os gastos do negócio (aluguel, funcionários, insumos, etc.).`;
       const v = comparativo.varDespesa;
       if (v < 0) return `${base}\n✅ Redução de despesas melhora diretamente a rentabilidade.`;
       if (v <= 15) return `${base}\n🔹 Os gastos tiveram um leve crescimento, exigindo apenas acompanhamento.`;
       if (v <= 50) return `${base}\n🔸 Os custos cresceram de forma perceptível e merecem atenção.`;
       if (v <= 100) return `${base}\n🔴 Os gastos aumentaram significativamente, impactando o resultado.`;
-      return `${base}\n🔥 Os gastos mais que dobraram em relação ao mês anterior!`;
+      return `${base}\n🔥 Os gastos mais que dobraram em relação ao período anterior!`;
     }
     case "lucro": {
-      const base = "💰 Lucro do mês atual. Quanto realmente sobrou após todas as despesas.";
+      const base = `💰 Lucro do ${label}. Quanto realmente sobrou após todas as despesas.`;
       if (comparativo.lucro < 0) return `${base}\n🚨 O negócio operou no prejuízo. As despesas superaram a receita.`;
-      if (comparativo.varLucro > 0) return `${base}\n📈 Seu negócio ficou mais lucrativo neste mês.`;
+      if (comparativo.varLucro > 0) return `${base}\n📈 Seu negócio ficou mais lucrativo neste período.`;
       if (comparativo.varLucro < 0) return `${base}\n📉 O lucro caiu. Pode ser por queda de receita ou aumento de despesas.`;
-      return `${base}\n➡️ Lucro estável em relação ao mês anterior.`;
+      return `${base}\n➡️ Lucro estável em relação ao período anterior.`;
     }
     case "margem": {
-      const base = "📊 Margem de lucro. Mostra qual % do faturamento virou lucro.\n💡 Ex: margem de 60% = a cada R$1,00, R$0,60 virou lucro.";
+      const base = `📊 Margem de lucro do ${label}. Mostra qual % do faturamento virou lucro.\n💡 Ex: margem de 60% = a cada R$1,00, R$0,60 virou lucro.`;
       let texto = base;
       if (comparativo.diffMargem > 0) texto += "\n📈 Você está lucrando mais proporcionalmente.";
       else if (comparativo.diffMargem < 0) texto += "\n📉 Mesmo faturando, uma parte menor virou lucro.";
@@ -135,11 +136,109 @@ const GraficosFinanceiros = () => {
     return format(d, "MMMM/yyyy", { locale: ptBR });
   });
 
+  // Compute previous month comparativo from dadosMensais
+  const comparativoAnterior = (() => {
+    if (dadosMensais.length < 3) return null;
+    const anterior = dadosMensais[dadosMensais.length - 2];
+    const doisAtras = dadosMensais[dadosMensais.length - 3];
+    const varReceita = doisAtras.receitas > 0 ? ((anterior.receitas - doisAtras.receitas) / doisAtras.receitas) * 100 : 0;
+    const varDespesa = doisAtras.despesas > 0 ? ((anterior.despesas - doisAtras.despesas) / doisAtras.despesas) * 100 : 0;
+    const varLucro = doisAtras.lucro !== 0 ? ((anterior.lucro - doisAtras.lucro) / Math.abs(doisAtras.lucro)) * 100 : 0;
+    const diffMargem = anterior.margem - doisAtras.margem;
+    return {
+      receita: anterior.receitas,
+      despesa: anterior.despesas,
+      lucro: anterior.lucro,
+      margem: anterior.margem,
+      varReceita,
+      varDespesa,
+      varLucro,
+      diffMargem,
+    };
+  })();
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-foreground">Gráficos Financeiros</h2>
 
-      {/* Comparativo Cards */}
+      {/* Cards Mês Anterior */}
+      {comparativoAnterior && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Receita</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativoAnterior.receita)}</p>
+                    <VariationBadge value={comparativoAnterior.varReceita} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("receita", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Despesas</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativoAnterior.despesa)}</p>
+                    <VariationBadge value={comparativoAnterior.varDespesa} invertColors />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("despesas", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Lucro</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className={`text-lg font-bold ${comparativoAnterior.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativoAnterior.lucro)}</p>
+                    <VariationBadge value={comparativoAnterior.varLucro} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("lucro", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Margem</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className={`text-lg font-bold ${comparativoAnterior.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativoAnterior.margem.toFixed(1)}%</p>
+                    <VariationBadge value={comparativoAnterior.diffMargem} suffix="pp" />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("margem", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
+      )}
+
+      {/* Cards Mês Atual */}
       {comparativo && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <TooltipProvider>
