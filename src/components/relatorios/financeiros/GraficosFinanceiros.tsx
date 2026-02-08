@@ -608,23 +608,33 @@ const GraficosFinanceiros = () => {
 
       {/* Row 6: Ponto Equilíbrio + Ticket Médio + Sazonalidade */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-        {/* Ponto de Equilíbrio */}
+        {/* Ponto de Equilíbrio - Últimos 3 Meses */}
         <Card>
-          <CardHeader><CardTitle className="text-sm">Ponto de Equilíbrio - Mês Atual</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className={`text-3xl font-bold ${pontoEquilibrio.percentual >= 100 ? "text-green-600" : "text-red-600"}`}>
-                {pontoEquilibrio.percentual.toFixed(0)}%
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {pontoEquilibrio.percentual >= 100 ? "Acima do ponto de equilíbrio" : "Abaixo do ponto de equilíbrio"}
-              </p>
-            </div>
-            <Progress value={Math.min(pontoEquilibrio.percentual, 100)} className="h-4" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Receitas: {formatCurrency(pontoEquilibrio.receitas)}</span>
-              <span>Despesas: {formatCurrency(pontoEquilibrio.despesas)}</span>
-            </div>
+          <CardHeader><CardTitle className="text-sm">Ponto de Equilíbrio - Últimos 3 Meses</CardTitle></CardHeader>
+          <CardContent className="space-y-5">
+            {Array.isArray(pontoEquilibrio) && pontoEquilibrio.map((pe, idx) => (
+              <div key={idx} className={`space-y-2 p-3 rounded-lg ${pe.isAtual ? "border-2 border-primary bg-primary/5" : "border border-border"}`}>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold capitalize">{pe.mesLabel}</p>
+                  {pe.isAtual && (
+                    <span className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-medium">Mês Atual</span>
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className={`text-2xl font-bold ${pe.percentual >= 100 ? "text-green-600" : "text-red-600"}`}>
+                    {pe.percentual.toFixed(0)}%
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {pe.percentual >= 100 ? "Acima do equilíbrio" : "Abaixo do equilíbrio"}
+                  </p>
+                </div>
+                <Progress value={Math.min(pe.percentual, 100)} className="h-3" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Receitas: {formatCurrency(pe.receitas)}</span>
+                  <span>Despesas: {formatCurrency(pe.despesas)}</span>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -655,7 +665,7 @@ const GraficosFinanceiros = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Sazonalidade Financeira</CardTitle>
-            <p className="text-xs text-muted-foreground">Receita total por mês do ano</p>
+            <p className="text-xs text-muted-foreground">Receita dos últimos 12 meses</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

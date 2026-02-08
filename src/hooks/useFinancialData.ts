@@ -257,24 +257,13 @@ export const useFinancialData = () => {
     });
   }, [dadosMensais]);
 
-  // Seasonality (aggregate by month name across all data)
+  // Seasonality - últimos 12 meses em ordem cronológica
   const sazonalidade = useMemo(() => {
-    const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    const totais = new Array(12).fill(0);
-    const contagem = new Array(12).fill(0);
-
-    lancamentos.filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento).forEach((l) => {
-      const m = new Date(l.data_pagamento).getMonth();
-      totais[m] += Number(l.valor_total);
-      contagem[m]++;
-    });
-
-    return meses.map((name, i) => ({
-      name,
-      media: contagem[i] > 0 ? totais[i] / Math.max(1, Math.ceil(contagem[i] / 30)) : 0,
-      total: totais[i],
+    return dadosMensais.map((d) => ({
+      name: d.mes,
+      total: d.receitas,
     }));
-  }, [lancamentos]);
+  }, [dadosMensais]);
 
   // Ticket médio mensal
   const ticketMedio = useMemo(() => {
@@ -307,15 +296,18 @@ export const useFinancialData = () => {
     };
   }, [dadosMensais]);
 
-  // Break-even indicator
+  // Break-even indicator - últimos 3 meses
   const pontoEquilibrio = useMemo(() => {
-    if (dadosMensais.length === 0) return { receitas: 0, despesas: 0, percentual: 0 };
-    const atual = dadosMensais[dadosMensais.length - 1];
-    return {
-      receitas: atual.receitas,
-      despesas: atual.despesas,
-      percentual: atual.despesas > 0 ? (atual.receitas / atual.despesas) * 100 : 0,
-    };
+    if (dadosMensais.length === 0) return [];
+    const ultimos3 = dadosMensais.slice(-3);
+    return ultimos3.map((d, i) => ({
+      mes: d.mes,
+      mesLabel: d.mesLabel,
+      receitas: d.receitas,
+      despesas: d.despesas,
+      percentual: d.despesas > 0 ? (d.receitas / d.despesas) * 100 : 0,
+      isAtual: i === ultimos3.length - 1,
+    }));
   }, [dadosMensais]);
 
   return {
