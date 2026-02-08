@@ -5,6 +5,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Simple validation helpers
+function isValidEmail(email: string): boolean {
+  return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 255;
+}
+
+function isValidPassword(password: string): boolean {
+  return typeof password === 'string' && password.length >= 8 && password.length <= 100;
+}
+
+function isValidName(name: string): boolean {
+  return typeof name === 'string' && name.length >= 2 && name.length <= 100;
+}
+
+function isValidTipoLogin(tipo: string): boolean {
+  return ['administrador', 'taxi_dog', 'recepcionista'].includes(tipo);
+}
+
+function isValidUUID(id: string): boolean {
+  return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -66,14 +87,37 @@ Deno.serve(async (req) => {
     if (action === 'create') {
       const { email, password, nome, tipo_login, ativo, owner_id } = body
 
+      // Validate inputs
+      const errors: string[] = [];
+      if (!isValidEmail(email)) errors.push('E-mail inválido ou muito longo');
+      if (!isValidPassword(password)) errors.push('Senha deve ter entre 8 e 100 caracteres');
+      if (!isValidName(nome)) errors.push('Nome deve ter entre 2 e 100 caracteres');
+      if (!isValidTipoLogin(tipo_login)) errors.push('Tipo de login inválido');
+      if (!isValidUUID(owner_id)) errors.push('Owner ID inválido');
+
+      if (errors.length > 0) {
+        return new Response(
+          JSON.stringify({ error: errors.join('. ') }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Verify the requester owns the owner_id
+      if (owner_id !== user.id) {
+        return new Response(
+          JSON.stringify({ error: 'Não é possível criar staff para outro usuário' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       // Criar usuário usando Admin API
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         email_confirm: true,
         user_metadata: {
-          nome_completo: nome,
-          email_hotmart: email,
+          nome_completo: nome.trim(),
+          email_hotmart: email.trim().toLowerCase(),
         }
       })
 
@@ -91,8 +135,8 @@ Deno.serve(async (req) => {
         .insert({
           user_id: newUser.user.id,
           owner_id: owner_id,
-          nome,
-          email,
+          nome: nome.trim(),
+          email: email.trim().toLowerCase(),
           tipo_login,
           ativo
         })
@@ -136,12 +180,27 @@ Deno.serve(async (req) => {
     if (action === 'update') {
       const { user_id, email, password, nome, tipo_login, ativo } = body
 
+      // Validate inputs
+      const errors: string[] = [];
+      if (!isValidUUID(user_id)) errors.push('User ID inválido');
+      if (!isValidEmail(email)) errors.push('E-mail inválido ou muito longo');
+      if (password && !isValidPassword(password)) errors.push('Senha deve ter entre 8 e 100 caracteres');
+      if (!isValidName(nome)) errors.push('Nome deve ter entre 2 e 100 caracteres');
+      if (!isValidTipoLogin(tipo_login)) errors.push('Tipo de login inválido');
+
+      if (errors.length > 0) {
+        return new Response(
+          JSON.stringify({ error: errors.join('. ') }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       // Atualizar dados do usuário no auth.users
       const updateData: any = {
-        email,
+        email: email.trim().toLowerCase(),
         user_metadata: {
-          nome_completo: nome,
-          email_hotmart: email,
+          nome_completo: nome.trim(),
+          email_hotmart: email.trim().toLowerCase(),
         }
       }
 
@@ -166,8 +225,8 @@ Deno.serve(async (req) => {
       const { error: staffError } = await supabaseAdmin
         .from('staff_accounts')
         .update({
-          nome,
-          email,
+          nome: nome.trim(),
+          email: email.trim().toLowerCase(),
           tipo_login,
           ativo,
           updated_at: new Date().toISOString()
@@ -204,6 +263,13 @@ Deno.serve(async (req) => {
 
     if (action === 'delete') {
       const { user_id } = body
+
+      if (!isValidUUID(user_id)) {
+        return new Response(
+          JSON.stringify({ error: 'User ID inválido' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       // Deletar de staff_accounts
       const { error: staffError } = await supabaseAdmin
@@ -254,7 +320,7 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error('Error in manage-staff-user function:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Erro interno do servidor' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
