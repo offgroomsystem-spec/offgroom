@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useFinancialData, formatCurrency } from "@/hooks/useFinancialData";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
@@ -77,6 +78,42 @@ const PieChartCard = ({ title, data, colors }: { title: string; data: { name: st
   );
 };
 
+const getTooltipText = (tipo: string, comparativo: any): string => {
+  if (!comparativo) return "";
+  switch (tipo) {
+    case "receita": {
+      const base = "💰 Receita do mês atual. Todo o dinheiro que entrou no seu negócio neste mês.";
+      if (comparativo.varReceita > 0) return `${base}\n📈 Seu faturamento aumentou! Você vendeu mais ou gerou mais receita neste período.`;
+      if (comparativo.varReceita < 0) return `${base}\n📉 Você faturou menos que no mês anterior. Pode indicar menos vendas ou menor ticket médio.`;
+      return `${base}\n➡️ Faturamento estável em relação ao mês anterior.`;
+    }
+    case "despesas": {
+      const base = "💸 Despesas do mês atual. Todos os gastos do negócio (aluguel, funcionários, insumos, etc.).";
+      const v = comparativo.varDespesa;
+      if (v < 0) return `${base}\n✅ Redução de despesas melhora diretamente a rentabilidade.`;
+      if (v <= 15) return `${base}\n🔹 Os gastos tiveram um leve crescimento, exigindo apenas acompanhamento.`;
+      if (v <= 50) return `${base}\n🔸 Os custos cresceram de forma perceptível e merecem atenção.`;
+      if (v <= 100) return `${base}\n🔴 Os gastos aumentaram significativamente, impactando o resultado.`;
+      return `${base}\n🔥 Os gastos mais que dobraram em relação ao mês anterior!`;
+    }
+    case "lucro": {
+      const base = "💰 Lucro do mês atual. Quanto realmente sobrou após todas as despesas.";
+      if (comparativo.lucro < 0) return `${base}\n🚨 O negócio operou no prejuízo. As despesas superaram a receita.`;
+      if (comparativo.varLucro > 0) return `${base}\n📈 Seu negócio ficou mais lucrativo neste mês.`;
+      if (comparativo.varLucro < 0) return `${base}\n📉 O lucro caiu. Pode ser por queda de receita ou aumento de despesas.`;
+      return `${base}\n➡️ Lucro estável em relação ao mês anterior.`;
+    }
+    case "margem": {
+      const base = "📊 Margem de lucro. Mostra qual % do faturamento virou lucro.\n💡 Ex: margem de 60% = a cada R$1,00, R$0,60 virou lucro.";
+      let texto = base;
+      if (comparativo.diffMargem > 0) texto += "\n📈 Você está lucrando mais proporcionalmente.";
+      else if (comparativo.diffMargem < 0) texto += "\n📉 Mesmo faturando, uma parte menor virou lucro.";
+      return `${texto}\nℹ️ Variação medida em pontos percentuais (pp).`;
+    }
+    default: return "";
+  }
+};
+
 const GraficosFinanceiros = () => {
   const {
     loading, dadosMensais, dadosFluxoCaixa30d, categoriasPorMes,
@@ -105,34 +142,77 @@ const GraficosFinanceiros = () => {
       {/* Comparativo Cards */}
       {comparativo && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground">Receita</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(comparativo.receita)}</p>
-              <VariationBadge value={comparativo.varReceita} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground">Despesas</p>
-              <p className="text-lg font-bold text-red-600">{formatCurrency(comparativo.despesa)}</p>
-              <VariationBadge value={comparativo.varDespesa} invertColors />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground">Lucro</p>
-              <p className={`text-lg font-bold ${comparativo.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativo.lucro)}</p>
-              <VariationBadge value={comparativo.varLucro} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground">Margem</p>
-              <p className={`text-lg font-bold ${comparativo.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativo.margem.toFixed(1)}%</p>
-              <VariationBadge value={comparativo.diffMargem} suffix="pp" />
-            </CardContent>
-          </Card>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Receita</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativo.receita)}</p>
+                    <VariationBadge value={comparativo.varReceita} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("receita", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Despesas</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativo.despesa)}</p>
+                    <VariationBadge value={comparativo.varDespesa} invertColors />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("despesas", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Lucro</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className={`text-lg font-bold ${comparativo.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativo.lucro)}</p>
+                    <VariationBadge value={comparativo.varLucro} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("lucro", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Margem</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className={`text-lg font-bold ${comparativo.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativo.margem.toFixed(1)}%</p>
+                    <VariationBadge value={comparativo.diffMargem} suffix="pp" />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("margem", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
         </div>
       )}
 
