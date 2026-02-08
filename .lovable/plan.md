@@ -1,96 +1,65 @@
 
-# Plano: Subtitulo "Mes Atual" e Tooltips Educativos nos Cards Financeiros
+# Plano: Ajustes no Card "Ponto de Equilíbrio" e Gráfico "Sazonalidade Financeira"
 
-## Alteracoes no arquivo `src/components/relatorios/financeiros/GraficosFinanceiros.tsx`
+## 1. Card "Ponto de Equilíbrio" - Exibir últimos 3 meses
 
-### 1. Importar componentes de Tooltip
+### Alteração em `src/hooks/useFinancialData.ts`
 
-Adicionar imports do Tooltip do Radix (ja disponivel no projeto):
-
-```typescript
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-```
-
-### 2. Criar funcao auxiliar para gerar texto do tooltip
-
-Uma funcao `getTooltipText` que recebe o tipo do card (`receita`, `despesas`, `lucro`, `margem`) e os dados do comparativo, retornando o texto educativo dinamico conforme as regras especificadas.
-
-**Logica por card:**
-
-- **Receita**: Texto base sobre dinheiro que entrou + texto dinamico baseado na variacao (positiva = faturou mais, negativa = faturou menos)
-- **Despesas**: Texto base sobre gastos + texto dinamico com intensidade (leve, moderado, elevado, muito elevado para aumento; reducao para queda)
-- **Lucro**: Texto base sobre o que sobrou + texto dinamico (lucro positivo crescendo, caindo, ou negativo = prejuizo)
-- **Margem**: Texto base + exemplo didatico (60% = R$0,60 de cada R$1,00) + variacao em pp
-
-### 3. Adicionar subtitulo "Mes Atual" em cada card
-
-Abaixo do titulo de cada card (ex: "Receita"), adicionar:
+Substituir o `pontoEquilibrio` atual (que retorna apenas o mês atual) por um array com os últimos 3 meses:
 
 ```typescript
-<p className="text-[10px] text-muted-foreground">Mes Atual</p>
+const pontoEquilibrio = useMemo(() => {
+  if (dadosMensais.length === 0) return [];
+  const ultimos3 = dadosMensais.slice(-3);
+  return ultimos3.map((d, i) => ({
+    mes: d.mes,
+    mesLabel: d.mesLabel,
+    receitas: d.receitas,
+    despesas: d.despesas,
+    percentual: d.despesas > 0 ? (d.receitas / d.despesas) * 100 : 0,
+    isAtual: i === ultimos3.length - 1,
+  }));
+}, [dadosMensais]);
 ```
 
-### 4. Envolver cada Card com TooltipProvider/Tooltip
+### Alteração em `src/components/relatorios/financeiros/GraficosFinanceiros.tsx`
 
-Cada um dos 4 cards sera envolvido com o componente Tooltip, exibindo o texto educativo ao passar o mouse:
+Atualizar o card para iterar sobre os 3 meses com layout vertical, do mais antigo ao mais recente:
+
+- Título atualizado: "Ponto de Equilíbrio - Últimos 3 Meses"
+- Cada mês exibe: label do mês, percentual, barra de progresso, receitas e despesas
+- Mês atual recebe destaque visual (borda ou badge "Mês Atual")
+- Ordem: mais antigo no topo, mais recente embaixo
+
+---
+
+## 2. Gráfico "Sazonalidade Financeira" - Últimos 12 meses cronológicos
+
+### Alteração em `src/hooks/useFinancialData.ts`
+
+Substituir a lógica atual (que agrega por nome do mês Jan-Dez misturando anos) por uma lógica que usa os últimos 12 meses em ordem cronológica. Como `dadosMensais` já contém exatamente os últimos 12 meses em ordem, basta reutilizá-lo:
 
 ```typescript
-<TooltipProvider>
-  <UITooltip>
-    <TooltipTrigger asChild>
-      <Card className="cursor-help">
-        <CardContent className="pt-4 pb-4">
-          <p className="text-xs text-muted-foreground">Receita</p>
-          <p className="text-[10px] text-muted-foreground">Mes Atual</p>
-          <p className="text-lg font-bold text-green-600">{formatCurrency(comparativo.receita)}</p>
-          <VariationBadge value={comparativo.varReceita} />
-        </CardContent>
-      </Card>
-    </TooltipTrigger>
-    <TooltipContent side="bottom" className="max-w-xs text-sm">
-      <p>{textoTooltipReceita}</p>
-    </TooltipContent>
-  </UITooltip>
-</TooltipProvider>
+const sazonalidade = useMemo(() => {
+  return dadosMensais.map((d) => ({
+    name: d.mes,       // ex: "mar/25", "abr/25", ..., "fev/26"
+    total: d.receitas,
+  }));
+}, [dadosMensais]);
 ```
 
-### 5. Textos dinamicos dos tooltips
+Isso garante que o gráfico sempre termina no mês atual e segue ordem cronológica sem misturar anos.
 
-**Receita:**
-- Base: "💰 Receita do mes atual. Todo o dinheiro que entrou no seu negocio neste mes."
-- Variacao negativa: "📉 Voce faturou menos que no mes anterior. Pode indicar menos vendas ou menor ticket medio."
-- Variacao positiva: "📈 Seu faturamento aumentou! Voce vendeu mais ou gerou mais receita neste periodo."
+### Alteração em `src/components/relatorios/financeiros/GraficosFinanceiros.tsx`
 
-**Despesas:**
-- Base: "💸 Despesas do mes atual. Todos os gastos do negocio (aluguel, funcionarios, insumos, etc.)."
-- Aumento leve (0-15%): "🔹 Os gastos tiveram um leve crescimento."
-- Aumento moderado (15-50%): "🔸 Os custos cresceram de forma perceptivel."
-- Aumento elevado (50-100%): "🔴 Os gastos aumentaram significativamente."
-- Aumento muito elevado (>100%): "🔥 Os gastos mais que dobraram!"
-- Queda: "✅ Reducao de despesas melhora a rentabilidade."
+- Atualizar subtítulo: "Receita dos últimos 12 meses"
+- O restante do gráfico (BarChart, tooltip, cores) permanece igual
 
-**Lucro:**
-- Base: "💰 Lucro do mes atual. Quanto realmente sobrou apos todas as despesas."
-- Aumento: "📈 Seu negocio ficou mais lucrativo neste mes."
-- Queda: "📉 O lucro caiu. Pode ser por queda de receita ou aumento de despesas."
-- Negativo: "🚨 O negocio operou no prejuizo. As despesas superaram a receita."
+---
 
-**Margem:**
-- Base: "📊 Margem de lucro. Mostra qual % do faturamento virou lucro."
-- Exemplo: "💡 Ex: margem de 60% = a cada R$1,00, R$0,60 virou lucro."
-- Aumento: "📈 Voce esta lucrando mais proporcionalmente."
-- Queda: "📉 Mesmo faturando, uma parte menor virou lucro."
-- Nota: "ℹ️ Variacao medida em pontos percentuais (pp)."
+## Arquivos modificados
 
-### Resumo
-
-| Alteracao | Descricao |
-|-----------|-----------|
-| Subtitulo "Mes Atual" | Adicionado abaixo do titulo em cada um dos 4 cards |
-| Tooltip Receita | Texto educativo dinamico baseado na variacao |
-| Tooltip Despesas | Texto com 4 niveis de intensidade de aumento |
-| Tooltip Lucro | Texto adaptado para lucro/prejuizo |
-| Tooltip Margem | Texto com exemplo didatico e nota sobre pp |
-| Import Tooltip | Importar componentes do Radix Tooltip |
-
-Apenas o arquivo `src/components/relatorios/financeiros/GraficosFinanceiros.tsx` sera modificado.
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/hooks/useFinancialData.ts` | `pontoEquilibrio` vira array de 3 meses; `sazonalidade` usa `dadosMensais` |
+| `src/components/relatorios/financeiros/GraficosFinanceiros.tsx` | Card Ponto de Equilíbrio exibe 3 meses; Sazonalidade com subtítulo atualizado |
