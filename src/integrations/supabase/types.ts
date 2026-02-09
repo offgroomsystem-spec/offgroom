@@ -695,6 +695,7 @@ export type Database = {
           data_cadastro: string
           data_pagamento: string
           descricao1: string
+          fornecedor_id: string | null
           id: string
           mes_competencia: string
           observacao: string | null
@@ -716,6 +717,7 @@ export type Database = {
           data_cadastro?: string
           data_pagamento: string
           descricao1: string
+          fornecedor_id?: string | null
           id?: string
           mes_competencia: string
           observacao?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           data_cadastro?: string
           data_pagamento?: string
           descricao1?: string
+          fornecedor_id?: string | null
           id?: string
           mes_competencia?: string
           observacao?: string | null
@@ -769,6 +772,13 @@ export type Database = {
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
         ]
