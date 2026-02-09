@@ -285,7 +285,7 @@ const Fornecedores = () => {
       nome_titular: fornecedor.nome_titular || "",
     });
     setEditingId(fornecedor.id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setFormDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
