@@ -1,65 +1,36 @@
 
-# Plano: Ajustes no Card "Ponto de Equilíbrio" e Gráfico "Sazonalidade Financeira"
 
-## 1. Card "Ponto de Equilíbrio" - Exibir últimos 3 meses
+# Correção: Botão Editar do Fornecedor
 
-### Alteração em `src/hooks/useFinancialData.ts`
+## Problema Identificado
 
-Substituir o `pontoEquilibrio` atual (que retorna apenas o mês atual) por um array com os últimos 3 meses:
+A função `handleEdit` (linha 264) preenche os campos do formulário e define o `editingId`, mas **não abre o modal de edição**. Falta a chamada `setFormDialogOpen(true)`. Em vez disso, ela apenas rola a página para o topo (`window.scrollTo`), comportamento antigo de quando o formulário era inline.
 
-```typescript
-const pontoEquilibrio = useMemo(() => {
-  if (dadosMensais.length === 0) return [];
-  const ultimos3 = dadosMensais.slice(-3);
-  return ultimos3.map((d, i) => ({
-    mes: d.mes,
-    mesLabel: d.mesLabel,
-    receitas: d.receitas,
-    despesas: d.despesas,
-    percentual: d.despesas > 0 ? (d.receitas / d.despesas) * 100 : 0,
-    isAtual: i === ultimos3.length - 1,
-  }));
-}, [dadosMensais]);
-```
+## Correção
 
-### Alteração em `src/components/relatorios/financeiros/GraficosFinanceiros.tsx`
+No arquivo `src/pages/Fornecedores.tsx`, na função `handleEdit` (linhas 264-289):
 
-Atualizar o card para iterar sobre os 3 meses com layout vertical, do mais antigo ao mais recente:
+- Adicionar `setFormDialogOpen(true)` para abrir o modal com os dados preenchidos
+- Remover o `window.scrollTo({ top: 0, behavior: "smooth" })` que não faz mais sentido com modal flutuante
 
-- Título atualizado: "Ponto de Equilíbrio - Últimos 3 Meses"
-- Cada mês exibe: label do mês, percentual, barra de progresso, receitas e despesas
-- Mês atual recebe destaque visual (borda ou badge "Mês Atual")
-- Ordem: mais antigo no topo, mais recente embaixo
-
----
-
-## 2. Gráfico "Sazonalidade Financeira" - Últimos 12 meses cronológicos
-
-### Alteração em `src/hooks/useFinancialData.ts`
-
-Substituir a lógica atual (que agrega por nome do mês Jan-Dez misturando anos) por uma lógica que usa os últimos 12 meses em ordem cronológica. Como `dadosMensais` já contém exatamente os últimos 12 meses em ordem, basta reutilizá-lo:
+Resultado da função corrigida:
 
 ```typescript
-const sazonalidade = useMemo(() => {
-  return dadosMensais.map((d) => ({
-    name: d.mes,       // ex: "mar/25", "abr/25", ..., "fev/26"
-    total: d.receitas,
-  }));
-}, [dadosMensais]);
+const handleEdit = (fornecedor: Fornecedor) => {
+  setFormData({
+    nome_fornecedor: fornecedor.nome_fornecedor,
+    // ... todos os campos mantidos
+  });
+  setEditingId(fornecedor.id);
+  setFormDialogOpen(true); // <-- linha adicionada
+  // window.scrollTo removido
+};
 ```
 
-Isso garante que o gráfico sempre termina no mês atual e segue ordem cronológica sem misturar anos.
+## Impacto
 
-### Alteração em `src/components/relatorios/financeiros/GraficosFinanceiros.tsx`
+- O modal de cadastro (que ja existe e funciona para "Novo Fornecedor") sera reutilizado para edição
+- O titulo do modal ja alterna entre "Novo Fornecedor" e "Editar Fornecedor" com base no `editingId`
+- Todos os campos ficarao editaveis, como ja ocorre no formulario atual
+- Nenhuma alteracao estrutural necessaria, apenas 1 linha adicionada e 1 removida
 
-- Atualizar subtítulo: "Receita dos últimos 12 meses"
-- O restante do gráfico (BarChart, tooltip, cores) permanece igual
-
----
-
-## Arquivos modificados
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/hooks/useFinancialData.ts` | `pontoEquilibrio` vira array de 3 meses; `sazonalidade` usa `dadosMensais` |
-| `src/components/relatorios/financeiros/GraficosFinanceiros.tsx` | Card Ponto de Equilíbrio exibe 3 meses; Sazonalidade com subtítulo atualizado |
