@@ -1,69 +1,69 @@
 
 
-# Adicionar Filtro de Fornecedor no Controle Financeiro
+# Adicionar Filtro "Descricao 2" e Reposicionar "Fornecedor"
 
 ## Resumo
 
-Adicionar um campo "Fornecedor" na area de filtros do Controle Financeiro, com busca inteligente por Nome do Fornecedor, CNPJ/CPF ou Nome Fantasia, seguindo o mesmo padrao do seletor de fornecedor que ja existe no formulario de lancamento.
+Duas alteracoes na area de filtros do Controle Financeiro:
+1. Adicionar o listbox "Descricao 2" com logica condicional (depende de Tipo e Descricao 1)
+2. Mover o listbox "Fornecedor" para ficar ao lado esquerdo de "Data do Pagamento"
 
 ---
 
 ## Alteracoes no arquivo `src/pages/ControleFinanceiro.tsx`
 
-### 1. Estado dos filtros (linha ~649)
+### 1. Estado dos filtros (~linha 650)
 
-Adicionar o campo `fornecedorId` ao objeto `filtros`:
+Adicionar `descricao2: ""` ao objeto `filtros`.
 
-```typescript
-const [filtros, setFiltros] = useState({
-  // ... campos existentes
-  fornecedorId: "",  // novo campo
-});
-```
+### 2. Limpar filtros (~linha 1121)
 
-### 2. Estado de busca do filtro
+Adicionar `descricao2: ""` ao `limparFiltros`.
 
-Adicionar um novo estado `filtroFornecedorSearch` para controlar a digitacao no campo de busca do filtro (separado do `fornecedorSearch` usado no formulario).
+### 3. Logica de filtragem (~linha 1189)
 
-### 3. Memo de fornecedores filtrados para o filtro
-
-Criar um `useMemo` similar ao `fornecedoresFiltrados` existente, mas usando `filtroFornecedorSearch` como termo de busca, filtrando por `nome_fornecedor`, `cnpj_cpf` e `nome_fantasia`.
-
-### 4. Logica de filtragem (linha ~1125)
-
-No `useMemo` de `lancamentosFiltrados`, adicionar verificacao:
+Adicionar apos o filtro de `descricao1`:
 
 ```typescript
-if (filtros.fornecedorId) {
-  resultado = resultado.filter(
-    (l) => l.fornecedorId === filtros.fornecedorId
-  );
+if (filtros.descricao2) {
+  resultado = resultado.filter((l) => l.descricao2 === filtros.descricao2);
 }
 ```
 
-### 5. Limpar filtros (linha ~1106)
+### 4. Reset condicional dos filtros dependentes
 
-Adicionar `fornecedorId: ""` ao `limparFiltros`.
+Quando o usuario trocar o valor de `tipo` no filtro, limpar `descricao1` e `descricao2`. Quando trocar `descricao1`, limpar `descricao2`. Isso sera feito nos `onValueChange` dos respectivos Selects.
 
-### 6. UI - Campo de filtro (apos linha ~2073, junto aos outros filtros de categoria)
+### 5. Reordenar campos na grid de filtros (~linhas 1981-2156)
 
-Adicionar um novo campo na grid de filtros de categoria, usando `Popover` + `Command` com `shouldFilter={false}` (mesmo padrao do formulario), contendo:
+A nova ordem dos campos na grid sera:
 
-- Icone de lupa (via `CommandInput`)
-- Busca por nome, CNPJ/CPF ou nome fantasia
-- Exibicao de cada opcao com nome + CNPJ/CPF + nome fantasia
-- Selecao opcional
+1. Nome do Pet
+2. Nome do Cliente
+3. Tipo
+4. Descricao 1
+5. **Descricao 2** (novo - condicional, habilitado somente se `descricao1` estiver preenchido, opcoes vindas de `categoriasDescricao2[filtros.descricao1]`)
+6. **Fornecedor** (movido - antes estava no final)
+7. Data do Pagamento
+8. Banco
+9. Foi Pago
 
-O campo ficara na mesma grid dos demais filtros de categoria.
+### 6. Campo "Descricao 2" - UI
 
-### 7. Dependencias do useMemo
-
-Adicionar `filtros.fornecedorId` as dependencias do `useMemo` de `lancamentosFiltrados` (ja esta coberto pelo `filtros` existente).
+Select condicional que:
+- Fica desabilitado se `filtros.descricao1` estiver vazio
+- Exibe as opcoes de `categoriasDescricao2[filtros.descricao1]` quando preenchido
+- Placeholder "Selecione desc. 1" quando desabilitado, "Selecione" quando habilitado
 
 ---
 
-## Impacto
+## Detalhes Tecnicos
 
-- Nenhuma alteracao de banco de dados necessaria (o campo `fornecedor_id` ja existe na tabela e ja e carregado nos lancamentos)
-- Apenas alteracoes no arquivo `src/pages/ControleFinanceiro.tsx`
-- Segue exatamente o mesmo padrao visual e de busca do seletor de fornecedor do formulario de lancamento
+| Aspecto | Detalhe |
+|---------|---------|
+| Arquivo modificado | `src/pages/ControleFinanceiro.tsx` |
+| Banco de dados | Nenhuma alteracao necessaria |
+| Componente Descricao 2 | Select padrao (mesmo estilo de Descricao 1) |
+| Logica condicional | `categoriasDescricao2` ja existe no codigo (linha 122) e sera reutilizado |
+| Posicao Fornecedor | Movido para antes de "Data do Pagamento" na grid |
+
