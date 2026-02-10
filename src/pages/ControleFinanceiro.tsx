@@ -658,7 +658,21 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     dataPagamento: "",
     nomeBanco: "",
     pago: null as boolean | null,
+    fornecedorId: "",
   });
+
+  const [filtroFornecedorSearch, setFiltroFornecedorSearch] = useState("");
+
+  const filtroFornecedoresFiltrados = useMemo(() => {
+    if (!filtroFornecedorSearch) return fornecedores;
+    const search = filtroFornecedorSearch.toLowerCase();
+    return fornecedores.filter(
+      (f) =>
+        f.nome_fornecedor.toLowerCase().includes(search) ||
+        f.cnpj_cpf.toLowerCase().includes(search) ||
+        (f.nome_fantasia || "").toLowerCase().includes(search),
+    );
+  }, [filtroFornecedorSearch, fornecedores]);
 
   const [filtroDataAtivo, setFiltroDataAtivo] = useState<"periodo" | "mesano" | null>(null);
   const [filtrosAplicados, setFiltrosAplicados] = useState(false);
@@ -1116,7 +1130,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       dataPagamento: "",
       nomeBanco: "",
       pago: null,
+      fornecedorId: "",
     });
+    setFiltroFornecedorSearch("");
     setFiltroDataAtivo(null);
     setFiltrosAplicados(false);
     toast.success("Filtros limpos!");
@@ -1178,6 +1194,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
       if (filtros.pago !== null) {
         resultado = resultado.filter((l) => l.pago === filtros.pago);
+      }
+      if (filtros.fornecedorId) {
+        resultado = resultado.filter((l) => (l as any).fornecedorId === filtros.fornecedorId);
       }
     }
 
@@ -2070,6 +2089,69 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Fornecedor</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between h-7 text-xs"
+                      >
+                        {filtros.fornecedorId
+                          ? (() => {
+                              const f = fornecedores.find((f) => f.id === filtros.fornecedorId);
+                              return f ? f.nome_fornecedor : "Selecione";
+                            })()
+                          : "Selecione"}
+                        <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Buscar por nome, CNPJ/CPF ou fantasia..."
+                          value={filtroFornecedorSearch}
+                          onValueChange={setFiltroFornecedorSearch}
+                          className="h-8 text-xs"
+                        />
+                        <CommandList>
+                          <CommandEmpty className="py-2 text-center text-xs">Nenhum fornecedor encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {filtroFornecedoresFiltrados.map((f) => (
+                              <CommandItem
+                                key={f.id}
+                                value={f.id}
+                                onSelect={() => {
+                                  setFiltros({
+                                    ...filtros,
+                                    fornecedorId: filtros.fornecedorId === f.id ? "" : f.id,
+                                  });
+                                  setFiltroFornecedorSearch("");
+                                }}
+                                className="text-xs"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-3 w-3",
+                                    filtros.fornecedorId === f.id ? "opacity-100" : "opacity-0",
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span>{f.nome_fornecedor}</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {f.cnpj_cpf}{f.nome_fantasia ? ` - ${f.nome_fantasia}` : ""}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
