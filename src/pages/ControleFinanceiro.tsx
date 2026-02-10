@@ -656,6 +656,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     nomeCliente: "",
     tipo: "" as "Receita" | "Despesa" | "",
     descricao1: "",
+    descricao2: "",
     dataPagamento: "",
     nomeBanco: "",
     pago: null as boolean | null,
@@ -1128,6 +1129,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       nomeCliente: "",
       tipo: "",
       descricao1: "",
+      descricao2: "",
       dataPagamento: "",
       nomeBanco: "",
       pago: null,
@@ -1186,6 +1188,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
       if (filtros.descricao1) {
         resultado = resultado.filter((l) => l.descricao1 === filtros.descricao1);
+      }
+      if (filtros.descricao2) {
+        resultado = resultado.filter((l) => l.itens.some((item) => item.descricao2 === filtros.descricao2));
       }
       if (filtros.dataPagamento) {
         resultado = resultado.filter((l) => l.dataPagamento === filtros.dataPagamento);
@@ -2005,7 +2010,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Tipo</Label>
-                  <Select value={filtros.tipo} onValueChange={(value: any) => setFiltros({ ...filtros, tipo: value })}>
+                  <Select value={filtros.tipo} onValueChange={(value: any) => setFiltros({ ...filtros, tipo: value, descricao1: "", descricao2: "" })}>
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -2024,7 +2029,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   <Label className="text-[10px]">Descrição 1</Label>
                   <Select
                     value={filtros.descricao1}
-                    onValueChange={(value) => setFiltros({ ...filtros, descricao1: value })}
+                    onValueChange={(value) => setFiltros({ ...filtros, descricao1: value, descricao2: "" })}
                     disabled={!filtros.tipo}
                   >
                     <SelectTrigger className="h-7 text-xs">
@@ -2042,52 +2047,22 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 </div>
 
                 <div className="space-y-0.5">
-                  <Label className="text-[10px]">Data do Pagamento</Label>
-                  <Input
-                    type="date"
-                    value={filtros.dataPagamento}
-                    onChange={(e) => setFiltros({ ...filtros, dataPagamento: e.target.value })}
-                    className="h-7 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-0.5">
-                  <Label className="text-[10px]">Banco</Label>
+                  <Label className="text-[10px]">Descrição 2</Label>
                   <Select
-                    value={filtros.nomeBanco}
-                    onValueChange={(value) => setFiltros({ ...filtros, nomeBanco: value })}
+                    value={filtros.descricao2}
+                    onValueChange={(value) => setFiltros({ ...filtros, descricao2: value })}
+                    disabled={!filtros.descricao1}
                   >
                     <SelectTrigger className="h-7 text-xs">
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder={filtros.descricao1 ? "Selecione" : "Selecione desc. 1"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {contas.map((c) => (
-                        <SelectItem key={c.id} value={c.nomeBanco} className="text-xs">
-                          {c.nomeBanco}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-0.5">
-                  <Label className="text-[10px]">Foi Pago</Label>
-                  <Select
-                    value={filtros.pago === null ? "" : filtros.pago ? "sim" : "nao"}
-                    onValueChange={(value) =>
-                      setFiltros({ ...filtros, pago: value === "sim" ? true : value === "nao" ? false : null })
-                    }
-                  >
-                    <SelectTrigger className="h-7 text-xs">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sim" className="text-xs">
-                        Sim
-                      </SelectItem>
-                      <SelectItem value="nao" className="text-xs">
-                        Não
-                      </SelectItem>
+                      {filtros.descricao1 &&
+                        (categoriasDescricao2[filtros.descricao1] || []).map((desc) => (
+                          <SelectItem key={desc} value={desc} className="text-xs">
+                            {desc}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -2153,6 +2128,57 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       </Command>
                     </PopoverContent>
                   </Popover>
+                </div>
+
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Data do Pagamento</Label>
+                  <Input
+                    type="date"
+                    value={filtros.dataPagamento}
+                    onChange={(e) => setFiltros({ ...filtros, dataPagamento: e.target.value })}
+                    className="h-7 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Banco</Label>
+                  <Select
+                    value={filtros.nomeBanco}
+                    onValueChange={(value) => setFiltros({ ...filtros, nomeBanco: value })}
+                  >
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contas.map((c) => (
+                        <SelectItem key={c.id} value={c.nomeBanco} className="text-xs">
+                          {c.nomeBanco}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Foi Pago</Label>
+                  <Select
+                    value={filtros.pago === null ? "" : filtros.pago ? "sim" : "nao"}
+                    onValueChange={(value) =>
+                      setFiltros({ ...filtros, pago: value === "sim" ? true : value === "nao" ? false : null })
+                    }
+                  >
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim" className="text-xs">
+                        Sim
+                      </SelectItem>
+                      <SelectItem value="nao" className="text-xs">
+                        Não
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
