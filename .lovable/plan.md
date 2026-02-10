@@ -1,81 +1,69 @@
 
-# Ajuste: Trocar "Nome do Cliente" por "Fornecedor" quando Tipo = Despesa
+
+# Adicionar Filtro de Fornecedor no Controle Financeiro
 
 ## Resumo
 
-Quando o usuario selecionar "Despesa" no campo Tipo, o campo "Nome do Cliente" sera substituido por um campo "Fornecedor" com busca inteligente por nome, CNPJ/CPF ou nome fantasia. A selecao e opcional.
+Adicionar um campo "Fornecedor" na area de filtros do Controle Financeiro, com busca inteligente por Nome do Fornecedor, CNPJ/CPF ou Nome Fantasia, seguindo o mesmo padrao do seletor de fornecedor que ja existe no formulario de lancamento.
 
 ---
 
-## 1. Migracaoo de Banco de Dados
+## Alteracoes no arquivo `src/pages/ControleFinanceiro.tsx`
 
-Adicionar coluna `fornecedor_id` na tabela `lancamentos_financeiros`:
+### 1. Estado dos filtros (linha ~649)
 
-```sql
-ALTER TABLE lancamentos_financeiros 
-ADD COLUMN fornecedor_id UUID REFERENCES fornecedores(id) ON DELETE SET NULL;
+Adicionar o campo `fornecedorId` ao objeto `filtros`:
+
+```typescript
+const [filtros, setFiltros] = useState({
+  // ... campos existentes
+  fornecedorId: "",  // novo campo
+});
 ```
 
-Essa coluna sera opcional (nullable) e armazenara o fornecedor vinculado a despesas.
+### 2. Estado de busca do filtro
+
+Adicionar um novo estado `filtroFornecedorSearch` para controlar a digitacao no campo de busca do filtro (separado do `fornecedorSearch` usado no formulario).
+
+### 3. Memo de fornecedores filtrados para o filtro
+
+Criar um `useMemo` similar ao `fornecedoresFiltrados` existente, mas usando `filtroFornecedorSearch` como termo de busca, filtrando por `nome_fornecedor`, `cnpj_cpf` e `nome_fantasia`.
+
+### 4. Logica de filtragem (linha ~1125)
+
+No `useMemo` de `lancamentosFiltrados`, adicionar verificacao:
+
+```typescript
+if (filtros.fornecedorId) {
+  resultado = resultado.filter(
+    (l) => l.fornecedorId === filtros.fornecedorId
+  );
+}
+```
+
+### 5. Limpar filtros (linha ~1106)
+
+Adicionar `fornecedorId: ""` ao `limparFiltros`.
+
+### 6. UI - Campo de filtro (apos linha ~2073, junto aos outros filtros de categoria)
+
+Adicionar um novo campo na grid de filtros de categoria, usando `Popover` + `Command` com `shouldFilter={false}` (mesmo padrao do formulario), contendo:
+
+- Icone de lupa (via `CommandInput`)
+- Busca por nome, CNPJ/CPF ou nome fantasia
+- Exibicao de cada opcao com nome + CNPJ/CPF + nome fantasia
+- Selecao opcional
+
+O campo ficara na mesma grid dos demais filtros de categoria.
+
+### 7. Dependencias do useMemo
+
+Adicionar `filtros.fornecedorId` as dependencias do `useMemo` de `lancamentosFiltrados` (ja esta coberto pelo `filtros` existente).
 
 ---
 
-## 2. Alteracoes em `src/pages/ControleFinanceiro.tsx`
+## Impacto
 
-### 2.1 Estado e Interface
-
-- Adicionar interface `Fornecedor` com campos: `id`, `nome_fornecedor`, `cnpj_cpf`, `nome_fantasia`
-- Adicionar estado `fornecedores` (`useState<Fornecedor[]>`)
-- Adicionar campo `fornecedorId` ao `formData` (string, inicialmente vazio)
-
-### 2.2 Carga de Dados
-
-- Na funcao `loadRelatedData`, adicionar fetch da tabela `fornecedores` (junto com os demais fetches em `Promise.all`)
-- Na funcao `loadLancamentos`, carregar tambem o `fornecedor_id` e mapear para o nome do fornecedor
-
-### 2.3 UI - Campo condicional (linhas ~1314-1352)
-
-Substituir o bloco do campo "Nome do Cliente" por logica condicional:
-
-- **Se tipo = "Despesa"**: Exibir um Combobox "Fornecedor (opcional)" que:
-  - Busca na lista de fornecedores cadastrados
-  - Filtra por `nome_fornecedor`, `cnpj_cpf` ou `nome_fantasia` conforme o usuario digita
-  - Exibe cada opcao como: "Nome Fornecedor - CNPJ/CPF" para facilitar identificacao
-  - Possui icone de lupa (ja presente no CommandInput)
-  - A selecao e opcional (sem asterisco, sem validacao obrigatoria)
-  
-- **Se tipo != "Despesa"**: Manter o Combobox "Nome do Cliente" existente sem alteracoes
-
-### 2.4 Salvamento (funcao de salvar, linhas ~826-847)
-
-- Ao inserir/atualizar, incluir `fornecedor_id` no objeto enviado ao banco:
-  - Se tipo = "Despesa" e fornecedor selecionado: enviar o ID do fornecedor
-  - Caso contrario: enviar `null`
-
-### 2.5 Edicao (funcao de editar)
-
-- Ao carregar um lancamento para edicao, preencher o campo `fornecedorId` do formData se existir `fornecedor_id` no registro
-
-### 2.6 Reset do formulario
-
-- Ao trocar o tipo de "Receita" para "Despesa" (e vice-versa), limpar os campos mutuamente exclusivos (cliente/pet ou fornecedor)
-
----
-
-## 3. Detalhes Tecnicos
-
-| Aspecto | Detalhe |
-|---------|---------|
-| Componente de busca | Reutilizar o padrao `Popover` + `Command` ja existente (ComboboxField), mas com busca customizada que filtra por 3 campos |
-| Filtragem | Usar `filter()` local comparando a busca com `nome_fornecedor`, `cnpj_cpf` e `nome_fantasia` (case-insensitive, parcial) |
-| Campo Pet | Quando tipo = "Despesa", o campo Pet tambem permanece desabilitado (comportamento atual mantido) |
-| Banco de dados | Uma unica migracao SQL adicionando a coluna `fornecedor_id` |
-
----
-
-## Arquivos modificados
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| Migracao SQL | Adicionar coluna `fornecedor_id` em `lancamentos_financeiros` |
-| `src/pages/ControleFinanceiro.tsx` | Carregar fornecedores, campo condicional Cliente/Fornecedor, salvar `fornecedor_id` |
+- Nenhuma alteracao de banco de dados necessaria (o campo `fornecedor_id` ja existe na tabela e ja e carregado nos lancamentos)
+- Apenas alteracoes no arquivo `src/pages/ControleFinanceiro.tsx`
+- Segue exatamente o mesmo padrao visual e de busca do seletor de fornecedor do formulario de lancamento
