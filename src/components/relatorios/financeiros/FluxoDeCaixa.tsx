@@ -739,6 +739,65 @@ const FluxoDeCaixa = () => {
     return saldosPorBanco.reduce((acc, banco) => acc + banco.saldoAtual, 0);
   }, [saldosPorBanco]);
 
+  // Detectar período filtrado ativo
+  const periodoFiltrado = useMemo(() => {
+    if (!filtrosAplicados || !filtroDataAtivo) return null;
+
+    if (filtroDataAtivo === "periodo") {
+      if (!filtros.dataInicio && !filtros.dataFim) return null;
+      return {
+        inicio: filtros.dataInicio || "0000-01-01",
+        fim: filtros.dataFim || "9999-12-31",
+      };
+    }
+
+    if (filtroDataAtivo === "mesano") {
+      if (!filtros.mes && !filtros.ano) return null;
+      const ano = filtros.ano || new Date().getFullYear().toString();
+      const mes = filtros.mes || "01";
+      const inicioMes = `${ano}-${mes}-01`;
+      const lastDay = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+      const fimMes = `${ano}-${mes}-${String(lastDay).padStart(2, "0")}`;
+      return { inicio: inicioMes, fim: fimMes };
+    }
+
+    return null;
+  }, [filtrosAplicados, filtroDataAtivo, filtros.dataInicio, filtros.dataFim, filtros.mes, filtros.ano]);
+
+  // Calcular Saldo Inicial e Saldo Final por banco (apenas quando filtro de data ativo)
+  const saldosPeriodo = useMemo(() => {
+    if (!periodoFiltrado) return null;
+
+    const porBanco = contas.map((conta) => {
+      const lancamentosConta = lancamentos.filter((l) => l.nomeBanco === conta.nomeBanco && l.pago);
+
+      // Saldo Inicial: tudo ANTES do período
+      const receitasAntes = lancamentosConta
+        .filter((l) => l.tipo === "Receita" && l.dataPagamento < periodoFiltrado.inicio)
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      const despesasAntes = lancamentosConta
+        .filter((l) => l.tipo === "Despesa" && l.dataPagamento < periodoFiltrado.inicio)
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      const saldoInicial = receitasAntes - despesasAntes;
+
+      // Movimentação dentro do período
+      const receitasPeriodo = lancamentosConta
+        .filter((l) => l.tipo === "Receita" && l.dataPagamento >= periodoFiltrado.inicio && l.dataPagamento <= periodoFiltrado.fim)
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      const despesasPeriodo = lancamentosConta
+        .filter((l) => l.tipo === "Despesa" && l.dataPagamento >= periodoFiltrado.inicio && l.dataPagamento <= periodoFiltrado.fim)
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      const saldoFinal = saldoInicial + receitasPeriodo - despesasPeriodo;
+
+      return { nome: conta.nomeBanco, saldoInicial, saldoFinal };
+    });
+
+    const saldoInicialTotal = porBanco.reduce((acc, b) => acc + b.saldoInicial, 0);
+    const saldoFinalTotal = porBanco.reduce((acc, b) => acc + b.saldoFinal, 0);
+
+    return { porBanco, saldoInicialTotal, saldoFinalTotal };
+  }, [periodoFiltrado, contas, lancamentos]);
+
   // Filtros para pets e clientes
   const petsFiltro = useMemo(() => {
     if (!filtros.nomeCliente) {
@@ -1198,6 +1257,57 @@ const FluxoDeCaixa = () => {
           </CardHeader>
           <CardContent className="py-2">
             <div className="space-y-2">
+              {/* Saldo Inicial e Final do Período - só aparece com filtro de data */}
+              {saldosPeriodo && periodoFiltrado && (
+                <>
+                  {/* Saldo Inicial do Período */}
+                  <div className="pb-2 border-b border-purple-200 dark:border-purple-700">
+                    <p className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 mb-1">
+                      Saldo Inicial do Período ({periodoFiltrado.inicio.split("-").reverse().join("/")}):
+                    </p>
+                    {saldosPeriodo.porBanco.map((banco) => (
+                      <div key={`ini-${banco.nome}`} className="flex items-center justify-between text-xs pl-2">
+                        <span className="text-purple-600 dark:text-purple-400">{banco.nome}:</span>
+                        <span className={cn("font-bold", banco.saldoInicial >= 0 ? "text-emerald-600" : "text-red-600")}>
+                          {formatCurrency(banco.saldoInicial)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between text-xs font-bold pl-2 mt-1">
+                      <span className="text-purple-700 dark:text-purple-300">Saldo Inicial Total:</span>
+                      <span className={cn(saldosPeriodo.saldoInicialTotal >= 0 ? "text-emerald-700" : "text-red-700")}>
+                        {formatCurrency(saldosPeriodo.saldoInicialTotal)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Saldo Final do Período */}
+                  <div className="pb-2 border-b border-purple-200 dark:border-purple-700">
+                    <p className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 mb-1">
+                      Saldo Final do Período ({periodoFiltrado.fim.split("-").reverse().join("/")}):
+                    </p>
+                    {saldosPeriodo.porBanco.map((banco) => (
+                      <div key={`fim-${banco.nome}`} className="flex items-center justify-between text-xs pl-2">
+                        <span className="text-purple-600 dark:text-purple-400">{banco.nome}:</span>
+                        <span className={cn("font-bold", banco.saldoFinal >= 0 ? "text-emerald-600" : "text-red-600")}>
+                          {formatCurrency(banco.saldoFinal)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between text-xs font-bold pl-2 mt-1">
+                      <span className="text-purple-700 dark:text-purple-300">Saldo Final Total:</span>
+                      <span className={cn(saldosPeriodo.saldoFinalTotal >= 0 ? "text-emerald-700" : "text-red-700")}>
+                        {formatCurrency(saldosPeriodo.saldoFinalTotal)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Saldo Atual (sempre visível) */}
+              {saldosPeriodo && periodoFiltrado && (
+                <p className="text-[10px] font-semibold text-purple-600 dark:text-purple-400">Saldo Atual:</p>
+              )}
               {saldosPorBanco.map((banco) => (
                 <div key={banco.nome} className="flex items-center justify-between text-xs">
                   <span className="font-medium text-purple-700 dark:text-purple-400">{banco.nome}:</span>
