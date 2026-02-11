@@ -1679,14 +1679,14 @@ const Agendamentos = () => {
   const agendamentosFiltrados = useMemo(
     () => {
       const filtrados = aplicarFiltros(agendamentosUnificados);
-      // Ordenação: primeiro por Horário (crescente), depois por Agendamento (decrescente)
+      // Ordenação: primeiro por Data (decrescente), depois por Horário (crescente)
       return filtrados.sort((a, b) => {
-        // Primeiro critério: Horário (crescente)
-        const horarioCompare = a.horarioInicio.localeCompare(b.horarioInicio);
-        if (horarioCompare !== 0) return horarioCompare;
-        
-        // Segundo critério: Data do Agendamento (decrescente)
-        return b.data.localeCompare(a.data);
+        // Primeiro critério: Data do Agendamento (decrescente)
+        const dataCompare = b.data.localeCompare(a.data);
+        if (dataCompare !== 0) return dataCompare;
+
+        // Segundo critério: Horário (crescente)
+        return a.horarioInicio.localeCompare(b.horarioInicio);
       });
     },
     [agendamentosUnificados, filtrosAplicados],
