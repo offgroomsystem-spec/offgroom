@@ -28,6 +28,7 @@ const Servicos = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingServico, setEditingServico] = useState<Servico | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtroPorte, setFiltroPorte] = useState("");
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -172,9 +173,11 @@ const Servicos = () => {
     toast.success("Serviço removido com sucesso!");
   };
 
-  const filteredServicos = servicos.filter(servico =>
-    servico.nome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredServicos = servicos.filter(servico => {
+    const matchSearch = servico.nome.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchPorte = !filtroPorte || filtroPorte === "all" || servico.porte === filtroPorte;
+    return matchSearch && matchPorte;
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -305,14 +308,27 @@ const Servicos = () => {
               <CardTitle className="text-base">Lista de Serviços</CardTitle>
               <CardDescription className="text-xs">Total: {servicos.length} serviços cadastrados</CardDescription>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-              <Input
-                placeholder="Buscar serviço..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-7 h-8 text-xs"
-              />
+            <div className="flex items-center gap-2">
+              <Select value={filtroPorte} onValueChange={setFiltroPorte}>
+                <SelectTrigger className="h-8 text-xs w-36">
+                  <SelectValue placeholder="Filtrar por Porte" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="Pequeno">Pequeno</SelectItem>
+                  <SelectItem value="Médio">Médio</SelectItem>
+                  <SelectItem value="Grande">Grande</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative w-64">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar serviço..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-7 h-8 text-xs"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
