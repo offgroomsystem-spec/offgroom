@@ -1,41 +1,42 @@
 
 
-# Adicionar campo de Data ao "Atualizar Saldo Bancario"
+# Permitir Multiplas Abas no Mesmo Navegador
 
-## Resumo
+## Problema
 
-Adicionar um campo de selecao de data (calendario) no dialog "Atualizar Saldo Bancario", logo abaixo do seletor de "Conta Bancaria". Quando o usuario selecionar uma data, o lancamento de ajuste usara essa data em vez da data atual. Por padrao, o campo vira preenchido com a data de hoje.
+O sistema usa `sessionStorage` para marcar a sessao ativa. Como `sessionStorage` e isolado por aba, ao abrir uma nova aba o marcador nao existe, e o sistema executa `signOut()` — encerrando a sessao em TODAS as abas.
 
----
+## Solucao
 
-## Arquivo modificado: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
+Remover o mecanismo de auto-logout baseado em `sessionStorage` (linhas 228-236 do AuthContext.tsx). A persistencia de sessao do Supabase ja usa `localStorage`, que e:
 
-### 1. Novo estado para a data selecionada
+- **Compartilhado entre abas** do mesmo navegador (resolve o problema de multiplas abas)
+- **Isolado por navegador** (outro navegador, dispositivo ou computador nao tera acesso a sessao, exigindo novo login)
 
-Adicionar um estado `dataAjusteSaldo` do tipo `Date` inicializado com `new Date()` junto aos demais estados de saldo (linha ~398). Resetar esse estado no `abrirDialogoSaldo`.
+Tambem remover o `sessionStorage.setItem('offgroom_session_active', 'true')` do Login.tsx (linha que seta o marcador apos login bem-sucedido), ja que nao sera mais necessario.
 
-### 2. Campo de calendario no dialog
+## Impacto na seguranca
 
-Inserir um Popover com Calendar (padrao Shadcn DatePicker) entre o seletor de "Conta Bancaria" (linha 1135) e o bloco de "Saldo Atual" (linha 1137). O campo tera o label "Data de Referencia" e exibira a data selecionada no formato dd/MM/yyyy.
+| Cenario | Comportamento |
+|---------|--------------|
+| Mesma aba | Sessao mantida (sem mudanca) |
+| Nova aba, mesmo navegador | Sessao compartilhada via localStorage (corrigido) |
+| Outro navegador | Exige novo login (localStorage isolado) |
+| Outro dispositivo/computador | Exige novo login (localStorage isolado) |
 
-### 3. Ajustar logica de criacao do lancamento
+## Alteracao: fechar navegador
 
-Na funcao `handleConfirmarAtualizacao` (linha 1021-1023), substituir o uso de `new Date()` pela `dataAjusteSaldo`:
-- `data_pagamento` usara a data selecionada formatada como `yyyy-MM-dd`
-- `ano` e `mes_competencia` serao extraidos da data selecionada
-
-### 4. Atualizar texto de confirmacao
-
-No AlertDialog de confirmacao (linha ~2127), incluir a data selecionada na mensagem para que o usuario confirme a data do ajuste.
+Com a remocao do `sessionStorage`, o usuario permanecera logado mesmo apos fechar e reabrir o navegador (ate o token expirar). Se o usuario quiser sair, usara o botao "Sair" normalmente. Esse e o comportamento padrao da maioria dos sistemas web modernos.
 
 ## Detalhes Tecnicos
 
-| Aspecto | Detalhe |
-|---------|---------|
-| Arquivo | `src/components/relatorios/financeiros/FluxoDeCaixa.tsx` |
-| Imports necessarios | `format` de `date-fns`, `Calendar`, `Popover/PopoverTrigger/PopoverContent`, `CalendarIcon` de lucide |
-| Banco de dados | Nenhuma alteracao |
-| Valor padrao | Data de hoje (`new Date()`) |
-| Formato exibido | dd/MM/yyyy |
-| Formato enviado ao banco | yyyy-MM-dd |
+### Arquivo 1: `src/contexts/AuthContext.tsx`
+
+- Remover o `useEffect` das linhas 228-236 (bloco "Logout automatico ao fechar navegador")
+
+### Arquivo 2: `src/pages/Login.tsx`
+
+- Remover a linha `sessionStorage.setItem('offgroom_session_active', 'true');` (linha ~67)
+
+Apenas 2 arquivos alterados. Nenhuma mudanca no banco de dados.
 
