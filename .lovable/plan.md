@@ -1,58 +1,44 @@
 
 
-# Sincronizar categorias Descrição 1 e Descrição 2 do Fluxo de Caixa com o Controle Financeiro
+# Adicionar coluna "Fornecedor" na tabela de Lancamentos do Controle Financeiro
 
-## Problema
+## Resumo
 
-As listas de opcoes de "Descricao 1" e "Descricao 2" no FluxoDeCaixa.tsx estao diferentes do ControleFinanceiro.tsx. Exemplos:
+Incluir uma nova coluna "Fornecedor" a esquerda da coluna "Cliente" na tabela de lancamentos da pagina Controle Financeiro (`src/pages/ControleFinanceiro.tsx`), puxando o nome do fornecedor a partir do `fornecedor_id` ja existente nos dados. Ajustar espacamento para manter legibilidade.
 
-| Campo | ControleFinanceiro (correto) | FluxoDeCaixa (incorreto) |
-|-------|------------------------------|--------------------------|
-| Descricao 1 (Despesa) | Despesa Fixa, **Despesa Operacional**, Despesa Nao Operacional | Despesa Fixa, **Despesa Variavel**, Despesa Nao Operacional |
-| Despesa Operacional | Combustivel, Contador, Freelancer, Telefonia e internet, Energia eletrica, Agua e esgoto, Publicidade e marketing, Produtos para Banho, Material de Limpeza, Outras Despesas Operacionais | *(nao existe — usa "Despesa Variavel" com opcoes diferentes)* |
-| Despesa Nao Operacional | Manutencao, Reparos, **Retirada Caixa**, **Retirada Socio**, Outras Despesas Nao Operacionais | Manutencao, Reparos, Outras Despesas Nao Operacionais |
+## Arquivo: `src/pages/ControleFinanceiro.tsx`
 
-## Solucao
+### 1. Adicionar `nomeFornecedor` na interface `LancamentoFinanceiro` (linha 70)
 
-Substituir os objetos `categoriasDescricao1` e `categoriasDescricao2` no FluxoDeCaixa.tsx (linhas 138-156) pelos valores identicos do ControleFinanceiro.tsx.
+Incluir `nomeFornecedor: string;` na interface, ao lado dos outros campos de nome.
 
-## Arquivo: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
+### 2. Mapear nome do fornecedor no carregamento de dados (linhas 460-502)
 
-### Alteracao unica (linhas 138-156)
+- Adicionar `nomeFornecedor: ""` no objeto do lancamento formatado (linha ~455)
+- Buscar fornecedores do banco: `supabase.from("fornecedores").select("id, nome_fornecedor").eq("user_id", ownerId)`
+- Criar `fornecedoresMap` e preencher `l.nomeFornecedor = fornecedoresMap.get(lancOriginal.fornecedor_id) || ""`
 
-Substituir por:
+### 3. Adicionar coluna no cabecalho da tabela (entre linhas 2212 e 2213)
 
-```typescript
-const categoriasDescricao1 = {
-  Receita: ["Receita Operacional", "Receita Não Operacional"],
-  Despesa: ["Despesa Fixa", "Despesa Operacional", "Despesa Não Operacional"],
-};
+Inserir `<th>Fornecedor</th>` entre a coluna "Tipo" e "Cliente", com as mesmas classes de estilo (`text-left py-2 px-1 font-semibold text-xs`).
 
-const categoriasDescricao2: { [key: string]: string[] } = {
-  "Receita Operacional": ["Serviços", "Venda", "Outras Receitas Operacionais"],
-  "Receita Não Operacional": ["Venda de Ativo", "Outras Receitas Não Operacionais"],
-  "Despesa Fixa": ["Aluguel", "Salários", "Impostos Fixos", "Outras Despesas Fixas"],
-  "Despesa Operacional": [
-    "Combustível",
-    "Contador",
-    "Freelancer",
-    "Telefonia e internet",
-    "Energia elétrica",
-    "Água e esgoto",
-    "Publicidade e marketing",
-    "Produtos para Banho",
-    "Material de Limpeza",
-    "Outras Despesas Operacionais",
-  ],
-  "Despesa Não Operacional": [
-    "Manutenção",
-    "Reparos",
-    "Retirada Caixa",
-    "Retirada Sócio",
-    "Outras Despesas Não Operacionais",
-  ],
-};
-```
+### 4. Adicionar celula no corpo da tabela (entre linhas 2251 e 2252)
 
-Apenas 1 arquivo alterado, 1 bloco de codigo substituido. Nenhuma alteracao no banco de dados.
+Inserir celula com `lancamento.nomeFornecedor || "-"`, aplicando `truncate` e `max-w-[100px]` para abreviar nomes longos.
+
+### 5. Ajustar espacamento das colunas
+
+- Reduzir padding horizontal de `px-2` para `px-1` em todas as celulas do cabecalho e corpo
+- Reduzir largura maxima da coluna "Itens" aplicando `max-w-[150px] truncate`
+- Atualizar `colSpan` da mensagem "Nenhum lancamento" de 12 para 13
+
+## Detalhes Tecnicos
+
+| Aspecto | Detalhe |
+|---------|---------|
+| Arquivo | `src/pages/ControleFinanceiro.tsx` |
+| Banco de dados | Nenhuma alteracao (fornecedor_id ja existe) |
+| Tabela consultada | `fornecedores` (campo `nome_fornecedor`) |
+| Posicao da coluna | Entre "Tipo" e "Cliente" |
+| Abreviacao | Nome do fornecedor truncado com max-w-[100px], coluna Itens com max-w-[150px] |
 
