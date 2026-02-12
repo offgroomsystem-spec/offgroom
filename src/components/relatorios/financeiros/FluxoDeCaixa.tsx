@@ -137,22 +137,32 @@ const meses = [
 
 const categoriasDescricao1 = {
   Receita: ["Receita Operacional", "Receita Não Operacional"],
-  Despesa: ["Despesa Fixa", "Despesa Variável", "Despesa Não Operacional"],
+  Despesa: ["Despesa Fixa", "Despesa Operacional", "Despesa Não Operacional"],
 };
 
 const categoriasDescricao2: { [key: string]: string[] } = {
   "Receita Operacional": ["Serviços", "Venda", "Outras Receitas Operacionais"],
   "Receita Não Operacional": ["Venda de Ativo", "Outras Receitas Não Operacionais"],
   "Despesa Fixa": ["Aluguel", "Salários", "Impostos Fixos", "Outras Despesas Fixas"],
-  "Despesa Variável": [
+  "Despesa Operacional": [
+    "Combustível",
+    "Contador",
+    "Freelancer",
+    "Telefonia e internet",
+    "Energia elétrica",
+    "Água e esgoto",
+    "Publicidade e marketing",
     "Produtos para Banho",
     "Material de Limpeza",
-    "Energia Elétrica",
-    "Água",
-    "Internet",
-    "Outras Despesas Variáveis",
+    "Outras Despesas Operacionais",
   ],
-  "Despesa Não Operacional": ["Manutenção", "Reparos", "Outras Despesas Não Operacionais"],
+  "Despesa Não Operacional": [
+    "Manutenção",
+    "Reparos",
+    "Retirada Caixa",
+    "Retirada Sócio",
+    "Outras Despesas Não Operacionais",
+  ],
 };
 
 // Componente ComboboxField
