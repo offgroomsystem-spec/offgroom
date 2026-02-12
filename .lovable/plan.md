@@ -1,44 +1,36 @@
 
+# Corrigir ListBox do Cliente que nao fecha apos selecao
 
-# Adicionar coluna "Fornecedor" na tabela de Lancamentos do Controle Financeiro
+## Problema
 
-## Resumo
+Ao selecionar um cliente na ListBox (tanto em "Novo Agendamento" quanto em "Novo Pacote"), a lista nao fecha. Isso acontece porque:
 
-Incluir uma nova coluna "Fornecedor" a esquerda da coluna "Cliente" na tabela de lancamentos da pagina Controle Financeiro (`src/pages/ControleFinanceiro.tsx`), puxando o nome do fornecedor a partir do `fornecedor_id` ja existente nos dados. Ajustar espacamento para manter legibilidade.
+1. O handler `handleSimpleClienteSelect` define `setSimpleClienteSearch("Juliana")` e `setSimpleFilteredClientes([])`
+2. Porem, existe um `useEffect` que observa `simpleClienteSearch` -- quando o valor muda para "Juliana", o useEffect roda novamente, filtra os clientes e reabre a lista com o resultado encontrado
+3. O mesmo ocorre no formulario de Pacotes com `handleClienteSelect`, `clienteSearch` e `filteredClientes`
 
-## Arquivo: `src/pages/ControleFinanceiro.tsx`
+## Solucao
 
-### 1. Adicionar `nomeFornecedor` na interface `LancamentoFinanceiro` (linha 70)
+Adicionar uma variavel de controle (ref) que indica quando uma selecao foi feita, para que o `useEffect` de filtragem ignore a mudanca no campo de busca nesse momento.
 
-Incluir `nomeFornecedor: string;` na interface, ao lado dos outros campos de nome.
+## Arquivo: `src/pages/Agendamentos.tsx`
 
-### 2. Mapear nome do fornecedor no carregamento de dados (linhas 460-502)
+### 1. Criar refs de controle (junto aos outros estados, por volta da linha 535)
 
-- Adicionar `nomeFornecedor: ""` no objeto do lancamento formatado (linha ~455)
-- Buscar fornecedores do banco: `supabase.from("fornecedores").select("id, nome_fornecedor").eq("user_id", ownerId)`
-- Criar `fornecedoresMap` e preencher `l.nomeFornecedor = fornecedoresMap.get(lancOriginal.fornecedor_id) || ""`
+Criar dois `useRef<boolean>`:
+- `simpleClienteJustSelected` -- para o formulario de Agendamento Simples
+- `clienteJustSelected` -- para o formulario de Pacotes
 
-### 3. Adicionar coluna no cabecalho da tabela (entre linhas 2212 e 2213)
+### 2. Marcar a ref como `true` nos handlers de selecao
 
-Inserir `<th>Fornecedor</th>` entre a coluna "Tipo" e "Cliente", com as mesmas classes de estilo (`text-left py-2 px-1 font-semibold text-xs`).
+- Em `handleSimpleClienteSelect` (linha 800): antes de `setSimpleClienteSearch(nomeCliente)`, setar `simpleClienteJustSelected.current = true`
+- Em `handleClienteSelect` (linha 671): antes de `setClienteSearch(nomeCliente)`, setar `clienteJustSelected.current = true`
 
-### 4. Adicionar celula no corpo da tabela (entre linhas 2251 e 2252)
+### 3. Verificar a ref nos useEffects de filtragem
 
-Inserir celula com `lancamento.nomeFornecedor || "-"`, aplicando `truncate` e `max-w-[100px]` para abreviar nomes longos.
+- No useEffect de busca de clientes do Agendamento Simples (linha 638): no inicio, verificar se `simpleClienteJustSelected.current` e `true`. Se sim, resetar para `false` e retornar sem filtrar
+- No useEffect de busca de clientes do Pacotes (linha 605): mesma logica com `clienteJustSelected.current`
 
-### 5. Ajustar espacamento das colunas
+## Resultado
 
-- Reduzir padding horizontal de `px-2` para `px-1` em todas as celulas do cabecalho e corpo
-- Reduzir largura maxima da coluna "Itens" aplicando `max-w-[150px] truncate`
-- Atualizar `colSpan` da mensagem "Nenhum lancamento" de 12 para 13
-
-## Detalhes Tecnicos
-
-| Aspecto | Detalhe |
-|---------|---------|
-| Arquivo | `src/pages/ControleFinanceiro.tsx` |
-| Banco de dados | Nenhuma alteracao (fornecedor_id ja existe) |
-| Tabela consultada | `fornecedores` (campo `nome_fornecedor`) |
-| Posicao da coluna | Entre "Tipo" e "Cliente" |
-| Abreviacao | Nome do fornecedor truncado com max-w-[100px], coluna Itens com max-w-[150px] |
-
+Ao selecionar um cliente, o campo de texto e preenchido com o nome, mas o `useEffect` nao reabrira a lista pois a ref de controle impede a filtragem naquele ciclo. Na proxima digitacao do usuario, a ref ja estara resetada e a busca funcionara normalmente.
