@@ -223,7 +223,7 @@ export function DespesasNaoOperacionais() {
       lancamentosFiltrados
         .filter((l) =>
           l.itens.some((i) =>
-            ["Manutenção", "Reparos"].includes(i.descricao2)
+            i.descricao2 === "Manutenção"
           )
         )
         .reduce((acc, l) => acc + l.valorTotal, 0),
@@ -241,7 +241,6 @@ export function DespesasNaoOperacionais() {
   const dadosGraficoBarras = useMemo(() => {
     const categorias = [
       "Manutenção",
-      "Reparos",
       "Outras Despesas Não Operacionais",
     ];
 
@@ -504,7 +503,7 @@ export function DespesasNaoOperacionais() {
         <div>
           <h2 className="text-2xl font-bold">Relatório de Despesas Não Operacionais</h2>
           <p className="text-sm text-muted-foreground">
-            Análise detalhada de despesas não operacionais (manutenção, reparos, etc.)
+            Análise detalhada de despesas não operacionais (manutenção, etc.)
           </p>
         </div>
         <div className="flex gap-2">
@@ -567,7 +566,6 @@ export function DespesasNaoOperacionais() {
                   <SelectContent>
                     <SelectItem value="all">Todas as categorias</SelectItem>
                     <SelectItem value="Manutenção">Manutenção</SelectItem>
-                    <SelectItem value="Reparos">Reparos</SelectItem>
                     <SelectItem value="Outras Despesas Não Operacionais">
                       Outras Despesas Não Operacionais
                     </SelectItem>
@@ -664,7 +662,7 @@ export function DespesasNaoOperacionais() {
         <Card className="bg-purple-50 border-purple-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-900">
-              Manutenção + Reparos
+              Manutenção
             </CardTitle>
             <Wrench className="h-4 w-4 text-purple-600" />
           </CardHeader>
@@ -672,7 +670,7 @@ export function DespesasNaoOperacionais() {
             <div className="text-2xl font-bold text-purple-600">
               {formatarMoeda(manutencaoReparos)}
             </div>
-            <p className="text-xs text-purple-700 mt-1">Total em manutenção e reparos</p>
+            <p className="text-xs text-purple-700 mt-1">Total em manutenção</p>
           </CardContent>
         </Card>
 
@@ -1011,7 +1009,6 @@ export function DespesasNaoOperacionais() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Manutenção">Manutenção</SelectItem>
-                        <SelectItem value="Reparos">Reparos</SelectItem>
                         <SelectItem value="Outras Despesas Não Operacionais">
                           Outras Despesas Não Operacionais
                         </SelectItem>
