@@ -158,7 +158,6 @@ const categoriasDescricao2: { [key: string]: string[] } = {
   ],
   "Despesa Não Operacional": [
     "Manutenção",
-    "Reparos",
     "Retirada Caixa",
     "Retirada Sócio",
     "Outras Despesas Não Operacionais",
