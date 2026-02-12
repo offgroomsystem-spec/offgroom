@@ -224,16 +224,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Logout automático ao fechar navegador
-  useEffect(() => {
-    const sessionMarker = sessionStorage.getItem('offgroom_session_active');
-    
-    if (!sessionMarker && session) {
-      supabase.auth.signOut();
-    } else if (session) {
-      sessionStorage.setItem('offgroom_session_active', 'true');
-    }
-  }, [session]);
 
   const incrementLoginCount = async (userId?: string): Promise<number> => {
     const targetUserId = userId || user?.id;

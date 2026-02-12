@@ -52,8 +52,6 @@ const Login = () => {
         }
         return;
       }
-      sessionStorage.setItem('offgroom_session_active', 'true');
-      
       // Incrementar login count
       const loginCount = await incrementLoginCount(authData.user?.id);
       
