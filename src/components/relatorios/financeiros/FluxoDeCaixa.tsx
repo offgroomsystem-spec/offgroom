@@ -37,8 +37,11 @@ import {
   Edit2,
   Trash2,
   Plus,
+  CalendarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -396,6 +399,7 @@ const FluxoDeCaixa = () => {
   const [dialogSaldoOpen, setDialogSaldoOpen] = useState(false);
   const [contaSelecionada, setContaSelecionada] = useState("");
   const [novoSaldo, setNovoSaldo] = useState("");
+  const [dataAjusteSaldo, setDataAjusteSaldo] = useState<Date>(new Date());
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   // Estados para Edição e Exclusão
@@ -839,6 +843,7 @@ const FluxoDeCaixa = () => {
   const abrirDialogoSaldo = () => {
     setContaSelecionada("");
     setNovoSaldo("");
+    setDataAjusteSaldo(new Date());
     setDialogSaldoOpen(true);
   };
 
@@ -1018,9 +1023,9 @@ const FluxoDeCaixa = () => {
       const tipo = diferenca > 0 ? "Receita" : "Despesa";
       const valorAjuste = Math.abs(diferenca);
 
-      const dataHoje = new Date().toISOString().split("T")[0];
-      const anoAtual = new Date().getFullYear().toString();
-      const mesAtual = String(new Date().getMonth() + 1).padStart(2, "0");
+      const dataAjuste = format(dataAjusteSaldo, "yyyy-MM-dd");
+      const anoAtual = dataAjusteSaldo.getFullYear().toString();
+      const mesAtual = String(dataAjusteSaldo.getMonth() + 1).padStart(2, "0");
 
       // Criar lançamento de ajuste
       const { data: lancamentoData, error: lancamentoError } = await supabase
@@ -1035,7 +1040,7 @@ const FluxoDeCaixa = () => {
             cliente_id: null,
             pet_ids: [],
             valor_total: valorAjuste,
-            data_pagamento: dataHoje,
+            data_pagamento: dataAjuste,
             conta_id: conta.id,
             pago: true,
             observacao: "Ajuste de saldo",
@@ -1132,6 +1137,33 @@ const FluxoDeCaixa = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Data de Referência</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dataAjusteSaldo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataAjusteSaldo ? format(dataAjusteSaldo, "dd/MM/yyyy") : <span>Selecione a data</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataAjusteSaldo}
+                        onSelect={(date) => date && setDataAjusteSaldo(date)}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {contaSelecionada && (
@@ -2127,7 +2159,8 @@ const FluxoDeCaixa = () => {
             <AlertDialogTitle>Confirmar Atualização de Saldo</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a atualizar o saldo da conta <strong>{contaSelecionada}</strong> para{" "}
-              <strong>{formatCurrency(parseFloat(novoSaldo) || 0)}</strong>.<br />
+              <strong>{formatCurrency(parseFloat(novoSaldo) || 0)}</strong> na data{" "}
+              <strong>{format(dataAjusteSaldo, "dd/MM/yyyy")}</strong>.<br />
               <br />
               Um lançamento de ajuste será criado automaticamente. Deseja continuar?
             </AlertDialogDescription>
