@@ -641,6 +641,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
   ]);
 
   const [fornecedorSearch, setFornecedorSearch] = useState("");
+  const [fornecedorPopoverOpen, setFornecedorPopoverOpen] = useState(false);
 
   const fornecedoresFiltrados = useMemo(() => {
     if (!fornecedorSearch) return fornecedores;
@@ -670,6 +671,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
   });
 
   const [filtroFornecedorSearch, setFiltroFornecedorSearch] = useState("");
+  const [filtroFornecedorPopoverOpen, setFiltroFornecedorPopoverOpen] = useState(false);
 
   const filtroFornecedoresFiltrados = useMemo(() => {
     if (!filtroFornecedorSearch) return fornecedores;
@@ -1387,7 +1389,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     {formData.tipo === "Despesa" ? (
                       <>
                         <Label className="text-[10px] font-semibold">Fornecedor</Label>
-                        <Popover>
+                        <Popover open={fornecedorPopoverOpen} onOpenChange={setFornecedorPopoverOpen}>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
@@ -1423,6 +1425,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                                           fornecedorId: formData.fornecedorId === f.id ? "" : f.id,
                                         });
                                         setFornecedorSearch("");
+                                        setFornecedorPopoverOpen(false);
                                       }}
                                       className="text-xs"
                                     >
@@ -2075,7 +2078,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Fornecedor</Label>
-                  <Popover>
+                  <Popover open={filtroFornecedorPopoverOpen} onOpenChange={setFiltroFornecedorPopoverOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -2112,6 +2115,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                                     fornecedorId: filtros.fornecedorId === f.id ? "" : f.id,
                                   });
                                   setFiltroFornecedorSearch("");
+                                  setFiltroFornecedorPopoverOpen(false);
                                 }}
                                 className="text-xs"
                               >
@@ -2408,7 +2412,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 {formData.tipo === "Despesa" ? (
                   <>
                     <Label className="text-[10px] font-semibold">Fornecedor</Label>
-                    <Popover>
+                    <Popover open={fornecedorPopoverOpen} onOpenChange={setFornecedorPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -2444,6 +2448,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                                     fornecedorId: formData.fornecedorId === f.id ? "" : f.id,
                                   });
                                   setFornecedorSearch("");
+                                  setFornecedorPopoverOpen(false);
                                 }}
                                 className="text-xs"
                               >
