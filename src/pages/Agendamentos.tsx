@@ -538,6 +538,8 @@ const Agendamentos = () => {
   const [simpleSearchStartedWith, setSimpleSearchStartedWith] = useState<"cliente" | "pet" | null>(null);
   const simpleClienteJustSelected = useRef(false);
   const clienteJustSelected = useRef(false);
+  const simplePetJustSelected = useRef(false);
+  const petJustSelected = useRef(false);
 
   // Estados para Gerenciamento de Agendamentos
   const [gerenciamentoOpen, setGerenciamentoOpen] = useState(false);
@@ -625,6 +627,10 @@ const Agendamentos = () => {
 
   // Busca inteligente por pet (Pacotes)
   useEffect(() => {
+    if (petJustSelected.current) {
+      petJustSelected.current = false;
+      return;
+    }
     if (petSearch.length >= 2) {
       const matchingPets = new Set<string>();
       clientes.forEach((cliente) => {
@@ -662,6 +668,10 @@ const Agendamentos = () => {
 
   // Busca inteligente por pet (Agendamento Simples)
   useEffect(() => {
+    if (simplePetJustSelected.current) {
+      simplePetJustSelected.current = false;
+      return;
+    }
     if (simplePetSearch.length >= 2) {
       const matchingPets = new Set<string>();
       clientes.forEach((cliente) => {
@@ -711,6 +721,7 @@ const Agendamentos = () => {
 
   // Atualizar raças disponíveis quando pet é selecionado (Pacotes)
   const handlePetSelect = (nomePet: string) => {
+    petJustSelected.current = true;
     setPetSearch(nomePet);
 
     if (searchStartedWith === "cliente" || pacoteFormData.nomeCliente) {
@@ -841,6 +852,7 @@ const Agendamentos = () => {
 
   // Atualizar raças disponíveis quando pet é selecionado (Agendamento Simples)
   const handleSimplePetSelect = (nomePet: string) => {
+    simplePetJustSelected.current = true;
     setSimplePetSearch(nomePet);
 
     if (simpleSearchStartedWith === "cliente" || formData.cliente) {
