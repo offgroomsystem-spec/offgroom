@@ -1,52 +1,76 @@
 
-# Adicionar coluna "Fornecedor" na tabela de Lancamentos Financeiros
 
-## Resumo
+# Corrigir formulario de Edicao para respeitar logica Despesa/Fornecedor
 
-Incluir uma nova coluna "Fornecedor" a esquerda da coluna "Cliente" na tabela de lancamentos do Fluxo de Caixa, buscando o nome do fornecedor a partir do `fornecedor_id` ja existente na tabela `lancamentos_financeiros`. Ajustar o espacamento das colunas para manter boa legibilidade.
+## Problema
 
-## Arquivo modificado: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
+No dialog "Editar Lancamento" do Fluxo de Caixa, quando o tipo e "Despesa", o formulario continua mostrando "Nome do Cliente" e "Pets" habilitados, em vez de exibir o campo "Fornecedor" e desabilitar "Pets" -- comportamento que ja funciona corretamente no "Controle Financeiro".
 
-### 1. Buscar dados de fornecedores no `loadLancamentos`
+## Causa Raiz
 
-Na funcao `loadLancamentos` (linha ~477), adicionar uma query para buscar fornecedores:
+O componente `FluxoDeCaixa.tsx` nao possui:
+- Interface `Fornecedor` nem estado `fornecedores`
+- Campo `fornecedorId` no `formData`
+- Estado `fornecedorSearch` e memo `fornecedoresFiltrados` para busca inteligente
+- Logica condicional no formulario de edicao (Fornecedor vs Cliente / Pets desabilitado)
+- `fornecedor_id` no update do banco de dados
+- Carregamento do `fornecedorId` ao abrir edicao
+
+## Alteracoes em `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
+
+### 1. Adicionar interface Fornecedor e estado
+
+Criar a interface `Fornecedor` (com `id`, `nome_fornecedor`, `cnpj_cpf`, `nome_fantasia`) identica ao ControleFinanceiro. Adicionar estado `fornecedores` e `fornecedorSearch`.
+
+### 2. Adicionar `fornecedorId` ao `formData`
+
+Incluir `fornecedorId: ""` no estado `formData` (linha ~422).
+
+### 3. Carregar fornecedores no `loadRelatedData`
+
+Na funcao `loadRelatedData` (linha ~530), adicionar query de fornecedores com campos completos (`id, nome_fornecedor, cnpj_cpf, nome_fantasia`) e popular o estado.
+
+### 4. Criar memo `fornecedoresFiltrados`
+
+Adicionar `useMemo` para filtrar fornecedores por nome, CNPJ/CPF ou nome fantasia, identico ao ControleFinanceiro.
+
+### 5. Atualizar `abrirEdicao`
+
+Na funcao `abrirEdicao` (linha 884), carregar o `fornecedorId` do lancamento original. Sera necessario armazenar o `fornecedor_id` no objeto `LancamentoFluxo` durante o `loadLancamentos`.
+
+### 6. Modificar formulario de edicao (linhas 1797-1954)
+
+Substituir o bloco fixo de "Nome do Cliente" + "Pets" pela logica condicional:
+
+- **Se `formData.tipo === "Despesa"`**: Exibir campo "Fornecedor" com Popover/Command (busca inteligente por nome, CNPJ/CPF, nome fantasia) e campo "Pets" desabilitado com texto "Nao aplicavel"
+- **Se Receita**: Manter comportamento atual (Nome do Cliente + Pets habilitados)
+
+O layout e estilo serao identicos ao formulario do ControleFinanceiro (grid cols-2, mesmos espacamentos e tamanhos).
+
+### 7. Atualizar `handleEditar`
+
+Na funcao `handleEditar` (linha 956-971), incluir `fornecedor_id` no update:
 ```
-const fornecedoresData = await supabase.from("fornecedores").select("id, nome_fornecedor").eq("user_id", ownerId);
+fornecedor_id: formData.tipo === "Despesa" && formData.fornecedorId ? formData.fornecedorId : null,
 ```
 
-Criar um `fornecedoresMap` e mapear `fornecedor_id` para `nomeFornecedor` em cada lancamento formatado (similar ao que ja e feito com `clientesMap` e `contasMap`).
+### 8. Atualizar `onValueChange` do campo Tipo no form de edicao
 
-### 2. Adicionar campo `nomeFornecedor` no objeto do lancamento
-
-No mapeamento inicial (linha ~452), adicionar `nomeFornecedor: ""` ao objeto. Na iteracao de mapeamento (linha ~492), preencher com:
+Ao alterar o Tipo no formulario de edicao (linha 1759), limpar campos relacionados:
 ```
-l.nomeFornecedor = fornecedoresMap.get(lancOriginal.fornecedor_id) || "";
+setFormData({ ...formData, tipo: value, descricao1: "", nomeCliente: "", nomePet: "", petsSelecionados: [], fornecedorId: "" })
 ```
 
-### 3. Adicionar coluna no cabecalho da tabela
+### 9. Resetar `fornecedorId` no `resetForm`
 
-Inserir `<th>Fornecedor</th>` entre a coluna "Tipo" e "Cliente" (entre linhas 1597 e 1598).
-
-### 4. Adicionar celula no corpo da tabela
-
-Inserir `<td>` com `lancamento.nomeFornecedor || "-"` entre a celula de Tipo e Cliente. Aplicar `truncate` e `max-w-[100px]` para abreviar nomes longos.
-
-### 5. Ajustar espacamento das colunas
-
-- Reduzir padding de `px-2` para `px-1` em todas as colunas
-- Reduzir `max-w` da coluna "Itens" de `200px` para `150px`
-- Atualizar `colSpan` da mensagem "Nenhum lancamento" de 12 para 13
-
-### 6. Incluir Fornecedor na exportacao
-
-No `dadosExportacao` (linha ~1078), adicionar campo "Fornecedor" com `l.nomeFornecedor || "-"`.
+Garantir que `fornecedorId` e `fornecedorSearch` sejam resetados quando o dialog fechar.
 
 ## Detalhes Tecnicos
 
 | Aspecto | Detalhe |
 |---------|---------|
 | Arquivo | `src/components/relatorios/financeiros/FluxoDeCaixa.tsx` |
-| Banco de dados | Nenhuma alteracao (fornecedor_id ja existe) |
-| Tabela consultada | `fornecedores` (campo `nome_fornecedor`) |
-| Posicao da coluna | Entre "Tipo" e "Cliente" |
-| Abreviacao | Nome do fornecedor truncado com max-w-[100px], coluna Itens reduzida para max-w-[150px] |
+| Banco de dados | Nenhuma alteracao de schema (fornecedor_id ja existe na tabela) |
+| Modelo visual | Identico ao ControleFinanceiro.tsx |
+| Busca fornecedor | Por nome, CNPJ/CPF e nome fantasia (shouldFilter=false no Command) |
+| Impacto | Apenas formulario de edicao; criacao nao existe neste componente |
