@@ -61,6 +61,7 @@ interface LancamentoFluxo {
   mesCompetencia: string;
   tipo: "Receita" | "Despesa";
   descricao1: string;
+  nomeFornecedor: string;
   nomeCliente: string;
   nomePet: string;
   pets: Pet[];
@@ -455,6 +456,7 @@ const FluxoDeCaixa = () => {
         mesCompetencia: l.mes_competencia,
         tipo: l.tipo as "Receita" | "Despesa",
         descricao1: l.descricao1,
+        nomeFornecedor: "",
         nomeCliente: "",
         nomePet: "",
         pets: [],
@@ -477,9 +479,11 @@ const FluxoDeCaixa = () => {
       const clientesData = await supabase.from("clientes").select("*").eq("user_id", ownerId);
       const petsData = await supabase.from("pets").select("*").eq("user_id", ownerId);
       const contasData = await supabase.from("contas_bancarias").select("*").eq("user_id", ownerId);
+      const fornecedoresData = await supabase.from("fornecedores").select("id, nome_fornecedor").eq("user_id", ownerId);
 
       if (clientesData.data && petsData.data && contasData.data) {
         const clientesMap = new Map(clientesData.data.map((c: any) => [c.id, c.nome_cliente]));
+        const fornecedoresMap = new Map((fornecedoresData.data || []).map((f: any) => [f.id, f.nome_fornecedor]));
         const petsMapById = new Map(
           petsData.data.map((p: any) => [
             p.id,
@@ -492,6 +496,7 @@ const FluxoDeCaixa = () => {
         lancamentosFormatados.forEach((l: any) => {
           const lancOriginal = data?.find((lo: any) => lo.id === l.id);
           if (lancOriginal) {
+            l.nomeFornecedor = fornecedoresMap.get(lancOriginal.fornecedor_id) || "";
             l.nomeCliente = clientesMap.get(lancOriginal.cliente_id) || "";
             l.nomePet = petsMap.get(lancOriginal.cliente_id) || "";
             l.nomeBanco = contasMap.get(lancOriginal.conta_id) || "";
@@ -1079,6 +1084,7 @@ const FluxoDeCaixa = () => {
       "Data do Pagamento": new Date(l.dataPagamento + "T00:00:00").toLocaleDateString("pt-BR"),
       "Ano/Mês": `${l.ano}/${l.mesCompetencia}`,
       Tipo: l.tipo,
+      Fornecedor: l.nomeFornecedor || "-",
       Cliente: l.nomeCliente || "-",
       Pet: l.nomePet || "-",
       "Descrição 1": l.descricao1,
@@ -1592,37 +1598,38 @@ const FluxoDeCaixa = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Data do Pagamento</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Ano/Mês</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Tipo</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Cliente</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Pet</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Descrição 1</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Descrição 2</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Itens</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Valor Total</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Banco</th>
-                  <th className="text-left py-2 px-2 font-semibold text-xs">Status</th>
-                  <th className="text-right py-2 px-2 font-semibold text-xs">Ações</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Data Pgto</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Ano/Mês</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Tipo</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Fornecedor</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Cliente</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Pet</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Descrição 1</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Descrição 2</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Itens</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Valor Total</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Banco</th>
+                  <th className="text-left py-2 px-1 font-semibold text-xs">Status</th>
+                  <th className="text-right py-2 px-1 font-semibold text-xs">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {lancamentosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="text-center py-8 text-muted-foreground text-xs">
+                    <td colSpan={13} className="text-center py-8 text-muted-foreground text-xs">
                       Nenhum lançamento cadastrado
                     </td>
                   </tr>
                 ) : (
                   lancamentosFiltrados.map((lancamento) => (
                     <tr key={lancamento.id} className="border-b hover:bg-secondary/50 transition-colors">
-                      <td className="py-2 px-2 text-xs">
+                      <td className="py-2 px-1 text-xs">
                         {new Date(lancamento.dataPagamento + "T00:00:00").toLocaleDateString("pt-BR")}
                       </td>
-                      <td className="py-2 px-2 text-xs">
+                      <td className="py-2 px-1 text-xs">
                         {lancamento.ano}/{lancamento.mesCompetencia}
                       </td>
-                      <td className="py-2 px-2">
+                      <td className="py-2 px-1">
                         <Badge
                           variant={lancamento.tipo === "Receita" ? "default" : "destructive"}
                           className="text-[10px] h-5"
@@ -1630,8 +1637,13 @@ const FluxoDeCaixa = () => {
                           {lancamento.tipo}
                         </Badge>
                       </td>
-                      <td className="py-2 px-2 text-xs">{lancamento.nomeCliente || "-"}</td>
-                      <td className="py-2 px-2 text-xs">
+                      <td className="py-2 px-1 text-xs">
+                        <div className="max-w-[100px] truncate" title={lancamento.nomeFornecedor || "-"}>
+                          {lancamento.nomeFornecedor || "-"}
+                        </div>
+                      </td>
+                      <td className="py-2 px-1 text-xs">{lancamento.nomeCliente || "-"}</td>
+                      <td className="py-2 px-1 text-xs">
                         {lancamento.nomePet || "-"}
                         {lancamento.pets.length > 1 && (
                           <Badge variant="outline" className="ml-1 text-[9px] h-4">
@@ -1639,25 +1651,25 @@ const FluxoDeCaixa = () => {
                           </Badge>
                         )}
                       </td>
-                      <td className="py-2 px-2 text-xs">{lancamento.descricao1}</td>
-                      <td className="py-2 px-2 text-xs">
+                      <td className="py-2 px-1 text-xs">{lancamento.descricao1}</td>
+                      <td className="py-2 px-1 text-xs">
                         {lancamento.itens.map((i) => i.descricao2).join(", ")}
                       </td>
-                      <td className="py-2 px-2 text-xs">
-                        <div className="max-w-[200px] truncate">
+                      <td className="py-2 px-1 text-xs">
+                        <div className="max-w-[150px] truncate">
                           {lancamento.itens
                             .map((i) => `${i.produtoServico || i.descricao2} (${formatCurrency(i.valor)})`)
                             .join("; ")}
                         </div>
                       </td>
-                      <td className="py-2 px-2 text-xs font-semibold">{formatCurrency(lancamento.valorTotal)}</td>
-                      <td className="py-2 px-2 text-xs">{lancamento.nomeBanco}</td>
-                      <td className="py-2 px-2">
+                      <td className="py-2 px-1 text-xs font-semibold">{formatCurrency(lancamento.valorTotal)}</td>
+                      <td className="py-2 px-1 text-xs">{lancamento.nomeBanco}</td>
+                      <td className="py-2 px-1">
                         <Badge variant={lancamento.pago ? "default" : "secondary"} className="text-[10px] h-5">
                           {lancamento.pago ? "Pago" : "Pendente"}
                         </Badge>
                       </td>
-                      <td className="py-2 px-2">
+                      <td className="py-2 px-1">
                         <div className="flex justify-end gap-1">
                           <Button
                             size="sm"
