@@ -1,33 +1,43 @@
 
 
-# Corrigir ListBox do Pet que nao fecha apos selecao
+# Unificar "Reparos" em "Manutencao" na Descricao 2
 
-## Problema
+## Resumo
 
-O mesmo comportamento de loop que existia no campo "Nome do Cliente" esta ocorrendo no campo "Nome do Pet". Ao selecionar um pet, o `useEffect` de filtragem detecta a mudanca no valor de `petSearch` / `simplePetSearch` e re-executa a busca, reabrindo a lista.
+Atualizar todos os lancamentos financeiros que possuem "Reparos" na Descricao 2 para "Manutencao" e remover "Reparos" da lista de opcoes em todo o sistema.
 
-## Solucao
+## Etapa 1 -- Atualizar dados existentes no banco
 
-Aplicar a mesma estrategia de refs de controle ja utilizada com sucesso no campo de cliente.
+Executar um UPDATE na tabela `lancamentos_financeiros_itens` para alterar todos os registros com `descricao2 = 'Reparos'` para `descricao2 = 'Manutencao'`. Isso afeta todos os usuarios de uma vez, sem alterar nenhum outro campo.
 
-## Arquivo: `src/pages/Agendamentos.tsx`
+```sql
+UPDATE lancamentos_financeiros_itens
+SET descricao2 = 'Manutenção'
+WHERE descricao2 = 'Reparos';
+```
 
-### 1. Criar duas novas refs (junto as refs existentes, linha ~539)
+## Etapa 2 -- Remover "Reparos" das listas de opcoes no codigo
 
-- `simplePetJustSelected = useRef(false)` -- para o formulario de Agendamento Simples
-- `petJustSelected = useRef(false)` -- para o formulario de Pacotes
+### Arquivo: `src/pages/ControleFinanceiro.tsx`
+- Remover `"Reparos"` do array de `categoriasDescricao2["Despesa Nao Operacional"]` (linha 141)
 
-### 2. Marcar as refs nos handlers de selecao
+### Arquivo: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
+- Remover `"Reparos"` do array de `categoriasDescricao2["Despesa Nao Operacional"]` (linha 161)
 
-- Em `handleSimplePetSelect` (linha 843): antes de `setSimplePetSearch(nomePet)`, setar `simplePetJustSelected.current = true`
-- Em `handlePetSelect` (linha 713): antes de `setPetSearch(nomePet)`, setar `petJustSelected.current = true`
+### Arquivo: `src/components/relatorios/financeiros/DespesasNaoOperacionais.tsx`
+- Remover `"Reparos"` do array de categorias usado nos calculos (linha 244)
+- Remover `"Reparos"` do filtro `.includes()` para calculo de `manutencaoReparos` (linha 226) -- manter apenas `"Manutencao"`
+- Remover o `<SelectItem value="Reparos">` do filtro de categorias (linha 570)
+- Remover o `<SelectItem value="Reparos">` do formulario de edicao (linha 1014)
+- Atualizar o titulo do card KPI de "Manutencao + Reparos" para "Manutencao" (linha 667)
+- Atualizar os textos descritivos que mencionam "reparos" (linhas 675, 507)
 
-### 3. Verificar as refs nos useEffects de filtragem de pet
-
-- No useEffect de busca de pets do Pacotes (linha 627): no inicio, verificar se `petJustSelected.current` e `true`. Se sim, resetar para `false` e retornar sem filtrar
-- No useEffect de busca de pets do Agendamento Simples (linha 664): mesma logica com `simplePetJustSelected.current`
+### Arquivo: `src/pages/Relatorios.tsx`
+- Atualizar o texto descritivo do relatorio de Despesas Nao Operacionais que menciona "reparos" (linha 201)
 
 ## Resultado
 
-Ao selecionar um pet, o campo de texto sera preenchido com o nome, mas o useEffect nao reabrira a lista naquele ciclo. Na proxima digitacao do usuario, a ref ja estara resetada e a busca funcionara normalmente -- comportamento identico ao ajuste ja feito para o campo de cliente.
+- Todos os lancamentos existentes com "Reparos" serao convertidos para "Manutencao"
+- A opcao "Reparos" deixara de existir em todos os formularios e filtros
+- Nenhum outro dado dos lancamentos sera alterado
 
