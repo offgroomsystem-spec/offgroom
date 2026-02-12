@@ -1,59 +1,41 @@
 
 
-# Exibir Saldo Inicial e Saldo Final no Fluxo de Caixa (quando filtro de data aplicado)
+# Adicionar campo de Data ao "Atualizar Saldo Bancario"
 
 ## Resumo
 
-Adicionar dois novos valores ao card de "Saldos por Banco": **Saldo Inicial** (soma de todos os lancamentos pagos ANTES do periodo filtrado) e **Saldo Final** (Saldo Inicial + receitas - despesas dentro do periodo filtrado). Esses valores so aparecem quando ha filtro de data ativo. Os saldos atuais das contas continuam exibidos normalmente.
+Adicionar um campo de selecao de data (calendario) no dialog "Atualizar Saldo Bancario", logo abaixo do seletor de "Conta Bancaria". Quando o usuario selecionar uma data, o lancamento de ajuste usara essa data em vez da data atual. Por padrao, o campo vira preenchido com a data de hoje.
 
 ---
 
 ## Arquivo modificado: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
 
-### 1. Detectar se ha filtro de data ativo
+### 1. Novo estado para a data selecionada
 
-Criar um `useMemo` que verifica se o usuario aplicou filtro de data (periodo com dataInicio/dataFim ou mes/ano) e retorna as datas limites do periodo filtrado em formato `yyyy-MM-dd`.
+Adicionar um estado `dataAjusteSaldo` do tipo `Date` inicializado com `new Date()` junto aos demais estados de saldo (linha ~398). Resetar esse estado no `abrirDialogoSaldo`.
 
-### 2. Calcular Saldo Inicial e Saldo Final por banco
+### 2. Campo de calendario no dialog
 
-Novo `useMemo` que, para cada conta bancaria:
-- **Saldo Inicial**: soma receitas pagas - despesas pagas de TODOS os lancamentos com `dataPagamento` anterior ao inicio do periodo filtrado
-- **Saldo Final**: Saldo Inicial + receitas pagas no periodo - despesas pagas no periodo
-- Tambem calcular totais gerais (Saldo Inicial Total e Saldo Final Total)
+Inserir um Popover com Calendar (padrao Shadcn DatePicker) entre o seletor de "Conta Bancaria" (linha 1135) e o bloco de "Saldo Atual" (linha 1137). O campo tera o label "Data de Referencia" e exibira a data selecionada no formato dd/MM/yyyy.
 
-### 3. Exibir no card de Saldos por Banco
+### 3. Ajustar logica de criacao do lancamento
 
-Quando filtro de data estiver ativo e aplicado:
-- Adicionar acima da listagem atual um bloco mostrando "Saldo Inicial do Periodo" e "Saldo Final do Periodo" com seus respectivos totais
-- Os saldos atuais por banco continuam exibidos normalmente abaixo, sem alteracao
+Na funcao `handleConfirmarAtualizacao` (linha 1021-1023), substituir o uso de `new Date()` pela `dataAjusteSaldo`:
+- `data_pagamento` usara a data selecionada formatada como `yyyy-MM-dd`
+- `ano` e `mes_competencia` serao extraidos da data selecionada
 
-### 4. Layout do card expandido
+### 4. Atualizar texto de confirmacao
 
-```text
-+--------------------------------------------+
-| Saldos por Banco                           |
-|--------------------------------------------|
-| >> Saldo Inicial do Periodo (dd/mm/yyyy):  |
-|    Pag Seguro:              R$ XX.XXX,XX   |
-|    Saldo Inicial Total:     R$ XX.XXX,XX   |
-|--------------------------------------------|
-| >> Saldo Final do Periodo (dd/mm/yyyy):    |
-|    Pag Seguro:              R$ XX.XXX,XX   |
-|    Saldo Final Total:       R$ XX.XXX,XX   |
-|--------------------------------------------|
-| >> Saldo Atual (sempre visivel):           |
-|    Pag Seguro:              R$ XX.XXX,XX   |
-|    Saldo Total:             R$ XX.XXX,XX   |
-+--------------------------------------------+
-```
+No AlertDialog de confirmacao (linha ~2127), incluir a data selecionada na mensagem para que o usuario confirme a data do ajuste.
 
 ## Detalhes Tecnicos
 
 | Aspecto | Detalhe |
 |---------|---------|
 | Arquivo | `src/components/relatorios/financeiros/FluxoDeCaixa.tsx` |
+| Imports necessarios | `format` de `date-fns`, `Calendar`, `Popover/PopoverTrigger/PopoverContent`, `CalendarIcon` de lucide |
 | Banco de dados | Nenhuma alteracao |
-| Logica de calculo | Saldo Inicial = receitas pagas antes do periodo - despesas pagas antes do periodo; Saldo Final = Saldo Inicial + movimentacao do periodo |
-| Condicao de exibicao | `filtrosAplicados && filtroDataAtivo !== null` (somente quando ha filtro de data) |
-| Para filtro mes/ano | Inicio = primeiro dia do mes, fim = ultimo dia do mes |
+| Valor padrao | Data de hoje (`new Date()`) |
+| Formato exibido | dd/MM/yyyy |
+| Formato enviado ao banco | yyyy-MM-dd |
 
