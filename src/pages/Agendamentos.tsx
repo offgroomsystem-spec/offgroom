@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -536,6 +536,8 @@ const Agendamentos = () => {
   const [simpleFilteredPets, setSimpleFilteredPets] = useState<string[]>([]);
   const [simpleAvailableRacas, setSimpleAvailableRacas] = useState<string[]>([]);
   const [simpleSearchStartedWith, setSimpleSearchStartedWith] = useState<"cliente" | "pet" | null>(null);
+  const simpleClienteJustSelected = useRef(false);
+  const clienteJustSelected = useRef(false);
 
   // Estados para Gerenciamento de Agendamentos
   const [gerenciamentoOpen, setGerenciamentoOpen] = useState(false);
@@ -603,6 +605,10 @@ const Agendamentos = () => {
 
   // Busca inteligente por cliente (Pacotes)
   useEffect(() => {
+    if (clienteJustSelected.current) {
+      clienteJustSelected.current = false;
+      return;
+    }
     if (clienteSearch.length >= 2) {
       const matches = Array.from(
         new Set(
@@ -636,6 +642,10 @@ const Agendamentos = () => {
 
   // Busca inteligente por cliente (Agendamento Simples)
   useEffect(() => {
+    if (simpleClienteJustSelected.current) {
+      simpleClienteJustSelected.current = false;
+      return;
+    }
     if (simpleClienteSearch.length >= 2) {
       const matches = Array.from(
         new Set(
@@ -669,6 +679,7 @@ const Agendamentos = () => {
 
   // Atualizar pets disponíveis quando cliente é selecionado (Pacotes)
   const handleClienteSelect = (nomeCliente: string) => {
+    clienteJustSelected.current = true;
     setClienteSearch(nomeCliente);
     setSearchStartedWith("cliente");
 
@@ -798,6 +809,7 @@ const Agendamentos = () => {
 
   // Atualizar pets disponíveis quando cliente é selecionado (Agendamento Simples)
   const handleSimpleClienteSelect = (nomeCliente: string) => {
+    simpleClienteJustSelected.current = true;
     setSimpleClienteSearch(nomeCliente);
     setSimpleSearchStartedWith("cliente");
 
