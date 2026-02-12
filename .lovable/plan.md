@@ -1,76 +1,58 @@
 
 
-# Corrigir formulario de Edicao para respeitar logica Despesa/Fornecedor
+# Sincronizar categorias Descrição 1 e Descrição 2 do Fluxo de Caixa com o Controle Financeiro
 
 ## Problema
 
-No dialog "Editar Lancamento" do Fluxo de Caixa, quando o tipo e "Despesa", o formulario continua mostrando "Nome do Cliente" e "Pets" habilitados, em vez de exibir o campo "Fornecedor" e desabilitar "Pets" -- comportamento que ja funciona corretamente no "Controle Financeiro".
+As listas de opcoes de "Descricao 1" e "Descricao 2" no FluxoDeCaixa.tsx estao diferentes do ControleFinanceiro.tsx. Exemplos:
 
-## Causa Raiz
+| Campo | ControleFinanceiro (correto) | FluxoDeCaixa (incorreto) |
+|-------|------------------------------|--------------------------|
+| Descricao 1 (Despesa) | Despesa Fixa, **Despesa Operacional**, Despesa Nao Operacional | Despesa Fixa, **Despesa Variavel**, Despesa Nao Operacional |
+| Despesa Operacional | Combustivel, Contador, Freelancer, Telefonia e internet, Energia eletrica, Agua e esgoto, Publicidade e marketing, Produtos para Banho, Material de Limpeza, Outras Despesas Operacionais | *(nao existe — usa "Despesa Variavel" com opcoes diferentes)* |
+| Despesa Nao Operacional | Manutencao, Reparos, **Retirada Caixa**, **Retirada Socio**, Outras Despesas Nao Operacionais | Manutencao, Reparos, Outras Despesas Nao Operacionais |
 
-O componente `FluxoDeCaixa.tsx` nao possui:
-- Interface `Fornecedor` nem estado `fornecedores`
-- Campo `fornecedorId` no `formData`
-- Estado `fornecedorSearch` e memo `fornecedoresFiltrados` para busca inteligente
-- Logica condicional no formulario de edicao (Fornecedor vs Cliente / Pets desabilitado)
-- `fornecedor_id` no update do banco de dados
-- Carregamento do `fornecedorId` ao abrir edicao
+## Solucao
 
-## Alteracoes em `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
+Substituir os objetos `categoriasDescricao1` e `categoriasDescricao2` no FluxoDeCaixa.tsx (linhas 138-156) pelos valores identicos do ControleFinanceiro.tsx.
 
-### 1. Adicionar interface Fornecedor e estado
+## Arquivo: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
 
-Criar a interface `Fornecedor` (com `id`, `nome_fornecedor`, `cnpj_cpf`, `nome_fantasia`) identica ao ControleFinanceiro. Adicionar estado `fornecedores` e `fornecedorSearch`.
+### Alteracao unica (linhas 138-156)
 
-### 2. Adicionar `fornecedorId` ao `formData`
+Substituir por:
 
-Incluir `fornecedorId: ""` no estado `formData` (linha ~422).
+```typescript
+const categoriasDescricao1 = {
+  Receita: ["Receita Operacional", "Receita Não Operacional"],
+  Despesa: ["Despesa Fixa", "Despesa Operacional", "Despesa Não Operacional"],
+};
 
-### 3. Carregar fornecedores no `loadRelatedData`
-
-Na funcao `loadRelatedData` (linha ~530), adicionar query de fornecedores com campos completos (`id, nome_fornecedor, cnpj_cpf, nome_fantasia`) e popular o estado.
-
-### 4. Criar memo `fornecedoresFiltrados`
-
-Adicionar `useMemo` para filtrar fornecedores por nome, CNPJ/CPF ou nome fantasia, identico ao ControleFinanceiro.
-
-### 5. Atualizar `abrirEdicao`
-
-Na funcao `abrirEdicao` (linha 884), carregar o `fornecedorId` do lancamento original. Sera necessario armazenar o `fornecedor_id` no objeto `LancamentoFluxo` durante o `loadLancamentos`.
-
-### 6. Modificar formulario de edicao (linhas 1797-1954)
-
-Substituir o bloco fixo de "Nome do Cliente" + "Pets" pela logica condicional:
-
-- **Se `formData.tipo === "Despesa"`**: Exibir campo "Fornecedor" com Popover/Command (busca inteligente por nome, CNPJ/CPF, nome fantasia) e campo "Pets" desabilitado com texto "Nao aplicavel"
-- **Se Receita**: Manter comportamento atual (Nome do Cliente + Pets habilitados)
-
-O layout e estilo serao identicos ao formulario do ControleFinanceiro (grid cols-2, mesmos espacamentos e tamanhos).
-
-### 7. Atualizar `handleEditar`
-
-Na funcao `handleEditar` (linha 956-971), incluir `fornecedor_id` no update:
-```
-fornecedor_id: formData.tipo === "Despesa" && formData.fornecedorId ? formData.fornecedorId : null,
-```
-
-### 8. Atualizar `onValueChange` do campo Tipo no form de edicao
-
-Ao alterar o Tipo no formulario de edicao (linha 1759), limpar campos relacionados:
-```
-setFormData({ ...formData, tipo: value, descricao1: "", nomeCliente: "", nomePet: "", petsSelecionados: [], fornecedorId: "" })
+const categoriasDescricao2: { [key: string]: string[] } = {
+  "Receita Operacional": ["Serviços", "Venda", "Outras Receitas Operacionais"],
+  "Receita Não Operacional": ["Venda de Ativo", "Outras Receitas Não Operacionais"],
+  "Despesa Fixa": ["Aluguel", "Salários", "Impostos Fixos", "Outras Despesas Fixas"],
+  "Despesa Operacional": [
+    "Combustível",
+    "Contador",
+    "Freelancer",
+    "Telefonia e internet",
+    "Energia elétrica",
+    "Água e esgoto",
+    "Publicidade e marketing",
+    "Produtos para Banho",
+    "Material de Limpeza",
+    "Outras Despesas Operacionais",
+  ],
+  "Despesa Não Operacional": [
+    "Manutenção",
+    "Reparos",
+    "Retirada Caixa",
+    "Retirada Sócio",
+    "Outras Despesas Não Operacionais",
+  ],
+};
 ```
 
-### 9. Resetar `fornecedorId` no `resetForm`
+Apenas 1 arquivo alterado, 1 bloco de codigo substituido. Nenhuma alteracao no banco de dados.
 
-Garantir que `fornecedorId` e `fornecedorSearch` sejam resetados quando o dialog fechar.
-
-## Detalhes Tecnicos
-
-| Aspecto | Detalhe |
-|---------|---------|
-| Arquivo | `src/components/relatorios/financeiros/FluxoDeCaixa.tsx` |
-| Banco de dados | Nenhuma alteracao de schema (fornecedor_id ja existe na tabela) |
-| Modelo visual | Identico ao ControleFinanceiro.tsx |
-| Busca fornecedor | Por nome, CNPJ/CPF e nome fantasia (shouldFilter=false no Command) |
-| Impacto | Apenas formulario de edicao; criacao nao existe neste componente |
