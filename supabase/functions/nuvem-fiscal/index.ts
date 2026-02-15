@@ -156,6 +156,7 @@ Deno.serve(async (req) => {
             cliente_id: params.cliente_id,
             cliente_nome: params.cliente_nome,
             cliente_documento: params.cliente_documento,
+            lancamento_id: params.lancamento_id || null,
             dados_nfe: nfeData,
           });
         }
@@ -176,6 +177,7 @@ Deno.serve(async (req) => {
             cliente_id: params.cliente_id,
             cliente_nome: params.cliente_nome,
             cliente_documento: params.cliente_documento,
+            lancamento_id: params.lancamento_id || null,
             dados_nfse: nfseData,
           });
         }
