@@ -821,6 +821,69 @@ export type Database = {
           },
         ]
       }
+      notas_fiscais: {
+        Row: {
+          agendamento_id: string | null
+          cliente_documento: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
+          created_at: string
+          dados_nfe: Json | null
+          dados_nfse: Json | null
+          id: string
+          lancamento_id: string | null
+          mensagem_erro: string | null
+          numero: string | null
+          nuvem_fiscal_id: string | null
+          serie: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          agendamento_id?: string | null
+          cliente_documento?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          dados_nfe?: Json | null
+          dados_nfse?: Json | null
+          id?: string
+          lancamento_id?: string | null
+          mensagem_erro?: string | null
+          numero?: string | null
+          nuvem_fiscal_id?: string | null
+          serie?: string | null
+          status?: string
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          agendamento_id?: string | null
+          cliente_documento?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          dados_nfe?: Json | null
+          dados_nfse?: Json | null
+          id?: string
+          lancamento_id?: string | null
+          mensagem_erro?: string | null
+          numero?: string | null
+          nuvem_fiscal_id?: string | null
+          serie?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
       pacotes: {
         Row: {
           created_at: string | null
