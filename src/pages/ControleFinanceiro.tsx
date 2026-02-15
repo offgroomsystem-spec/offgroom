@@ -36,11 +36,14 @@ import {
   X,
   Check,
   ChevronsUpDown,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { callNuvemFiscal } from "@/hooks/useNotasFiscais";
 
 // Interfaces
 interface ItemLancamento {
@@ -619,6 +622,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [lancamentoSelecionado, setLancamentoSelecionado] = useState<LancamentoFinanceiro | null>(null);
 
+  // Estados para emissão de notas fiscais
+  const [emitindoNota, setEmitindoNota] = useState(false);
+  const [confirmEmissaoTipo, setConfirmEmissaoTipo] = useState<'NFe' | 'NFSe' | null>(null);
+  const [notasEmitidas, setNotasEmitidas] = useState<{ tipo: string; status: string }[]>([]);
+
   const [formData, setFormData] = useState({
     ano: new Date().getFullYear().toString(),
     mesCompetencia: String(new Date().getMonth() + 1).padStart(2, "0"),
@@ -950,8 +958,20 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     setIsEditDialogOpen(false);
   };
 
-  const abrirEdicao = (lancamento: LancamentoFinanceiro) => {
+  const abrirEdicao = async (lancamento: LancamentoFinanceiro) => {
     setLancamentoSelecionado(lancamento);
+
+    // Verificar notas já emitidas para este lançamento
+    try {
+      const { data: notasExistentes } = await supabase
+        .from("notas_fiscais")
+        .select("tipo, status")
+        .eq("lancamento_id", lancamento.id)
+        .in("status", ["autorizada", "processando"]);
+      setNotasEmitidas(notasExistentes || []);
+    } catch {
+      setNotasEmitidas([]);
+    }
 
     // Separar o primeiro pet como principal e os demais como selecionados
     const petPrincipal = lancamento.pets && lancamento.pets.length > 0 ? lancamento.pets[0] : null;
@@ -974,6 +994,265 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     });
     setItensLancamento(lancamento.itens);
     setIsEditDialogOpen(true);
+  };
+
+  const handleEmitirNota = async (tipo: 'NFe' | 'NFSe') => {
+    if (!lancamentoSelecionado || !user) return;
+    setEmitindoNota(true);
+    setConfirmEmissaoTipo(null);
+
+    try {
+      // 1. Buscar dados da empresa
+      const { data: empresaData, error: empresaError } = await supabase
+        .from("empresa_config")
+        .select("*")
+        .eq("user_id", ownerId)
+        .single();
+      if (empresaError || !empresaData) throw new Error("Dados da empresa não encontrados. Configure na página Empresa.");
+
+      // 2. Buscar dados do cliente
+      let clienteData: any = null;
+      const lancOriginal = await supabase
+        .from("lancamentos_financeiros")
+        .select("cliente_id")
+        .eq("id", lancamentoSelecionado.id)
+        .single();
+
+      if (lancOriginal.data?.cliente_id) {
+        const { data: cli } = await supabase
+          .from("clientes")
+          .select("*")
+          .eq("id", lancOriginal.data.cliente_id)
+          .single();
+        clienteData = cli;
+      }
+
+      // 3. Filtrar itens conforme o tipo
+      const itensFiltrados = itensLancamento.filter((item) =>
+        tipo === 'NFSe' ? item.descricao2 === "Serviços" : item.descricao2 === "Venda"
+      );
+
+      if (itensFiltrados.length === 0) {
+        toast.error(`Nenhum item de ${tipo === 'NFSe' ? 'serviço' : 'produto'} encontrado no lançamento.`);
+        setEmitindoNota(false);
+        return;
+      }
+
+      const valorTotal = itensFiltrados.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0);
+      const action = tipo === 'NFe' ? 'emitir_nfe' : 'emitir_nfse';
+
+      let payload: any;
+
+      if (tipo === 'NFSe') {
+        // Buscar dados fiscais dos serviços
+        const servicosNomes = itensFiltrados.map((i) => i.produtoServico);
+        const { data: servicosFiscais } = await supabase
+          .from("servicos")
+          .select("nome, codigo_servico_municipal, aliquota_iss, valor")
+          .eq("user_id", ownerId)
+          .in("nome", servicosNomes);
+
+        const servicosMap = new Map((servicosFiscais || []).map((s: any) => [s.nome, s]));
+
+        payload = {
+          ambiente: "homologacao",
+          infDPS: {
+            tpAmb: 2, // homologação
+            dhEmi: new Date().toISOString(),
+            emit: {
+              CNPJ: empresaData.cnpj?.replace(/\D/g, ""),
+              xNome: empresaData.razao_social,
+              IM: empresaData.inscricao_municipal,
+              enderEmit: {
+                xLgr: empresaData.logradouro_fiscal,
+                nro: empresaData.numero_endereco_fiscal,
+                xBairro: empresaData.bairro_fiscal,
+                cMun: empresaData.codigo_ibge_cidade,
+                xMun: empresaData.cidade_fiscal,
+                UF: empresaData.uf_fiscal,
+                CEP: empresaData.cep_fiscal?.replace(/\D/g, ""),
+              },
+            },
+            toma: clienteData ? {
+              ...(clienteData.cpf_cnpj?.replace(/\D/g, "").length === 11
+                ? { CPF: clienteData.cpf_cnpj?.replace(/\D/g, "") }
+                : { CNPJ: clienteData.cpf_cnpj?.replace(/\D/g, "") }),
+              xNome: clienteData.nome_cliente,
+              enderToma: clienteData.logradouro ? {
+                xLgr: clienteData.logradouro,
+                nro: clienteData.numero_endereco || "S/N",
+                xBairro: clienteData.bairro,
+                cMun: clienteData.codigo_ibge_cidade,
+                xMun: clienteData.cidade,
+                UF: clienteData.uf,
+                CEP: clienteData.cep?.replace(/\D/g, ""),
+              } : undefined,
+            } : undefined,
+            serv: itensFiltrados.map((item) => {
+              const fiscal = servicosMap.get(item.produtoServico);
+              return {
+                cServ: { cTribNac: fiscal?.codigo_servico_municipal || "01.01" },
+                xDescServ: item.produtoServico,
+                vServ: item.valor,
+                vLiq: item.valor,
+              };
+            }),
+            valores: {
+              vServPrest: { vServ: valorTotal },
+            },
+          },
+        };
+      } else {
+        // NFe - Buscar dados fiscais dos produtos
+        const produtosNomes = itensFiltrados.map((i) => i.produtoServico);
+        const { data: produtosFiscais } = await supabase
+          .from("produtos")
+          .select("nome, ncm, cfop, unidade_medida, origem, valor")
+          .eq("user_id", ownerId)
+          .in("nome", produtosNomes);
+
+        const produtosMap = new Map((produtosFiscais || []).map((p: any) => [p.nome, p]));
+
+        const regimeTributario = empresaData.regime_tributario === "Simples Nacional" ? 1
+          : empresaData.regime_tributario === "Simples Nacional - excesso" ? 2
+          : empresaData.regime_tributario === "Lucro Presumido" ? 3 : 3;
+
+        payload = {
+          ambiente: "homologacao",
+          infNFe: {
+            ide: {
+              cUF: Number(empresaData.codigo_ibge_cidade?.substring(0, 2)) || 35,
+              natOp: "Venda",
+              mod: 55,
+              serie: 1,
+              tpNF: 1,
+              cMunFG: Number(empresaData.codigo_ibge_cidade) || 0,
+              tpImp: 1,
+              tpEmis: 1,
+              tpAmb: 2,
+              finNFe: 1,
+              indFinal: 1,
+              indPres: 1,
+              procEmi: 0,
+            },
+            emit: {
+              CNPJ: empresaData.cnpj?.replace(/\D/g, ""),
+              xNome: empresaData.razao_social,
+              IE: empresaData.inscricao_estadual?.replace(/\D/g, ""),
+              CRT: regimeTributario,
+              enderEmit: {
+                xLgr: empresaData.logradouro_fiscal,
+                nro: empresaData.numero_endereco_fiscal || "S/N",
+                xBairro: empresaData.bairro_fiscal,
+                cMun: Number(empresaData.codigo_ibge_cidade) || 0,
+                xMun: empresaData.cidade_fiscal,
+                UF: empresaData.uf_fiscal,
+                CEP: empresaData.cep_fiscal?.replace(/\D/g, ""),
+              },
+            },
+            dest: clienteData ? {
+              ...(clienteData.cpf_cnpj?.replace(/\D/g, "").length === 11
+                ? { CPF: clienteData.cpf_cnpj?.replace(/\D/g, "") }
+                : { CNPJ: clienteData.cpf_cnpj?.replace(/\D/g, "") }),
+              xNome: clienteData.nome_cliente,
+              indIEDest: 9,
+              enderDest: clienteData.logradouro ? {
+                xLgr: clienteData.logradouro,
+                nro: clienteData.numero_endereco || "S/N",
+                xBairro: clienteData.bairro,
+                cMun: Number(clienteData.codigo_ibge_cidade) || 0,
+                xMun: clienteData.cidade,
+                UF: clienteData.uf,
+                CEP: clienteData.cep?.replace(/\D/g, ""),
+              } : undefined,
+            } : undefined,
+            det: itensFiltrados.map((item, index) => {
+              const fiscal = produtosMap.get(item.produtoServico);
+              return {
+                nItem: index + 1,
+                prod: {
+                  cProd: fiscal?.nome || item.produtoServico,
+                  cEAN: "SEM GTIN",
+                  xProd: item.produtoServico,
+                  NCM: fiscal?.ncm || "00000000",
+                  CFOP: fiscal?.cfop || "5102",
+                  uCom: fiscal?.unidade_medida || "UN",
+                  qCom: item.quantidade || 1,
+                  vUnCom: item.valor,
+                  vProd: item.valor * (item.quantidade || 1),
+                  cEANTrib: "SEM GTIN",
+                  uTrib: fiscal?.unidade_medida || "UN",
+                  qTrib: item.quantidade || 1,
+                  vUnTrib: item.valor,
+                  indTot: 1,
+                },
+                imposto: {
+                  ICMS: { ICMSSN102: { orig: fiscal?.origem || "0", CSOSN: "102" } },
+                  PIS: { PISOutr: { CST: "99", vBC: 0, pPIS: 0, vPIS: 0 } },
+                  COFINS: { COFINSOutr: { CST: "99", vBC: 0, pCOFINS: 0, vCOFINS: 0 } },
+                },
+              };
+            }),
+            total: {
+              ICMSTot: {
+                vBC: 0, vICMS: 0, vICMSDeson: 0, vFCP: 0,
+                vBCST: 0, vST: 0, vFCPST: 0, vFCPSTRet: 0,
+                vProd: valorTotal, vFrete: 0, vSeg: 0, vDesc: 0, vII: 0,
+                vIPI: 0, vIPIDevol: 0, vPIS: 0, vCOFINS: 0, vOutro: 0,
+                vNF: valorTotal,
+              },
+            },
+            transp: { modFrete: 9 },
+            pag: { detPag: [{ tPag: "01", vPag: valorTotal }] },
+          },
+        };
+      }
+
+      // 4. Chamar edge function
+      const result = await callNuvemFiscal(action, {
+        payload,
+        valor_total: valorTotal,
+        cliente_id: lancOriginal.data?.cliente_id,
+        cliente_nome: clienteData?.nome_cliente,
+        cliente_documento: clienteData?.cpf_cnpj,
+        lancamento_id: lancamentoSelecionado.id,
+      });
+
+      toast.success(`${tipo} enviada para processamento!`);
+
+      // 5. Tentar baixar PDF após breve espera
+      const nuvemFiscalId = (result as any)?.id;
+      if (nuvemFiscalId) {
+        setTimeout(async () => {
+          try {
+            const pdfAction = tipo === 'NFe' ? 'baixar_pdf_nfe' : 'baixar_pdf_nfse';
+            const pdfResult = await callNuvemFiscal(pdfAction, { id: nuvemFiscalId });
+            const pdfData = pdfResult as { base64: string; contentType: string };
+            if (pdfData?.base64) {
+              const byteCharacters = atob(pdfData.base64);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: "application/pdf" });
+              const url = URL.createObjectURL(blob);
+              window.open(url, "_blank");
+            }
+          } catch (pdfErr) {
+            console.warn("PDF ainda não disponível, consulte na página de Notas Fiscais.");
+          }
+        }, 3000);
+      }
+
+      // Atualizar lista de notas emitidas
+      setNotasEmitidas((prev) => [...prev, { tipo, status: "processando" }]);
+    } catch (error: any) {
+      console.error("Erro ao emitir nota:", error);
+      toast.error(`Erro ao emitir ${tipo}: ${error.message}`);
+    } finally {
+      setEmitindoNota(false);
+    }
   };
 
   const handleEditar = async (e: React.FormEvent) => {
@@ -2820,13 +3099,66 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">
-                Cancelar
-              </Button>
-              <Button type="submit" className="h-7 text-xs">
-                Atualizar
-              </Button>
+            <div className="flex justify-between gap-2 pt-2">
+              {/* Botões de emissão de nota fiscal */}
+              <div className="flex gap-2">
+                {formData.tipo === "Receita" && formData.pago && (() => {
+                  const temServicos = itensLancamento.some((i) => i.descricao2 === "Serviços");
+                  const temVenda = itensLancamento.some((i) => i.descricao2 === "Venda");
+                  const nfseEmitida = notasEmitidas.some((n) => n.tipo === "NFSe");
+                  const nfeEmitida = notasEmitidas.some((n) => n.tipo === "NFe");
+
+                  return (
+                    <>
+                      {temServicos && (
+                        nfseEmitida ? (
+                          <Badge variant="secondary" className="h-7 text-[10px] gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <FileText className="h-3 w-3" /> NFS-e Emitida
+                          </Badge>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setConfirmEmissaoTipo('NFSe')}
+                            disabled={emitindoNota}
+                            className="h-7 text-xs gap-1 border-green-500 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
+                          >
+                            {emitindoNota && confirmEmissaoTipo === 'NFSe' ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                            Emitir NFS-e
+                          </Button>
+                        )
+                      )}
+                      {temVenda && (
+                        nfeEmitida ? (
+                          <Badge variant="secondary" className="h-7 text-[10px] gap-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            <FileText className="h-3 w-3" /> NF-e Emitida
+                          </Badge>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setConfirmEmissaoTipo('NFe')}
+                            disabled={emitindoNota}
+                            className="h-7 text-xs gap-1 border-blue-500 text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
+                          >
+                            {emitindoNota && confirmEmissaoTipo === 'NFe' ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                            Emitir NF-e
+                          </Button>
+                        )
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">
+                  Cancelar
+                </Button>
+                <Button type="submit" className="h-7 text-xs">
+                  Atualizar
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>
@@ -2864,6 +3196,33 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Não</AlertDialogCancel>
             <AlertDialogAction onClick={handleExcluir} className="bg-destructive hover:bg-destructive/90">
               Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Confirmação de Emissão de Nota Fiscal */}
+      <AlertDialog open={!!confirmEmissaoTipo} onOpenChange={(open) => !open && setConfirmEmissaoTipo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Confirmar Emissão de {confirmEmissaoTipo === 'NFSe' ? 'NFS-e' : 'NF-e'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja gerar a {confirmEmissaoTipo === 'NFSe' ? 'NFS-e' : 'NF-e'}?
+              {confirmEmissaoTipo === 'NFSe'
+                ? ' Apenas os itens de serviços serão incluídos na nota.'
+                : ' Apenas os itens de venda de produtos serão incluídos na nota.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmEmissaoTipo(null)}>Não</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmEmissaoTipo && handleEmitirNota(confirmEmissaoTipo)}
+              disabled={emitindoNota}
+            >
+              {emitindoNota ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Sim, Emitir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

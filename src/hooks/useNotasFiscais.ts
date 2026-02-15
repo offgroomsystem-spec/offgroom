@@ -33,7 +33,7 @@ interface Filters {
   dataFim?: string;
 }
 
-async function callNuvemFiscal(action: string, params: Record<string, unknown> = {}) {
+export async function callNuvemFiscal(action: string, params: Record<string, unknown> = {}) {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
   if (!token) throw new Error("Usuário não autenticado");
@@ -130,7 +130,7 @@ export function useNotasFiscais(filters: Filters = {}) {
       return callNuvemFiscal(action, { id });
     },
     onSuccess: (data: { base64: string; contentType: string }) => {
-      // Download the PDF
+      // Open PDF in new window for printing
       const byteCharacters = atob(data.base64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -139,11 +139,7 @@ export function useNotasFiscais(filters: Filters = {}) {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "nota_fiscal.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
+      window.open(url, "_blank");
     },
     onError: (err: Error) => {
       toast({ title: "Erro ao baixar PDF", description: err.message, variant: "destructive" });
