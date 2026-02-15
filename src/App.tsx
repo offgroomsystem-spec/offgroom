@@ -29,6 +29,7 @@ import Pagamento from "./pages/Pagamento";
 import Home from "./pages/Home";
 import Logins from "./pages/Logins";
 import CRMOffgroom from "./pages/CRMOffgroom";
+import NotasFiscais from "./pages/NotasFiscais";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="/contas-bancarias" element={<ContasBancarias />} />
                 <Route path="/controle-financeiro" element={<ControleFinanceiro />} />
                 <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/notas-fiscais" element={<NotasFiscais />} />
                 <Route path="/logins" element={<Logins />} />
               </Route>
             </Route>

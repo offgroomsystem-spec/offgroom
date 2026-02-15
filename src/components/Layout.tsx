@@ -104,6 +104,13 @@ const Layout = () => {
                 <span className="font-medium">Relatórios</span>
               </Link>
             )}
+
+            {(isAdministrador || isRecepcionista) && (
+              <Link to="/notas-fiscais" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/notas-fiscais" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                <FileText className="h-4 w-4" />
+                <span className="font-medium">Notas Fiscais</span>
+              </Link>
+            )}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
