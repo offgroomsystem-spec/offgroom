@@ -1041,7 +1041,7 @@ const Agendamentos = () => {
       // Inserir agendamento e obter o ID
       const { data: agendamentoData, error } = await supabase.from("agendamentos").insert([
         {
-          user_id: user.id,
+          user_id: ownerId,
           cliente: formData.cliente,
           pet: formData.pet,
           raca: formData.raca,
