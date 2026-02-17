@@ -232,6 +232,7 @@ const ServicoExtraCombobox = ({
 const Agendamentos = () => {
   const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [salvando, setSalvando] = useState(false);
 
   // Função para formatar data sem problemas de timezone
   const formatDateForInput = (date: Date): string => {
@@ -998,7 +999,7 @@ const Agendamentos = () => {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || salvando) return;
 
     // Validar se pelo menos um serviço foi selecionado
     const servicosValidos = servicosSelecionadosSimples.filter((s) => s.nome);
@@ -1037,6 +1038,7 @@ const Agendamentos = () => {
     // Criar string concatenada para exibição no calendário
     const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
 
+    setSalvando(true);
     try {
       // Inserir agendamento e obter o ID
       const { data: agendamentoData, error } = await supabase.from("agendamentos").insert([
@@ -1079,6 +1081,8 @@ const Agendamentos = () => {
     } catch (error) {
       console.error("Erro ao criar agendamento:", error);
       toast.error("Erro ao criar agendamento");
+    } finally {
+      setSalvando(false);
     }
   };
   const resetForm = () => {
@@ -1230,7 +1234,7 @@ const Agendamentos = () => {
   };
   const handlePacoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || salvando) return;
 
     if (!pacoteFormData.nomeCliente.trim()) {
       toast.error("Favor preencher o Nome do Cliente");
@@ -1274,6 +1278,7 @@ const Agendamentos = () => {
       }
     }
 
+    setSalvando(true);
     try {
       const { error } = await supabase.from("agendamentos_pacotes").insert([
         {
@@ -1310,6 +1315,8 @@ const Agendamentos = () => {
     } catch (error) {
       console.error("Erro ao agendar pacote:", error);
       toast.error("Erro ao agendar pacote");
+    } finally {
+      setSalvando(false);
     }
   };
   const getAgendamentoForSlot = (date: Date, horario: string) => {
@@ -2370,8 +2377,8 @@ const { error } = await supabase
                   <Button type="button" variant="outline" onClick={resetForm} className="h-8 text-xs">
                     Cancelar
                   </Button>
-                  <Button type="submit" className="h-8 text-xs">
-                    Salvar
+                  <Button type="submit" className="h-8 text-xs" disabled={salvando}>
+                    {salvando ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
               </form>
@@ -2657,8 +2664,8 @@ const { error } = await supabase
                   <Button type="button" variant="outline" onClick={resetPacoteForm} className="h-8 text-xs">
                     Cancelar
                   </Button>
-                  <Button type="submit" className="h-8 text-xs">
-                    Agendar Pacote
+                  <Button type="submit" className="h-8 text-xs" disabled={salvando}>
+                    {salvando ? "Salvando..." : "Agendar Pacote"}
                   </Button>
                 </div>
               </form>
