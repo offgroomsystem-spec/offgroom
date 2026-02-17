@@ -1,26 +1,45 @@
 
-# Correcao: Recepcionista nao consegue criar agendamento
+# Prevencao de Cliques Duplicados no Botao Salvar
 
-## Problema identificado
+## Problema
 
-O erro "new row violates row-level security policy for table agendamentos" ocorre porque na criacao de agendamentos avulsos, o codigo usa `user.id` (ID da Erica/recepcionista) ao inves de `ownerId` (ID do proprietario/administrador).
-
-A politica RLS exige que `user_id = get_effective_user_id(auth.uid())`, que para funcionarios retorna o `owner_id` da tabela `staff_accounts`. O insert esta gravando o ID da Erica (`a4bb1c63-...`), mas o RLS espera o ID do proprietario (`e368f8e7-...`).
-
-**Comparacao**: O insert de agendamentos de pacotes (linha 1280) ja usa `ownerId` corretamente. Apenas o insert de agendamento avulso esta errado.
+Os formularios "Novo Agendamento" e "Agendar Pacote de Servicos" nao possuem protecao contra cliques multiplos. Quando o usuario clica repetidamente no botao "Salvar" ou "Agendar Pacote", cada clique dispara um novo insert no banco, criando registros duplicados.
 
 ## Correcao
 
 ### Arquivo: `src/pages/Agendamentos.tsx`
 
-**Linha 1044**: Alterar `user_id: user.id` para `user_id: ownerId`
+**1. Adicionar estado de loading:**
+
+Criar um estado `salvando` (boolean) para controlar se uma operacao de salvamento esta em andamento.
 
 ```typescript
-// ANTES (errado)
-user_id: user.id,
-
-// DEPOIS (correto)
-user_id: ownerId,
+const [salvando, setSalvando] = useState(false);
 ```
 
-Isso e suficiente para resolver o problema, pois o `ownerId` ja esta disponivel no componente (importado do `useAuth()` na linha 233) e ja e usado corretamente em todas as outras operacoes do mesmo arquivo (queries, inserts de pacotes, etc).
+**2. Proteger `handleSubmit` (Servico Avulso - linha 999):**
+
+- Adicionar `if (salvando) return;` no inicio da funcao
+- Envolver o bloco try/catch com `setSalvando(true)` antes e `setSalvando(false)` no finally
+
+**3. Proteger `handlePacoteSubmit` (Pacote - linha 1231):**
+
+- Mesma logica: guard no inicio + setSalvando no try/finally
+
+**4. Desabilitar botao "Salvar" (linha 2373):**
+
+```typescript
+<Button type="submit" className="h-8 text-xs" disabled={salvando}>
+  {salvando ? "Salvando..." : "Salvar"}
+</Button>
+```
+
+**5. Desabilitar botao "Agendar Pacote" (linha 2660):**
+
+```typescript
+<Button type="submit" className="h-8 text-xs" disabled={salvando}>
+  {salvando ? "Salvando..." : "Agendar Pacote"}
+</Button>
+```
+
+Essa abordagem simples e suficiente: o estado `salvando` bloqueia tanto a logica da funcao (guard clause) quanto a interacao visual (botao desabilitado), impedindo duplicidades mesmo com cliques rapidos.
