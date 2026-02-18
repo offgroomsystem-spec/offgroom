@@ -28,7 +28,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
   Filter,
   X,
   Check,
@@ -38,6 +37,9 @@ import {
   Trash2,
   Plus,
   CalendarIcon,
+  Download,
+  FileText,
+  Minus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -45,7 +47,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { ExportButton } from "../shared/ExportButton";
+import { useFinancialData } from "@/hooks/useFinancialData";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Interfaces
 interface ItemLancamento {
@@ -383,8 +386,59 @@ const ItemLancamentoForm = ({
   );
 };
 
+// Helper components for financial cards
+const VariationBadge = ({ value, suffix = "%", invertColors = false }: { value: number; suffix?: string; invertColors?: boolean }) => {
+  const isPositive = value > 0;
+  const colorClass = invertColors
+    ? (isPositive ? "text-red-600" : "text-green-600")
+    : (isPositive ? "text-green-600" : "text-red-600");
+  const Icon = value === 0 ? Minus : isPositive ? TrendingUp : TrendingDown;
+  return (
+    <span className={`inline-flex items-center gap-1 text-sm font-medium ${colorClass}`}>
+      <Icon className="h-4 w-4" />
+      {value > 0 ? "+" : ""}{value.toFixed(1)}{suffix}
+    </span>
+  );
+};
+
+const getTooltipText = (tipo: string, comparativo: any, periodo: "atual" | "anterior" = "atual"): string => {
+  if (!comparativo) return "";
+  const label = periodo === "atual" ? "mês atual" : "mês anterior";
+  switch (tipo) {
+    case "receita": {
+      const base = `💰 Receita do ${label}. Todo o dinheiro que entrou no seu negócio neste período.`;
+      if (comparativo.varReceita > 0) return `${base}\n📈 Seu faturamento aumentou!`;
+      if (comparativo.varReceita < 0) return `${base}\n📉 Você faturou menos que no período anterior.`;
+      return `${base}\n➡️ Faturamento estável.`;
+    }
+    case "despesas": {
+      const base = `💸 Despesas do ${label}. Todos os gastos do negócio.`;
+      const v = comparativo.varDespesa;
+      if (v < 0) return `${base}\n✅ Redução de despesas melhora a rentabilidade.`;
+      if (v <= 15) return `${base}\n🔹 Leve crescimento nos gastos.`;
+      if (v <= 50) return `${base}\n🔸 Os custos cresceram de forma perceptível.`;
+      return `${base}\n🔴 Os gastos aumentaram significativamente.`;
+    }
+    case "lucro": {
+      const base = `💰 Lucro do ${label}. Quanto sobrou após todas as despesas.`;
+      if (comparativo.lucro < 0) return `${base}\n🚨 O negócio operou no prejuízo.`;
+      if (comparativo.varLucro > 0) return `${base}\n📈 Seu negócio ficou mais lucrativo.`;
+      if (comparativo.varLucro < 0) return `${base}\n📉 O lucro caiu.`;
+      return `${base}\n➡️ Lucro estável.`;
+    }
+    case "margem": {
+      const base = `📊 Margem de lucro do ${label}. Qual % do faturamento virou lucro.`;
+      if (comparativo.diffMargem > 0) return `${base}\n📈 Você está lucrando mais proporcionalmente.`;
+      if (comparativo.diffMargem < 0) return `${base}\n📉 Uma parte menor virou lucro.`;
+      return `${base}\nℹ️ Variação medida em pontos percentuais (pp).`;
+    }
+    default: return "";
+  }
+};
+
 const FluxoDeCaixa = () => {
   const { user, ownerId } = useAuth();
+  const { comparativo, dadosMensais } = useFinancialData();
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFluxo[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -1145,6 +1199,180 @@ const FluxoDeCaixa = () => {
     }));
   }, [lancamentos, lancamentosFiltrados, filtrosAplicados]);
 
+  // Compute comparativoAnterior (mês anterior) para cards
+  const comparativoAnterior = useMemo(() => {
+    if (dadosMensais.length < 3) return null;
+    const anterior = dadosMensais[dadosMensais.length - 2];
+    const doisAtras = dadosMensais[dadosMensais.length - 3];
+    const varReceita = doisAtras.receitas > 0 ? ((anterior.receitas - doisAtras.receitas) / doisAtras.receitas) * 100 : 0;
+    const varDespesa = doisAtras.despesas > 0 ? ((anterior.despesas - doisAtras.despesas) / doisAtras.despesas) * 100 : 0;
+    const varLucro = doisAtras.lucro !== 0 ? ((anterior.lucro - doisAtras.lucro) / Math.abs(doisAtras.lucro)) * 100 : 0;
+    const diffMargem = anterior.margem - doisAtras.margem;
+    return {
+      receita: anterior.receitas,
+      despesa: anterior.despesas,
+      lucro: anterior.lucro,
+      margem: anterior.margem,
+      varReceita,
+      varDespesa,
+      varLucro,
+      diffMargem,
+    };
+  }, [dadosMensais]);
+
+  const exportCSV = () => {
+    const dados = filtrosAplicados ? lancamentosFiltrados : lancamentos;
+    if (dados.length === 0) {
+      toast.error("Não há dados para exportar");
+      return;
+    }
+    const columns = [
+      "Data do Pagamento", "Ano/Mês", "Tipo", "Fornecedor", "Cliente", "Pet",
+      "Descrição 1", "Descrições 2", "Itens", "Valor Total", "Banco", "Status",
+    ];
+    const rows = dadosExportacao.map((row: any) =>
+      columns.map((col) => {
+        const v = row[col];
+        if (typeof v === "string" && (v.includes(",") || v.includes('"'))) return `"${v.replace(/"/g, '""')}"`;
+        return v ?? "";
+      }).join(",")
+    );
+    const csv = [columns.join(","), ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `fluxo-de-caixa_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+    toast.success("Relatório CSV exportado com sucesso!");
+  };
+
+  const handleExportarPDF = () => {
+    if (!filtrosAplicados) {
+      toast.error("Favor selecionar no filtro o período que deseja extrair no relatório.");
+      return;
+    }
+
+    const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+    const periodo = [
+      filtros.dataInicio && filtros.dataFim
+        ? `${filtros.dataInicio.split("-").reverse().join("/")} a ${filtros.dataFim.split("-").reverse().join("/")}`
+        : "",
+      filtros.mes && filtros.ano ? `${filtros.mes}/${filtros.ano}` : "",
+      filtros.mes && !filtros.ano ? `Mês ${filtros.mes}` : "",
+      !filtros.mes && filtros.ano ? `Ano ${filtros.ano}` : "",
+    ].find(Boolean) || "Período filtrado";
+
+    const tabelaLinhas = lancamentosFiltrados.map((l) => `
+      <tr style="border-bottom:1px solid #e5e7eb;">
+        <td style="padding:3px 6px;font-size:11px;">${new Date(l.dataPagamento + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+        <td style="padding:3px 6px;font-size:11px;">${l.ano}/${l.mesCompetencia}</td>
+        <td style="padding:3px 6px;font-size:11px;color:${l.tipo === "Receita" ? "#16a34a" : "#dc2626"};">${l.tipo}</td>
+        <td style="padding:3px 6px;font-size:11px;">${l.nomeFornecedor || "-"}</td>
+        <td style="padding:3px 6px;font-size:11px;">${l.nomeCliente || "-"}</td>
+        <td style="padding:3px 6px;font-size:11px;">${l.descricao1}</td>
+        <td style="padding:3px 6px;font-size:11px;">${l.itens.map((i) => i.descricao2).join(", ")}</td>
+        <td style="padding:3px 6px;font-size:11px;font-weight:bold;color:${l.tipo === "Receita" ? "#16a34a" : "#dc2626"};">${fmt(l.valorTotal)}</td>
+        <td style="padding:3px 6px;font-size:11px;">${l.nomeBanco}</td>
+        <td style="padding:3px 6px;font-size:11px;">${l.pago ? "Pago" : "Pendente"}</td>
+      </tr>
+    `).join("");
+
+    const cardsMesAnterior = comparativoAnterior ? `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
+        <div style="border:1px solid #d1fae5;border-radius:8px;padding:10px;background:#f0fdf4;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Receita — Mês Anterior</p>
+          <p style="font-size:15px;font-weight:bold;color:#16a34a;margin:4px 0;">${fmt(comparativoAnterior.receita)}</p>
+          <p style="font-size:11px;color:${comparativoAnterior.varReceita >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.varReceita >= 0 ? "+" : ""}${comparativoAnterior.varReceita.toFixed(1)}%</p>
+        </div>
+        <div style="border:1px solid #fee2e2;border-radius:8px;padding:10px;background:#fff1f2;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Despesas — Mês Anterior</p>
+          <p style="font-size:15px;font-weight:bold;color:#dc2626;margin:4px 0;">${fmt(comparativoAnterior.despesa)}</p>
+          <p style="font-size:11px;color:${comparativoAnterior.varDespesa <= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.varDespesa >= 0 ? "+" : ""}${comparativoAnterior.varDespesa.toFixed(1)}%</p>
+        </div>
+        <div style="border:1px solid #dbeafe;border-radius:8px;padding:10px;background:#eff6ff;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Lucro — Mês Anterior</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativoAnterior.lucro >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${fmt(comparativoAnterior.lucro)}</p>
+          <p style="font-size:11px;color:${comparativoAnterior.varLucro >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.varLucro >= 0 ? "+" : ""}${comparativoAnterior.varLucro.toFixed(1)}%</p>
+        </div>
+        <div style="border:1px solid #f3e8ff;border-radius:8px;padding:10px;background:#faf5ff;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Margem — Mês Anterior</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativoAnterior.margem >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${comparativoAnterior.margem.toFixed(1)}%</p>
+          <p style="font-size:11px;color:${comparativoAnterior.diffMargem >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.diffMargem >= 0 ? "+" : ""}${comparativoAnterior.diffMargem.toFixed(1)}pp</p>
+        </div>
+      </div>
+    ` : "";
+
+    const cardsMesAtual = comparativo ? `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+        <div style="border:1px solid #d1fae5;border-radius:8px;padding:10px;background:#f0fdf4;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Receita — Mês Atual</p>
+          <p style="font-size:15px;font-weight:bold;color:#16a34a;margin:4px 0;">${fmt(comparativo.receita)}</p>
+          <p style="font-size:11px;color:${comparativo.varReceita >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.varReceita >= 0 ? "+" : ""}${comparativo.varReceita.toFixed(1)}%</p>
+        </div>
+        <div style="border:1px solid #fee2e2;border-radius:8px;padding:10px;background:#fff1f2;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Despesas — Mês Atual</p>
+          <p style="font-size:15px;font-weight:bold;color:#dc2626;margin:4px 0;">${fmt(comparativo.despesa)}</p>
+          <p style="font-size:11px;color:${comparativo.varDespesa <= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.varDespesa >= 0 ? "+" : ""}${comparativo.varDespesa.toFixed(1)}%</p>
+        </div>
+        <div style="border:1px solid #dbeafe;border-radius:8px;padding:10px;background:#eff6ff;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Lucro — Mês Atual</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativo.lucro >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${fmt(comparativo.lucro)}</p>
+          <p style="font-size:11px;color:${comparativo.varLucro >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.varLucro >= 0 ? "+" : ""}${comparativo.varLucro.toFixed(1)}%</p>
+        </div>
+        <div style="border:1px solid #f3e8ff;border-radius:8px;padding:10px;background:#faf5ff;">
+          <p style="font-size:11px;color:#6b7280;margin:0;">Margem — Mês Atual</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativo.margem >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${comparativo.margem.toFixed(1)}%</p>
+          <p style="font-size:11px;color:${comparativo.diffMargem >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.diffMargem >= 0 ? "+" : ""}${comparativo.diffMargem.toFixed(1)}pp</p>
+        </div>
+      </div>
+    ` : "";
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Fluxo de Caixa - ${periodo}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 0; }
+    h1 { font-size: 16px; margin: 0 0 4px 0; }
+    p { margin: 0 0 12px 0; font-size: 11px; color: #555; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    thead tr { background: #f3f4f6; }
+    th { padding: 5px 6px; text-align: left; font-weight: 600; border-bottom: 2px solid #d1d5db; }
+    tr:nth-child(even) { background: #f9fafb; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <h1>Fluxo de Caixa</h1>
+  <p>Período: ${periodo} — Gerado em ${new Date().toLocaleDateString("pt-BR")}</p>
+  ${cardsMesAnterior}
+  ${cardsMesAtual}
+  <table>
+    <thead>
+      <tr>
+        <th>Data Pagto.</th><th>Ano/Mês</th><th>Tipo</th><th>Fornecedor</th>
+        <th>Cliente</th><th>Descrição 1</th><th>Itens</th>
+        <th>Valor Total</th><th>Banco</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>${tabelaLinhas}</tbody>
+  </table>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) {
+      toast.error("Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-ups está ativo.");
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 500);
+  };
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -1255,86 +1483,172 @@ const FluxoDeCaixa = () => {
             </DialogContent>
           </Dialog>
 
-          <ExportButton
-            data={dadosExportacao}
-            filename="fluxo-de-caixa"
-            columns={[
-              { key: "Data do Pagamento", label: "Data do Pagamento" },
-              { key: "Ano/Mês", label: "Ano/Mês" },
-              { key: "Tipo", label: "Tipo" },
-              { key: "Cliente", label: "Cliente" },
-              { key: "Pet", label: "Pet" },
-              { key: "Descrição 1", label: "Descrição 1" },
-              { key: "Descrições 2", label: "Descrições 2" },
-              { key: "Itens", label: "Itens" },
-              { key: "Valor Total", label: "Valor Total" },
-              { key: "Banco", label: "Banco" },
-              { key: "Status", label: "Status" },
-            ]}
-          />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV} className="h-8 text-xs">
+              <Download className="h-3 w-3 mr-1" />
+              Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportarPDF} className="h-8 text-xs">
+              <FileText className="h-3 w-3 mr-1" />
+              Exportar PDF
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Dashboard Compacto */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-        <Card className="border-green-200 bg-green-50 dark:bg-green-950/30">
-          <CardHeader className="py-1 pb-0">
-            <CardTitle className="text-xs font-medium text-green-700 dark:text-green-400 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              Recebido
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-1">
-            <div className="text-lg font-bold text-green-700 dark:text-green-400">
-              {formatCurrency(metricas.recebido.valor)}
-            </div>
-            <p className="text-[10px] text-green-600 dark:text-green-500">Qtd: {metricas.recebido.qtd}</p>
-          </CardContent>
-        </Card>
+      {/* Cards Mês Anterior */}
+      {comparativoAnterior && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Receita</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativoAnterior.receita)}</p>
+                    <VariationBadge value={comparativoAnterior.varReceita} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("receita", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
 
-        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/30">
-          <CardHeader className="py-1 pb-0">
-            <CardTitle className="text-xs font-medium text-yellow-700 dark:text-yellow-400 flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />A Receber
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-1">
-            <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">
-              {formatCurrency(metricas.aReceber.valor)}
-            </div>
-            <p className="text-[10px] text-yellow-600 dark:text-yellow-500">Qtd: {metricas.aReceber.qtd}</p>
-          </CardContent>
-        </Card>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Despesas</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativoAnterior.despesa)}</p>
+                    <VariationBadge value={comparativoAnterior.varDespesa} invertColors />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("despesas", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
 
-        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
-          <CardHeader className="py-1 pb-0">
-            <CardTitle className="text-xs font-medium text-blue-700 dark:text-blue-400 flex items-center gap-1">
-              <TrendingDown className="h-3 w-3" />
-              Pago
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-1">
-            <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
-              {formatCurrency(metricas.pago.valor)}
-            </div>
-            <p className="text-[10px] text-blue-600 dark:text-blue-500">Qtd: {metricas.pago.qtd}</p>
-          </CardContent>
-        </Card>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Lucro</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className={`text-lg font-bold ${comparativoAnterior.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativoAnterior.lucro)}</p>
+                    <VariationBadge value={comparativoAnterior.varLucro} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("lucro", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
 
-        <Card className="border-red-200 bg-red-50 dark:bg-red-950/30">
-          <CardHeader className="py-1 pb-0">
-            <CardTitle className="text-xs font-medium text-red-700 dark:text-red-400 flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />A Pagar
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-1">
-            <div className="text-lg font-bold text-red-700 dark:text-red-400">
-              {formatCurrency(metricas.aPagar.valor)}
-            </div>
-            <p className="text-[10px] text-red-600 dark:text-red-500">Qtd: {metricas.aPagar.qtd}</p>
-          </CardContent>
-        </Card>
-      </div>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Margem</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
+                    <p className={`text-lg font-bold ${comparativoAnterior.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativoAnterior.margem.toFixed(1)}%</p>
+                    <VariationBadge value={comparativoAnterior.diffMargem} suffix="pp" />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("margem", comparativoAnterior, "anterior")}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
+      )}
+
+      {/* Cards Mês Atual */}
+      {comparativo && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Receita</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativo.receita)}</p>
+                    <VariationBadge value={comparativo.varReceita} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("receita", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Despesas</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativo.despesa)}</p>
+                    <VariationBadge value={comparativo.varDespesa} invertColors />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("despesas", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Lucro</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className={`text-lg font-bold ${comparativo.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativo.lucro)}</p>
+                    <VariationBadge value={comparativo.varLucro} />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("lucro", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Card className="cursor-help">
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-xs text-muted-foreground">Margem</p>
+                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
+                    <p className={`text-lg font-bold ${comparativo.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativo.margem.toFixed(1)}%</p>
+                    <VariationBadge value={comparativo.diffMargem} suffix="pp" />
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
+                <p>{getTooltipText("margem", comparativo)}</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
+      )}
 
       {/* Saldos por Banco */}
       {saldosPorBanco.length > 0 && (
