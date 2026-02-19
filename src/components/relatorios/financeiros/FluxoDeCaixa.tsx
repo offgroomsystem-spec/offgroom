@@ -1406,52 +1406,52 @@ const FluxoDeCaixa = () => {
       </tr>
     `).join("");
 
-    const cardsMesAnterior = comparativoAnterior ? `
+    const cardsMesAnterior = comparativoAnteriorCards ? `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
         <div style="border:1px solid #d1fae5;border-radius:8px;padding:10px;background:#f0fdf4;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Receita — Mês Anterior</p>
-          <p style="font-size:15px;font-weight:bold;color:#16a34a;margin:4px 0;">${fmt(comparativoAnterior.receita)}</p>
-          <p style="font-size:11px;color:${comparativoAnterior.varReceita >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.varReceita >= 0 ? "+" : ""}${comparativoAnterior.varReceita.toFixed(1)}%</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Receita — ${labelCardAnterior}</p>
+          <p style="font-size:15px;font-weight:bold;color:#16a34a;margin:4px 0;">${fmt(comparativoAnteriorCards.receita)}</p>
+          <p style="font-size:11px;color:${comparativoAnteriorCards.varReceita >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnteriorCards.varReceita >= 0 ? "+" : ""}${comparativoAnteriorCards.varReceita.toFixed(1)}%</p>
         </div>
         <div style="border:1px solid #fee2e2;border-radius:8px;padding:10px;background:#fff1f2;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Despesas — Mês Anterior</p>
-          <p style="font-size:15px;font-weight:bold;color:#dc2626;margin:4px 0;">${fmt(comparativoAnterior.despesa)}</p>
-          <p style="font-size:11px;color:${comparativoAnterior.varDespesa <= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.varDespesa >= 0 ? "+" : ""}${comparativoAnterior.varDespesa.toFixed(1)}%</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Despesas — ${labelCardAnterior}</p>
+          <p style="font-size:15px;font-weight:bold;color:#dc2626;margin:4px 0;">${fmt(comparativoAnteriorCards.despesa)}</p>
+          <p style="font-size:11px;color:${comparativoAnteriorCards.varDespesa <= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnteriorCards.varDespesa >= 0 ? "+" : ""}${comparativoAnteriorCards.varDespesa.toFixed(1)}%</p>
         </div>
         <div style="border:1px solid #dbeafe;border-radius:8px;padding:10px;background:#eff6ff;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Lucro — Mês Anterior</p>
-          <p style="font-size:15px;font-weight:bold;color:${comparativoAnterior.lucro >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${fmt(comparativoAnterior.lucro)}</p>
-          <p style="font-size:11px;color:${comparativoAnterior.varLucro >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.varLucro >= 0 ? "+" : ""}${comparativoAnterior.varLucro.toFixed(1)}%</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Lucro — ${labelCardAnterior}</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativoAnteriorCards.lucro >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${fmt(comparativoAnteriorCards.lucro)}</p>
+          <p style="font-size:11px;color:${comparativoAnteriorCards.varLucro >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnteriorCards.varLucro >= 0 ? "+" : ""}${comparativoAnteriorCards.varLucro.toFixed(1)}%</p>
         </div>
         <div style="border:1px solid #f3e8ff;border-radius:8px;padding:10px;background:#faf5ff;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Margem — Mês Anterior</p>
-          <p style="font-size:15px;font-weight:bold;color:${comparativoAnterior.margem >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${comparativoAnterior.margem.toFixed(1)}%</p>
-          <p style="font-size:11px;color:${comparativoAnterior.diffMargem >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnterior.diffMargem >= 0 ? "+" : ""}${comparativoAnterior.diffMargem.toFixed(1)}pp</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Margem — ${labelCardAnterior}</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativoAnteriorCards.margem >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${comparativoAnteriorCards.margem.toFixed(1)}%</p>
+          <p style="font-size:11px;color:${comparativoAnteriorCards.diffMargem >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoAnteriorCards.diffMargem >= 0 ? "+" : ""}${comparativoAnteriorCards.diffMargem.toFixed(1)}pp</p>
         </div>
       </div>
     ` : "";
 
-    const cardsMesAtual = comparativo ? `
+    const cardsMesAtual = comparativoCards ? `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
         <div style="border:1px solid #d1fae5;border-radius:8px;padding:10px;background:#f0fdf4;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Receita — Mês Atual</p>
-          <p style="font-size:15px;font-weight:bold;color:#16a34a;margin:4px 0;">${fmt(comparativo.receita)}</p>
-          <p style="font-size:11px;color:${comparativo.varReceita >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.varReceita >= 0 ? "+" : ""}${comparativo.varReceita.toFixed(1)}%</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Receita — ${labelCardAtual}</p>
+          <p style="font-size:15px;font-weight:bold;color:#16a34a;margin:4px 0;">${fmt(comparativoCards.receita)}</p>
+          <p style="font-size:11px;color:${comparativoCards.varReceita >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoCards.varReceita >= 0 ? "+" : ""}${comparativoCards.varReceita.toFixed(1)}%</p>
         </div>
         <div style="border:1px solid #fee2e2;border-radius:8px;padding:10px;background:#fff1f2;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Despesas — Mês Atual</p>
-          <p style="font-size:15px;font-weight:bold;color:#dc2626;margin:4px 0;">${fmt(comparativo.despesa)}</p>
-          <p style="font-size:11px;color:${comparativo.varDespesa <= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.varDespesa >= 0 ? "+" : ""}${comparativo.varDespesa.toFixed(1)}%</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Despesas — ${labelCardAtual}</p>
+          <p style="font-size:15px;font-weight:bold;color:#dc2626;margin:4px 0;">${fmt(comparativoCards.despesa)}</p>
+          <p style="font-size:11px;color:${comparativoCards.varDespesa <= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoCards.varDespesa >= 0 ? "+" : ""}${comparativoCards.varDespesa.toFixed(1)}%</p>
         </div>
         <div style="border:1px solid #dbeafe;border-radius:8px;padding:10px;background:#eff6ff;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Lucro — Mês Atual</p>
-          <p style="font-size:15px;font-weight:bold;color:${comparativo.lucro >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${fmt(comparativo.lucro)}</p>
-          <p style="font-size:11px;color:${comparativo.varLucro >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.varLucro >= 0 ? "+" : ""}${comparativo.varLucro.toFixed(1)}%</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Lucro — ${labelCardAtual}</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativoCards.lucro >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${fmt(comparativoCards.lucro)}</p>
+          <p style="font-size:11px;color:${comparativoCards.varLucro >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoCards.varLucro >= 0 ? "+" : ""}${comparativoCards.varLucro.toFixed(1)}%</p>
         </div>
         <div style="border:1px solid #f3e8ff;border-radius:8px;padding:10px;background:#faf5ff;">
-          <p style="font-size:11px;color:#6b7280;margin:0;">Margem — Mês Atual</p>
-          <p style="font-size:15px;font-weight:bold;color:${comparativo.margem >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${comparativo.margem.toFixed(1)}%</p>
-          <p style="font-size:11px;color:${comparativo.diffMargem >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativo.diffMargem >= 0 ? "+" : ""}${comparativo.diffMargem.toFixed(1)}pp</p>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Margem — ${labelCardAtual}</p>
+          <p style="font-size:15px;font-weight:bold;color:${comparativoCards.margem >= 0 ? "#16a34a" : "#dc2626"};margin:4px 0;">${comparativoCards.margem.toFixed(1)}%</p>
+          <p style="font-size:11px;color:${comparativoCards.diffMargem >= 0 ? "#16a34a" : "#dc2626"};margin:0;">${comparativoCards.diffMargem >= 0 ? "+" : ""}${comparativoCards.diffMargem.toFixed(1)}pp</p>
         </div>
       </div>
     ` : "";
