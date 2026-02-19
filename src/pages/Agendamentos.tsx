@@ -1876,6 +1876,7 @@ const { error } = await supabase
             servicos: updatedServicos as any,
             whatsapp: editandoAgendamento.whatsapp,
             data_venda: editandoAgendamento.dataVenda,
+            taxi_dog: editandoAgendamento.taxiDog,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editandoAgendamento.pacoteOriginal.id);
