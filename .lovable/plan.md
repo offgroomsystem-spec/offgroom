@@ -1,53 +1,54 @@
 
-## Diagnóstico
+## Bug: Taxi Dog não é salvo na edição de agendamento de Pacote
 
-O problema está na função `handleExportarPDF` dentro de `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`.
+### Diagnóstico
 
-Apesar de os cards na tela já usarem as variáveis dinâmicas corretas (`comparativoAnteriorCards`, `comparativoCards`, `labelCardAnterior`, `labelCardAtual`), a função de exportação PDF ainda referencia as variáveis **estáticas e antigas**:
+O problema está na função `handleAtualizarAgendamento` em `src/pages/Agendamentos.tsx` (linhas 1873–1881).
 
-- Linha 1409: `comparativoAnterior` → deveria ser `comparativoAnteriorCards`
-- Linha 1434: `comparativo` → deveria ser `comparativoCards`
-- Labels hardcoded: `"Mês Anterior"` / `"Mês Atual"` → deveriam ser `labelCardAnterior` / `labelCardAtual`
+Quando o usuário edita um agendamento do tipo **Pacote**, a atualização é enviada para a tabela `agendamentos_pacotes`. Porém, o campo `taxi_dog` **não está incluído** no payload do `.update()`:
 
-O CSV já está correto — ele usa `lancamentosFiltrados` via `dadosExportacao`, que já respeita os filtros aplicados.
+```typescript
+// Código atual — falta taxi_dog
+.update({
+  servicos: updatedServicos as any,
+  whatsapp: editandoAgendamento.whatsapp,
+  data_venda: editandoAgendamento.dataVenda,
+  updated_at: new Date().toISOString(),
+  // ❌ taxi_dog ausente
+})
+```
 
----
-
-## Correção
-
-Apenas **1 arquivo** será alterado: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`.
-
-### Mudanças na função `handleExportarPDF` (linhas ~1409–1457):
-
-**Bloco "Mês Anterior" no HTML do PDF:**
-- Substituir `comparativoAnterior` por `comparativoAnteriorCards`
-- Substituir o label `"Receita — Mês Anterior"` por `"Receita — " + labelCardAnterior`
-- Substituir o label `"Despesas — Mês Anterior"` por `"Despesas — " + labelCardAnterior`
-- Substituir o label `"Lucro — Mês Anterior"` por `"Lucro — " + labelCardAnterior`
-- Substituir o label `"Margem — Mês Anterior"` por `"Margem — " + labelCardAnterior`
-
-**Bloco "Mês Atual" no HTML do PDF:**
-- Substituir `comparativo` por `comparativoCards`
-- Substituir o label `"Receita — Mês Atual"` por `"Receita — " + labelCardAtual`
-- Substituir o label `"Despesas — Mês Atual"` por `"Despesas — " + labelCardAtual`
-- Substituir o label `"Lucro — Mês Atual"` por `"Lucro — " + labelCardAtual`
-- Substituir o label `"Margem — Mês Atual"` por `"Margem — " + labelCardAtual`
-
-### Resultado esperado
-
-Quando o usuário aplicar o filtro de **Outubro/2025**, o PDF gerado exibirá:
-- Cards linha 1: "Receita — Setembro/2025", "Despesas — Setembro/2025", etc. com valores calculados de Setembro
-- Cards linha 2: "Receita — Outubro/2025", "Despesas — Outubro/2025", etc. com valores calculados de Outubro
-
-Quando não houver filtro de competência específico, os labels voltam para "Mês Anterior" / "Mês Atual" com os dados estáticos do hook — exatamente igual ao comportamento atual dos cards na tela.
+O formulário de edição captura corretamente a mudança do campo "Taxi Dog" (o estado `editandoAgendamento.taxiDog` é atualizado via `setEditandoAgendamento`), mas esse valor nunca é enviado ao banco ao salvar. Por isso a alteração some após recarregar.
 
 ---
 
-## Resumo
+### Comportamento esperado
 
-| Linha | Variável atual (errada) | Variável correta |
-|-------|------------------------|-----------------|
-| 1409 | `comparativoAnterior` | `comparativoAnteriorCards` |
-| 1413–1429 | labels hardcoded "Mês Anterior" | `labelCardAnterior` dinâmico |
-| 1434 | `comparativo` | `comparativoCards` |
-| 1437–1454 | labels hardcoded "Mês Atual" | `labelCardAtual` dinâmico |
+Como o campo `taxi_dog` pertence ao registro pai na tabela `agendamentos_pacotes` (e todos os serviços do pacote compartilham o mesmo valor), **alterar o Taxi Dog em qualquer serviço do pacote atualizará automaticamente todos os agendamentos daquele pacote** — pois é um campo único na tabela pai.
+
+---
+
+### Correção
+
+Apenas **1 arquivo** será alterado: `src/pages/Agendamentos.tsx`.
+
+Adicionar `taxi_dog: editandoAgendamento.taxiDog` no payload do `.update()` da linha ~1876:
+
+```typescript
+// Código corrigido
+.update({
+  servicos: updatedServicos as any,
+  whatsapp: editandoAgendamento.whatsapp,
+  data_venda: editandoAgendamento.dataVenda,
+  taxi_dog: editandoAgendamento.taxiDog,  // ✅ adicionado
+  updated_at: new Date().toISOString(),
+})
+```
+
+### Resumo
+
+| Arquivo | Linha | Mudança |
+|---|---|---|
+| `src/pages/Agendamentos.tsx` | 1876 | Adicionar `taxi_dog: editandoAgendamento.taxiDog` no payload do update de pacote |
+
+Uma linha adicionada resolve o problema completamente.
