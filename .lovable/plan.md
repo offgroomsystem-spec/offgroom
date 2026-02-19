@@ -1,68 +1,95 @@
 
-# Melhorias no Relatório de Fluxo de Caixa
+## Diagnóstico
 
-## O que será feito
+O botão "Exportar PDF" do **Fluxo de Caixa** já está implementado e funcional — a função `handleExportarPDF` existe, valida se há filtro aplicado e gera o PDF em landscape via `window.print()`.
 
-Duas melhorias principais no arquivo `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`:
+O toast "Em desenvolvimento" que está aparecendo vem do componente compartilhado `ExportButton` (`src/components/relatorios/shared/ExportButton.tsx`), que ainda é usado em 3 outros relatórios da mesma página:
 
-1. **Substituir os cards atuais** (Recebido, A Receber, Pago, A Pagar) pelos cards de Receita/Despesas/Lucro/Margem em duas linhas (Mês Anterior e Mês Atual), igual aos cards da página "Gráficos Financeiros".
+- Pacotes Próximos ao Vencimento (`PacotesProximosVencimento.tsx`)
+- Pacotes Expirados (`PacotesExpirados.tsx`)
+- Produtos Próximos ao Vencimento (`ProdutosProximosVencimento.tsx`)
 
-2. **Implementar o botão "Exportar PDF"** com geração de PDF em orientação horizontal (landscape), incluindo todos os cards e a tabela de lançamentos, sendo bloqueado com mensagem de aviso quando não há filtro ativo.
+O usuário estava clicando no "Exportar PDF" de um desses relatórios, não no Fluxo de Caixa.
 
----
+## Solução
 
-## Detalhamento Técnico
+Corrigir o componente `ExportButton` diretamente, implementando a exportação PDF real com `window.print()`. Como esse componente é genérico (não tem acesso a filtros como o Fluxo de Caixa), o PDF exportará os dados disponíveis sem bloqueio por filtro:
 
-### 1. Novos Cards (substituindo os 4 cards atuais)
+### Arquivo: `src/components/relatorios/shared/ExportButton.tsx`
 
-Os cards atuais na linha ~1279 serão removidos e substituídos por dois blocos de cards importados do hook `useFinancialData`, que já existe no projeto e fornece `comparativo` (mês atual) e `comparativoAnterior` (mês anterior) com os campos: `receita`, `despesa`, `lucro`, `margem` e suas variações.
+Substituir a função `exportToPDF` atual (que apenas mostra toast "Em desenvolvimento") por uma implementação real que:
 
-**Linha 1° - Mês Anterior** (4 cards: Receita, Despesas, Lucro, Margem):
-- Mesmo visual dos cards de `GraficosFinanceiros.tsx`
-- Badge de variação percentual com seta de tendência
-- Tooltip informativo (reutilizar a lógica `getTooltipText`)
+1. Valida se há dados para exportar
+2. Gera um HTML temporário com os dados em formato de tabela
+3. Usa CSS com `@page { size: A4 landscape; margin: 10mm; }` para orientação horizontal
+4. Abre nova janela e chama `window.print()`
 
-**Linha 2° - Mês Atual** (4 cards: Receita, Despesas, Lucro, Margem):
-- Mesmo visual
+O conteúdo do PDF incluirá:
+- Título com o nome do arquivo (ex: "Pacotes Próximos ao Vencimento")
+- Data de geração
+- Tabela completa com todas as colunas e dados passados via props
 
-O `useFinancialData` já é importado em outros locais do projeto, bastando adicioná-lo ao topo do `FluxoDeCaixa.tsx`.
+### Implementação da função exportToPDF:
 
-### 2. Exportar PDF com orientação horizontal
+```typescript
+const exportToPDF = () => {
+  if (data.length === 0) {
+    toast({ title: "Aviso", description: "Não há dados para exportar", variant: "destructive" });
+    return;
+  }
 
-**Lógica de bloqueio:**
-- A variável `filtrosAplicados` (já existente no estado) determina se há filtro ativo.
-- Se `filtrosAplicados === false`, o clique no botão PDF exibe um `toast.error` com a mensagem: _"Favor selecionar no filtro o período que deseja extrair no relatório."_
+  const headers = columns.map(col => col.label);
+  const rows = data.map(row =>
+    columns.map(col => {
+      let value = row[col.key];
+      if (value instanceof Date) value = format(value, 'dd/MM/yyyy');
+      return value ?? '';
+    })
+  );
 
-**Geração do PDF via `window.print()`:**
-A abordagem mais compatível e sem dependências extras é usar CSS de impressão com `@media print`. Ao clicar em "Exportar PDF":
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${filename}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 0; }
+    h1 { font-size: 16px; margin: 0 0 8px 0; }
+    p { font-size: 11px; color: #555; margin: 0 0 12px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #f3f4f6; }
+    th { padding: 5px 6px; text-align: left; font-weight: 600; border-bottom: 2px solid #d1d5db; font-size: 11px; }
+    td { padding: 4px 6px; font-size: 11px; border-bottom: 1px solid #e5e7eb; }
+    tr:nth-child(even) { background: #f9fafb; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <h1>${filename.replace(/_\d{4}-\d{2}-\d{2}$/, '').replace(/-/g, ' ')}</h1>
+  <p>Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+  <table>
+    <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>
+</body>
+</html>`;
 
-1. Cria um elemento HTML temporário com:
-   - Os cards de mês anterior e atual renderizados em formato tabular
-   - A tabela de lançamentos filtrados
-   - Estilo CSS interno com `@page { size: A4 landscape; margin: 10mm; }`
-2. Abre uma nova janela (`window.open`), escreve o HTML e chama `window.print()`
+  const win = window.open('', '_blank');
+  if (!win) {
+    toast({ title: "Erro", description: "Bloqueador de pop-ups ativo. Permita pop-ups para exportar o PDF.", variant: "destructive" });
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); win.close(); }, 500);
 
-Isso evita a necessidade de instalar bibliotecas como `jspdf` ou `html2canvas` (que podem ser instáveis para tabelas grandes) e garante que o PDF contenha todos os dados filtrados com layout adequado.
+  toast({ title: "Sucesso", description: "PDF gerado com sucesso!" });
+};
+```
 
-**Conteúdo do PDF:**
-- Título: "Fluxo de Caixa - [período filtrado]"
-- Linha 1: Cards Mês Anterior (Receita | Despesas | Lucro | Margem)
-- Linha 2: Cards Mês Atual (Receita | Despesas | Lucro | Margem)
-- Tabela completa de lançamentos filtrados com todas as colunas
+### Apenas 1 arquivo será alterado:
+- `src/components/relatorios/shared/ExportButton.tsx`
 
-### 3. Alterações no ExportButton e layout do header
-
-O botão "Exportar PDF" atual no `ExportButton` mostra um `toast` de "em desenvolvimento". A lógica do PDF será implementada diretamente no `FluxoDeCaixa.tsx` substituindo o componente `ExportButton` por botões individuais inline, onde:
-- O botão "Exportar CSV" mantém o comportamento atual
-- O botão "Exportar PDF" recebe a nova lógica descrita acima
-
-### 4. Arquivo alterado
-
-Apenas **`src/components/relatorios/financeiros/FluxoDeCaixa.tsx`**:
-- Adicionar import de `useFinancialData` e `formatCurrency` do hook
-- Adicionar import de `Tooltip/TooltipProvider/TooltipTrigger/TooltipContent` do radix
-- Adicionar import de `TrendingDown, Minus` (já existem parcialmente)
-- Remover bloco dos 4 cards antigos (linhas ~1279-1337)
-- Adicionar os 8 novos cards em dois grupos de 4
-- Substituir `ExportButton` por botões inline com nova lógica de PDF
-- Adicionar função `handleExportarPDF` com geração do documento HTML e `window.print()`
+Isso corrige automaticamente os 3 relatórios que usam o componente (Pacotes Próximos ao Vencimento, Pacotes Expirados e Produtos Próximos ao Vencimento) sem necessidade de alterar cada um individualmente.
