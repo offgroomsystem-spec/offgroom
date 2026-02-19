@@ -1220,6 +1220,135 @@ const FluxoDeCaixa = () => {
     };
   }, [dadosMensais]);
 
+  // Nomes dos meses em português
+  const nomesMeses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+  // Função auxiliar para calcular métricas de um mês/ano específico a partir dos lancamentos carregados
+  const calcularMetricasMes = (mes: number, ano: number) => {
+    const mesStr = String(mes).padStart(2, "0");
+    const anoStr = String(ano);
+    const filtrados = lancamentos.filter(
+      (l) => l.pago && l.ano === anoStr && l.mesCompetencia === mesStr
+    );
+    const receitas = filtrados.filter(l => l.tipo === "Receita").reduce((a, l) => a + l.valorTotal, 0);
+    const despesas = filtrados.filter(l => l.tipo === "Despesa").reduce((a, l) => a + l.valorTotal, 0);
+    const lucro = receitas - despesas;
+    const margem = receitas > 0 ? (lucro / receitas) * 100 : 0;
+    return { receitas, despesas, lucro, margem };
+  };
+
+  // Detecta o período de referência com base no filtro ativo
+  const periodoReferencia = useMemo(() => {
+    if (!filtrosAplicados) return null;
+
+    // Caso 1: filtro por Mês da Competência + Ano
+    if (filtroDataAtivo === "mesano" && filtros.mes && filtros.ano) {
+      return {
+        mesRef: parseInt(filtros.mes),
+        anoRef: parseInt(filtros.ano),
+      };
+    }
+
+    // Caso 2: filtro por Período — detectar se cobre um mês completo
+    if (filtroDataAtivo === "periodo" && filtros.dataInicio && filtros.dataFim) {
+      const inicio = new Date(filtros.dataInicio + "T00:00:00");
+      const fim = new Date(filtros.dataFim + "T00:00:00");
+
+      // Devem estar no mesmo mês/ano
+      if (inicio.getMonth() !== fim.getMonth() || inicio.getFullYear() !== fim.getFullYear()) {
+        return null;
+      }
+
+      const mesRef = inicio.getMonth() + 1;
+      const anoRef = inicio.getFullYear();
+
+      const primeiroDia = new Date(anoRef, mesRef - 1, 1);
+      const ultimoDia = new Date(anoRef, mesRef, 0);
+
+      // Verificar se cobre o mês completo (do 1° ao último dia)
+      const cobretudo = inicio <= primeiroDia && fim >= ultimoDia;
+
+      // Verificar se cobre do primeiro ao último dia útil (seg-sex)
+      let primeiroUtil = new Date(primeiroDia);
+      while (primeiroUtil.getDay() === 0 || primeiroUtil.getDay() === 6) {
+        primeiroUtil.setDate(primeiroUtil.getDate() + 1);
+      }
+      let ultimoUtil = new Date(ultimoDia);
+      while (ultimoUtil.getDay() === 0 || ultimoUtil.getDay() === 6) {
+        ultimoUtil.setDate(ultimoUtil.getDate() - 1);
+      }
+      const cobretudoUtil = inicio >= primeiroDia && inicio <= primeiroUtil && fim <= ultimoDia && fim >= ultimoUtil;
+
+      if (cobretudo || cobretudoUtil) {
+        return { mesRef, anoRef };
+      }
+    }
+
+    return null;
+  }, [filtrosAplicados, filtroDataAtivo, filtros]);
+
+  // Cards dinâmicos baseados no periodoReferencia
+  const comparativoCards = useMemo(() => {
+    if (!periodoReferencia) return comparativo;
+
+    const { mesRef, anoRef } = periodoReferencia;
+    const atual = calcularMetricasMes(mesRef, anoRef);
+    const mesAntNum = mesRef === 1 ? 12 : mesRef - 1;
+    const anoAntNum = mesRef === 1 ? anoRef - 1 : anoRef;
+    const ant = calcularMetricasMes(mesAntNum, anoAntNum);
+
+    return {
+      receita: atual.receitas,
+      despesa: atual.despesas,
+      lucro: atual.lucro,
+      margem: atual.margem,
+      varReceita: ant.receitas > 0 ? ((atual.receitas - ant.receitas) / ant.receitas) * 100 : 0,
+      varDespesa: ant.despesas > 0 ? ((atual.despesas - ant.despesas) / ant.despesas) * 100 : 0,
+      varLucro: ant.lucro !== 0 ? ((atual.lucro - ant.lucro) / Math.abs(ant.lucro)) * 100 : 0,
+      diffMargem: atual.margem - ant.margem,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodoReferencia, lancamentos, comparativo]);
+
+  const comparativoAnteriorCards = useMemo(() => {
+    if (!periodoReferencia) return comparativoAnterior;
+
+    const { mesRef, anoRef } = periodoReferencia;
+    const mesAntNum = mesRef === 1 ? 12 : mesRef - 1;
+    const anoAntNum = mesRef === 1 ? anoRef - 1 : anoRef;
+    const ant = calcularMetricasMes(mesAntNum, anoAntNum);
+    const mesDoisAtrasNum = mesAntNum === 1 ? 12 : mesAntNum - 1;
+    const anoDoisAtrasNum = mesAntNum === 1 ? anoAntNum - 1 : anoAntNum;
+    const doisAtras = calcularMetricasMes(mesDoisAtrasNum, anoDoisAtrasNum);
+
+    return {
+      receita: ant.receitas,
+      despesa: ant.despesas,
+      lucro: ant.lucro,
+      margem: ant.margem,
+      varReceita: doisAtras.receitas > 0 ? ((ant.receitas - doisAtras.receitas) / doisAtras.receitas) * 100 : 0,
+      varDespesa: doisAtras.despesas > 0 ? ((ant.despesas - doisAtras.despesas) / doisAtras.despesas) * 100 : 0,
+      varLucro: doisAtras.lucro !== 0 ? ((ant.lucro - doisAtras.lucro) / Math.abs(doisAtras.lucro)) * 100 : 0,
+      diffMargem: ant.margem - doisAtras.margem,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodoReferencia, lancamentos, comparativoAnterior]);
+
+  // Labels dinâmicos dos cards
+  const labelCardAnterior = useMemo(() => {
+    if (!periodoReferencia) return "Mês Anterior";
+    const { mesRef, anoRef } = periodoReferencia;
+    const mesAntNum = mesRef === 1 ? 12 : mesRef - 1;
+    const anoAntNum = mesRef === 1 ? anoRef - 1 : anoRef;
+    return `${nomesMeses[mesAntNum - 1]}/${anoAntNum}`;
+  }, [periodoReferencia]);
+
+  const labelCardAtual = useMemo(() => {
+    if (!periodoReferencia) return "Mês Atual";
+    const { mesRef, anoRef } = periodoReferencia;
+    return `${nomesMeses[mesRef - 1]}/${anoRef}`;
+  }, [periodoReferencia]);
+
   const exportCSV = () => {
     const dados = filtrosAplicados ? lancamentosFiltrados : lancamentos;
     if (dados.length === 0) {
@@ -1497,7 +1626,7 @@ const FluxoDeCaixa = () => {
       </div>
 
       {/* Cards Mês Anterior */}
-      {comparativoAnterior && (
+      {comparativoAnteriorCards && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <TooltipProvider>
             <UITooltip>
@@ -1505,14 +1634,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Receita</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
-                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativoAnterior.receita)}</p>
-                    <VariationBadge value={comparativoAnterior.varReceita} />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAnterior}</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativoAnteriorCards.receita)}</p>
+                    <VariationBadge value={comparativoAnteriorCards.varReceita} />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("receita", comparativoAnterior, "anterior")}</p>
+                <p>{getTooltipText("receita", comparativoAnteriorCards, "anterior")}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1523,14 +1652,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Despesas</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
-                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativoAnterior.despesa)}</p>
-                    <VariationBadge value={comparativoAnterior.varDespesa} invertColors />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAnterior}</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativoAnteriorCards.despesa)}</p>
+                    <VariationBadge value={comparativoAnteriorCards.varDespesa} invertColors />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("despesas", comparativoAnterior, "anterior")}</p>
+                <p>{getTooltipText("despesas", comparativoAnteriorCards, "anterior")}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1541,14 +1670,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Lucro</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
-                    <p className={`text-lg font-bold ${comparativoAnterior.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativoAnterior.lucro)}</p>
-                    <VariationBadge value={comparativoAnterior.varLucro} />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAnterior}</p>
+                    <p className={`text-lg font-bold ${comparativoAnteriorCards.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativoAnteriorCards.lucro)}</p>
+                    <VariationBadge value={comparativoAnteriorCards.varLucro} />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("lucro", comparativoAnterior, "anterior")}</p>
+                <p>{getTooltipText("lucro", comparativoAnteriorCards, "anterior")}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1559,14 +1688,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Margem</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Anterior</p>
-                    <p className={`text-lg font-bold ${comparativoAnterior.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativoAnterior.margem.toFixed(1)}%</p>
-                    <VariationBadge value={comparativoAnterior.diffMargem} suffix="pp" />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAnterior}</p>
+                    <p className={`text-lg font-bold ${comparativoAnteriorCards.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativoAnteriorCards.margem.toFixed(1)}%</p>
+                    <VariationBadge value={comparativoAnteriorCards.diffMargem} suffix="pp" />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("margem", comparativoAnterior, "anterior")}</p>
+                <p>{getTooltipText("margem", comparativoAnteriorCards, "anterior")}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1574,7 +1703,7 @@ const FluxoDeCaixa = () => {
       )}
 
       {/* Cards Mês Atual */}
-      {comparativo && (
+      {comparativoCards && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <TooltipProvider>
             <UITooltip>
@@ -1582,14 +1711,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Receita</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
-                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativo.receita)}</p>
-                    <VariationBadge value={comparativo.varReceita} />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAtual}</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(comparativoCards.receita)}</p>
+                    <VariationBadge value={comparativoCards.varReceita} />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("receita", comparativo)}</p>
+                <p>{getTooltipText("receita", comparativoCards)}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1600,14 +1729,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Despesas</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
-                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativo.despesa)}</p>
-                    <VariationBadge value={comparativo.varDespesa} invertColors />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAtual}</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(comparativoCards.despesa)}</p>
+                    <VariationBadge value={comparativoCards.varDespesa} invertColors />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("despesas", comparativo)}</p>
+                <p>{getTooltipText("despesas", comparativoCards)}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1618,14 +1747,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Lucro</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
-                    <p className={`text-lg font-bold ${comparativo.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativo.lucro)}</p>
-                    <VariationBadge value={comparativo.varLucro} />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAtual}</p>
+                    <p className={`text-lg font-bold ${comparativoCards.lucro >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(comparativoCards.lucro)}</p>
+                    <VariationBadge value={comparativoCards.varLucro} />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("lucro", comparativo)}</p>
+                <p>{getTooltipText("lucro", comparativoCards)}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1636,14 +1765,14 @@ const FluxoDeCaixa = () => {
                 <Card className="cursor-help">
                   <CardContent className="pt-4 pb-4">
                     <p className="text-xs text-muted-foreground">Margem</p>
-                    <p className="text-[10px] text-muted-foreground">Mês Atual</p>
-                    <p className={`text-lg font-bold ${comparativo.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativo.margem.toFixed(1)}%</p>
-                    <VariationBadge value={comparativo.diffMargem} suffix="pp" />
+                    <p className="text-[10px] text-muted-foreground">{labelCardAtual}</p>
+                    <p className={`text-lg font-bold ${comparativoCards.margem >= 0 ? "text-green-600" : "text-red-600"}`}>{comparativoCards.margem.toFixed(1)}%</p>
+                    <VariationBadge value={comparativoCards.diffMargem} suffix="pp" />
                   </CardContent>
                 </Card>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm whitespace-pre-line">
-                <p>{getTooltipText("margem", comparativo)}</p>
+                <p>{getTooltipText("margem", comparativoCards)}</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -1778,7 +1907,13 @@ const FluxoDeCaixa = () => {
                   <Select
                     value={filtros.mes}
                     onValueChange={(value) => {
-                      setFiltros({ ...filtros, mes: value, dataInicio: "", dataFim: "" });
+                      setFiltros({
+                        ...filtros,
+                        mes: value,
+                        dataInicio: "",
+                        dataFim: "",
+                        ano: filtros.ano || new Date().getFullYear().toString(),
+                      });
                       setFiltroDataAtivo("mesano");
                     }}
                     disabled={filtroDataAtivo === "periodo"}
