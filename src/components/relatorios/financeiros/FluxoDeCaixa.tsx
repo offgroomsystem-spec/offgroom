@@ -855,6 +855,23 @@ const FluxoDeCaixa = () => {
     return saldosPorBanco.reduce((acc, banco) => acc + banco.saldoAtual, 0);
   }, [saldosPorBanco]);
 
+  // Calcular saldos por banco na data da transferência selecionada
+  const saldosPorBancoNaData = useMemo(() => {
+    const dataRef = format(dataTransferencia, "yyyy-MM-dd");
+    return contas.map((conta) => {
+      const lancamentosConta = lancamentos.filter(
+        (l) => l.nomeBanco === conta.nomeBanco && l.pago && l.dataPagamento <= dataRef
+      );
+      const receitas = lancamentosConta
+        .filter((l) => l.tipo === "Receita")
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      const despesas = lancamentosConta
+        .filter((l) => l.tipo === "Despesa")
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      return { nome: conta.nomeBanco, saldo: receitas - despesas };
+    });
+  }, [dataTransferencia, contas, lancamentos]);
+
   // Detectar período filtrado ativo
   const periodoFiltrado = useMemo(() => {
     if (!filtrosAplicados || !filtroDataAtivo) return null;
@@ -1817,14 +1834,16 @@ const FluxoDeCaixa = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Lista de contas com saldos */}
+            {/* Lista de contas com saldos na data selecionada */}
             <div className="space-y-1.5 p-3 bg-muted rounded-md">
-              <p className="text-xs font-semibold text-muted-foreground mb-2">Saldos disponíveis (data atual)</p>
-              {saldosPorBanco.map((banco) => (
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                Saldos disponíveis ({format(dataTransferencia, "dd/MM/yyyy")})
+              </p>
+              {saldosPorBancoNaData.map((banco) => (
                 <p key={banco.nome} className="text-xs">
                   <span className="font-medium">{banco.nome}</span> — Saldo disponível:{" "}
-                  <span className={banco.saldoAtual >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-                    {formatCurrency(banco.saldoAtual)}
+                  <span className={banco.saldo >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+                    {formatCurrency(banco.saldo)}
                   </span>
                 </p>
               ))}
