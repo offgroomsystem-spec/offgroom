@@ -40,6 +40,7 @@ import {
   Download,
   FileText,
   Minus,
+  ArrowLeftRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -475,6 +476,14 @@ const FluxoDeCaixa = () => {
   const [novoSaldo, setNovoSaldo] = useState("");
   const [dataAjusteSaldo, setDataAjusteSaldo] = useState<Date>(new Date());
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
+  // Estados para Transferência de Saldo
+  const [dialogTransferenciaOpen, setDialogTransferenciaOpen] = useState(false);
+  const [contaOrigem, setContaOrigem] = useState("");
+  const [contaDestino, setContaDestino] = useState("");
+  const [valorTransferencia, setValorTransferencia] = useState("");
+  const [dataTransferencia, setDataTransferencia] = useState<Date>(new Date());
+  const [confirmTransferenciaOpen, setConfirmTransferenciaOpen] = useState(false);
 
   // Estados para Edição e Exclusão
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -957,6 +966,163 @@ const FluxoDeCaixa = () => {
     }
     setDialogSaldoOpen(false);
     setConfirmDialogOpen(true);
+  };
+
+  // Funções de Transferência de Saldo
+  const formatarMoeda = (valor: string) => {
+    const numeros = valor.replace(/\D/g, "");
+    const numero = parseInt(numeros || "0", 10) / 100;
+    return numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const handleValorTransferenciaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    if (raw === "") {
+      setValorTransferencia("");
+      return;
+    }
+    setValorTransferencia(formatarMoeda(raw));
+  };
+
+  const getValorNumericoTransferencia = () => {
+    if (!valorTransferencia) return 0;
+    return parseFloat(valorTransferencia.replace(/\./g, "").replace(",", ".")) || 0;
+  };
+
+  const abrirDialogoTransferencia = () => {
+    setContaOrigem("");
+    setContaDestino("");
+    setValorTransferencia("");
+    setDataTransferencia(new Date());
+    setDialogTransferenciaOpen(true);
+  };
+
+  const validarTransferencia = () => {
+    if (!contaOrigem) {
+      toast.error("Selecione a conta de origem!");
+      return false;
+    }
+    if (!contaDestino) {
+      toast.error("Selecione a conta de destino!");
+      return false;
+    }
+    if (contaOrigem === contaDestino) {
+      toast.error("As contas de origem e destino devem ser diferentes!");
+      return false;
+    }
+    const valor = getValorNumericoTransferencia();
+    if (!valor || valor <= 0) {
+      toast.error("Informe um valor válido para a transferência!");
+      return false;
+    }
+
+    // Calcular saldo da conta de origem até a data selecionada
+    const dataRef = format(dataTransferencia, "yyyy-MM-dd");
+    const lancamentosConta = lancamentos.filter(
+      (l) => l.nomeBanco === contaOrigem && l.pago && l.dataPagamento <= dataRef
+    );
+    const receitasAteData = lancamentosConta
+      .filter((l) => l.tipo === "Receita")
+      .reduce((acc, l) => acc + l.valorTotal, 0);
+    const despesasAteData = lancamentosConta
+      .filter((l) => l.tipo === "Despesa")
+      .reduce((acc, l) => acc + l.valorTotal, 0);
+    const saldoAteData = receitasAteData - despesasAteData;
+
+    if (valor > saldoAteData) {
+      toast.error(`Saldo insuficiente da conta '${contaOrigem}' para a data selecionada, revise o valor ou selecione outra conta.`);
+      return false;
+    }
+
+    return true;
+  };
+
+  const abrirConfirmacaoTransferencia = () => {
+    if (!validarTransferencia()) return;
+    setDialogTransferenciaOpen(false);
+    setConfirmTransferenciaOpen(true);
+  };
+
+  const handleConfirmarTransferencia = async () => {
+    if (!user) return;
+
+    try {
+      const contaOrigemObj = contas.find((c) => c.nomeBanco === contaOrigem);
+      const contaDestinoObj = contas.find((c) => c.nomeBanco === contaDestino);
+      if (!contaOrigemObj || !contaDestinoObj) {
+        toast.error("Conta não encontrada!");
+        return;
+      }
+
+      const valor = getValorNumericoTransferencia();
+      const dataFormatada = format(dataTransferencia, "yyyy-MM-dd");
+      const anoTransf = dataTransferencia.getFullYear().toString();
+      const mesTransf = String(dataTransferencia.getMonth() + 1).padStart(2, "0");
+
+      // 1. Criar lançamento de DESPESA na conta de origem
+      const { data: lancDespesa, error: errDespesa } = await supabase
+        .from("lancamentos_financeiros")
+        .insert([{
+          user_id: user.id,
+          ano: anoTransf,
+          mes_competencia: mesTransf,
+          tipo: "Despesa",
+          descricao1: "Despesa Não Operacional",
+          valor_total: valor,
+          data_pagamento: dataFormatada,
+          conta_id: contaOrigemObj.id,
+          pago: true,
+          observacao: "Transferência entre contas",
+        }])
+        .select()
+        .single();
+
+      if (errDespesa) throw errDespesa;
+
+      // 2. Criar lançamento de RECEITA na conta de destino
+      const { data: lancReceita, error: errReceita } = await supabase
+        .from("lancamentos_financeiros")
+        .insert([{
+          user_id: user.id,
+          ano: anoTransf,
+          mes_competencia: mesTransf,
+          tipo: "Receita",
+          descricao1: "Receita Não Operacional",
+          valor_total: valor,
+          data_pagamento: dataFormatada,
+          conta_id: contaDestinoObj.id,
+          pago: true,
+          observacao: "Transferência entre contas",
+        }])
+        .select()
+        .single();
+
+      if (errReceita) throw errReceita;
+
+      // 3. Criar itens dos lançamentos
+      await Promise.all([
+        supabase.from("lancamentos_financeiros_itens").insert([{
+          lancamento_id: lancDespesa.id,
+          descricao2: "Outras Despesas Não Operacionais",
+          produto_servico: "Transferência entre contas",
+          valor: valor,
+        }]),
+        supabase.from("lancamentos_financeiros_itens").insert([{
+          lancamento_id: lancReceita.id,
+          descricao2: "Outras Receitas Não Operacionais",
+          produto_servico: "Transferência entre contas",
+          valor: valor,
+        }]),
+      ]);
+
+      toast.success("Transferência realizada com sucesso!");
+      setConfirmTransferenciaOpen(false);
+      await loadLancamentos();
+      await loadRelatedData();
+    } catch (error) {
+      console.error("Erro ao realizar transferência:", error);
+      toast.error("Erro ao realizar transferência");
+    }
   };
 
   // Funções de Edição e Exclusão
@@ -1520,6 +1686,16 @@ const FluxoDeCaixa = () => {
         <h2 className="text-2xl font-bold">Fluxo de Caixa</h2>
 
         <div className="flex items-center gap-2">
+          {/* Botão Transferência de Saldo */}
+          <Button
+            variant="outline"
+            onClick={abrirDialogoTransferencia}
+            className="h-8 text-xs gap-2"
+          >
+            <ArrowLeftRight className="h-3 w-3" />
+            Transferência de Saldo
+          </Button>
+
           <Button
             variant="outline"
             onClick={() => setMostrarFiltros(!mostrarFiltros)}
@@ -1623,18 +1799,146 @@ const FluxoDeCaixa = () => {
             </DialogContent>
           </Dialog>
 
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportCSV} className="h-8 text-xs">
-              <Download className="h-3 w-3 mr-1" />
-              Exportar CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExportarPDF} className="h-8 text-xs">
-              <FileText className="h-3 w-3 mr-1" />
-              Exportar PDF
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={handleExportarPDF} className="h-8 text-xs">
+            <FileText className="h-3 w-3 mr-1" />
+            Exportar PDF
+          </Button>
         </div>
       </div>
+
+      {/* Modal Transferência de Saldo */}
+      <Dialog open={dialogTransferenciaOpen} onOpenChange={setDialogTransferenciaOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Transferência de Saldo</DialogTitle>
+            <DialogDescription>
+              Transfira valores entre suas contas bancárias cadastradas.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Lista de contas com saldos */}
+            <div className="space-y-1.5 p-3 bg-muted rounded-md">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Saldos disponíveis (data atual)</p>
+              {saldosPorBanco.map((banco) => (
+                <p key={banco.nome} className="text-xs">
+                  <span className="font-medium">{banco.nome}</span> — Saldo disponível:{" "}
+                  <span className={banco.saldoAtual >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+                    {formatCurrency(banco.saldoAtual)}
+                  </span>
+                </p>
+              ))}
+            </div>
+
+            {/* Conta de origem */}
+            <div className="space-y-2">
+              <Label>Conta que irá transferir:</Label>
+              <Select value={contaOrigem} onValueChange={(v) => { setContaOrigem(v); if (v === contaDestino) setContaDestino(""); }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta de origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contas.map((conta) => (
+                    <SelectItem key={conta.id} value={conta.nomeBanco}>
+                      {conta.nomeBanco}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Conta de destino */}
+            <div className="space-y-2">
+              <Label>Conta que irá receber:</Label>
+              <Select value={contaDestino} onValueChange={setContaDestino}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta de destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contas.filter((c) => c.nomeBanco !== contaOrigem).map((conta) => (
+                    <SelectItem key={conta.id} value={conta.nomeBanco}>
+                      {conta.nomeBanco}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Valor */}
+            <div className="space-y-2">
+              <Label>Valor da transferência</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                <Input
+                  className="pl-10"
+                  placeholder="0,00"
+                  value={valorTransferencia}
+                  onChange={handleValorTransferenciaChange}
+                />
+              </div>
+            </div>
+
+            {/* Data */}
+            <div className="space-y-2">
+              <Label>Data da transferência</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dataTransferencia && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataTransferencia ? format(dataTransferencia, "dd/MM/yyyy") : <span>Selecione a data</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataTransferencia}
+                    onSelect={(date) => date && setDataTransferencia(date)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDialogTransferenciaOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={abrirConfirmacaoTransferencia}>Confirmar Transferência</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog Confirmação de Transferência */}
+      <AlertDialog open={confirmTransferenciaOpen} onOpenChange={setConfirmTransferenciaOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Transferência</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>Confirme os dados da transferência:</p>
+                <div className="p-3 bg-muted rounded-md space-y-1">
+                  <p><strong>Conta de origem:</strong> {contaOrigem}</p>
+                  <p><strong>Conta de destino:</strong> {contaDestino}</p>
+                  <p><strong>Valor:</strong> R$ {valorTransferencia}</p>
+                  <p><strong>Data:</strong> {dataTransferencia ? format(dataTransferencia, "dd/MM/yyyy") : ""}</p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmarTransferencia}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Cards Mês Anterior */}
       {comparativoAnteriorCards && (
