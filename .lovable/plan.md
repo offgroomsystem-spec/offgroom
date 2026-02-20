@@ -1,103 +1,53 @@
 
 
-# Plano: Transferencia de Saldo entre Contas no Fluxo de Caixa
+# Plano: Saldos dinamicos por data no modal de Transferencia
 
 ## Resumo
 
-Remover o botao "Exportar CSV" e adicionar um novo botao "Transferencia de Saldo" na barra de acoes do Fluxo de Caixa. Ao clicar, abre um modal completo para transferir valores entre contas bancarias cadastradas.
+Atualizar o card "Saldos disponiveis" dentro do modal de transferencia para que ele recalcule os saldos de cada conta com base na data selecionada no campo "Data da transferencia", em vez de sempre mostrar o saldo atual. Tambem garantir que a validacao impeca que a conta de origem fique negativa (pode zerar, mas nao negativar).
 
 ## Alteracoes
 
 Arquivo unico: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
 
-### 1. Remover botao "Exportar CSV"
+### 1. Calcular saldos por data no modal
 
-- Remover o botao "Exportar CSV" (linhas 1626-1630) e o wrapper `div` ao redor dele e do "Exportar PDF"
-- Manter o botao "Exportar PDF" na mesma linha dos demais botoes
-- A funcao `exportCSV` e o `dadosExportacao` podem permanecer no codigo (sem impacto), ou serem removidos para limpeza
+Adicionar um `useMemo` (ou calculo inline) que recalcula os saldos de cada conta ate a `dataTransferencia` selecionada:
 
-### 2. Adicionar botao "Transferencia de Saldo"
-
-- Posicionar imediatamente a esquerda do botao "Mostrar Filtros"
-- Mesmo padrao visual: `variant="outline"`, `className="h-8 text-xs gap-2"`, com icone `ArrowLeftRight` do lucide-react
-- Ordem final dos botoes: **Transferencia de Saldo** | **Mostrar Filtros** | **Atualizar Saldo** | **Exportar PDF**
-
-### 3. Novos estados
-
+```typescript
+const saldosPorBancoNaData = useMemo(() => {
+  const dataRef = format(dataTransferencia, "yyyy-MM-dd");
+  return contas.map((conta) => {
+    const lancamentosConta = lancamentos.filter(
+      (l) => l.nomeBanco === conta.nomeBanco && l.pago && l.dataPagamento <= dataRef
+    );
+    const receitas = lancamentosConta
+      .filter((l) => l.tipo === "Receita")
+      .reduce((acc, l) => acc + l.valorTotal, 0);
+    const despesas = lancamentosConta
+      .filter((l) => l.tipo === "Despesa")
+      .reduce((acc, l) => acc + l.valorTotal, 0);
+    return { nome: conta.nomeBanco, saldo: receitas - despesas };
+  });
+}, [dataTransferencia, contas, lancamentos]);
 ```
-const [dialogTransferenciaOpen, setDialogTransferenciaOpen] = useState(false);
-const [contaOrigem, setContaOrigem] = useState("");
-const [contaDestino, setContaDestino] = useState("");
-const [valorTransferencia, setValorTransferencia] = useState("");
-const [dataTransferencia, setDataTransferencia] = useState<Date>(new Date());
-const [confirmTransferenciaOpen, setConfirmTransferenciaOpen] = useState(false);
-```
 
-### 4. Modal de Transferencia
+### 2. Atualizar o card de saldos no modal
 
-Ao clicar no botao, abre um `Dialog` com:
+Substituir o uso de `saldosPorBanco` pelo novo `saldosPorBancoNaData` e atualizar o titulo para refletir a data selecionada:
 
-**Topo - Lista de contas com saldos:**
-- Exibir cada conta bancaria com seu saldo atual calculado ate a data atual no formato:
-  `NomeBanco -- Saldo disponivel: R$ X.XXX,XX`
-- Usa os dados de `saldosPorBanco`
+- Titulo: `Saldos disponíveis (DD/MM/YYYY)` mostrando a data selecionada
+- Valores: calculados ate a data selecionada
+- Ao mudar a data no calendario, o card atualiza automaticamente
 
-**Campos do formulario:**
-1. **Conta que ira transferir** (Select com selecao unica) - lista as contas
-2. **Conta que ira receber** (Select com selecao unica) - lista as contas, excluindo a conta selecionada em "origem"
-3. **Valor da transferencia** (Input texto com formatacao em moeda brasileira R$, aceita apenas numeros positivos)
-4. **Data da transferencia** (DatePicker com calendario, padrao = data atual)
-5. Botoes: **Confirmar Transferencia** e **Cancelar**
+### 3. Ajustar validacao para permitir zerar mas nao negativar
 
-**Validacoes ao clicar "Confirmar Transferencia":**
-- Campos obrigatorios preenchidos
-- Contas origem e destino diferentes
-- Valor positivo
-- Calcular saldo da conta de origem ate a data selecionada (mesma logica usada no Atualizar Saldo)
-- Se saldo insuficiente: exibir toast de erro "Saldo insuficiente da conta 'X' para a data selecionada, revise o valor ou selecione outra conta."
+Na funcao `validarTransferencia`, alterar a comparacao de `valor > saldoAteData` para `valor > saldoAteData` (ja esta correto, pois permite valor igual ao saldo, zerando a conta). Confirmar que a logica atual ja impede negativacao mas permite zerar.
 
-### 5. Resumo e confirmacao
-
-Apos validacao, abrir `AlertDialog` com resumo:
-- Conta de origem: NomeBanco
-- Conta de destino: NomeBanco
-- Valor: R$ X.XXX,XX
-- Data: DD/MM/YYYY
-- Botoes: Confirmar / Cancelar
-
-### 6. Logica de persistencia (ao confirmar)
-
-Criar **2 lancamentos financeiros** no banco:
-
-1. **Despesa na conta de origem:**
-   - tipo: "Despesa"
-   - descricao1: "Despesa Nao Operacional"
-   - valor_total: valorTransferencia
-   - data_pagamento: dataTransferencia
-   - conta_id: conta origem
-   - pago: true
-   - observacao: "Transferencia entre contas"
-   - Item: descricao2 = "Outras Despesas Nao Operacionais", produto_servico = "Transferencia entre contas"
-
-2. **Receita na conta de destino:**
-   - tipo: "Receita"
-   - descricao1: "Receita Nao Operacional"
-   - valor_total: valorTransferencia
-   - data_pagamento: dataTransferencia
-   - conta_id: conta destino
-   - pago: true
-   - observacao: "Transferencia entre contas"
-   - Item: descricao2 = "Outras Receitas Nao Operacionais", produto_servico = "Transferencia entre contas"
-
-Apos sucesso: exibir toast de sucesso, fechar modais, recarregar lancamentos (`loadLancamentos()` e `loadRelatedData()`).
-
-### 7. Formatacao do campo de valor
-
-- Ao digitar, aceitar apenas numeros
-- Formatar exibicao como moeda brasileira (R$ X.XXX,XX)
-- Armazenar internamente o valor numerico para calculos
+Revisando o codigo atual: `if (valor > saldoAteData)` -- isso ja esta correto. Se valor == saldo, passa. Se valor > saldo, bloqueia. Nenhuma alteracao necessaria na validacao.
 
 ## Resultado esperado
 
-O usuario podera transferir saldo entre contas de forma simples, com validacao de saldo na data, confirmacao visual e registro automatico no fluxo de caixa como "Transferencia entre contas". Os saldos serao atualizados imediatamente apos a operacao.
-
+- Ao abrir o modal, os saldos mostram valores calculados ate a data atual (padrao)
+- Ao selecionar outra data no calendario, o card "Saldos disponiveis" atualiza instantaneamente com os saldos de cada conta ate aquela data
+- O usuario pode transferir ate o valor total do saldo (zerando a conta), mas nao pode ultrapassar
