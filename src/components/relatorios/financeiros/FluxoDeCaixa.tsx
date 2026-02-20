@@ -1118,10 +1118,21 @@ const FluxoDeCaixa = () => {
         return;
       }
 
-      const saldoAtualConta =
-        saldosPorBanco.find((s) => s.nome === contaSelecionada)?.saldoAtual || conta.saldo;
+      // Calcular saldo acumulado ATÉ a data de referência selecionada (inclusive)
+      const dataRef = format(dataAjusteSaldo, "yyyy-MM-dd");
+      const lancamentosConta = lancamentos.filter(
+        (l) => l.nomeBanco === contaSelecionada && l.pago && l.dataPagamento <= dataRef
+      );
+      const receitasAteData = lancamentosConta
+        .filter((l) => l.tipo === "Receita")
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      const despesasAteData = lancamentosConta
+        .filter((l) => l.tipo === "Despesa")
+        .reduce((acc, l) => acc + l.valorTotal, 0);
+      const saldoAteData = receitasAteData - despesasAteData;
+
       const novoSaldoNumerico = parseFloat(novoSaldo);
-      const diferenca = novoSaldoNumerico - saldoAtualConta;
+      const diferenca = novoSaldoNumerico - saldoAteData;
 
       if (diferenca === 0) {
         toast.error("O novo saldo é igual ao saldo atual!");
