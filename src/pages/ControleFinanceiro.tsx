@@ -1187,7 +1187,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   indTot: 1,
                 },
                 imposto: {
-                  ICMS: { ICMSSN102: { orig: fiscal?.origem || "0", CSOSN: "102" } },
+                  ICMS: { ICMSSN102: { orig: Number(fiscal?.origem) || 0, CSOSN: "102" } },
                   PIS: { PISOutr: { CST: "99", vBC: 0, pPIS: 0, vPIS: 0 } },
                   COFINS: { COFINSOutr: { CST: "99", vBC: 0, pCOFINS: 0, vCOFINS: 0 } },
                 },
