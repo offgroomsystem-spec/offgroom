@@ -1,45 +1,77 @@
 
 
-## Plano: Modal de CPF/CNPJ opcional na emissão de NF-e
+## Plano: Corrigir status "processando" e rejeicao da NFe
 
-### O que será feito
+### Problemas identificados
 
-Quando o usuário clicar em "Emitir NF-e", o sistema verificará se o cliente possui CPF/CNPJ cadastrado. Se não possuir, um modal será exibido perguntando se deseja informar o documento, com campo de digitação validado. O usuário poderá prosseguir com ou sem o documento.
+1. **Status preso em "processando"**: O mapeamento de status na edge function usa `"rejeitada"` mas a API retorna `"rejeitado"` (masculino). O valor nao e encontrado no map e cai no fallback "processando".
 
-### Fluxo
+2. **Mensagem de erro nao aparece**: O codigo busca `nfeData.motivo_rejeicao`, mas o campo real na resposta da API e `nfeData.autorizacao.motivo_status`.
 
-1. Clique em "Emitir NF-e" abre o dialog de confirmacao atual
-2. Ao confirmar ("Sim, Emitir"), o sistema verifica se o cliente tem CPF/CNPJ
-3. **Se tem**: emite normalmente com o documento
-4. **Se nao tem**: abre modal intermediario perguntando se quer inserir CPF/CNPJ
-   - Campo aceita somente numeros (11 para CPF, 14 para CNPJ)
-   - Botao "Sim": exige que o campo tenha exatamente 11 ou 14 digitos, e prossegue com emissao incluindo o documento
-   - Botao "Nao": prossegue sem documento (dest sem CPF/CNPJ, apenas xNome)
+3. **NFe rejeitada (codigo 719)**: A SEFAZ rejeitou porque o bloco `dest` foi omitido quando o cliente nao tem CPF/CNPJ. A SEFAZ exige o bloco `dest` mesmo sem documento -- basta enviar `xNome` junto com `idEstrangeiro` vazio ou usar uma estrutura minima aceita.
+
+---
+
+### Correcoes
+
+#### 1. Edge function `supabase/functions/nuvem-fiscal/index.ts`
+
+**statusMap** - Adicionar as variantes masculinas retornadas pela API:
+- `"rejeitado"` -> `"rejeitada"`
+- `"autorizado"` -> `"autorizada"`
+- `"cancelado"` -> `"cancelada"`
+- Manter tambem as femininas para compatibilidade
+
+**mensagem_erro** - Buscar o motivo de rejeicao no caminho correto:
+- Tentar `nfeData.autorizacao?.motivo_status` primeiro
+- Fallback para `nfeData.motivo_rejeicao`
+
+Aplicar as mesmas correcoes no bloco `consultar_nfse`.
+
+#### 2. Frontend `src/pages/ControleFinanceiro.tsx`
+
+**Bloco `dest` sem CPF/CNPJ** - Quando o usuario clica "Nao" no modal (sem documento), em vez de omitir `dest` inteiramente, enviar o bloco com a estrutura minima que a SEFAZ aceita. Conforme o schema XML da NFe, o campo `dest` exige ao menos um de: `CNPJ`, `CPF` ou `idEstrangeiro`. Usar `idEstrangeiro` vazio (string vazia) como indicador de consumidor final sem identificacao, seguido de `xNome` e `indIEDest: 9`.
 
 ---
 
 ### Detalhes tecnicos
 
-**Arquivo**: `src/pages/ControleFinanceiro.tsx`
+**Arquivo: `supabase/functions/nuvem-fiscal/index.ts`**
 
-1. **Novos estados**:
-   - `showCpfCnpjModal` (boolean) - controla visibilidade do modal
-   - `cpfCnpjManual` (string) - valor digitado no campo
-   - `pendingNfeTipo` (string) - armazena o tipo pendente para continuar apos o modal
+Bloco `consultar_nfe` (linhas 211-217):
+```typescript
+const statusMap: Record<string, string> = {
+  autorizada: "autorizada",
+  autorizado: "autorizada",
+  rejeitada: "rejeitada",
+  rejeitado: "rejeitada",
+  cancelada: "cancelada",
+  cancelado: "cancelada",
+  processando: "processando",
+};
+```
 
-2. **Alteracao no fluxo `handleEmitirNota`**:
-   - Antes de montar o payload NFe, verificar se o cliente tem `cpf_cnpj`
-   - Se nao tem, abrir o modal e interromper (return)
-   - Criar funcao `handleCpfCnpjModalConfirm(comDocumento: boolean)` que continua a emissao
+Mensagem de erro (linha 226):
+```typescript
+const autorizacao = nfeData.autorizacao as Record<string, unknown> | undefined;
+mensagem_erro: autorizacao?.motivo_status as string 
+  || nfeData.motivo_rejeicao as string 
+  || null,
+```
 
-3. **Alteracao no bloco `dest`**:
-   - Aceitar um parametro opcional `cpfCnpjOverride` que vem do modal
-   - Se fornecido, usar esse valor; senao, usar `clienteData.cpf_cnpj`
-   - Se nenhum documento disponivel (usuario clicou "Nao"), montar `dest` apenas com `xNome` e `indIEDest` (sem CPF/CNPJ) -- ou omitir `dest` se o schema exigir
+Mesmas alteracoes para o bloco `consultar_nfse`.
 
-4. **Novo Dialog** (usando componentes Dialog existentes):
-   - Titulo: "Gostaria de inserir o numero de CPF/CNPJ na NF-e?"
-   - Campo Input: `type="text"`, filtra para somente numeros, maxLength 14
-   - Validacao: aceita exatamente 11 ou 14 digitos
-   - Botoes "Sim" (valida e prossegue) e "Nao" (prossegue sem documento)
+**Arquivo: `src/pages/ControleFinanceiro.tsx`**
+
+Quando nao ha CPF/CNPJ, montar `dest` com `idEstrangeiro` vazio:
+```typescript
+// Sem documento: usar idEstrangeiro vazio para consumidor final
+destObj.idEstrangeiro = "";
+destObj.xNome = clienteData.nome_cliente;
+destObj.indIEDest = 9;
+```
+
+#### 3. Correcao imediata no banco
+
+Atualizar o registro existente que esta preso em "processando" para refletir o status real de "rejeitada" com a mensagem de erro correta.
 
