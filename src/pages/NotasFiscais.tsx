@@ -190,7 +190,7 @@ const NotasFiscais = () => {
         imposto: {
           ICMS: {
             ICMSSN102: {
-              orig: prod.origem || "0",
+              orig: Number(prod.origem) || 0,
               CSOSN: "102",
             },
           },
