@@ -1300,7 +1300,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             try {
               const pdfAction = tipo === 'NFe' ? 'baixar_pdf_nfe' : 'baixar_pdf_nfse';
               const pdfResult = await callNuvemFiscal(pdfAction, { id: nuvemFiscalId });
-              const pdfData = pdfResult as { base64: string; contentType: string };
+              const pdfData = pdfResult as { base64?: string; contentType?: string; available?: boolean };
+              if (pdfData?.available === false) {
+                console.warn(`Tentativa ${i + 1}/${tentativas} - PDF ainda não disponível.`);
+                continue;
+              }
               if (pdfData?.base64) {
                 const byteCharacters = atob(pdfData.base64);
                 const byteNumbers = new Array(byteCharacters.length);
@@ -1311,16 +1315,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 const blob = new Blob([byteArray], { type: "application/pdf" });
                 const url = URL.createObjectURL(blob);
                 window.open(url, "_blank");
-                return; // Sucesso, parar retries
+                return;
               }
             } catch (pdfErr) {
-              console.warn(`Tentativa ${i + 1}/${tentativas} - PDF ainda não disponível.`);
+              console.warn(`Tentativa ${i + 1}/${tentativas} - Erro ao buscar PDF:`, pdfErr);
             }
           }
           toast.info("PDF ainda não disponível. Consulte na página de Notas Fiscais em alguns instantes.");
         };
-        // 4 tentativas com 5s de intervalo (total ~20s)
-        tentarBaixarPdf(4, 5000);
+        // 6 tentativas com 8s de intervalo (total ~48s)
+        tentarBaixarPdf(6, 8000);
       }
 
       // Atualizar lista de notas emitidas

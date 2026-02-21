@@ -74,10 +74,14 @@ async function nuvemFiscalRequest(
 
   const res = await fetch(`${NUVEM_FISCAL_API}${path}`, options);
 
-  if (responseType === "blob" && res.ok) {
-    const arrayBuffer = await res.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-    return { status: res.status, data: { base64, contentType: res.headers.get("content-type") } };
+  if (responseType === "blob") {
+    if (res.ok) {
+      const arrayBuffer = await res.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      return { status: res.status, data: { base64, contentType: res.headers.get("content-type") } };
+    }
+    // PDF not yet available (404) — return 200 with available:false so client can retry without error
+    return { status: 200, data: { available: false, originalStatus: res.status } };
   }
 
   const data = res.ok || res.status === 400 || res.status === 422
