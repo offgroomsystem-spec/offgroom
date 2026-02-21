@@ -1,39 +1,45 @@
 
 
-# Correcao e Teste da Integracao Nuvem Fiscal (NFe Sandbox)
+## Plano: Modal de CPF/CNPJ opcional na emissão de NF-e
 
-## Problema Identificado
+### O que será feito
 
-Ao testar a edge function `nuvem-fiscal`, o sistema retorna erro de DNS porque a URL de autenticacao OAuth esta incorreta:
+Quando o usuário clicar em "Emitir NF-e", o sistema verificará se o cliente possui CPF/CNPJ cadastrado. Se não possuir, um modal será exibido perguntando se deseja informar o documento, com campo de digitação validado. O usuário poderá prosseguir com ou sem o documento.
 
-- **URL atual (errada):** `https://auth.sandbox.nuvemfiscal.com.br/oauth/token`
-- **URL correta:** `https://auth.nuvemfiscal.com.br/oauth/token`
+### Fluxo
 
-A Nuvem Fiscal usa **uma unica URL de autenticacao** para sandbox e producao. Somente a URL da API muda entre ambientes.
+1. Clique em "Emitir NF-e" abre o dialog de confirmacao atual
+2. Ao confirmar ("Sim, Emitir"), o sistema verifica se o cliente tem CPF/CNPJ
+3. **Se tem**: emite normalmente com o documento
+4. **Se nao tem**: abre modal intermediario perguntando se quer inserir CPF/CNPJ
+   - Campo aceita somente numeros (11 para CPF, 14 para CNPJ)
+   - Botao "Sim": exige que o campo tenha exatamente 11 ou 14 digitos, e prossegue com emissao incluindo o documento
+   - Botao "Nao": prossegue sem documento (dest sem CPF/CNPJ, apenas xNome)
 
-## Alteracao
+---
 
-### Arquivo: `supabase/functions/nuvem-fiscal/index.ts`
+### Detalhes tecnicos
 
-Corrigir a constante `NUVEM_FISCAL_AUTH` na linha 8:
+**Arquivo**: `src/pages/ControleFinanceiro.tsx`
 
-**De:**
-```
-const NUVEM_FISCAL_AUTH = "https://auth.sandbox.nuvemfiscal.com.br/oauth/token";
-```
+1. **Novos estados**:
+   - `showCpfCnpjModal` (boolean) - controla visibilidade do modal
+   - `cpfCnpjManual` (string) - valor digitado no campo
+   - `pendingNfeTipo` (string) - armazena o tipo pendente para continuar apos o modal
 
-**Para:**
-```
-const NUVEM_FISCAL_AUTH = "https://auth.nuvemfiscal.com.br/oauth/token";
-```
+2. **Alteracao no fluxo `handleEmitirNota`**:
+   - Antes de montar o payload NFe, verificar se o cliente tem `cpf_cnpj`
+   - Se nao tem, abrir o modal e interromper (return)
+   - Criar funcao `handleCpfCnpjModalConfirm(comDocumento: boolean)` que continua a emissao
 
-## Verificacao
+3. **Alteracao no bloco `dest`**:
+   - Aceitar um parametro opcional `cpfCnpjOverride` que vem do modal
+   - Se fornecido, usar esse valor; senao, usar `clienteData.cpf_cnpj`
+   - Se nenhum documento disponivel (usuario clicou "Nao"), montar `dest` apenas com `xNome` e `indIEDest` (sem CPF/CNPJ) -- ou omitir `dest` se o schema exigir
 
-Apos a correcao, a edge function sera redeployada automaticamente e testaremos:
-
-1. Obter token OAuth com as credenciais cadastradas
-2. Consultar a empresa cadastrada na Nuvem Fiscal via CNPJ
-3. Confirmar que a comunicacao com a API sandbox esta funcionando
-
-Nenhuma outra alteracao e necessaria neste momento. O restante da integracao (frontend, banco de dados, payloads NFe/NFSe) ja esta implementado e funcional.
+4. **Novo Dialog** (usando componentes Dialog existentes):
+   - Titulo: "Gostaria de inserir o numero de CPF/CNPJ na NF-e?"
+   - Campo Input: `type="text"`, filtra para somente numeros, maxLength 14
+   - Validacao: aceita exatamente 11 ou 14 digitos
+   - Botoes "Sim" (valida e prossegue) e "Nao" (prossegue sem documento)
 
