@@ -1042,6 +1042,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
     }
     setShowCpfCnpjModal(false);
+    if (!comDocumento) {
+      toast.info("Alguns estados exigem NFC-e (modelo 65) para vendas presenciais ao consumidor final não identificado. Este sistema emite NF-e (modelo 55). Verifique a legislação do seu estado.");
+    }
     if (pendingNfeTipo) {
       await executarEmissaoNota(pendingNfeTipo, comDocumento ? cpfCnpjManual : undefined);
     }
@@ -1209,22 +1212,32 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               },
             },
             dest: (() => {
-              if (!clienteData) return undefined;
-              // Determinar CPF/CNPJ: usar override do modal ou valor cadastrado
-              const cpfCnpjClean = cpfCnpjOverride || (clienteData.cpf_cnpj?.replace(/\D/g, "") || "");
-              const destObj: Record<string, unknown> = {};
-              // CNPJ/CPF/idEstrangeiro MUST come before xNome in the XML schema
-              if (cpfCnpjClean.length === 14) {
-                destObj.CNPJ = cpfCnpjClean;
-              } else if (cpfCnpjClean.length === 11) {
-                destObj.CPF = cpfCnpjClean;
-              } else {
-                // Consumidor final sem documento: usar idEstrangeiro vazio
-                destObj.idEstrangeiro = "";
+              const cpfCnpjClean = cpfCnpjOverride || (clienteData?.cpf_cnpj?.replace(/\D/g, "") || "");
+
+              // Consumidor final não identificado (venda presencial sem documento)
+              if (cpfCnpjClean.length !== 11 && cpfCnpjClean.length !== 14) {
+                return {
+                  xNome: "CONSUMIDOR FINAL",
+                  indIEDest: 9,
+                  enderDest: {
+                    xLgr: empresaData.logradouro_fiscal || "NAO INFORMADO",
+                    nro: empresaData.numero_endereco_fiscal || "S/N",
+                    xBairro: empresaData.bairro_fiscal || "NAO INFORMADO",
+                    cMun: Number(empresaData.codigo_ibge_cidade) || 0,
+                    xMun: empresaData.cidade_fiscal || "NAO INFORMADO",
+                    UF: empresaData.uf_fiscal || "SP",
+                    CEP: empresaData.cep_fiscal?.replace(/\D/g, "") || "00000000",
+                  },
+                };
               }
-              destObj.xNome = clienteData.nome_cliente;
+
+              // Consumidor identificado (com CPF ou CNPJ)
+              const destObj: Record<string, unknown> = {};
+              if (cpfCnpjClean.length === 14) destObj.CNPJ = cpfCnpjClean;
+              else destObj.CPF = cpfCnpjClean;
+              destObj.xNome = clienteData?.nome_cliente || "CONSUMIDOR FINAL";
               destObj.indIEDest = 9;
-              if (clienteData.logradouro) {
+              if (clienteData?.logradouro) {
                 destObj.enderDest = {
                   xLgr: clienteData.logradouro,
                   nro: clienteData.numero_endereco || "S/N",
@@ -3326,6 +3339,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Para venda presencial ao consumidor final, é possível emitir sem CPF/CNPJ. Clique em "Não" para prosseguir sem documento.
+            </p>
             <Input
               type="text"
               inputMode="numeric"
