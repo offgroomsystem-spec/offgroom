@@ -1,77 +1,87 @@
 
 
-## Plano: Corrigir status "processando" e rejeicao da NFe
+## Corrigir emissao de NF-e para consumidor final nao identificado (venda presencial)
 
-### Problemas identificados
+### Problema
 
-1. **Status preso em "processando"**: O mapeamento de status na edge function usa `"rejeitada"` mas a API retorna `"rejeitado"` (masculino). O valor nao e encontrado no map e cai no fallback "processando".
+Ao emitir NF-e sem CPF/CNPJ (consumidor final presencial nao identificado), o sistema envia o bloco `dest` com `idEstrangeiro: ""` seguido de `xNome` e possivelmente `enderDest` incompleto. A SEFAZ rejeita porque:
 
-2. **Mensagem de erro nao aparece**: O codigo busca `nfeData.motivo_rejeicao`, mas o campo real na resposta da API e `nfeData.autorizacao.motivo_status`.
+1. `idEstrangeiro` e destinado a estrangeiros, nao a consumidores nacionais nao identificados
+2. O endereco do destinatario pode estar incompleto
+3. A estrutura XML nao respeita a sequencia esperada pela SEFAZ
 
-3. **NFe rejeitada (codigo 719)**: A SEFAZ rejeitou porque o bloco `dest` foi omitido quando o cliente nao tem CPF/CNPJ. A SEFAZ exige o bloco `dest` mesmo sem documento -- basta enviar `xNome` junto com `idEstrangeiro` vazio ou usar uma estrutura minima aceita.
+### Solucao
 
----
+Para venda presencial (modelo 55) a consumidor final nao identificado (sem CPF/CNPJ), a legislacao permite **omitir o bloco `dest` inteiramente** quando `indFinal=1`, `indPres=1` e `idDest=1`. Alternativamente, pode-se enviar um bloco `dest` minimo com apenas `indIEDest=9` e `xNome=CONSUMIDOR FINAL`, usando os dados fiscais da empresa para UF/municipio.
 
-### Correcoes
+A abordagem mais segura e robusta: enviar `dest` minimo com dados do emitente para o endereco.
 
-#### 1. Edge function `supabase/functions/nuvem-fiscal/index.ts`
-
-**statusMap** - Adicionar as variantes masculinas retornadas pela API:
-- `"rejeitado"` -> `"rejeitada"`
-- `"autorizado"` -> `"autorizada"`
-- `"cancelado"` -> `"cancelada"`
-- Manter tambem as femininas para compatibilidade
-
-**mensagem_erro** - Buscar o motivo de rejeicao no caminho correto:
-- Tentar `nfeData.autorizacao?.motivo_status` primeiro
-- Fallback para `nfeData.motivo_rejeicao`
-
-Aplicar as mesmas correcoes no bloco `consultar_nfse`.
-
-#### 2. Frontend `src/pages/ControleFinanceiro.tsx`
-
-**Bloco `dest` sem CPF/CNPJ** - Quando o usuario clica "Nao" no modal (sem documento), em vez de omitir `dest` inteiramente, enviar o bloco com a estrutura minima que a SEFAZ aceita. Conforme o schema XML da NFe, o campo `dest` exige ao menos um de: `CNPJ`, `CPF` ou `idEstrangeiro`. Usar `idEstrangeiro` vazio (string vazia) como indicador de consumidor final sem identificacao, seguido de `xNome` e `indIEDest: 9`.
-
----
-
-### Detalhes tecnicos
-
-**Arquivo: `supabase/functions/nuvem-fiscal/index.ts`**
-
-Bloco `consultar_nfe` (linhas 211-217):
-```typescript
-const statusMap: Record<string, string> = {
-  autorizada: "autorizada",
-  autorizado: "autorizada",
-  rejeitada: "rejeitada",
-  rejeitado: "rejeitada",
-  cancelada: "cancelada",
-  cancelado: "cancelada",
-  processando: "processando",
-};
-```
-
-Mensagem de erro (linha 226):
-```typescript
-const autorizacao = nfeData.autorizacao as Record<string, unknown> | undefined;
-mensagem_erro: autorizacao?.motivo_status as string 
-  || nfeData.motivo_rejeicao as string 
-  || null,
-```
-
-Mesmas alteracoes para o bloco `consultar_nfse`.
+### Alteracoes
 
 **Arquivo: `src/pages/ControleFinanceiro.tsx`**
 
-Quando nao ha CPF/CNPJ, montar `dest` com `idEstrangeiro` vazio:
+1. **Bloco `dest` (linhas 1211-1239)**: Refatorar a logica IIFE para tratar o cenario sem documento:
+   - Quando nao houver CPF/CNPJ valido (nem override nem cadastro), montar `dest` minimo:
+     - Sem `CNPJ`, `CPF` ou `idEstrangeiro`
+     - `xNome`: "CONSUMIDOR FINAL"
+     - `indIEDest`: 9
+     - `enderDest` preenchido com os dados da empresa emitente (UF, municipio, codigo IBGE, logradouro, bairro, CEP)
+   - Quando houver CPF/CNPJ valido, manter logica atual (CNPJ ou CPF + nome real + endereco do cliente)
+
+2. **Bloco `ide` (linhas 1177-1194)**: Ja esta correto com `indFinal: 1`, `indPres: 1`, `idDest: 1`. Nenhuma alteracao necessaria.
+
+3. **Modal de CPF/CNPJ (linhas 3313-3364)**: Adicionar nota informativa explicando que e possivel emitir sem documento para venda presencial ao consumidor final.
+
+4. **Aviso sobre NFC-e**: Adicionar um `toast.info` orientativo quando o usuario emitir sem documento, mencionando que alguns estados exigem NFC-e (modelo 65) para vendas presenciais ao consumidor final, e que o sistema atualmente emite NF-e (modelo 55).
+
+### Detalhes tecnicos
+
+**Novo bloco `dest` para consumidor nao identificado:**
 ```typescript
-// Sem documento: usar idEstrangeiro vazio para consumidor final
-destObj.idEstrangeiro = "";
-destObj.xNome = clienteData.nome_cliente;
-destObj.indIEDest = 9;
+dest: (() => {
+  const cpfCnpjClean = cpfCnpjOverride || (clienteData?.cpf_cnpj?.replace(/\D/g, "") || "");
+  
+  // Consumidor final nao identificado (venda presencial sem documento)
+  if (cpfCnpjClean.length !== 11 && cpfCnpjClean.length !== 14) {
+    return {
+      xNome: "CONSUMIDOR FINAL",
+      indIEDest: 9,
+      enderDest: {
+        xLgr: empresaData.logradouro_fiscal || "NAO INFORMADO",
+        nro: empresaData.numero_endereco_fiscal || "S/N",
+        xBairro: empresaData.bairro_fiscal || "NAO INFORMADO",
+        cMun: Number(empresaData.codigo_ibge_cidade) || 0,
+        xMun: empresaData.cidade_fiscal || "NAO INFORMADO",
+        UF: empresaData.uf_fiscal || "SP",
+        CEP: empresaData.cep_fiscal?.replace(/\D/g, "") || "00000000",
+      },
+    };
+  }
+  
+  // Consumidor identificado (com CPF ou CNPJ)
+  const destObj: Record<string, unknown> = {};
+  if (cpfCnpjClean.length === 14) destObj.CNPJ = cpfCnpjClean;
+  else destObj.CPF = cpfCnpjClean;
+  destObj.xNome = clienteData?.nome_cliente || "CONSUMIDOR FINAL";
+  destObj.indIEDest = 9;
+  if (clienteData?.logradouro) {
+    destObj.enderDest = {
+      xLgr: clienteData.logradouro,
+      nro: clienteData.numero_endereco || "S/N",
+      xBairro: clienteData.bairro,
+      cMun: Number(clienteData.codigo_ibge_cidade) || 0,
+      xMun: clienteData.cidade,
+      UF: clienteData.uf,
+      CEP: clienteData.cep?.replace(/\D/g, ""),
+    };
+  }
+  return destObj;
+})()
 ```
 
-#### 3. Correcao imediata no banco
-
-Atualizar o registro existente que esta preso em "processando" para refletir o status real de "rejeitada" com a mensagem de erro correta.
-
+**Pontos-chave da correcao:**
+- Nao usa `idEstrangeiro` (campo para estrangeiros, nao para consumidores nacionais)
+- Sem documento, envia `xNome: "CONSUMIDOR FINAL"` sem campo de identificacao (CPF/CNPJ/idEstrangeiro)
+- Preenche endereco com dados do emitente para satisfazer campos obrigatorios da SEFAZ
+- Mantem `indIEDest: 9` (nao contribuinte)
+- Os campos `indFinal`, `indPres` e `idDest` ja estao configurados corretamente no bloco `ide`
