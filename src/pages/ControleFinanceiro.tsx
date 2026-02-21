@@ -1212,14 +1212,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               if (!clienteData) return undefined;
               // Determinar CPF/CNPJ: usar override do modal ou valor cadastrado
               const cpfCnpjClean = cpfCnpjOverride || (clienteData.cpf_cnpj?.replace(/\D/g, "") || "");
+              // Se não tem documento válido (11 ou 14 dígitos), omitir dest inteiro
+              // pois o schema NFe exige CPF/CNPJ antes de xNome
+              if (cpfCnpjClean.length !== 11 && cpfCnpjClean.length !== 14) {
+                return undefined;
+              }
               const destObj: Record<string, unknown> = {};
               // CNPJ/CPF MUST come before xNome in the XML schema
               if (cpfCnpjClean.length === 14) {
                 destObj.CNPJ = cpfCnpjClean;
-              } else if (cpfCnpjClean.length === 11) {
+              } else {
                 destObj.CPF = cpfCnpjClean;
               }
-              // Sem documento: dest apenas com xNome e indIEDest
               destObj.xNome = clienteData.nome_cliente;
               destObj.indIEDest = 9;
               if (clienteData.logradouro) {
