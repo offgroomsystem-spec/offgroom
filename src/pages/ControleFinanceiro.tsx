@@ -1293,29 +1293,36 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
       toast.success(`${tipo} enviada para processamento!`);
 
-      // 5. Tentar baixar PDF após breve espera
+      // 5. Tentar baixar PDF com retry (a SEFAZ pode demorar para processar)
       const nuvemFiscalId = (result as any)?.id;
       if (nuvemFiscalId) {
-        setTimeout(async () => {
-          try {
-            const pdfAction = tipo === 'NFe' ? 'baixar_pdf_nfe' : 'baixar_pdf_nfse';
-            const pdfResult = await callNuvemFiscal(pdfAction, { id: nuvemFiscalId });
-            const pdfData = pdfResult as { base64: string; contentType: string };
-            if (pdfData?.base64) {
-              const byteCharacters = atob(pdfData.base64);
-              const byteNumbers = new Array(byteCharacters.length);
-              for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+        const tentarBaixarPdf = async (tentativas: number, delayMs: number) => {
+          for (let i = 0; i < tentativas; i++) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            try {
+              const pdfAction = tipo === 'NFe' ? 'baixar_pdf_nfe' : 'baixar_pdf_nfse';
+              const pdfResult = await callNuvemFiscal(pdfAction, { id: nuvemFiscalId });
+              const pdfData = pdfResult as { base64: string; contentType: string };
+              if (pdfData?.base64) {
+                const byteCharacters = atob(pdfData.base64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let j = 0; j < byteCharacters.length; j++) {
+                  byteNumbers[j] = byteCharacters.charCodeAt(j);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                window.open(url, "_blank");
+                return; // Sucesso, parar retries
               }
-              const byteArray = new Uint8Array(byteNumbers);
-              const blob = new Blob([byteArray], { type: "application/pdf" });
-              const url = URL.createObjectURL(blob);
-              window.open(url, "_blank");
+            } catch (pdfErr) {
+              console.warn(`Tentativa ${i + 1}/${tentativas} - PDF ainda não disponível.`);
             }
-          } catch (pdfErr) {
-            console.warn("PDF ainda não disponível, consulte na página de Notas Fiscais.");
           }
-        }, 3000);
+          toast.info("PDF ainda não disponível. Consulte na página de Notas Fiscais em alguns instantes.");
+        };
+        // 4 tentativas com 5s de intervalo (total ~20s)
+        tentarBaixarPdf(4, 5000);
       }
 
       // Atualizar lista de notas emitidas
