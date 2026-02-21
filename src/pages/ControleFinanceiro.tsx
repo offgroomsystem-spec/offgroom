@@ -1217,6 +1217,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               // Consumidor final não identificado (venda presencial sem documento)
               if (cpfCnpjClean.length !== 11 && cpfCnpjClean.length !== 14) {
                 return {
+                  idEstrangeiro: "",
                   xNome: "CONSUMIDOR FINAL",
                   indIEDest: 9,
                   enderDest: {
