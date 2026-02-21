@@ -1,53 +1,39 @@
 
 
-# Plano: Saldos dinamicos por data no modal de Transferencia
+# Correcao e Teste da Integracao Nuvem Fiscal (NFe Sandbox)
 
-## Resumo
+## Problema Identificado
 
-Atualizar o card "Saldos disponiveis" dentro do modal de transferencia para que ele recalcule os saldos de cada conta com base na data selecionada no campo "Data da transferencia", em vez de sempre mostrar o saldo atual. Tambem garantir que a validacao impeca que a conta de origem fique negativa (pode zerar, mas nao negativar).
+Ao testar a edge function `nuvem-fiscal`, o sistema retorna erro de DNS porque a URL de autenticacao OAuth esta incorreta:
 
-## Alteracoes
+- **URL atual (errada):** `https://auth.sandbox.nuvemfiscal.com.br/oauth/token`
+- **URL correta:** `https://auth.nuvemfiscal.com.br/oauth/token`
 
-Arquivo unico: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
+A Nuvem Fiscal usa **uma unica URL de autenticacao** para sandbox e producao. Somente a URL da API muda entre ambientes.
 
-### 1. Calcular saldos por data no modal
+## Alteracao
 
-Adicionar um `useMemo` (ou calculo inline) que recalcula os saldos de cada conta ate a `dataTransferencia` selecionada:
+### Arquivo: `supabase/functions/nuvem-fiscal/index.ts`
 
-```typescript
-const saldosPorBancoNaData = useMemo(() => {
-  const dataRef = format(dataTransferencia, "yyyy-MM-dd");
-  return contas.map((conta) => {
-    const lancamentosConta = lancamentos.filter(
-      (l) => l.nomeBanco === conta.nomeBanco && l.pago && l.dataPagamento <= dataRef
-    );
-    const receitas = lancamentosConta
-      .filter((l) => l.tipo === "Receita")
-      .reduce((acc, l) => acc + l.valorTotal, 0);
-    const despesas = lancamentosConta
-      .filter((l) => l.tipo === "Despesa")
-      .reduce((acc, l) => acc + l.valorTotal, 0);
-    return { nome: conta.nomeBanco, saldo: receitas - despesas };
-  });
-}, [dataTransferencia, contas, lancamentos]);
+Corrigir a constante `NUVEM_FISCAL_AUTH` na linha 8:
+
+**De:**
+```
+const NUVEM_FISCAL_AUTH = "https://auth.sandbox.nuvemfiscal.com.br/oauth/token";
 ```
 
-### 2. Atualizar o card de saldos no modal
+**Para:**
+```
+const NUVEM_FISCAL_AUTH = "https://auth.nuvemfiscal.com.br/oauth/token";
+```
 
-Substituir o uso de `saldosPorBanco` pelo novo `saldosPorBancoNaData` e atualizar o titulo para refletir a data selecionada:
+## Verificacao
 
-- Titulo: `Saldos disponíveis (DD/MM/YYYY)` mostrando a data selecionada
-- Valores: calculados ate a data selecionada
-- Ao mudar a data no calendario, o card atualiza automaticamente
+Apos a correcao, a edge function sera redeployada automaticamente e testaremos:
 
-### 3. Ajustar validacao para permitir zerar mas nao negativar
+1. Obter token OAuth com as credenciais cadastradas
+2. Consultar a empresa cadastrada na Nuvem Fiscal via CNPJ
+3. Confirmar que a comunicacao com a API sandbox esta funcionando
 
-Na funcao `validarTransferencia`, alterar a comparacao de `valor > saldoAteData` para `valor > saldoAteData` (ja esta correto, pois permite valor igual ao saldo, zerando a conta). Confirmar que a logica atual ja impede negativacao mas permite zerar.
+Nenhuma outra alteracao e necessaria neste momento. O restante da integracao (frontend, banco de dados, payloads NFe/NFSe) ja esta implementado e funcional.
 
-Revisando o codigo atual: `if (valor > saldoAteData)` -- isso ja esta correto. Se valor == saldo, passa. Se valor > saldo, bloqueia. Nenhuma alteracao necessaria na validacao.
-
-## Resultado esperado
-
-- Ao abrir o modal, os saldos mostram valores calculados ate a data atual (padrao)
-- Ao selecionar outra data no calendario, o card "Saldos disponiveis" atualiza instantaneamente com os saldos de cada conta ate aquela data
-- O usuario pode transferir ate o valor total do saldo (zerando a conta), mas nao pode ultrapassar
