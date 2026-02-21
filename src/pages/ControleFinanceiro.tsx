@@ -1155,22 +1155,30 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 CEP: empresaData.cep_fiscal?.replace(/\D/g, ""),
               },
             },
-            dest: clienteData ? {
-              ...(clienteData.cpf_cnpj?.replace(/\D/g, "").length === 11
-                ? { CPF: clienteData.cpf_cnpj?.replace(/\D/g, "") }
-                : { CNPJ: clienteData.cpf_cnpj?.replace(/\D/g, "") }),
-              xNome: clienteData.nome_cliente,
-              indIEDest: 9,
-              enderDest: clienteData.logradouro ? {
-                xLgr: clienteData.logradouro,
-                nro: clienteData.numero_endereco || "S/N",
-                xBairro: clienteData.bairro,
-                cMun: Number(clienteData.codigo_ibge_cidade) || 0,
-                xMun: clienteData.cidade,
-                UF: clienteData.uf,
-                CEP: clienteData.cep?.replace(/\D/g, ""),
-              } : undefined,
-            } : undefined,
+            dest: clienteData ? (() => {
+              const cpfCnpjClean = clienteData.cpf_cnpj?.replace(/\D/g, "") || "";
+              const destObj: Record<string, unknown> = {};
+              // CNPJ/CPF MUST come before xNome in the XML schema
+              if (cpfCnpjClean.length === 11) {
+                destObj.CPF = cpfCnpjClean;
+              } else if (cpfCnpjClean.length === 14) {
+                destObj.CNPJ = cpfCnpjClean;
+              }
+              destObj.xNome = clienteData.nome_cliente;
+              destObj.indIEDest = 9;
+              if (clienteData.logradouro) {
+                destObj.enderDest = {
+                  xLgr: clienteData.logradouro,
+                  nro: clienteData.numero_endereco || "S/N",
+                  xBairro: clienteData.bairro,
+                  cMun: Number(clienteData.codigo_ibge_cidade) || 0,
+                  xMun: clienteData.cidade,
+                  UF: clienteData.uf,
+                  CEP: clienteData.cep?.replace(/\D/g, ""),
+                };
+              }
+              return destObj;
+            })() : undefined,
             det: itensFiltrados.map((item, index) => {
               const fiscal = produtosMap.get(item.produtoServico);
               return {
