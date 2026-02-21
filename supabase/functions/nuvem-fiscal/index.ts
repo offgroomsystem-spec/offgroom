@@ -141,6 +141,24 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "configurar_nfe": {
+        const cnpj = params.cnpj?.replace(/\D/g, "");
+        result = await nuvemFiscalRequest("PUT", `/empresas/${cnpj}/nfe`, params.payload);
+        break;
+      }
+
+      case "consultar_config_nfe": {
+        const cnpj = params.cnpj?.replace(/\D/g, "");
+        result = await nuvemFiscalRequest("GET", `/empresas/${cnpj}/nfe`);
+        break;
+      }
+
+      case "configurar_nfse": {
+        const cnpj = params.cnpj?.replace(/\D/g, "");
+        result = await nuvemFiscalRequest("PUT", `/empresas/${cnpj}/nfse`, params.payload);
+        break;
+      }
+
       case "emitir_nfe": {
         result = await nuvemFiscalRequest("POST", "/nfe", params.payload);
 
