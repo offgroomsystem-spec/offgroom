@@ -210,11 +210,15 @@ Deno.serve(async (req) => {
           const nfeData = result.data as Record<string, unknown>;
           const statusMap: Record<string, string> = {
             autorizada: "autorizada",
+            autorizado: "autorizada",
             rejeitada: "rejeitada",
+            rejeitado: "rejeitada",
             cancelada: "cancelada",
+            cancelado: "cancelada",
             processando: "processando",
           };
           const newStatus = statusMap[nfeData.status as string] || "processando";
+          const autorizacao = nfeData.autorizacao as Record<string, unknown> | undefined;
 
           await supabase
             .from("notas_fiscais")
@@ -223,7 +227,7 @@ Deno.serve(async (req) => {
               numero: nfeData.numero as string,
               serie: nfeData.serie as string,
               dados_nfe: nfeData,
-              mensagem_erro: nfeData.motivo_rejeicao as string || null,
+              mensagem_erro: (autorizacao?.motivo_status as string) || (nfeData.motivo_rejeicao as string) || null,
             })
             .eq("nuvem_fiscal_id", params.id);
         }
@@ -237,11 +241,15 @@ Deno.serve(async (req) => {
           const nfseData = result.data as Record<string, unknown>;
           const statusMap: Record<string, string> = {
             autorizada: "autorizada",
+            autorizado: "autorizada",
             rejeitada: "rejeitada",
+            rejeitado: "rejeitada",
             cancelada: "cancelada",
+            cancelado: "cancelada",
             processando: "processando",
           };
           const newStatus = statusMap[nfseData.status as string] || "processando";
+          const autorizacao = nfseData.autorizacao as Record<string, unknown> | undefined;
 
           await supabase
             .from("notas_fiscais")
@@ -249,7 +257,7 @@ Deno.serve(async (req) => {
               status: newStatus,
               numero: nfseData.numero as string,
               dados_nfse: nfseData,
-              mensagem_erro: nfseData.motivo_rejeicao as string || null,
+              mensagem_erro: (autorizacao?.motivo_status as string) || (nfseData.motivo_rejeicao as string) || null,
             })
             .eq("nuvem_fiscal_id", params.id);
         }
