@@ -1155,13 +1155,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 CEP: empresaData.cep_fiscal?.replace(/\D/g, ""),
               },
             },
-            dest: clienteData ? (() => {
+            dest: (() => {
+              if (!clienteData) return undefined;
               const cpfCnpjClean = clienteData.cpf_cnpj?.replace(/\D/g, "") || "";
+              // CPF/CNPJ is required - if client has no document, skip dest entirely
+              if (cpfCnpjClean.length !== 11 && cpfCnpjClean.length !== 14) {
+                return undefined;
+              }
               const destObj: Record<string, unknown> = {};
               // CNPJ/CPF MUST come before xNome in the XML schema
               if (cpfCnpjClean.length === 11) {
                 destObj.CPF = cpfCnpjClean;
-              } else if (cpfCnpjClean.length === 14) {
+              } else {
                 destObj.CNPJ = cpfCnpjClean;
               }
               destObj.xNome = clienteData.nome_cliente;
@@ -1178,7 +1183,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 };
               }
               return destObj;
-            })() : undefined,
+            })(),
             det: itensFiltrados.map((item, index) => {
               const fiscal = produtosMap.get(item.produtoServico);
               return {
