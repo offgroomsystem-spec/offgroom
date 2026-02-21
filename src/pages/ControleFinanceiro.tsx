@@ -626,6 +626,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
   const [emitindoNota, setEmitindoNota] = useState(false);
   const [confirmEmissaoTipo, setConfirmEmissaoTipo] = useState<'NFe' | 'NFSe' | null>(null);
   const [notasEmitidas, setNotasEmitidas] = useState<{ tipo: string; status: string }[]>([]);
+  const [showCpfCnpjModal, setShowCpfCnpjModal] = useState(false);
+  const [cpfCnpjManual, setCpfCnpjManual] = useState("");
+  const [pendingNfeTipo, setPendingNfeTipo] = useState<'NFe' | 'NFSe' | null>(null);
 
   const [formData, setFormData] = useState({
     ano: new Date().getFullYear().toString(),
@@ -998,6 +1001,56 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
   const handleEmitirNota = async (tipo: 'NFe' | 'NFSe') => {
     if (!lancamentoSelecionado || !user) return;
+
+    // Para NFe, verificar se cliente tem CPF/CNPJ antes de prosseguir
+    if (tipo === 'NFe') {
+      const lancOriginalCheck = await supabase
+        .from("lancamentos_financeiros")
+        .select("cliente_id")
+        .eq("id", lancamentoSelecionado.id)
+        .single();
+
+      if (lancOriginalCheck.data?.cliente_id) {
+        const { data: cliCheck } = await supabase
+          .from("clientes")
+          .select("cpf_cnpj")
+          .eq("id", lancOriginalCheck.data.cliente_id)
+          .single();
+
+        const cpfCnpjClean = cliCheck?.cpf_cnpj?.replace(/\D/g, "") || "";
+        if (cpfCnpjClean.length !== 11 && cpfCnpjClean.length !== 14) {
+          // Cliente sem CPF/CNPJ válido - mostrar modal
+          setPendingNfeTipo(tipo);
+          setCpfCnpjManual("");
+          setShowCpfCnpjModal(true);
+          setConfirmEmissaoTipo(null);
+          return;
+        }
+      }
+    }
+
+    // Prosseguir com emissão normalmente
+    await executarEmissaoNota(tipo);
+  };
+
+  const handleCpfCnpjModalConfirm = async (comDocumento: boolean) => {
+    if (comDocumento) {
+      const len = cpfCnpjManual.length;
+      if (len !== 11 && len !== 14) {
+        toast.error("Informe exatamente 11 dígitos (CPF) ou 14 dígitos (CNPJ).");
+        return;
+      }
+    }
+    setShowCpfCnpjModal(false);
+    if (pendingNfeTipo) {
+      await executarEmissaoNota(pendingNfeTipo, comDocumento ? cpfCnpjManual : undefined);
+    }
+    setPendingNfeTipo(null);
+    setCpfCnpjManual("");
+  };
+
+  const executarEmissaoNota = async (tipo: 'NFe' | 'NFSe', cpfCnpjOverride?: string) => {
+    if (!lancamentoSelecionado || !user) return;
     setEmitindoNota(true);
     setConfirmEmissaoTipo(null);
 
@@ -1057,7 +1110,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         payload = {
           ambiente: "homologacao",
           infDPS: {
-            tpAmb: 2, // homologação
+            tpAmb: 2,
             dhEmi: new Date().toISOString(),
             emit: {
               CNPJ: empresaData.cnpj?.replace(/\D/g, ""),
@@ -1157,18 +1210,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             },
             dest: (() => {
               if (!clienteData) return undefined;
-              const cpfCnpjClean = clienteData.cpf_cnpj?.replace(/\D/g, "") || "";
-              // CPF/CNPJ is required - if client has no document, skip dest entirely
-              if (cpfCnpjClean.length !== 11 && cpfCnpjClean.length !== 14) {
-                return undefined;
-              }
+              // Determinar CPF/CNPJ: usar override do modal ou valor cadastrado
+              const cpfCnpjClean = cpfCnpjOverride || (clienteData.cpf_cnpj?.replace(/\D/g, "") || "");
               const destObj: Record<string, unknown> = {};
               // CNPJ/CPF MUST come before xNome in the XML schema
-              if (cpfCnpjClean.length === 11) {
-                destObj.CPF = cpfCnpjClean;
-              } else {
+              if (cpfCnpjClean.length === 14) {
                 destObj.CNPJ = cpfCnpjClean;
+              } else if (cpfCnpjClean.length === 11) {
+                destObj.CPF = cpfCnpjClean;
               }
+              // Sem documento: dest apenas com xNome e indIEDest
               destObj.xNome = clienteData.nome_cliente;
               destObj.indIEDest = 9;
               if (clienteData.logradouro) {
@@ -3245,6 +3296,59 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de CPF/CNPJ opcional para NF-e */}
+      <Dialog open={showCpfCnpjModal} onOpenChange={(open) => {
+        if (!open) {
+          setShowCpfCnpjModal(false);
+          setPendingNfeTipo(null);
+          setCpfCnpjManual("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>CPF/CNPJ na NF-e</DialogTitle>
+            <DialogDescription>
+              Gostaria de inserir o número de CPF/CNPJ na NF-e?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              type="text"
+              inputMode="numeric"
+              maxLength={14}
+              placeholder="Digite o CPF (11 dígitos) ou CNPJ (14 dígitos)"
+              value={cpfCnpjManual}
+              onChange={(e) => {
+                const onlyNumbers = e.target.value.replace(/\D/g, "").slice(0, 14);
+                setCpfCnpjManual(onlyNumbers);
+              }}
+              className="text-sm"
+            />
+            {cpfCnpjManual.length > 0 && cpfCnpjManual.length !== 11 && cpfCnpjManual.length !== 14 && (
+              <p className="text-xs text-destructive">
+                Informe exatamente 11 dígitos (CPF) ou 14 dígitos (CNPJ). Atual: {cpfCnpjManual.length} dígitos.
+              </p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button
+              variant="outline"
+              onClick={() => handleCpfCnpjModalConfirm(false)}
+              disabled={emitindoNota}
+            >
+              Não
+            </Button>
+            <Button
+              onClick={() => handleCpfCnpjModalConfirm(true)}
+              disabled={emitindoNota || (cpfCnpjManual.length !== 11 && cpfCnpjManual.length !== 14)}
+            >
+              {emitindoNota ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Sim
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
