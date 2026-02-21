@@ -1120,12 +1120,16 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         payload = {
           ambiente: "homologacao",
           infNFe: {
+            versao: "4.00",
             ide: {
               cUF: Number(empresaData.codigo_ibge_cidade?.substring(0, 2)) || 35,
               natOp: "Venda",
               mod: 55,
               serie: 1,
+              nNF: Math.floor(Math.random() * 999999) + 1,
+              dhEmi: new Date().toISOString(),
               tpNF: 1,
+              idDest: 1,
               cMunFG: Number(empresaData.codigo_ibge_cidade) || 0,
               tpImp: 1,
               tpEmis: 1,
@@ -1134,6 +1138,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               indFinal: 1,
               indPres: 1,
               procEmi: 0,
+              verProc: "1.0.0",
             },
             emit: {
               CNPJ: empresaData.cnpj?.replace(/\D/g, ""),
@@ -1174,7 +1179,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   cProd: fiscal?.nome || item.produtoServico,
                   cEAN: "SEM GTIN",
                   xProd: item.produtoServico,
-                  NCM: fiscal?.ncm || "00000000",
+                  NCM: (fiscal?.ncm || "00000000").replace(/\D/g, "").padEnd(8, "0").substring(0, 8),
                   CFOP: fiscal?.cfop || "5102",
                   uCom: fiscal?.unidade_medida || "UN",
                   qCom: item.quantidade || 1,
