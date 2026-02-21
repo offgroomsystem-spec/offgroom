@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const NUVEM_FISCAL_API = "https://api.sandbox.nuvemfiscal.com.br";
-const NUVEM_FISCAL_AUTH = "https://auth.sandbox.nuvemfiscal.com.br/oauth/token";
+const NUVEM_FISCAL_AUTH = "https://auth.nuvemfiscal.com.br/oauth/token";
 
 // Simple in-memory token cache
 let cachedToken: { access_token: string; expires_at: number } | null = null;
