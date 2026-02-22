@@ -987,6 +987,23 @@ const FluxoDeCaixa = () => {
     return pets.filter((p) => idsClientes.includes(p.clienteId)).map((p) => p.nomePet);
   }, [formData.nomeCliente, clientes, pets]);
 
+  const temPetsAdicionais = useMemo(() => {
+    if (!formData.nomeCliente || !formData.nomePet) return false;
+    const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+    let clienteSelecionado: typeof clientes[0] | undefined;
+    for (const cliente of clientesComMesmoNome) {
+      const petEncontrado = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+      if (petEncontrado) { clienteSelecionado = cliente; break; }
+    }
+    if (!clienteSelecionado) return false;
+    const petsDisponiveis = pets.filter(
+      (p) => p.clienteId === clienteSelecionado!.id
+        && p.nomePet !== formData.nomePet
+        && !formData.petsSelecionados.some((ps) => ps.id === p.id)
+    );
+    return petsDisponiveis.length > 0;
+  }, [formData.nomeCliente, formData.nomePet, formData.petsSelecionados, clientes, pets]);
+
   // Funções para Atualizar Saldo
   const abrirDialogoSaldo = () => {
     setContaSelecionada("");
@@ -1949,7 +1966,7 @@ const FluxoDeCaixa = () => {
                       <Label className="text-[10px] font-semibold">
                         Pets {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}
                       </Label>
-                      {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && (
+                      {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && temPetsAdicionais && (
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant="outline" size="sm" className="h-5 text-[10px] px-2 gap-1">
