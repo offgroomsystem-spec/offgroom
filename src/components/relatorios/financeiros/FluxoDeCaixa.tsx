@@ -485,8 +485,10 @@ const FluxoDeCaixa = () => {
   const [dataTransferencia, setDataTransferencia] = useState<Date>(new Date());
   const [confirmTransferenciaOpen, setConfirmTransferenciaOpen] = useState(false);
 
-  // Estados para Edição e Exclusão
+  // Estados para Criação, Edição e Exclusão
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [fornecedorPopoverOpen, setFornecedorPopoverOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [lancamentoSelecionado, setLancamentoSelecionado] = useState<LancamentoFluxo | null>(null);
   const [formData, setFormData] = useState({
@@ -1142,7 +1144,7 @@ const FluxoDeCaixa = () => {
     }
   };
 
-  // Funções de Edição e Exclusão
+  // Funções de Criação, Edição e Exclusão
   const resetForm = () => {
     setFormData({
       ano: new Date().getFullYear().toString(),
@@ -1160,8 +1162,114 @@ const FluxoDeCaixa = () => {
       fornecedorId: "",
     });
     setItensLancamento([{ id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }]);
+    setIsCreateDialogOpen(false);
     setIsEditDialogOpen(false);
     setFornecedorSearch("");
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    if (!formData.ano) { toast.error("Favor selecionar o Ano de competência!"); return; }
+    if (!formData.mesCompetencia) { toast.error("Favor selecionar o Mês de competência!"); return; }
+    if (!formData.tipo) { toast.error("Favor selecionar o Tipo financeiro!"); return; }
+    if (!formData.descricao1) { toast.error("Favor preencher a Descrição 1!"); return; }
+
+    const clientePetObrigatorios = formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional";
+    if (clientePetObrigatorios) {
+      if (!formData.nomeCliente || formData.nomeCliente === "Não aplicável") { toast.error("Favor selecionar o nome do Cliente!"); return; }
+      if (!formData.nomePet || formData.nomePet === "Não aplicável") { toast.error("Favor selecionar o nome do Pet!"); return; }
+    }
+
+    for (let i = 0; i < itensLancamento.length; i++) {
+      const item = itensLancamento[i];
+      if (!item.descricao2) { toast.error(`Item ${i + 1}: Favor preencher a Descrição 2!`); return; }
+      if ((item.descricao2 === "Serviços" || item.descricao2 === "Venda") && !item.produtoServico) {
+        toast.error(`Item ${i + 1}: Favor selecionar ${item.descricao2 === "Serviços" ? "o serviço" : "o produto"}!`); return;
+      }
+      if (item.valor <= 0) { toast.error(`Item ${i + 1}: Favor preencher o valor!`); return; }
+    }
+
+    if (!formData.nomeBanco) { toast.error("Favor selecionar o Banco!"); return; }
+
+    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0);
+
+    try {
+      let clienteId = null;
+
+      if (clientePetObrigatorios) {
+        const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+        let clienteEncontrado: Cliente | null = null;
+
+        for (const cliente of clientesComMesmoNome) {
+          const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+          if (pet) { clienteEncontrado = cliente; break; }
+        }
+
+        if (!clienteEncontrado) { toast.error("Cliente/Pet não encontrado ou não correspondem!"); return; }
+        clienteId = clienteEncontrado.id;
+      } else if (formData.nomeCliente && formData.nomePet) {
+        const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+        for (const cliente of clientesComMesmoNome) {
+          const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+          if (pet) { clienteId = cliente.id; break; }
+        }
+      }
+
+      const conta = contas.find((c) => c.nomeBanco === formData.nomeBanco);
+      if (!conta) { toast.error("Conta bancária não encontrada!"); return; }
+
+      const clientesComMesmoNomeParaPet = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+      let petPrincipal: Pet | null = null;
+      for (const cliente of clientesComMesmoNomeParaPet) {
+        const pet = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+        if (pet) { petPrincipal = pet; break; }
+      }
+      const petIds = petPrincipal ? [petPrincipal.id, ...formData.petsSelecionados.map((p) => p.id)] : [];
+
+      const { data: lancamentoData, error: lancamentoError } = await supabase
+        .from("lancamentos_financeiros")
+        .insert([{
+          user_id: ownerId,
+          ano: formData.ano,
+          mes_competencia: formData.mesCompetencia,
+          tipo: formData.tipo,
+          descricao1: formData.descricao1,
+          cliente_id: clienteId,
+          pet_ids: petIds,
+          valor_total: valorTotal,
+          data_pagamento: formData.dataPagamento,
+          conta_id: conta.id,
+          pago: formData.pago,
+          observacao: null,
+          valor_deducao: formData.valorDeducao || 0,
+          tipo_deducao: formData.tipoDeducao || null,
+          fornecedor_id: formData.tipo === "Despesa" && formData.fornecedorId ? formData.fornecedorId : null,
+        }])
+        .select()
+        .single();
+
+      if (lancamentoError) throw lancamentoError;
+
+      const { error: itensError } = await supabase.from("lancamentos_financeiros_itens").insert(
+        itensLancamento.map((item) => ({
+          lancamento_id: lancamentoData.id,
+          descricao2: item.descricao2,
+          produto_servico: item.produtoServico,
+          valor: item.valor,
+        })),
+      );
+
+      if (itensError) throw itensError;
+
+      toast.success("Lançamento cadastrado com sucesso!");
+      await loadLancamentos();
+      resetForm();
+    } catch (error) {
+      console.error("Erro ao criar lançamento:", error);
+      toast.error("Erro ao criar lançamento");
+    }
   };
 
   const abrirEdicao = (lancamento: LancamentoFluxo) => {
@@ -1703,6 +1811,305 @@ const FluxoDeCaixa = () => {
         <h2 className="text-2xl font-bold">Fluxo de Caixa</h2>
 
         <div className="flex items-center gap-2">
+          {/* Botão Lançar Financeiro */}
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={(open) => {
+              setIsCreateDialogOpen(open);
+              if (!open) resetForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="gap-2 h-8 text-xs bg-green-600 hover:bg-green-700">
+                <Plus className="h-3 w-3" />
+                Lançar Financeiro
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-base">Lançar Financeiro</DialogTitle>
+                <DialogDescription className="text-[10px]">
+                  Preencha os dados do lançamento financeiro
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleCreateSubmit} className="space-y-2">
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Ano *</Label>
+                    <Input type="number" min="2020" max="2050" value={formData.ano} onChange={(e) => setFormData({ ...formData, ano: e.target.value })} className="h-7 text-xs" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Mês Competência *</Label>
+                    <Select value={formData.mesCompetencia} onValueChange={(value) => setFormData({ ...formData, mesCompetencia: value })}>
+                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>{meses.map((mes) => (<SelectItem key={mes.value} value={mes.value} className="text-xs">{mes.label}</SelectItem>))}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Tipo *</Label>
+                    <Select value={formData.tipo} onValueChange={(value: any) => setFormData({ ...formData, tipo: value, descricao1: "", nomeCliente: "", nomePet: "", petsSelecionados: [], fornecedorId: "" })}>
+                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Receita" className="text-xs">Receita</SelectItem>
+                        <SelectItem value="Despesa" className="text-xs">Despesa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Descrição 1 *</Label>
+                    <Select value={formData.descricao1} onValueChange={(value) => setFormData({ ...formData, descricao1: value })} disabled={!formData.tipo}>
+                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={formData.tipo ? "Selecione" : "Selecione tipo"} /></SelectTrigger>
+                      <SelectContent>{formData.tipo && categoriasDescricao1[formData.tipo].map((desc) => (<SelectItem key={desc} value={desc} className="text-xs">{desc}</SelectItem>))}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    {formData.tipo === "Despesa" ? (
+                      <>
+                        <Label className="text-[10px] font-semibold">Fornecedor</Label>
+                        <Popover open={fornecedorPopoverOpen} onOpenChange={setFornecedorPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between h-7 text-xs">
+                              {formData.fornecedorId ? (() => { const f = fornecedores.find((f) => f.id === formData.fornecedorId); return f ? f.nome_fornecedor : "Selecione"; })() : "Selecione o fornecedor"}
+                              <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0">
+                            <Command shouldFilter={false}>
+                              <CommandInput placeholder="Buscar por nome, CNPJ/CPF ou fantasia..." className="text-xs" value={fornecedorSearch} onValueChange={setFornecedorSearch} />
+                              <CommandEmpty className="text-xs">Nenhum fornecedor encontrado.</CommandEmpty>
+                              <CommandGroup className="max-h-60 overflow-y-auto">
+                                {fornecedoresFiltrados.map((f) => (
+                                  <CommandItem key={f.id} value={f.id} onSelect={() => { setFormData({ ...formData, fornecedorId: formData.fornecedorId === f.id ? "" : f.id }); setFornecedorSearch(""); setFornecedorPopoverOpen(false); }} className="text-xs">
+                                    <Check className={cn("mr-2 h-3 w-3", formData.fornecedorId === f.id ? "opacity-100" : "opacity-0")} />
+                                    <div className="flex flex-col">
+                                      <span>{f.nome_fornecedor}</span>
+                                      <span className="text-[10px] text-muted-foreground">{f.cnpj_cpf}{f.nome_fantasia ? ` • ${f.nome_fantasia}` : ""}</span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </>
+                    ) : (
+                      <>
+                        <Label className="text-[10px] font-semibold">
+                          Nome do Cliente{" "}
+                          {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}
+                        </Label>
+                        <ComboboxField
+                          value={formData.nomeCliente}
+                          onChange={(value) => {
+                            const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === value);
+                            if (clientesComMesmoNome.length > 0 && formData.nomePet) {
+                              const petAtual = pets.find((p) => p.nomePet === formData.nomePet);
+                              const petPertenceAoCliente = petAtual && clientesComMesmoNome.some((c) => c.id === petAtual.clienteId);
+                              if (!petPertenceAoCliente) {
+                                setFormData({ ...formData, nomeCliente: value, nomePet: "", petsSelecionados: [] });
+                              } else {
+                                setFormData({ ...formData, nomeCliente: value });
+                              }
+                            } else {
+                              setFormData({ ...formData, nomeCliente: value });
+                            }
+                          }}
+                          options={clientesFormulario}
+                          placeholder="Selecione o cliente"
+                          searchPlaceholder="Buscar cliente..."
+                          id="create-form-cliente"
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <Label className="text-[10px] font-semibold">
+                        Pets {formData.tipo === "Receita" && formData.descricao1 === "Receita Operacional" ? "*" : ""}
+                      </Label>
+                      {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-5 text-[10px] px-2 gap-1">
+                              <Plus className="h-3 w-3" />Pet
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-2">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-semibold">Adicionar Pet</Label>
+                              <div className="max-h-48 overflow-y-auto space-y-1">
+                                {(() => {
+                                  const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+                                  let clienteSelecionado: Cliente | undefined;
+                                  for (const cliente of clientesComMesmoNome) {
+                                    const petEncontrado = pets.find((p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id);
+                                    if (petEncontrado) { clienteSelecionado = cliente; break; }
+                                  }
+                                  if (!clienteSelecionado) return <div className="text-xs text-muted-foreground">Nenhum pet disponível</div>;
+                                  const petsDisponiveis = pets.filter((p) => p.clienteId === clienteSelecionado!.id && p.nomePet !== formData.nomePet && !formData.petsSelecionados.some((ps) => ps.id === p.id));
+                                  if (petsDisponiveis.length === 0) return <div className="text-xs text-muted-foreground p-2">Nenhum pet adicional disponível</div>;
+                                  return petsDisponiveis.map((pet) => (
+                                    <Button key={pet.id} variant="ghost" size="sm" className="w-full justify-start text-xs h-8" onClick={() => {
+                                      if (!formData.petsSelecionados.some((p) => p.id === pet.id)) {
+                                        setFormData({ ...formData, petsSelecionados: [...formData.petsSelecionados, pet] });
+                                        toast.success(`${pet.nomePet} adicionado!`);
+                                      }
+                                    }}>
+                                      <div className="flex flex-col items-start">
+                                        <span className="font-medium">{pet.nomePet}</span>
+                                        <span className="text-[10px] text-muted-foreground">{pet.raca} - {pet.porte}</span>
+                                      </div>
+                                    </Button>
+                                  ));
+                                })()}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+
+                    {formData.tipo === "Despesa" ? (
+                      <div className="h-7 flex items-center px-3 text-xs border rounded-md bg-muted text-muted-foreground">Não aplicável</div>
+                    ) : (
+                      <div className="space-y-2">
+                        <ComboboxField
+                          value={formData.nomePet}
+                          onChange={(value) => {
+                            if (!formData.nomeCliente) {
+                              const petSelecionado = pets.find((p) => p.nomePet === value);
+                              if (petSelecionado) {
+                                const clienteDoPet = clientes.find((c) => c.id === petSelecionado.clienteId);
+                                if (clienteDoPet) {
+                                  setFormData({ ...formData, nomePet: value, nomeCliente: clienteDoPet.nomeCliente, petsSelecionados: [] });
+                                } else {
+                                  setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
+                                }
+                              } else {
+                                setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
+                              }
+                            } else {
+                              const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+                              const petPertenceAAlgum = pets.find((p) => p.nomePet === value && clientesComMesmoNome.some((c) => c.id === p.clienteId));
+                              if (petPertenceAAlgum) {
+                                setFormData({ ...formData, nomePet: value, petsSelecionados: [] });
+                              } else {
+                                const petReal = pets.find((p) => p.nomePet === value);
+                                if (petReal) {
+                                  const donoReal = clientes.find((c) => c.id === petReal.clienteId);
+                                  if (donoReal) {
+                                    setFormData({ ...formData, nomePet: value, nomeCliente: donoReal.nomeCliente, petsSelecionados: [] });
+                                  } else {
+                                    setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                                  }
+                                } else {
+                                  setFormData({ ...formData, nomePet: value, nomeCliente: "", petsSelecionados: [] });
+                                }
+                              }
+                            }
+                          }}
+                          options={petsFormulario}
+                          placeholder="Selecione o pet principal"
+                          searchPlaceholder="Buscar pet..."
+                          id="create-form-pet"
+                          disabled={false}
+                        />
+                        {formData.petsSelecionados.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {formData.petsSelecionados.map((pet) => (
+                              <Badge key={pet.id} variant="secondary" className="text-[10px] px-2 py-0.5 gap-1">
+                                {pet.nomePet}
+                                <button type="button" onClick={() => { setFormData({ ...formData, petsSelecionados: formData.petsSelecionados.filter((p) => p.id !== pet.id) }); toast.success(`${pet.nomePet} removido`); }} className="ml-1 hover:text-destructive">
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {itensLancamento.map((item, index) => (
+                  <ItemLancamentoForm
+                    key={item.id} item={item} index={index} formData={formData} servicos={servicos} pacotes={pacotes} produtos={produtos}
+                    onChange={(novoItem) => { setItensLancamento(itensLancamento.map((i) => (i.id === item.id ? novoItem : i))); }}
+                    onRemove={() => { if (itensLancamento.length > 1) { setItensLancamento(itensLancamento.filter((i) => i.id !== item.id)); } else { toast.error("É necessário ter pelo menos 1 item"); } }}
+                    canRemove={itensLancamento.length > 1}
+                    onAdd={() => { if (itensLancamento.length < 10) { setItensLancamento([...itensLancamento, { id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }]); } else { toast.error("Limite máximo de 10 itens atingido"); } }}
+                    isLast={index === itensLancamento.length - 1}
+                    canAdd={itensLancamento.length < 10}
+                  />
+                ))}
+
+                <div className="pt-2 border-t">
+                  <div className="grid grid-cols-3 gap-2 items-end">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px]">Valor da Dedução</Label>
+                      <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorDeducao || ""} onChange={(e) => setFormData({ ...formData, valorDeducao: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px]">Tipo de Dedução</Label>
+                      <Select value={formData.tipoDeducao} onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}>
+                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Tarifa Bancária" className="text-xs">Tarifa Bancária</SelectItem>
+                          <SelectItem value="Desconto" className="text-xs">Desconto</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2 h-7">
+                      <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
+                      <span className="text-base font-bold text-primary">
+                        {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0))}
+                      </span>
+                    </div>
+                  </div>
+                  {formData.valorDeducao > 0 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Data do Pagamento</Label>
+                    <Input type="date" value={formData.dataPagamento} onChange={(e) => setFormData({ ...formData, dataPagamento: e.target.value })} className="h-7 text-xs" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Conta Bancária *</Label>
+                    <Select value={formData.nomeBanco} onValueChange={(value) => setFormData({ ...formData, nomeBanco: value })}>
+                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>{contas.map((c) => (<SelectItem key={c.id} value={c.nomeBanco} className="text-xs">{c.nomeBanco}</SelectItem>))}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-semibold">Pago *</Label>
+                    <Select value={formData.pago ? "sim" : "nao"} onValueChange={(value) => setFormData({ ...formData, pago: value === "sim" })}>
+                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sim" className="text-xs">Sim</SelectItem>
+                        <SelectItem value="nao" className="text-xs">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">Cancelar</Button>
+                  <Button type="submit" className="h-7 text-xs">Salvar Lançamento</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           {/* Botão Transferência de Saldo */}
           <Button
             variant="outline"
