@@ -1,53 +1,41 @@
 
 
-## Adicionar botao "Lancar Financeiro" no Fluxo de Caixa
+## Adicionar filtro "Fornecedor" com busca na area de filtros do Fluxo de Caixa
 
 ### O que sera feito
 
-Adicionar o botao verde "Lancar Financeiro" na pagina de Relatorio do Fluxo de Caixa, posicionado a esquerda do botao "Transferencia de Saldo", com o mesmo formulario e regras que existem na pagina "/controle-financeiro".
+Adicionar um campo de filtro "Fornecedor" com busca inteligente (por nome, CPF/CNPJ ou nome fantasia) na area de "Filtros de Categoria" do Fluxo de Caixa, posicionado a esquerda do campo "Nome do Pet".
 
 ### Alteracoes
 
 **Arquivo: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`**
 
-1. **Novo estado**: Adicionar `isCreateDialogOpen` para controlar o dialog de criacao.
+1. **Estado `filtros`** (linha 456): Adicionar campo `nomeFornecedor: ""` ao objeto de estado inicial.
 
-2. **Funcao `handleCreateSubmit`**: Criar funcao identica ao `handleSubmit` do ControleFinanceiro, com as mesmas validacoes:
-   - Ano, mes, tipo e descricao1 obrigatorios
-   - Cliente/Pet obrigatorios apenas para Receita Operacional
-   - Validacao de itens (descricao2 obrigatoria, valor > 0, produto/servico quando aplicavel)
-   - Conta bancaria obrigatoria
-   - Insercao no banco com os mesmos campos (user_id via ownerId, valor_deducao, tipo_deducao, fornecedor_id condicional)
+2. **Funcao `limparFiltros`** (linha 731): Adicionar `nomeFornecedor: ""` ao reset.
 
-3. **Atualizar `resetForm`**: Incluir `setIsCreateDialogOpen(false)` para fechar o dialog de criacao ao resetar.
+3. **Logica de filtragem `lancamentosFiltrados`** (apos linha 807): Adicionar filtro por fornecedor:
+   ```
+   if (filtros.nomeFornecedor) {
+     resultado = resultado.filter((l) => l.nomeFornecedor === filtros.nomeFornecedor);
+   }
+   ```
 
-4. **Botao + Dialog na barra de acoes**: Inserir o Dialog com o botao verde "Lancar Financeiro" antes do botao "Transferencia de Saldo", contendo o formulario completo:
-   - Campos: Ano, Mes, Tipo, Descricao 1
-   - Fornecedor (para Despesa) ou Cliente (para Receita) com busca inteligente
-   - Pets com suporte a multiplos pets do mesmo cliente
-   - Itens do lancamento (ate 10) com ItemLancamentoForm ja existente no componente
-   - Deducoes (Tarifa Bancaria / Desconto)
-   - Data pagamento, conta bancaria, status pago
-   - Botoes Cancelar e Salvar Lancamento
+4. **Lista de opcoes de fornecedores para filtro**: Criar um `useMemo` que gera as opcoes no formato `{ value, label }` a partir do array `fornecedores` ja carregado, incluindo nome e CPF/CNPJ no label para facilitar a busca.
 
-### Ordem dos botoes na barra de acoes (da esquerda para direita)
+5. **Campo no JSX** (linha 2703, grid de filtros): Inserir um novo `ComboboxField` antes do campo "Nome do Pet", com:
+   - Label: "Fornecedor"
+   - Placeholder: "Selecione"
+   - searchPlaceholder: "Buscar por nome ou CPF/CNPJ..."
+   - Opcoes geradas a partir dos fornecedores cadastrados
+   - Busca pelo nome, CPF/CNPJ e nome fantasia
 
-1. Lancar Financeiro (novo, verde)
-2. Transferencia de Saldo
-3. Mostrar Filtros
-4. Atualizar Saldo
-5. Exportar PDF
+6. **Grid**: Alterar de `grid-cols-2 md:grid-cols-4` para `grid-cols-2 md:grid-cols-4 lg:grid-cols-5` ou manter 4 colunas com o campo extra quebrando para proxima linha, dependendo do espaco disponivel.
 
 ### Detalhes tecnicos
 
-O componente FluxoDeCaixa ja possui toda a infraestrutura necessaria:
-- `formData`, `itensLancamento`, `setFormData`, `setItensLancamento`
-- `clientes`, `pets`, `contas`, `servicos`, `pacotes`, `produtos`, `fornecedores`
-- `clientesFormulario`, `petsFormulario`
-- `fornecedorSearch`, `fornecedoresFiltrados`
-- `ComboboxField`, `ItemLancamentoForm`
-- `resetForm`, `loadLancamentos`, `formatCurrency`
-- `ownerId` e `user` do `useAuth()`
-
-A unica adicao necessaria e o estado `isCreateDialogOpen`, a funcao `handleCreateSubmit` e o bloco JSX do Dialog com o formulario de criacao.
+- O componente ja possui `fornecedores` carregado com `id`, `nome_fornecedor`, `cnpj_cpf` e `nome_fantasia`
+- O `ComboboxField` ja e usado para Pet e Cliente nos filtros, entao seguira o mesmo padrao
+- A filtragem comparara `lancamento.nomeFornecedor` com o valor selecionado no filtro
+- O `ComboboxField` usa internamente o `cmdk` que ja suporta busca por texto, entao incluir CPF/CNPJ no label da opcao permitira busca por documento automaticamente
 
