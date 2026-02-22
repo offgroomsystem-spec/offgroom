@@ -980,10 +980,11 @@ const FluxoDeCaixa = () => {
     if (!formData.nomeCliente) {
       return pets.map((p) => p.nomePet);
     }
-    const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-    if (!clienteSelecionado) return [];
+    const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+    if (clientesComMesmoNome.length === 0) return [];
 
-    return pets.filter((p) => p.clienteId === clienteSelecionado.id).map((p) => p.nomePet);
+    const idsClientes = clientesComMesmoNome.map((c) => c.id);
+    return pets.filter((p) => idsClientes.includes(p.clienteId)).map((p) => p.nomePet);
   }, [formData.nomeCliente, clientes, pets]);
 
   // Funções para Atualizar Saldo
