@@ -1,41 +1,31 @@
 
+## Corrigir listbox de Pets para clientes com nomes duplicados
 
-## Adicionar filtro "Fornecedor" com busca na area de filtros do Fluxo de Caixa
+### Problema
 
-### O que sera feito
+Quando existem dois clientes com o mesmo nome (ex: "Jessica"), ao selecionar o nome no formulario, o sistema usa `clientes.find()` que retorna apenas o **primeiro** cliente encontrado. Isso faz com que apenas os pets do primeiro cliente aparecam na listbox, ignorando os pets do segundo cliente com o mesmo nome.
 
-Adicionar um campo de filtro "Fornecedor" com busca inteligente (por nome, CPF/CNPJ ou nome fantasia) na area de "Filtros de Categoria" do Fluxo de Caixa, posicionado a esquerda do campo "Nome do Pet".
+### Solucao
+
+Alterar `petsFormulario` (linha 979-987) para usar `clientes.filter()` em vez de `clientes.find()`, coletando os pets de **todos** os clientes com o mesmo nome.
 
 ### Alteracoes
 
 **Arquivo: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`**
 
-1. **Estado `filtros`** (linha 456): Adicionar campo `nomeFornecedor: ""` ao objeto de estado inicial.
+1. **`petsFormulario` (linhas 979-987)**: Trocar a logica para filtrar todos os clientes com o mesmo nome e retornar os pets de todos eles:
 
-2. **Funcao `limparFiltros`** (linha 731): Adicionar `nomeFornecedor: ""` ao reset.
+```typescript
+const petsFormulario = useMemo(() => {
+  if (!formData.nomeCliente) {
+    return pets.map((p) => p.nomePet);
+  }
+  const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.nomeCliente);
+  if (clientesComMesmoNome.length === 0) return [];
 
-3. **Logica de filtragem `lancamentosFiltrados`** (apos linha 807): Adicionar filtro por fornecedor:
-   ```
-   if (filtros.nomeFornecedor) {
-     resultado = resultado.filter((l) => l.nomeFornecedor === filtros.nomeFornecedor);
-   }
-   ```
+  const idsClientes = clientesComMesmoNome.map((c) => c.id);
+  return pets.filter((p) => idsClientes.includes(p.clienteId)).map((p) => p.nomePet);
+}, [formData.nomeCliente, clientes, pets]);
+```
 
-4. **Lista de opcoes de fornecedores para filtro**: Criar um `useMemo` que gera as opcoes no formato `{ value, label }` a partir do array `fornecedores` ja carregado, incluindo nome e CPF/CNPJ no label para facilitar a busca.
-
-5. **Campo no JSX** (linha 2703, grid de filtros): Inserir um novo `ComboboxField` antes do campo "Nome do Pet", com:
-   - Label: "Fornecedor"
-   - Placeholder: "Selecione"
-   - searchPlaceholder: "Buscar por nome ou CPF/CNPJ..."
-   - Opcoes geradas a partir dos fornecedores cadastrados
-   - Busca pelo nome, CPF/CNPJ e nome fantasia
-
-6. **Grid**: Alterar de `grid-cols-2 md:grid-cols-4` para `grid-cols-2 md:grid-cols-4 lg:grid-cols-5` ou manter 4 colunas com o campo extra quebrando para proxima linha, dependendo do espaco disponivel.
-
-### Detalhes tecnicos
-
-- O componente ja possui `fornecedores` carregado com `id`, `nome_fornecedor`, `cnpj_cpf` e `nome_fantasia`
-- O `ComboboxField` ja e usado para Pet e Cliente nos filtros, entao seguira o mesmo padrao
-- A filtragem comparara `lancamento.nomeFornecedor` com o valor selecionado no filtro
-- O `ComboboxField` usa internamente o `cmdk` que ja suporta busca por texto, entao incluir CPF/CNPJ no label da opcao permitira busca por documento automaticamente
-
+Isso garante que ao selecionar "Jessica", os pets Pingo, Pompom e Amora aparecerao na listbox. O botao "+Pet" ja funciona corretamente pois usa `clientes.filter()` na logica interna (linha 1963).
