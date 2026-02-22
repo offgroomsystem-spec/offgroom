@@ -1,23 +1,20 @@
 
 
-## Corrigir visibilidade do botao "+Pet" baseado em pets adicionais disponiveis
+## Corrigir visibilidade do botao "+Pet" no Controle Financeiro
 
 ### Problema
 
-O botao "+Pet" aparece sempre que um pet e selecionado, mesmo quando o dono daquele pet nao tem outros pets cadastrados. Por exemplo, ao selecionar "Pingo" (unico pet de uma Jessica), o botao aparece mas o popover mostra "Nenhum pet adicional disponivel". O correto seria o botao so aparecer quando ha pets adicionais para adicionar.
+No formulario de lancamento do Controle Financeiro (`src/pages/ControleFinanceiro.tsx`), o botao "+Pet" aparece sempre que um pet e selecionado, mesmo quando o dono daquele pet nao tem outros pets cadastrados. O comportamento correto e o botao so aparecer quando existem pets adicionais para adicionar.
 
 ### Solucao
 
-Criar um `useMemo` que calcula se existem pets adicionais disponiveis para o dono do pet selecionado, e usar esse valor na condicao de renderizacao do botao "+Pet".
+Mesma correcao ja aplicada no Fluxo de Caixa: criar um `useMemo` chamado `temPetsAdicionais` e usar na condicao de renderizacao do botao.
 
 ### Alteracoes
 
-**Arquivo: `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`**
+**Arquivo: `src/pages/ControleFinanceiro.tsx`**
 
-1. **Novo `useMemo` `temPetsAdicionais`**: Adicionar apos `petsFormulario`, com a seguinte logica:
-   - Encontrar o cliente especifico que e dono do pet selecionado (usando `clientes.filter` por nome + `pets.find` por nomePet e clienteId)
-   - Verificar se esse cliente tem outros pets alem do selecionado e dos ja adicionados em `petsSelecionados`
-   - Retornar `true` ou `false`
+1. **Novo `useMemo` `temPetsAdicionais`** (apos `petsFormulario`, linha 748): Calcula se o dono do pet selecionado tem outros pets disponiveis para adicionar.
 
 ```typescript
 const temPetsAdicionais = useMemo(() => {
@@ -38,14 +35,13 @@ const temPetsAdicionais = useMemo(() => {
 }, [formData.nomeCliente, formData.nomePet, formData.petsSelecionados, clientes, pets]);
 ```
 
-2. **Condicao do botao "+Pet"** (linha 1952): Alterar de:
-   ```
-   {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && (
-   ```
-   Para:
-   ```
-   {formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && temPetsAdicionais && (
-   ```
+2. **Condicao do botao "+Pet"** (linha 1866): Alterar de:
+```
+{formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && (
+```
+Para:
+```
+{formData.tipo === "Receita" && formData.nomeCliente && formData.nomePet && temPetsAdicionais && (
+```
 
-Isso garante que ao selecionar "Pompom", o botao "+Pet" aparece (pois a dona tem "Amora" tambem), mas ao selecionar "Pingo", o botao nao aparece (pois a dona do Pingo nao tem outros pets).
-
+Resultado: ao selecionar "Pompom", o botao "+Pet" aparece (pois a dona tem "Amora"). Ao selecionar "Pingo", o botao nao aparece (unico pet da dona).
