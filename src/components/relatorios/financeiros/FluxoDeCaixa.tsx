@@ -169,10 +169,15 @@ const categoriasDescricao2: { [key: string]: string[] } = {
 };
 
 // Componente ComboboxField
+interface ComboboxOption {
+  value: string;
+  label: string;
+}
+
 interface ComboboxFieldProps {
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: string[] | ComboboxOption[];
   placeholder: string;
   searchPlaceholder: string;
   id: string;
@@ -198,6 +203,12 @@ const ComboboxField = ({
     setOpen(nextOpen);
   };
 
+  const normalizedOptions: ComboboxOption[] = options.map((opt) =>
+    typeof opt === "string" ? { value: opt, label: opt } : opt
+  );
+
+  const selectedLabel = normalizedOptions.find((o) => o.value === value)?.label;
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -208,7 +219,7 @@ const ComboboxField = ({
           className={cn("w-full justify-between h-7 text-xs", disabled ? "opacity-50 cursor-not-allowed" : "")}
           disabled={disabled}
         >
-          {value || placeholder}
+          <span className="truncate">{selectedLabel || value || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -217,19 +228,19 @@ const ComboboxField = ({
           <CommandInput placeholder={searchPlaceholder} className="text-xs" />
           <CommandEmpty className="text-xs">Nenhum resultado encontrado.</CommandEmpty>
           <CommandGroup className="max-h-60 overflow-y-auto">
-            {options.map((option) => (
+            {normalizedOptions.map((option) => (
               <CommandItem
-                key={option}
-                value={option}
+                key={option.value}
+                value={option.label}
                 onSelect={() => {
                   if (disabled) return;
-                  onChange(option);
+                  onChange(option.value);
                   setOpen(false);
                 }}
                 className="text-xs"
               >
-                <Check className={cn("mr-2 h-3 w-3", value === option ? "opacity-100" : "opacity-0")} />
-                {option}
+                <Check className={cn("mr-2 h-3 w-3", value === option.value ? "opacity-100" : "opacity-0")} />
+                {option.label}
               </CommandItem>
             ))}
           </CommandGroup>
@@ -460,6 +471,7 @@ const FluxoDeCaixa = () => {
     ano: "",
     nomePet: "",
     nomeCliente: "",
+    nomeFornecedor: "",
     tipo: "" as "Receita" | "Despesa" | "",
     descricao1: "",
     dataPagamento: "",
@@ -736,6 +748,7 @@ const FluxoDeCaixa = () => {
       ano: "",
       nomePet: "",
       nomeCliente: "",
+      nomeFornecedor: "",
       tipo: "",
       descricao1: "",
       dataPagamento: "",
@@ -804,6 +817,9 @@ const FluxoDeCaixa = () => {
     }
     if (filtros.pago !== null) {
       resultado = resultado.filter((l) => l.pago === filtros.pago);
+    }
+    if (filtros.nomeFornecedor) {
+      resultado = resultado.filter((l) => l.nomeFornecedor === filtros.nomeFornecedor);
     }
 
     return resultado;
@@ -2700,7 +2716,22 @@ const FluxoDeCaixa = () => {
             {/* Filtros de Categoria */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold">Filtros de Categoria</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Fornecedor</Label>
+                  <ComboboxField
+                    value={filtros.nomeFornecedor}
+                    onChange={(value) => setFiltros({ ...filtros, nomeFornecedor: value })}
+                    options={fornecedores.map((f) => ({
+                      value: f.nome_fornecedor,
+                      label: `${f.nome_fornecedor}${f.nome_fantasia ? ` (${f.nome_fantasia})` : ""} - ${f.cnpj_cpf}`,
+                    }))}
+                    placeholder="Selecione"
+                    searchPlaceholder="Buscar por nome ou CPF/CNPJ..."
+                    id="filtro-fornecedor"
+                  />
+                </div>
+
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Nome do Pet</Label>
                   <ComboboxField
