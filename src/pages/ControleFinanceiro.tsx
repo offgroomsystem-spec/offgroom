@@ -2912,18 +2912,28 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                           <Label className="text-xs font-semibold">Adicionar Pet</Label>
                           <div className="max-h-48 overflow-y-auto space-y-1">
                             {(() => {
-                              const clienteSelecionado = clientes.find((c) => c.nomeCliente === formData.nomeCliente);
-                              const primeiroPet = pets.find(
-                                (p) => p.nomePet === formData.nomePet && p.clienteId === clienteSelecionado?.id,
+                              const clientesComMesmoNome = clientes.filter(
+                                (c) => c.nomeCliente === formData.nomeCliente,
                               );
+                              let clienteSelecionado: typeof clientes[0] | undefined;
+                              let primeiroPet: typeof pets[0] | undefined;
+                              for (const cliente of clientesComMesmoNome) {
+                                const petEncontrado = pets.find(
+                                  (p) => p.nomePet === formData.nomePet && p.clienteId === cliente.id,
+                                );
+                                if (petEncontrado) {
+                                  clienteSelecionado = cliente;
+                                  primeiroPet = petEncontrado;
+                                  break;
+                                }
+                              }
 
                               if (!clienteSelecionado || !primeiroPet)
                                 return <div className="text-xs text-muted-foreground">Nenhum pet disponível</div>;
 
                               const petsDisponiveis = pets.filter(
                                 (p) =>
-                                  p.clienteId === clienteSelecionado.id &&
-                                  p.porte === primeiroPet.porte &&
+                                  p.clienteId === clienteSelecionado!.id &&
                                   p.nomePet !== formData.nomePet &&
                                   !formData.petsSelecionados.some((ps) => ps.id === p.id),
                               );
