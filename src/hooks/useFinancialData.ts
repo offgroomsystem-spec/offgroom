@@ -87,12 +87,15 @@ export const useFinancialData = () => {
       const hoje = new Date();
       const dataFinal = i === 0 ? hoje : fim;
 
+      const inicioStr = format(inicio, "yyyy-MM-dd");
+      const fimStr = format(fim, "yyyy-MM-dd");
+
       const receitas = lancamentos
-        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && new Date(l.data_pagamento) >= inicio && new Date(l.data_pagamento) <= fim)
+        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr)
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const despesas = lancamentos
-        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && new Date(l.data_pagamento) >= inicio && new Date(l.data_pagamento) <= fim)
+        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr)
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const diasUteisAteAgora = contarDiasUteis(inicio, dataFinal);
@@ -110,7 +113,7 @@ export const useFinancialData = () => {
         diasUteisMesCompleto,
         mediaReceita: diasUteisAteAgora > 0 ? receitas / diasUteisAteAgora : 0,
         metaMedia: diasUteisMesCompleto > 0 ? metaFaturamentoMensal / diasUteisMesCompleto : 0,
-        numLancamentosReceita: lancamentos.filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && new Date(l.data_pagamento) >= inicio && new Date(l.data_pagamento) <= fim).length,
+        numLancamentosReceita: lancamentos.filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr).length,
       });
     }
 
@@ -185,11 +188,14 @@ export const useFinancialData = () => {
       const fim = endOfMonth(mes);
       const label = format(mes, "MMMM/yyyy", { locale: ptBR });
 
+      const inicioStr = format(inicio, "yyyy-MM-dd");
+      const fimStr = format(fim, "yyyy-MM-dd");
+
       const receitasMes = lancamentos.filter(
-        (l) => l.tipo === "Receita" && l.pago && l.data_pagamento && new Date(l.data_pagamento) >= inicio && new Date(l.data_pagamento) <= fim
+        (l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr
       );
       const despesasMes = lancamentos.filter(
-        (l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && new Date(l.data_pagamento) >= inicio && new Date(l.data_pagamento) <= fim
+        (l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr
       );
 
       const agrupar = (items: any[]) => {

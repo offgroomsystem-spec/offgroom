@@ -491,12 +491,13 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
 
     const atendimentosProximoDia = atendimentosProximoDiaRegulares + atendimentosProximoDiaPacotes;
 
-    // Faturamento do mês (receitas pagas)
+    // Faturamento do mês (receitas pagas) - usar comparação de strings para evitar bug de timezone
+    const inicioMesStr = format(inicioMes, "yyyy-MM-dd");
+    const fimMesStr = format(fimMes, "yyyy-MM-dd");
     const faturamentoMes = lancamentos
       .filter((l) => {
-        if (l.tipo !== "Receita" || !l.pago) return false;
-        const data = new Date(l.data_pagamento);
-        return data >= inicioMes && data <= fimMes;
+        if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+        return l.data_pagamento >= inicioMesStr && l.data_pagamento <= fimMesStr;
       })
       .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
@@ -511,21 +512,17 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
     // Taxa de recorrência (clientes que tiveram atendimento este mês e no mês anterior)
+    const inicioMesAnteriorStr = format(inicioMesAnterior, "yyyy-MM-dd");
+    const fimMesAnteriorStr = format(fimMesAnterior, "yyyy-MM-dd");
     const clientesMesAtual = new Set(
       agendamentos
-        .filter((a) => {
-          const data = new Date(a.data);
-          return data >= inicioMes && data <= fimMes;
-        })
+        .filter((a) => a.data >= inicioMesStr && a.data <= fimMesStr)
         .map((a) => a.cliente),
     );
 
     const clientesMesAnterior = new Set(
       agendamentos
-        .filter((a) => {
-          const data = new Date(a.data);
-          return data >= inicioMesAnterior && data <= fimMesAnterior;
-        })
+        .filter((a) => a.data >= inicioMesAnteriorStr && a.data <= fimMesAnteriorStr)
         .map((a) => a.cliente),
     );
 
@@ -665,12 +662,13 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         dataAtual = addDays(dataAtual, 1);
       }
 
-      // Calcular receitas do mês (pagas)
+      // Calcular receitas do mês (pagas) - usar comparação de strings para evitar bug de timezone
+      const inicioMesStr = format(inicioMes, "yyyy-MM-dd");
+      const dataFinalStr = format(dataFinal, "yyyy-MM-dd");
       const receitas = lancamentos
         .filter((l) => {
           if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
-          const data = new Date(l.data_pagamento);
-          return data >= inicioMes && data <= dataFinal;
+          return l.data_pagamento >= inicioMesStr && l.data_pagamento <= dataFinalStr;
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
@@ -707,10 +705,11 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         continue;
       }
 
-      // Agendamentos regulares
+      // Agendamentos regulares - usar comparação de strings
+      const inicioMesStr = format(inicioMes, "yyyy-MM-dd");
+      const fimMesStr = format(fimMes, "yyyy-MM-dd");
       const quantidadeRegulares = agendamentos.filter((a) => {
-        const data = new Date(a.data);
-        return data >= inicioMes && data <= fimMes;
+        return a.data >= inicioMesStr && a.data <= fimMesStr;
       }).length;
 
       // Agendamentos de pacotes
@@ -720,8 +719,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
           count +
           servicos.filter((s: any) => {
             if (!s.data) return false;
-            const data = new Date(s.data);
-            return data >= inicioMes && data <= fimMes;
+            return s.data >= inicioMesStr && s.data <= fimMesStr;
           }).length
         );
       }, 0);
@@ -774,10 +772,11 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       // Limitar ao dia atual se for o mês corrente
       const dataFinal = i === 0 ? hoje : fimMes;
 
-      // Contar agendamentos regulares do mês
+      // Contar agendamentos regulares do mês - usar comparação de strings
+      const inicioMesStr2 = format(inicioMes, "yyyy-MM-dd");
+      const dataFinalStr2 = format(dataFinal, "yyyy-MM-dd");
       const atendimentosRegulares = agendamentos.filter((a) => {
-        const data = new Date(a.data);
-        return data >= inicioMes && data <= dataFinal;
+        return a.data >= inicioMesStr2 && a.data <= dataFinalStr2;
       }).length;
 
       // Contar agendamentos de pacotes do mês
@@ -787,8 +786,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
           count +
           servicos.filter((s: any) => {
             if (!s.data) return false;
-            const data = new Date(s.data);
-            return data >= inicioMes && data <= dataFinal;
+            return s.data >= inicioMesStr2 && s.data <= dataFinalStr2;
           }).length
         );
       }, 0);
@@ -844,12 +842,13 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
         continue;
       }
 
-      // Receitas do mês (pagas)
+      // Receitas do mês (pagas) - usar comparação de strings para evitar bug de timezone
+      const inicioMesStr = format(inicioMes, "yyyy-MM-dd");
+      const fimMesStr = format(fimMes, "yyyy-MM-dd");
       const receitas = lancamentos
         .filter((l) => {
           if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
-          const data = new Date(l.data_pagamento);
-          return data >= inicioMes && data <= fimMes;
+          return l.data_pagamento >= inicioMesStr && l.data_pagamento <= fimMesStr;
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
@@ -857,8 +856,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const despesas = lancamentos
         .filter((l) => {
           if (l.tipo !== "Despesa" || !l.pago || !l.data_pagamento) return false;
-          const data = new Date(l.data_pagamento);
-          return data >= inicioMes && data <= fimMes;
+          return l.data_pagamento >= inicioMesStr && l.data_pagamento <= fimMesStr;
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
