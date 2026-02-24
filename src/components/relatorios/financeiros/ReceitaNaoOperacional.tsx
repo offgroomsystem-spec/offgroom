@@ -322,13 +322,23 @@ export const ReceitaNaoOperacional = () => {
     }, 0);
   }, [lancamentosFiltrados]);
 
+  const receitaPorResgateAplicacao = useMemo(() => {
+    return lancamentosFiltrados.reduce((acc, l) => {
+      const soma = l.itens
+        .filter((item) => item.descricao2 === "Resgate de Aplicação Financeira")
+        .reduce((sum, item) => sum + item.valor, 0);
+      return acc + soma;
+    }, 0);
+  }, [lancamentosFiltrados]);
+
   // Dados para gráfico de barras
   const dadosGraficoBarras = useMemo(() => {
     return [
       { categoria: "Venda de Ativo", valor: receitaPorVendaAtivo },
+      { categoria: "Resgate Aplic. Fin.", valor: receitaPorResgateAplicacao },
       { categoria: "Outras", valor: receitaPorOutras },
     ];
-  }, [receitaPorVendaAtivo, receitaPorOutras]);
+  }, [receitaPorVendaAtivo, receitaPorResgateAplicacao, receitaPorOutras]);
 
   // Dados para gráfico de linha (evolução por dia)
   const dadosGraficoLinha = useMemo(() => {
@@ -514,6 +524,7 @@ export const ReceitaNaoOperacional = () => {
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">Todas</SelectItem>
                   <SelectItem value="Venda de Ativo" className="text-xs">Venda de Ativo</SelectItem>
+                  <SelectItem value="Resgate de Aplicação Financeira" className="text-xs">Resgate de Aplicação Financeira</SelectItem>
                   <SelectItem value="Outras Receitas Não Operacionais" className="text-xs">Outras Receitas Não Operacionais</SelectItem>
                 </SelectContent>
               </Select>
@@ -605,6 +616,17 @@ export const ReceitaNaoOperacional = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(receitaPorVendaAtivo)}</div>
             <p className="text-xs text-muted-foreground mt-1">Total de vendas de ativos</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Resgate de Aplicação Financeira</CardTitle>
+            <TrendingUp className="h-4 w-4 text-teal-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(receitaPorResgateAplicacao)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Total de resgates de aplicações</p>
           </CardContent>
         </Card>
 

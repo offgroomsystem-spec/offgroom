@@ -146,7 +146,7 @@ const categoriasDescricao1 = {
 
 const categoriasDescricao2: { [key: string]: string[] } = {
   "Receita Operacional": ["Serviços", "Venda", "Outras Receitas Operacionais"],
-  "Receita Não Operacional": ["Venda de Ativo", "Outras Receitas Não Operacionais"],
+  "Receita Não Operacional": ["Venda de Ativo", "Resgate de Aplicação Financeira", "Outras Receitas Não Operacionais"],
   "Despesa Fixa": ["Aluguel", "Salários", "Impostos Fixos", "Financiamentos", "Outras Despesas Fixas"],
   "Despesa Operacional": [
     "Combustível",
@@ -162,6 +162,7 @@ const categoriasDescricao2: { [key: string]: string[] } = {
   ],
   "Despesa Não Operacional": [
     "Manutenção",
+    "Aplicação Financeira",
     "Retirada Caixa",
     "Retirada Sócio",
     "Outras Despesas Não Operacionais",
