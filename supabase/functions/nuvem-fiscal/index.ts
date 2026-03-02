@@ -223,17 +223,38 @@ Deno.serve(async (req) => {
           };
           const newStatus = statusMap[nfeData.status as string] || "processando";
           const autorizacao = nfeData.autorizacao as Record<string, unknown> | undefined;
+          const chaveAcesso = (autorizacao?.chave_acesso as string) || (nfeData.chave as string) || null;
+          const protocolo = (autorizacao?.numero_protocolo as string) || (autorizacao?.protocolo as string) || null;
 
-          await supabase
+          const { data: updatedNotas } = await supabase
             .from("notas_fiscais")
             .update({
               status: newStatus,
               numero: nfeData.numero as string,
               serie: nfeData.serie as string,
               dados_nfe: nfeData,
+              chave_acesso: chaveAcesso,
+              protocolo_autorizacao: protocolo,
               mensagem_erro: (autorizacao?.motivo_status as string) || (nfeData.motivo_rejeicao as string) || null,
             })
-            .eq("nuvem_fiscal_id", params.id);
+            .eq("nuvem_fiscal_id", params.id)
+            .select("id, email_enviado");
+
+          // Trigger email if just authorized and not yet sent
+          if (newStatus === "autorizada" && updatedNotas?.[0] && !updatedNotas[0].email_enviado) {
+            try {
+              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/enviar-nf-email`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+                },
+                body: JSON.stringify({ nota_id: updatedNotas[0].id, user_id: effectiveUserId }),
+              });
+            } catch (emailErr) {
+              console.error("Erro ao disparar envio de email:", emailErr);
+            }
+          }
         }
         break;
       }
@@ -254,16 +275,35 @@ Deno.serve(async (req) => {
           };
           const newStatus = statusMap[nfseData.status as string] || "processando";
           const autorizacao = nfseData.autorizacao as Record<string, unknown> | undefined;
+          const protocolo = (autorizacao?.numero_protocolo as string) || (autorizacao?.protocolo as string) || null;
 
-          await supabase
+          const { data: updatedNotas } = await supabase
             .from("notas_fiscais")
             .update({
               status: newStatus,
               numero: nfseData.numero as string,
               dados_nfse: nfseData,
+              protocolo_autorizacao: protocolo,
               mensagem_erro: (autorizacao?.motivo_status as string) || (nfseData.motivo_rejeicao as string) || null,
             })
-            .eq("nuvem_fiscal_id", params.id);
+            .eq("nuvem_fiscal_id", params.id)
+            .select("id, email_enviado");
+
+          // Trigger email if just authorized and not yet sent
+          if (newStatus === "autorizada" && updatedNotas?.[0] && !updatedNotas[0].email_enviado) {
+            try {
+              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/enviar-nf-email`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+                },
+                body: JSON.stringify({ nota_id: updatedNotas[0].id, user_id: effectiveUserId }),
+              });
+            } catch (emailErr) {
+              console.error("Erro ao disparar envio de email NFS-e:", emailErr);
+            }
+          }
         }
         break;
       }

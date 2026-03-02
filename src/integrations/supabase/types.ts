@@ -824,17 +824,22 @@ export type Database = {
       notas_fiscais: {
         Row: {
           agendamento_id: string | null
+          chave_acesso: string | null
           cliente_documento: string | null
           cliente_id: string | null
           cliente_nome: string | null
           created_at: string
           dados_nfe: Json | null
           dados_nfse: Json | null
+          danfe_pdf_base64: string | null
+          danfe_pdf_cached_at: string | null
+          email_enviado: boolean | null
           id: string
           lancamento_id: string | null
           mensagem_erro: string | null
           numero: string | null
           nuvem_fiscal_id: string | null
+          protocolo_autorizacao: string | null
           serie: string | null
           status: string
           tipo: string
@@ -844,17 +849,22 @@ export type Database = {
         }
         Insert: {
           agendamento_id?: string | null
+          chave_acesso?: string | null
           cliente_documento?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
           created_at?: string
           dados_nfe?: Json | null
           dados_nfse?: Json | null
+          danfe_pdf_base64?: string | null
+          danfe_pdf_cached_at?: string | null
+          email_enviado?: boolean | null
           id?: string
           lancamento_id?: string | null
           mensagem_erro?: string | null
           numero?: string | null
           nuvem_fiscal_id?: string | null
+          protocolo_autorizacao?: string | null
           serie?: string | null
           status?: string
           tipo: string
@@ -864,17 +874,22 @@ export type Database = {
         }
         Update: {
           agendamento_id?: string | null
+          chave_acesso?: string | null
           cliente_documento?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
           created_at?: string
           dados_nfe?: Json | null
           dados_nfse?: Json | null
+          danfe_pdf_base64?: string | null
+          danfe_pdf_cached_at?: string | null
+          email_enviado?: boolean | null
           id?: string
           lancamento_id?: string | null
           mensagem_erro?: string | null
           numero?: string | null
           nuvem_fiscal_id?: string | null
+          protocolo_autorizacao?: string | null
           serie?: string | null
           status?: string
           tipo?: string
