@@ -274,6 +274,10 @@ export function DespesasFixas() {
       .filter((l) => l.itens.some((i) => i.descricao2 === "Impostos Fixos"))
       .reduce((acc, l) => acc + l.valorTotal, 0);
 
+    const sistemasSoftwares = lancamentosFiltrados
+      .filter((l) => l.itens.some((i) => i.descricao2 === "Sistemas e Softwares"))
+      .reduce((acc, l) => acc + l.valorTotal, 0);
+
     const outras = lancamentosFiltrados
       .filter((l) => l.itens.some((i) => i.descricao2 === "Outras Despesas Fixas"))
       .reduce((acc, l) => acc + l.valorTotal, 0);
@@ -282,6 +286,7 @@ export function DespesasFixas() {
       { categoria: "Aluguel", valor: aluguel },
       { categoria: "Salários", valor: salarios },
       { categoria: "Impostos", valor: impostosFixos },
+      { categoria: "Sistemas/Softwares", valor: sistemasSoftwares },
       { categoria: "Outras", valor: outras },
     ];
   }, [lancamentosFiltrados]);
@@ -685,6 +690,7 @@ export function DespesasFixas() {
                   <SelectItem value="Aluguel">Aluguel</SelectItem>
                   <SelectItem value="Salários">Salários</SelectItem>
                   <SelectItem value="Impostos Fixos">Impostos Fixos</SelectItem>
+                  <SelectItem value="Sistemas e Softwares">Sistemas e Softwares</SelectItem>
                   <SelectItem value="Outras Despesas Fixas">
                     Outras Despesas Fixas
                   </SelectItem>
@@ -1169,6 +1175,7 @@ export function DespesasFixas() {
                         <SelectItem value="Aluguel">Aluguel</SelectItem>
                         <SelectItem value="Salários">Salários</SelectItem>
                         <SelectItem value="Impostos Fixos">Impostos Fixos</SelectItem>
+                        <SelectItem value="Sistemas e Softwares">Sistemas e Softwares</SelectItem>
                         <SelectItem value="Outras Despesas Fixas">Outras Despesas Fixas</SelectItem>
                       </SelectContent>
                     </Select>

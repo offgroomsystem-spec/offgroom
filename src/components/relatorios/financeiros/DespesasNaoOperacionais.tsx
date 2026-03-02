@@ -242,6 +242,7 @@ export function DespesasNaoOperacionais() {
     const categorias = [
       "Manutenção",
       "Aplicação Financeira",
+      "Infraestrutura",
       "Outras Despesas Não Operacionais",
     ];
 
@@ -568,6 +569,7 @@ export function DespesasNaoOperacionais() {
                     <SelectItem value="all">Todas as categorias</SelectItem>
                     <SelectItem value="Manutenção">Manutenção</SelectItem>
                     <SelectItem value="Aplicação Financeira">Aplicação Financeira</SelectItem>
+                    <SelectItem value="Infraestrutura">Infraestrutura</SelectItem>
                     <SelectItem value="Outras Despesas Não Operacionais">
                       Outras Despesas Não Operacionais
                     </SelectItem>
@@ -1012,6 +1014,7 @@ export function DespesasNaoOperacionais() {
                       <SelectContent>
                         <SelectItem value="Manutenção">Manutenção</SelectItem>
                         <SelectItem value="Aplicação Financeira">Aplicação Financeira</SelectItem>
+                        <SelectItem value="Infraestrutura">Infraestrutura</SelectItem>
                         <SelectItem value="Outras Despesas Não Operacionais">
                           Outras Despesas Não Operacionais
                         </SelectItem>
