@@ -54,6 +54,7 @@ interface EmpresaConfig {
   ufFiscal: string;
   emailFiscal: string;
   codigoCnae: string;
+  ambienteFiscal: string;
 }
 
 interface Groomer {
@@ -93,6 +94,7 @@ const Empresa = () => {
     ufFiscal: "",
     emailFiscal: "",
     codigoCnae: "",
+    ambienteFiscal: "homologacao",
   });
   const [groomers, setGroomers] = useState<Groomer[]>([]);
   const [novoGroomer, setNovoGroomer] = useState("");
@@ -146,6 +148,7 @@ const Empresa = () => {
           ufFiscal: empresaData.uf_fiscal || '',
           emailFiscal: empresaData.email_fiscal || '',
           codigoCnae: empresaData.codigo_cnae || '',
+          ambienteFiscal: empresaData.ambiente_fiscal || 'homologacao',
         });
       }
       setLoading(false);
@@ -240,6 +243,7 @@ const Empresa = () => {
       uf_fiscal: formData.ufFiscal,
       email_fiscal: formData.emailFiscal,
       codigo_cnae: formData.codigoCnae,
+      ambiente_fiscal: formData.ambienteFiscal,
     };
 
     if (formData.id) {
@@ -577,8 +581,28 @@ const Empresa = () => {
 
             {/* Informações Adicionais */}
             <div className="space-y-4">
-              <h4 className="font-medium text-sm text-muted-foreground">Informações Adicionais (Opcionais)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Informações Adicionais</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ambienteFiscal">Ambiente Fiscal *</Label>
+                  <Select
+                    value={formData.ambienteFiscal}
+                    onValueChange={(value) => setFormData({ ...formData, ambienteFiscal: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o ambiente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="homologacao">Homologação (Testes)</SelectItem>
+                      <SelectItem value="producao">Produção</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.ambienteFiscal === "producao" 
+                      ? "⚠️ Notas serão emitidas com validade fiscal" 
+                      : "Notas emitidas apenas para testes"}
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="emailFiscal">Email Fiscal</Label>
                   <Input
