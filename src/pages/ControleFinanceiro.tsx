@@ -1117,6 +1117,8 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       const action = tipo === 'NFe' ? 'emitir_nfe' : 'emitir_nfse';
 
       let payload: any;
+      const ambienteFiscal = (empresaData as any).ambiente_fiscal || "homologacao";
+      const tpAmb = ambienteFiscal === "producao" ? 1 : 2;
 
       if (tipo === 'NFSe') {
         // Buscar dados fiscais dos serviços
@@ -1129,10 +1131,12 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
 
         const servicosMap = new Map((servicosFiscais || []).map((s: any) => [s.nome, s]));
 
+
+
         payload = {
-          ambiente: "homologacao",
+          ambiente: ambienteFiscal,
           infDPS: {
-            tpAmb: 2,
+            tpAmb: tpAmb,
             dhEmi: new Date().toISOString(),
             emit: {
               CNPJ: empresaData.cnpj?.replace(/\D/g, ""),
@@ -1193,7 +1197,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           : empresaData.regime_tributario === "Lucro Presumido" ? 3 : 3;
 
         payload = {
-          ambiente: "homologacao",
+          ambiente: ambienteFiscal,
           infNFe: {
             versao: "4.00",
             ide: {
@@ -1208,7 +1212,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
               cMunFG: Number(empresaData.codigo_ibge_cidade) || 0,
               tpImp: 1,
               tpEmis: 1,
-              tpAmb: 2,
+              tpAmb: tpAmb,
               finNFe: 1,
               indFinal: 1,
               indPres: 1,
@@ -2212,13 +2216,59 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="h-7 text-xs">
-                    Salvar Lançamento
-                  </Button>
+                <div className="flex justify-between gap-2 pt-2">
+                  {/* Botões reativos de emissão de NF no novo lançamento */}
+                  <div className="flex gap-2">
+                    {formData.tipo === "Receita" && formData.pago && (() => {
+                      const temServicos = itensLancamento.some((i) => i.descricao2 === "Serviços");
+                      const temVenda = itensLancamento.some((i) => i.descricao2 === "Venda");
+                      return (
+                        <>
+                          {temServicos && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={async () => {
+                                // Salvar primeiro, depois emitir
+                                const form = document.querySelector<HTMLFormElement>('#form-novo-lancamento');
+                                if (form) {
+                                  form.requestSubmit();
+                                  // Aguardar salvamento e usar o último lançamento criado
+                                  toast.info("Salve o lançamento primeiro. Depois, edite-o para emitir a NFS-e.");
+                                }
+                              }}
+                              className="h-7 text-xs gap-1 border-green-500 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Emitir NFS-e
+                            </Button>
+                          )}
+                          {temVenda && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                toast.info("Salve o lançamento primeiro. Depois, edite-o para emitir a NF-e.");
+                              }}
+                              className="h-7 text-xs gap-1 border-blue-500 text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Emitir NF-e
+                            </Button>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={resetForm} className="h-7 text-xs">
+                      Cancelar
+                    </Button>
+                    <Button type="submit" className="h-7 text-xs">
+                      Salvar Lançamento
+                    </Button>
+                  </div>
                 </div>
               </form>
             </DialogContent>

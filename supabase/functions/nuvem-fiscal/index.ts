@@ -6,7 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const NUVEM_FISCAL_API = "https://api.sandbox.nuvemfiscal.com.br";
+const NUVEM_FISCAL_API_SANDBOX = "https://api.sandbox.nuvemfiscal.com.br";
+const NUVEM_FISCAL_API_PRODUCAO = "https://api.nuvemfiscal.com.br";
 const NUVEM_FISCAL_AUTH = "https://auth.nuvemfiscal.com.br/oauth/token";
 
 // Simple in-memory token cache
@@ -55,7 +56,8 @@ async function nuvemFiscalRequest(
   method: string,
   path: string,
   body?: unknown,
-  responseType: "json" | "blob" = "json"
+  responseType: "json" | "blob" = "json",
+  apiBase: string = NUVEM_FISCAL_API_SANDBOX
 ): Promise<{ status: number; data: unknown }> {
   const token = await getOAuthToken();
 
@@ -72,7 +74,7 @@ async function nuvemFiscalRequest(
     options.body = JSON.stringify(body);
   }
 
-  const res = await fetch(`${NUVEM_FISCAL_API}${path}`, options);
+  const res = await fetch(`${apiBase}${path}`, options);
 
   if (responseType === "blob") {
     if (res.ok) {
@@ -131,40 +133,70 @@ Deno.serve(async (req) => {
 
     const { action, ...params } = await req.json();
 
+    // Get ambiente_fiscal from empresa_config
+    const serviceSupabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: empresaConf } = await serviceSupabase
+      .from("empresa_config")
+      .select("ambiente_fiscal")
+      .eq("user_id", effectiveUserId)
+      .single();
+    const ambienteFiscal = empresaConf?.ambiente_fiscal || "homologacao";
+    const apiBase = ambienteFiscal === "producao" ? NUVEM_FISCAL_API_PRODUCAO : NUVEM_FISCAL_API_SANDBOX;
+
     let result: { status: number; data: unknown };
 
     switch (action) {
       case "cadastrar_empresa": {
-        result = await nuvemFiscalRequest("POST", "/empresas", params.payload);
+        result = await nuvemFiscalRequest("POST", "/empresas", params.payload, "json", apiBase);
         break;
       }
 
       case "consultar_empresa": {
         const cnpj = params.cnpj?.replace(/\D/g, "");
-        result = await nuvemFiscalRequest("GET", `/empresas/${cnpj}`);
+        result = await nuvemFiscalRequest("GET", `/empresas/${cnpj}`, undefined, "json", apiBase);
         break;
       }
 
       case "configurar_nfe": {
         const cnpj = params.cnpj?.replace(/\D/g, "");
-        result = await nuvemFiscalRequest("PUT", `/empresas/${cnpj}/nfe`, params.payload);
+        result = await nuvemFiscalRequest("PUT", `/empresas/${cnpj}/nfe`, params.payload, "json", apiBase);
         break;
       }
 
       case "consultar_config_nfe": {
         const cnpj = params.cnpj?.replace(/\D/g, "");
-        result = await nuvemFiscalRequest("GET", `/empresas/${cnpj}/nfe`);
+        result = await nuvemFiscalRequest("GET", `/empresas/${cnpj}/nfe`, undefined, "json", apiBase);
         break;
       }
 
       case "configurar_nfse": {
         const cnpj = params.cnpj?.replace(/\D/g, "");
-        result = await nuvemFiscalRequest("PUT", `/empresas/${cnpj}/nfse`, params.payload);
+        result = await nuvemFiscalRequest("PUT", `/empresas/${cnpj}/nfse`, params.payload, "json", apiBase);
         break;
       }
 
       case "emitir_nfe": {
-        result = await nuvemFiscalRequest("POST", "/nfe", params.payload);
+        // Duplicate prevention
+        if (params.lancamento_id) {
+          const { data: existing } = await serviceSupabase
+            .from("notas_fiscais")
+            .select("id")
+            .eq("lancamento_id", params.lancamento_id)
+            .eq("tipo", "NFe")
+            .not("status", "in", '("rejeitada","cancelada")')
+            .limit(1);
+          if (existing && existing.length > 0) {
+            return new Response(JSON.stringify({ error: "Já existe uma NF-e para este lançamento." }), {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        result = await nuvemFiscalRequest("POST", "/nfe", params.payload, "json", apiBase);
 
         // Save to database
         if (result.status >= 200 && result.status < 300) {
@@ -186,7 +218,24 @@ Deno.serve(async (req) => {
       }
 
       case "emitir_nfse": {
-        result = await nuvemFiscalRequest("POST", "/nfse", params.payload);
+        // Duplicate prevention
+        if (params.lancamento_id) {
+          const { data: existing } = await serviceSupabase
+            .from("notas_fiscais")
+            .select("id")
+            .eq("lancamento_id", params.lancamento_id)
+            .eq("tipo", "NFSe")
+            .not("status", "in", '("rejeitada","cancelada")')
+            .limit(1);
+          if (existing && existing.length > 0) {
+            return new Response(JSON.stringify({ error: "Já existe uma NFS-e para este lançamento." }), {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        result = await nuvemFiscalRequest("POST", "/nfse", params.payload, "json", apiBase);
 
         if (result.status >= 200 && result.status < 300) {
           const nfseData = result.data as Record<string, unknown>;
@@ -207,7 +256,7 @@ Deno.serve(async (req) => {
       }
 
       case "consultar_nfe": {
-        result = await nuvemFiscalRequest("GET", `/nfe/${params.id}`);
+        result = await nuvemFiscalRequest("GET", `/nfe/${params.id}`, undefined, "json", apiBase);
 
         // Update local record
         if (result.status === 200) {
@@ -260,7 +309,7 @@ Deno.serve(async (req) => {
       }
 
       case "consultar_nfse": {
-        result = await nuvemFiscalRequest("GET", `/nfse/${params.id}`);
+        result = await nuvemFiscalRequest("GET", `/nfse/${params.id}`, undefined, "json", apiBase);
 
         if (result.status === 200) {
           const nfseData = result.data as Record<string, unknown>;
@@ -309,17 +358,17 @@ Deno.serve(async (req) => {
       }
 
       case "baixar_pdf_nfe": {
-        result = await nuvemFiscalRequest("GET", `/nfe/${params.id}/pdf`, undefined, "blob");
+        result = await nuvemFiscalRequest("GET", `/nfe/${params.id}/pdf`, undefined, "blob", apiBase);
         break;
       }
 
       case "baixar_pdf_nfse": {
-        result = await nuvemFiscalRequest("GET", `/nfse/${params.id}/pdf`, undefined, "blob");
+        result = await nuvemFiscalRequest("GET", `/nfse/${params.id}/pdf`, undefined, "blob", apiBase);
         break;
       }
 
       case "cancelar_nfe": {
-        result = await nuvemFiscalRequest("POST", `/nfe/${params.id}/cancelamento`, params.payload);
+        result = await nuvemFiscalRequest("POST", `/nfe/${params.id}/cancelamento`, params.payload, "json", apiBase);
 
         if (result.status >= 200 && result.status < 300) {
           await supabase
@@ -331,7 +380,7 @@ Deno.serve(async (req) => {
       }
 
       case "cancelar_nfse": {
-        result = await nuvemFiscalRequest("POST", `/nfse/${params.id}/cancelamento`, params.payload);
+        result = await nuvemFiscalRequest("POST", `/nfse/${params.id}/cancelamento`, params.payload, "json", apiBase);
 
         if (result.status >= 200 && result.status < 300) {
           await supabase

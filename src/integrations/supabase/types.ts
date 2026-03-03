@@ -495,6 +495,7 @@ export type Database = {
       }
       empresa_config: {
         Row: {
+          ambiente_fiscal: string | null
           bairro_fiscal: string | null
           bordao: string | null
           cep_fiscal: string | null
@@ -524,6 +525,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ambiente_fiscal?: string | null
           bairro_fiscal?: string | null
           bordao?: string | null
           cep_fiscal?: string | null
@@ -553,6 +555,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ambiente_fiscal?: string | null
           bairro_fiscal?: string | null
           bordao?: string | null
           cep_fiscal?: string | null
