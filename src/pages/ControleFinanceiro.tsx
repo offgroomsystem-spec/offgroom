@@ -435,7 +435,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           lancamentos_financeiros_itens (*)
         `,
         )
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("data_cadastro", { ascending: false });
 
       if (error) throw error;
