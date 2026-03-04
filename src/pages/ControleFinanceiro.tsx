@@ -362,8 +362,8 @@ const ItemLancamentoForm = ({
             type="number"
             step="1"
             min="1"
-            value={item.quantidade || 1}
-            onChange={(e) => onChange({ ...item, quantidade: parseInt(e.target.value) || 1 })}
+            value={item.quantidade || ""}
+            onChange={(e) => onChange({ ...item, quantidade: parseInt(e.target.value) || 0 })}
             className="h-7 text-xs"
           />
         </div>
