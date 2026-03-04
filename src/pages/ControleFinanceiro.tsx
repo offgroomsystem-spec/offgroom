@@ -310,7 +310,7 @@ const ItemLancamentoForm = ({
         </Button>
       )}
 
-      <div className="col-span-4 space-y-0.5">
+      <div className={isVenda ? "col-span-3 space-y-0.5" : "col-span-4 space-y-0.5"}>
         <Label className="text-[10px] font-semibold">Descrição 2 *</Label>
         <Select
           value={item.descricao2}
@@ -330,7 +330,7 @@ const ItemLancamentoForm = ({
         </Select>
       </div>
 
-      <div className={isVenda ? "col-span-4 space-y-0.5" : "col-span-5 space-y-0.5"}>
+      <div className={isVenda ? "col-span-3 space-y-0.5" : "col-span-4 space-y-0.5"}>
         <Label className="text-[10px] font-semibold">
           {isServicos ? "Serviço" : isVenda ? "Produto" : "Observação"}
           {isObrigatorio && " *"}
@@ -369,17 +369,28 @@ const ItemLancamentoForm = ({
         </div>
       )}
 
-      <div className="col-span-3 space-y-0.5">
-        <div className="flex items-end justify-between gap-1">
+      <div className="col-span-2 space-y-0.5">
+        <Label className="text-[10px] font-semibold">Valor *</Label>
+        <Input
+          type="number"
+          step="0.01"
+          min="0"
+          value={item.valor || ""}
+          onChange={(e) => onChange({ ...item, valor: parseFloat(e.target.value) || 0 })}
+          placeholder="R$ 0,00"
+          className="h-7 text-xs"
+        />
+      </div>
+
+      <div className={isVenda ? "col-span-3 space-y-0.5" : "col-span-2 space-y-0.5"}>
+        <div className="flex items-end gap-1">
           <div className="flex-1">
-            <Label className="text-[10px] font-semibold">Valor *</Label>
+            <Label className="text-[10px] font-semibold">Total</Label>
             <Input
-              type="number"
-              step="0.01"
-              min="0"
-              value={item.valor}
-              onChange={(e) => onChange({ ...item, valor: parseFloat(e.target.value) || 0 })}
-              className="h-7 text-xs"
+              type="text"
+              readOnly
+              value={((item.valor || 0) * (item.quantidade || 1)).toFixed(2)}
+              className="h-7 text-xs bg-muted cursor-not-allowed"
             />
           </div>
           {isLast && canAdd && onAdd && (
@@ -388,7 +399,7 @@ const ItemLancamentoForm = ({
               variant="ghost"
               size="sm"
               onClick={onAdd}
-              className="h-7 px-2 text-[10px] text-primary hover:text-primary hover:bg-primary/10"
+              className="h-7 px-2 text-[10px] text-primary hover:text-primary hover:bg-primary/10 mt-3"
               title="Adicionar novo item"
             >
               + Item
@@ -846,7 +857,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0);
+    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
@@ -1400,7 +1411,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
     }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0);
+    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
@@ -2150,7 +2161,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                       <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
                       <span className="text-base font-bold text-primary">
                         {formatCurrency(
-                          itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0),
+                          itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0),
                         )}
                       </span>
                     </div>
@@ -2159,7 +2170,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   {/* Detalhamento quando houver dedução */}
                   {formData.valorDeducao > 0 && (
                     <div className="text-[10px] text-muted-foreground mt-1">
-                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - Dedução (
+                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} - Dedução (
                       {formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
                     </div>
                   )}
@@ -3207,7 +3218,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                     <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
                     <span className="text-base font-bold text-primary">
                       {formatCurrency(
-                        itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0),
+                        itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0),
                       )}
                     </span>
                   </div>
@@ -3216,7 +3227,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 {/* Detalhamento quando houver dedução */}
                 {formData.valorDeducao > 0 && (
                   <div className="text-[10px] text-muted-foreground mt-1">
-                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - Dedução (
+                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} - Dedução (
                     {formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
                   </div>
                 )}
