@@ -1,109 +1,48 @@
 
 
-## Revisao Completa do Fluxo Fiscal - NFC-e/NFS-e
+## Melhorias no Formulário "Lançar Financeiro"
 
-### Problemas Identificados
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-**1. RESEND_API_KEY nao configurada**
-O secret `RESEND_API_KEY` nao existe no projeto. A edge function `enviar-nf-email` depende dele para funcionar. O envio automatico de email esta inoperante.
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-**2. Nao existe layout de impressao termica (80mm)**
-Nenhum componente `DanfeNfce` ou layout de impressao termica foi encontrado no projeto. O PDF e aberto via `window.open` em nova aba, sem formatacao para 80mm.
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-**3. Botao "Emitir NF-e" ausente no dialog "Lançar Financeiro" (novo lancamento)**
-Os botoes de emissao fiscal so aparecem no dialog "Editar Lançamento" (linhas 3228-3276). O dialog "Lançar Financeiro" (novo) nao tem botoes de NF — termina apenas com "Cancelar" e "Salvar Lançamento" (linha 2215-2222). O plano original pedia que aparecesse reativamente no cadastro novo tambem.
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-**4. Ambiente fixo em homologacao**
-Ambos os payloads (NFe e NFSe) usam `ambiente: "homologacao"` e `tpAmb: 2` hardcoded. Nao ha configuracao para alternar para producao.
+**Mudancas no `ItemLancamentoForm`:**
 
-**5. Sem validacao de certificado digital**
-Nao ha nenhuma verificacao de certificado digital (A1/A3) antes da emissao. O sistema depende da Nuvem Fiscal para isso, mas nao valida localmente se o certificado foi cadastrado na plataforma.
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-**6. Sem prevencao de emissao duplicada**
-Nao ha verificacao se ja existe uma NF para o mesmo lancamento (`lancamento_id`) antes de emitir nova nota. O usuario pode clicar duas vezes e gerar duplicatas.
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-**7. Autenticacao OAuth e integracao Nuvem Fiscal funcionais**
-O token OAuth usa `client_credentials` com cache em memoria e refresh automatico. A autenticacao esta correta.
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
 
-**8. Status mapping funcional**
-O mapeamento de status (autorizado/autorizada, rejeitado/rejeitada, cancelado/cancelada) esta implementado corretamente em `consultar_nfe` e `consultar_nfse`.
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
 
-**9. Trigger de email apos autorizacao implementado**
-Apos `consultar_nfe`/`consultar_nfse` detectar `autorizada`, a funcao dispara `enviar-nf-email` automaticamente. O fluxo owner/staff via `get_effective_user_id` esta correto.
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
 
-**10. Cleanup de PDF implementado**
-A edge function `cleanup-danfe-pdfs` e o cron job estao configurados. O cache de 3 dias esta funcional.
+Mesma correção na linha 2162 (subtotal com dedução).
 
-**11. Bug: `loadLancamentos` usa `user.id` em vez de `ownerId`**
-Linha 438: `.eq("user_id", user.id)` deveria ser `.eq("user_id", ownerId)` — violando a regra de usar `ownerId` para staff.
-
----
-
-### Plano de Implementacao
-
-#### Tarefa 1: Configurar RESEND_API_KEY
-Solicitar ao usuario a chave da API do Resend para habilitar o envio de emails fiscais.
-
-#### Tarefa 2: Criar componente DanfeNfce para impressao termica 80mm
-- Novo arquivo `src/components/fiscal/DanfeNfce.tsx`
-- Layout fixo 80mm, margens zero, `@media print`
-- QR Code centralizado (usando URL da chave de acesso)
-- Chave de acesso formatada
-- Dados obrigatorios: emitente, itens, totais, forma de pagamento
-- Funcao `window.print()` automatica
-
-#### Tarefa 3: Adicionar botoes de emissao NF no dialog "Lançar Financeiro"
-- Replicar a logica reativa dos botoes (tipo=Receita, pago=sim, itens com Servicos/Venda) no dialog de novo lancamento
-- O botao aparecera em tempo real conforme os campos sao preenchidos
-- Ao clicar, salvar o lancamento primeiro, depois emitir a NF
-
-#### Tarefa 4: Prevenir emissao duplicada
-- Antes de emitir, verificar se ja existe registro em `notas_fiscais` com o mesmo `lancamento_id` e `tipo` e status diferente de `rejeitada`/`cancelada`
-- Se existir, bloquear e exibir toast informativo
-
-#### Tarefa 5: Corrigir bug de `user.id` vs `ownerId`
-- Linha 438 de `ControleFinanceiro.tsx`: trocar `.eq("user_id", user.id)` por `.eq("user_id", ownerId)`
-
-#### Tarefa 6: Configuracao de ambiente (homologacao/producao)
-- Adicionar campo `ambiente_fiscal` na tabela `empresa_config` (valores: "homologacao" ou "producao")
-- Usar esse campo nos payloads de emissao em vez do valor hardcoded
-- Adicionar campo editavel na pagina `/empresa`
-
-#### Tarefa 7: Validacao de certificado digital
-- Antes de emitir, consultar `GET /empresas/{cnpj}/nfe` na Nuvem Fiscal para verificar se a configuracao existe
-- Se nao existir, bloquear emissao e orientar o usuario a configurar via pagina Empresa
-
-#### Tarefa 8: Tratamento de falha de email com log
-- Na edge function `enviar-nf-email`, registrar falhas em uma tabela ou em logs detalhados
-- Manter `email_enviado = false` em caso de falha para permitir reenvio futuro
-
----
-
-### Detalhes Tecnicos
-
-**Layout termico 80mm (CSS critico):**
-```text
-@media print {
-  @page { size: 80mm auto; margin: 0; }
-  body { width: 80mm; margin: 0; padding: 0; }
-  font-size: 9px;
-  QR Code: 120x120px centralizado
-}
-```
-
-**Prevencao de duplicata (SQL):**
-```text
-SELECT id FROM notas_fiscais 
-WHERE lancamento_id = ? AND tipo = ? 
-AND status NOT IN ('rejeitada', 'cancelada')
-LIMIT 1
-```
-
-**Novo campo na empresa_config:**
-```text
-ALTER TABLE empresa_config ADD COLUMN IF NOT EXISTS ambiente_fiscal text DEFAULT 'homologacao';
-```
-
-### Dependencia Critica
-O envio automatico de email so funcionara apos a configuracao do `RESEND_API_KEY`. Tudo mais pode ser implementado imediatamente.
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 
