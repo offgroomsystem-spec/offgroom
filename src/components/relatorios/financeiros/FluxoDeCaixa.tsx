@@ -573,6 +573,7 @@ const FluxoDeCaixa = () => {
         dataCadastro: l.data_cadastro || l.created_at,
         valorDeducao: Number(l.valor_deducao) || 0,
         tipoDeducao: l.tipo_deducao || "",
+        observacao: l.observacao || "",
       }));
 
       // Map cliente_id and conta_id to names
