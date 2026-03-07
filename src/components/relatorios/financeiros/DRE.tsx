@@ -219,7 +219,7 @@ export const DRE = ({ filtros }: DREProps) => {
     // Funções auxiliares
     const somarPorCategoria = (categoria: string, tipo: "Receita" | "Despesa") => {
       return lancamentos
-        .filter((l) => l.tipo === tipo && l.descricao1 === categoria && l.pago)
+        .filter((l) => l.tipo === tipo && l.descricao1 === categoria && l.pago && l.observacao !== "Transferência entre contas")
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
     };
 

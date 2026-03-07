@@ -588,11 +588,11 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const eDiaFuncionamento = diasFuncionamento?.[diaDaSemana] === true;
 
       const receitas = lancamentos
-        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr && l.observacao !== "Transferência entre contas")
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const despesas = lancamentos
-        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr && l.observacao !== "Transferência entre contas")
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       // Verificar se teve faturamento (exceção para dias não trabalhados)

@@ -138,7 +138,7 @@ export function PontoEquilibrio() {
       .reduce((acc, l) => acc + l.valorTotal, 0);
 
     const totalDespesasNaoOperacionais = lancamentos
-      .filter((l) => l.tipo === "Despesa" && l.descricao1 === "Despesa Não Operacional" && l.pago)
+      .filter((l) => l.tipo === "Despesa" && l.descricao1 === "Despesa Não Operacional" && l.pago && l.observacao !== "Transferência entre contas")
       .reduce((acc, l) => acc + l.valorTotal, 0);
 
     return totalDespesasFixas + totalDespesasOperacionais + totalDespesasNaoOperacionais;

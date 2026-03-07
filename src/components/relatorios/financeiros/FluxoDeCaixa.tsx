@@ -1567,7 +1567,7 @@ const FluxoDeCaixa = () => {
     const mesStr = String(mes).padStart(2, "0");
     const anoStr = String(ano);
     const filtrados = lancamentos.filter(
-      (l) => l.pago && l.ano === anoStr && l.mesCompetencia === mesStr
+      (l) => l.pago && l.ano === anoStr && l.mesCompetencia === mesStr && l.observacao !== "Transferência entre contas"
     );
     const receitas = filtrados.filter(l => l.tipo === "Receita").reduce((a, l) => a + l.valorTotal, 0);
     const despesas = filtrados.filter(l => l.tipo === "Despesa").reduce((a, l) => a + l.valorTotal, 0);
