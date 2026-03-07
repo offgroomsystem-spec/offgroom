@@ -10,6 +10,8 @@ export const formatCurrency = (value: number) =>
 
 const DIAS_SEMANA = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
 
+const isTransferencia = (l: any) => l.observacao === "Transferência entre contas";
+
 export const useFinancialData = () => {
   const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -91,11 +93,11 @@ export const useFinancialData = () => {
       const fimStr = format(fim, "yyyy-MM-dd");
 
       const receitas = lancamentos
-        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr)
+        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const despesas = lancamentos
-        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr)
+        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const diasUteisAteAgora = contarDiasUteis(inicio, dataFinal);
@@ -113,7 +115,7 @@ export const useFinancialData = () => {
         diasUteisMesCompleto,
         mediaReceita: diasUteisAteAgora > 0 ? receitas / diasUteisAteAgora : 0,
         metaMedia: diasUteisMesCompleto > 0 ? metaFaturamentoMensal / diasUteisMesCompleto : 0,
-        numLancamentosReceita: lancamentos.filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr).length,
+        numLancamentosReceita: lancamentos.filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l)).length,
       });
     }
 
@@ -149,10 +151,10 @@ export const useFinancialData = () => {
       const eDiaFuncionamento = diasFuncionamento?.[diaDaSemana] === true;
 
       const receitas = lancamentos
-        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
       const despesas = lancamentos
-        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const teveFaturamento = receitas > 0 || despesas > 0;
@@ -192,10 +194,10 @@ export const useFinancialData = () => {
       const fimStr = format(fim, "yyyy-MM-dd");
 
       const receitasMes = lancamentos.filter(
-        (l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr
+        (l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l)
       );
       const despesasMes = lancamentos.filter(
-        (l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr
+        (l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l)
       );
 
       const agrupar = (items: any[]) => {
@@ -230,7 +232,7 @@ export const useFinancialData = () => {
     const mapReceita = new Map<string, number>();
     const mapDespesa = new Map<string, number>();
 
-    lancamentos.filter((l) => l.pago).forEach((l) => {
+    lancamentos.filter((l) => l.pago && !isTransferencia(l)).forEach((l) => {
       const itens = itensMap.get(l.id) || [];
       const targetMap = l.tipo === "Receita" ? mapReceita : mapDespesa;
 

@@ -497,18 +497,19 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
     const faturamentoMes = lancamentos
       .filter((l) => {
         if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+        if (l.observacao === "Transferência entre contas") return false;
         return l.data_pagamento >= inicioMesStr && l.data_pagamento <= fimMesStr;
       })
       .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
     // Entradas previstas (receitas não pagas)
     const entradasPrevistas = lancamentos
-      .filter((l) => l.tipo === "Receita" && !l.pago)
+      .filter((l) => l.tipo === "Receita" && !l.pago && l.observacao !== "Transferência entre contas")
       .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
     // Saídas previstas (despesas não pagas)
     const saidasPrevistas = lancamentos
-      .filter((l) => l.tipo === "Despesa" && !l.pago)
+      .filter((l) => l.tipo === "Despesa" && !l.pago && l.observacao !== "Transferência entre contas")
       .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
     // Taxa de recorrência (clientes que tiveram atendimento este mês e no mês anterior)
@@ -587,11 +588,11 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const eDiaFuncionamento = diasFuncionamento?.[diaDaSemana] === true;
 
       const receitas = lancamentos
-        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr && l.observacao !== "Transferência entre contas")
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const despesas = lancamentos
-        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr && l.observacao !== "Transferência entre contas")
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       // Verificar se teve faturamento (exceção para dias não trabalhados)

@@ -85,6 +85,7 @@ interface LancamentoFluxo {
   dataCadastro: string;
   valorDeducao: number;
   tipoDeducao: string;
+  observacao: string;
 }
 
 interface Pet {
@@ -573,6 +574,7 @@ const FluxoDeCaixa = () => {
         dataCadastro: l.data_cadastro || l.created_at,
         valorDeducao: Number(l.valor_deducao) || 0,
         tipoDeducao: l.tipo_deducao || "",
+        observacao: l.observacao || "",
       }));
 
       // Map cliente_id and conta_id to names
@@ -830,10 +832,10 @@ const FluxoDeCaixa = () => {
   const metricas = useMemo(() => {
     const dados = filtrosAplicados ? lancamentosFiltrados : lancamentos;
 
-    const recebido = dados.filter((l) => l.tipo === "Receita" && l.pago);
-    const aReceber = dados.filter((l) => l.tipo === "Receita" && !l.pago);
-    const pago = dados.filter((l) => l.tipo === "Despesa" && l.pago);
-    const aPagar = dados.filter((l) => l.tipo === "Despesa" && !l.pago);
+    const recebido = dados.filter((l) => l.tipo === "Receita" && l.pago && l.observacao !== "Transferência entre contas");
+    const aReceber = dados.filter((l) => l.tipo === "Receita" && !l.pago && l.observacao !== "Transferência entre contas");
+    const pago = dados.filter((l) => l.tipo === "Despesa" && l.pago && l.observacao !== "Transferência entre contas");
+    const aPagar = dados.filter((l) => l.tipo === "Despesa" && !l.pago && l.observacao !== "Transferência entre contas");
 
     return {
       recebido: {
@@ -1566,7 +1568,7 @@ const FluxoDeCaixa = () => {
     const mesStr = String(mes).padStart(2, "0");
     const anoStr = String(ano);
     const filtrados = lancamentos.filter(
-      (l) => l.pago && l.ano === anoStr && l.mesCompetencia === mesStr
+      (l) => l.pago && l.ano === anoStr && l.mesCompetencia === mesStr && l.observacao !== "Transferência entre contas"
     );
     const receitas = filtrados.filter(l => l.tipo === "Receita").reduce((a, l) => a + l.valorTotal, 0);
     const despesas = filtrados.filter(l => l.tipo === "Despesa").reduce((a, l) => a + l.valorTotal, 0);

@@ -40,6 +40,7 @@ interface LancamentoFinanceiro {
   nomePet: string;
   nomeBanco: string;
   itens: ItemLancamento[];
+  observacao: string;
 }
 
 const meses = [
@@ -110,6 +111,7 @@ export function PontoEquilibrio() {
         nomeCliente: l.clientes?.nome_cliente || "",
         nomePet: "",
         nomeBanco: l.contas_bancarias?.nome || "",
+        observacao: l.observacao || "",
         itens: (l.lancamentos_financeiros_itens || []).map((i: any) => ({
           id: i.id,
           descricao2: i.descricao2,
@@ -137,7 +139,7 @@ export function PontoEquilibrio() {
       .reduce((acc, l) => acc + l.valorTotal, 0);
 
     const totalDespesasNaoOperacionais = lancamentos
-      .filter((l) => l.tipo === "Despesa" && l.descricao1 === "Despesa Não Operacional" && l.pago)
+      .filter((l) => l.tipo === "Despesa" && l.descricao1 === "Despesa Não Operacional" && l.pago && l.observacao !== "Transferência entre contas")
       .reduce((acc, l) => acc + l.valorTotal, 0);
 
     return totalDespesasFixas + totalDespesasOperacionais + totalDespesasNaoOperacionais;
