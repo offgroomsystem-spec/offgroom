@@ -115,7 +115,7 @@ export const useFinancialData = () => {
         diasUteisMesCompleto,
         mediaReceita: diasUteisAteAgora > 0 ? receitas / diasUteisAteAgora : 0,
         metaMedia: diasUteisMesCompleto > 0 ? metaFaturamentoMensal / diasUteisMesCompleto : 0,
-        numLancamentosReceita: lancamentos.filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr).length,
+        numLancamentosReceita: lancamentos.filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l)).length,
       });
     }
 
