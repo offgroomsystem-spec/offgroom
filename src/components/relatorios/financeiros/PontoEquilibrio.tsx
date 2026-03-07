@@ -110,6 +110,7 @@ export function PontoEquilibrio() {
         nomeCliente: l.clientes?.nome_cliente || "",
         nomePet: "",
         nomeBanco: l.contas_bancarias?.nome || "",
+        observacao: l.observacao || "",
         itens: (l.lancamentos_financeiros_itens || []).map((i: any) => ({
           id: i.id,
           descricao2: i.descricao2,
