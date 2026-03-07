@@ -232,7 +232,7 @@ export const useFinancialData = () => {
     const mapReceita = new Map<string, number>();
     const mapDespesa = new Map<string, number>();
 
-    lancamentos.filter((l) => l.pago).forEach((l) => {
+    lancamentos.filter((l) => l.pago && !isTransferencia(l)).forEach((l) => {
       const itens = itensMap.get(l.id) || [];
       const targetMap = l.tipo === "Receita" ? mapReceita : mapDespesa;
 
