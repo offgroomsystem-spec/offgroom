@@ -859,6 +859,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const despesas = lancamentos
         .filter((l) => {
           if (l.tipo !== "Despesa" || !l.pago || !l.data_pagamento) return false;
+          if (l.observacao === "Transferência entre contas") return false;
           return l.data_pagamento >= inicioMesStr && l.data_pagamento <= fimMesStr;
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
