@@ -669,6 +669,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const receitas = lancamentos
         .filter((l) => {
           if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+          if (l.observacao === "Transferência entre contas") return false;
           return l.data_pagamento >= inicioMesStr && l.data_pagamento <= dataFinalStr;
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
@@ -849,6 +850,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const receitas = lancamentos
         .filter((l) => {
           if (l.tipo !== "Receita" || !l.pago || !l.data_pagamento) return false;
+          if (l.observacao === "Transferência entre contas") return false;
           return l.data_pagamento >= inicioMesStr && l.data_pagamento <= fimMesStr;
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
@@ -857,6 +859,7 @@ export const DashboardContent = ({ onNavigateToRelatorio }: DashboardContentProp
       const despesas = lancamentos
         .filter((l) => {
           if (l.tipo !== "Despesa" || !l.pago || !l.data_pagamento) return false;
+          if (l.observacao === "Transferência entre contas") return false;
           return l.data_pagamento >= inicioMesStr && l.data_pagamento <= fimMesStr;
         })
         .reduce((acc, l) => acc + Number(l.valor_total), 0);

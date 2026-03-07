@@ -1,23 +1,48 @@
 
 
-## Correção: Filtrar transferências nos gráficos de 12 meses da /home
+## Melhorias no Formulário "Lançar Financeiro"
 
-### Problema
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-Três gráficos na página `/home` ainda somam transferências entre contas nos cálculos:
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-1. **Faturamento Médio do Mês (12 meses)** — linha 670: receitas sem filtro de transferência
-2. **Faturamento/Despesas (12 meses)** — linhas 850 e 858: receitas e despesas sem filtro
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-Os KPIs principais e o gráfico de fluxo de caixa 30 dias já estão corretos.
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-### Alterações
+**Mudancas no `ItemLancamentoForm`:**
 
-**Arquivo:** `src/components/dashboard/DashboardContent.tsx`
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-- **Linha ~671** (`dadosFaturamentoMedio12Meses`): Adicionar `if (l.observacao === "Transferência entre contas") return false;` no filtro de receitas
-- **Linha ~851** (`dadosFaturamentoDespesas12Meses`): Adicionar filtro de transferência no cálculo de receitas
-- **Linha ~859**: Adicionar filtro de transferência no cálculo de despesas
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-São 3 pontos de correção no mesmo arquivo — apenas adicionar a condição que já existe nos outros blocos.
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+
+Mesma correção na linha 2162 (subtotal com dedução).
+
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 
