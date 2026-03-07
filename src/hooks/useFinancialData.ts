@@ -10,6 +10,8 @@ export const formatCurrency = (value: number) =>
 
 const DIAS_SEMANA = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
 
+const isTransferencia = (l: any) => l.observacao === "Transferência entre contas";
+
 export const useFinancialData = () => {
   const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
