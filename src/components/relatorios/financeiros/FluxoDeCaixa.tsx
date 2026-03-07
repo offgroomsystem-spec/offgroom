@@ -85,6 +85,7 @@ interface LancamentoFluxo {
   dataCadastro: string;
   valorDeducao: number;
   tipoDeducao: string;
+  observacao: string;
 }
 
 interface Pet {

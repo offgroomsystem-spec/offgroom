@@ -40,6 +40,7 @@ interface LancamentoFinanceiro {
   nomePet: string;
   nomeBanco: string;
   itens: ItemLancamento[];
+  observacao: string;
 }
 
 const meses = [
