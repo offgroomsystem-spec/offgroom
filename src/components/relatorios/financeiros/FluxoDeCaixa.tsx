@@ -831,10 +831,10 @@ const FluxoDeCaixa = () => {
   const metricas = useMemo(() => {
     const dados = filtrosAplicados ? lancamentosFiltrados : lancamentos;
 
-    const recebido = dados.filter((l) => l.tipo === "Receita" && l.pago);
-    const aReceber = dados.filter((l) => l.tipo === "Receita" && !l.pago);
-    const pago = dados.filter((l) => l.tipo === "Despesa" && l.pago);
-    const aPagar = dados.filter((l) => l.tipo === "Despesa" && !l.pago);
+    const recebido = dados.filter((l) => l.tipo === "Receita" && l.pago && l.observacao !== "Transferência entre contas");
+    const aReceber = dados.filter((l) => l.tipo === "Receita" && !l.pago && l.observacao !== "Transferência entre contas");
+    const pago = dados.filter((l) => l.tipo === "Despesa" && l.pago && l.observacao !== "Transferência entre contas");
+    const aPagar = dados.filter((l) => l.tipo === "Despesa" && !l.pago && l.observacao !== "Transferência entre contas");
 
     return {
       recebido: {
