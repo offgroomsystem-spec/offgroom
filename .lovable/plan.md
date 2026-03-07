@@ -1,48 +1,57 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Correção: Excluir Transferências entre Contas dos Relatórios e Gráficos
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Problema Identificado
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+Quando o usuário faz uma transferência entre contas bancárias (ex: Ton → Pagseguro), o sistema cria **dois lançamentos**: uma "Despesa Não Operacional" na conta de origem e uma "Receita Não Operacional" na conta de destino, ambos com `observacao: "Transferência entre contas"`.
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+Esses lançamentos são **corretamente** usados para calcular saldos bancários individuais, mas estão **inflando** os totais de receita e despesa nos relatórios, pois transferências internas não representam faturamento real nem gasto real.
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+### Solução
 
-**Mudancas no `ItemLancamentoForm`:**
+Filtrar lançamentos com `observacao === "Transferência entre contas"` em todos os cálculos de receita/despesa/lucro/margem dos relatórios e gráficos. **Manter** esses lançamentos apenas nos cálculos de saldo por conta bancária (onde são necessários).
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+### Arquivos e Locais Afetados
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
+**1. `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`**
+- Mapear o campo `observacao` no objeto formatado (linha ~552)
+- No `metricas` (linha ~830): filtrar transferências nos cálculos de recebido/aReceber/pago/aPagar
+- No `dadosMensais` (cálculos mensais): filtrar transferências
+- No `calcularMetricasMes` (linha ~1565): filtrar transferências
+- **NÃO alterar** `saldosPorBanco` nem `saldosPorBancoNaData` (precisam das transferências para saldo correto)
 
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
+**2. `src/hooks/useFinancialData.ts`**
+- O hook carrega todos os lançamentos e calcula receitas/despesas mensais, fluxo de caixa 30d, categorias, etc.
+- Adicionar filtro `l.observacao !== "Transferência entre contas"` em todos os `filter` de receita/despesa nos `useMemo` (dadosMensais, dadosFluxoCaixa30d, categoriasPorMes, topCategorias)
 
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+**3. `src/components/dashboard/DashboardContent.tsx`**
+- `faturamentoMes` (linha ~497): filtrar transferências
+- `entradasPrevistas` e `saidasPrevistas` (linhas ~505-512): filtrar transferências
+- `dadosFluxoCaixa` (linha ~544): filtrar transferências no gráfico de 30 dias
 
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+**4. `src/components/relatorios/financeiros/GraficosFinanceiros.tsx`**
+- Usa `useFinancialData` hook — será corrigido automaticamente pelo hook
 
-Mesma correção na linha 2162 (subtotal com dedução).
+**5. `src/components/relatorios/financeiros/DRE.tsx`**
+- `receitaNaoOperacional` e `despesaNaoOperacional` (linhas ~283-284): filtrar transferências
+- A DRE já separa por `descricao1`, mas "Receita Não Operacional" e "Despesa Não Operacional" incluem transferências
 
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+**6. `src/components/relatorios/financeiros/PontoEquilibrio.tsx`**
+- `totalDespesasNaoOperacionais` (linha ~139): filtrar transferências
+
+**7. `src/hooks/useFinancialIntelligence.ts`**
+- Já filtra apenas por `descricao1 === "Receita Operacional"`, então NÃO é afetado (transferências usam "Receita Não Operacional")
+
+**8. `src/components/relatorios/financeiros/ReceitaNaoOperacional.tsx`** e **`DespesasNaoOperacionais.tsx`**
+- Esses relatórios específicos mostram detalhes de receitas/despesas não operacionais — as transferências devem aparecer aqui (são lançamentos reais), mas com uma indicação visual de que são transferências internas
+
+### Resumo Técnico
+
+A correção consiste em adicionar o filtro `l.observacao !== "Transferência entre contas"` (ou equivalente) em ~15 pontos de cálculo distribuídos em 5 arquivos. O campo `observacao` já existe no banco e é populado automaticamente pelo sistema de transferências. Nos locais onde os dados são formatados (FluxoDeCaixa), o campo precisa ser mapeado primeiro.
+
+### O que NÃO será alterado
+- Cálculos de saldo por conta bancária (precisam das transferências)
+- Listagem/tabela de lançamentos (o usuário deve ver as transferências)
+- Central de Inteligência Financeira (já filtra apenas "Receita Operacional")
 
