@@ -1,68 +1,48 @@
 
 
-## Central de Inteligência Financeira
+## Melhorias no Formulário "Lançar Financeiro"
 
-Novo módulo analítico de BI dentro da aba "Relatórios Financeiros", acessível como um card na lista de relatórios financeiros existente.
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-### Arquitetura
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-1. **Novo componente**: `src/components/relatorios/financeiros/CentralInteligenciaFinanceira.tsx` (~800-1000 linhas)
-2. **Novo hook**: `src/hooks/useFinancialIntelligence.ts` — encapsula toda a lógica de busca, cálculo das 4 camadas, previsões, cenários, insights e score
-3. **Integração**: Adicionar card + rota no `src/pages/Relatorios.tsx`
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-### Hook `useFinancialIntelligence`
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-- Busca `lancamentos_financeiros` com `pago = true` e `descricao1 = 'Receita Operacional'`
-- Aceita parâmetro `periodoDias` (30/60/90/120/180, default 90)
-- Calcula e retorna:
-  - **Camada 1**: média diária, semanal, mensal estimada
-  - **Camada 2**: taxa de crescimento (divide período em 3 terços de 30 dias)
-  - **Camada 3**: sazonalidade por semana do mês (5 faixas) e por dia da semana (seg-sáb)
-  - **Camada 4**: volatilidade (desvio padrão / média) → classificação estável/crescimento/volátil
-  - **Previsões curto prazo**: 7, 10, 15, 20 dias × 3 cenários (conservador -10%, realista, otimista +10%)
-  - **Previsões médio prazo**: 30, 60, 90, 120 dias × 3 cenários
-  - **Insights automáticos**: array de strings gerados por regras (crescimento, sazonalidade, comportamento, previsão)
-  - **Alertas**: queda de faturamento, desaceleração, tendência de baixa
-  - **Score de saúde**: 0-100 baseado em crescimento + estabilidade + previsões + volatilidade → cor (vermelho/amarelo/verde/azul)
-  - **Dados para gráficos**: faturamento diário, receita por dia da semana, receita por semana do mês, projeção cenários
+**Mudancas no `ItemLancamentoForm`:**
 
-### Componente `CentralInteligenciaFinanceira`
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-Layout BI moderno com seções:
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-1. **Header** com título + seletor de período (30/60/90/120/180 dias)
-2. **Score de Saúde** — card circular grande com gauge visual (0-100) e cor
-3. **KPIs principais** — grid 4 cols: faturamento 30d, 60d, 90d, média diária, média semanal, taxa crescimento, tendência
-4. **Alertas inteligentes** — AlertCards condicionais (só aparecem se detectados)
-5. **Previsões curto prazo** — grid de cards com 7/10/15/20 dias mostrando 3 cenários cada
-6. **Previsões médio prazo** — grid de cards com 30/60/90/120 dias mostrando 3 cenários cada
-7. **Gráfico 1** — LineChart evolução faturamento diário (últimos N dias)
-8. **Gráfico 2** — BarChart receita por dia da semana
-9. **Gráfico 3** — BarChart receita por semana do mês
-10. **Gráfico 4** — LineChart projeção 3 cenários sobrepostos
-11. **Insights automáticos** — lista de cards com ícones e texto interpretativo
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
 
-Usa recharts (já instalado), KPICard e AlertCard existentes, e componentes ui/ do projeto.
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
 
-### Alterações em `Relatorios.tsx`
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
 
-- Adicionar card `{ id: "central-inteligencia", titulo: "🧠 Central de Inteligência Financeira", desc: "Previsões, tendências e score de saúde do negócio" }` no array de relatórios financeiros (linha 188)
-- Adicionar `{relatorioAtivo === "central-inteligencia" && <CentralInteligenciaFinanceira />}` na seção de renderização (linha ~85)
-- Adicionar `"central-inteligencia"` no array de relatórios conhecidos (linha ~100)
+Mesma correção na linha 2162 (subtotal com dedução).
 
-### Fórmulas-chave
-
-```text
-Média diária = totalReceita / diasAnalisados
-Taxa crescimento = (terço3 - terço2) / terço2
-Volatilidade = desvioParão(faturamentoDiário) / médiaDiária
-Score = 25*(crescimento) + 25*(estabilidade) + 25*(previsão) + 25*(1-volatilidade)
-Previsão = médiaDiária × dias × (1 + taxaCrescimento) × ajusteSazonalidade
-  Conservador: × 0.90
-  Otimista: × 1.10
-```
-
-### Dados
-
-Não requer alterações no banco de dados. Usa apenas a tabela `lancamentos_financeiros` existente com filtro `pago = true` e `descricao1 = 'Receita Operacional'`.
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 

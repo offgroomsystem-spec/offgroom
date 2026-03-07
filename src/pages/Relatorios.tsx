@@ -23,6 +23,7 @@ import { PontoEquilibrio } from "@/components/relatorios/financeiros/PontoEquili
 import { AtendimentosRealizados } from "@/components/relatorios/servicos/AtendimentosRealizados";
 import { ProdutosProximosVencimento } from "@/components/relatorios/estoque/ProdutosProximosVencimento";
 import GraficosFinanceiros from "@/components/relatorios/financeiros/GraficosFinanceiros";
+import { CentralInteligenciaFinanceira } from "@/components/relatorios/financeiros/CentralInteligenciaFinanceira";
 
 const Relatorios = () => {
   const location = useLocation();
@@ -90,6 +91,7 @@ const Relatorios = () => {
       {relatorioAtivo === "despesas-operacionais" && <DespesasOperacionais />}
       {relatorioAtivo === "despesas-nao-operacionais" && <DespesasNaoOperacionais />}
       {relatorioAtivo === "ponto-equilibrio" && <PontoEquilibrio />}
+      {relatorioAtivo === "central-inteligencia" && <CentralInteligenciaFinanceira />}
       {relatorioAtivo === "atendimentos-realizados" && <AtendimentosRealizados />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
@@ -110,6 +112,7 @@ const Relatorios = () => {
     "despesas-operacionais",
     "despesas-nao-operacionais",
     "ponto-equilibrio",
+    "central-inteligencia",
     "pacotes-vencimento",
         "pacotes-expirados",
         "clientes-risco",
@@ -200,6 +203,7 @@ const Relatorios = () => {
               { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio (PE)", desc: "Calcule o valor necessário para cobrir todas as despesas" },
               { id: "despesas-nao-operacionais", titulo: "Despesas Não Operacionais", desc: "Análise de despesas não operacionais (manutenção, etc.)" },
               { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Análise detalhada de receitas não operacionais" },
+              { id: "central-inteligencia", titulo: "🧠 Central de Inteligência Financeira", desc: "Previsões, tendências e score de saúde do negócio" },
             ].map((rel) => (
               <Card
                 key={rel.id}
