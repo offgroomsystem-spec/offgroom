@@ -203,6 +203,7 @@ const Relatorios = () => {
               { id: "ponto-equilibrio", titulo: "Ponto de Equilíbrio (PE)", desc: "Calcule o valor necessário para cobrir todas as despesas" },
               { id: "despesas-nao-operacionais", titulo: "Despesas Não Operacionais", desc: "Análise de despesas não operacionais (manutenção, etc.)" },
               { id: "receita-nao-operacional", titulo: "Receita Não Operacional", desc: "Análise detalhada de receitas não operacionais" },
+              { id: "central-inteligencia", titulo: "🧠 Central de Inteligência Financeira", desc: "Previsões, tendências e score de saúde do negócio" },
             ].map((rel) => (
               <Card
                 key={rel.id}
