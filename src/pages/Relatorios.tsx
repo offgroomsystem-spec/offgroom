@@ -112,6 +112,7 @@ const Relatorios = () => {
     "despesas-operacionais",
     "despesas-nao-operacionais",
     "ponto-equilibrio",
+    "central-inteligencia",
     "pacotes-vencimento",
         "pacotes-expirados",
         "clientes-risco",
