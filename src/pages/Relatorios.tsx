@@ -91,6 +91,7 @@ const Relatorios = () => {
       {relatorioAtivo === "despesas-operacionais" && <DespesasOperacionais />}
       {relatorioAtivo === "despesas-nao-operacionais" && <DespesasNaoOperacionais />}
       {relatorioAtivo === "ponto-equilibrio" && <PontoEquilibrio />}
+      {relatorioAtivo === "central-inteligencia" && <CentralInteligenciaFinanceira />}
       {relatorioAtivo === "atendimentos-realizados" && <AtendimentosRealizados />}
         {relatorioAtivo === "pacotes-vencimento" && <PacotesProximosVencimento key={versaoFiltro} />}
         {relatorioAtivo === "pacotes-expirados" && <PacotesExpirados key={versaoFiltro} />}
