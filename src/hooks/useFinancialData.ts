@@ -93,11 +93,11 @@ export const useFinancialData = () => {
       const fimStr = format(fim, "yyyy-MM-dd");
 
       const receitas = lancamentos
-        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr)
+        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const despesas = lancamentos
-        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr)
+        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const diasUteisAteAgora = contarDiasUteis(inicio, dataFinal);
