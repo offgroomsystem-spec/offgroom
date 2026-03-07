@@ -194,10 +194,10 @@ export const useFinancialData = () => {
       const fimStr = format(fim, "yyyy-MM-dd");
 
       const receitasMes = lancamentos.filter(
-        (l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr
+        (l) => l.tipo === "Receita" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l)
       );
       const despesasMes = lancamentos.filter(
-        (l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr
+        (l) => l.tipo === "Despesa" && l.pago && l.data_pagamento && l.data_pagamento >= inicioStr && l.data_pagamento <= fimStr && !isTransferencia(l)
       );
 
       const agrupar = (items: any[]) => {
