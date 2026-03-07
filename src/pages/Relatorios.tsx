@@ -23,6 +23,7 @@ import { PontoEquilibrio } from "@/components/relatorios/financeiros/PontoEquili
 import { AtendimentosRealizados } from "@/components/relatorios/servicos/AtendimentosRealizados";
 import { ProdutosProximosVencimento } from "@/components/relatorios/estoque/ProdutosProximosVencimento";
 import GraficosFinanceiros from "@/components/relatorios/financeiros/GraficosFinanceiros";
+import { CentralInteligenciaFinanceira } from "@/components/relatorios/financeiros/CentralInteligenciaFinanceira";
 
 const Relatorios = () => {
   const location = useLocation();
