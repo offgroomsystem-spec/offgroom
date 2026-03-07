@@ -151,10 +151,10 @@ export const useFinancialData = () => {
       const eDiaFuncionamento = diasFuncionamento?.[diaDaSemana] === true;
 
       const receitas = lancamentos
-        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Receita" && l.pago && l.data_pagamento === dataStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
       const despesas = lancamentos
-        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr)
+        .filter((l) => l.tipo === "Despesa" && l.pago && l.data_pagamento === dataStr && !isTransferencia(l))
         .reduce((acc, l) => acc + Number(l.valor_total), 0);
 
       const teveFaturamento = receitas > 0 || despesas > 0;
