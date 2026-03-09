@@ -85,6 +85,7 @@ export interface FinancialIntelligenceData {
   score: number;
   scoreCor: "red" | "yellow" | "green" | "blue";
   scoreLabel: string;
+  scoreDetalhes: ScoreDetalhes;
   // Dados gráficos
   dadosDiarios: DadoDiario[];
   dadosProjecao: DadoProjecao[];
