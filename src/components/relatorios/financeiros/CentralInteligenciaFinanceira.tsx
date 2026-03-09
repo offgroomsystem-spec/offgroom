@@ -64,6 +64,9 @@ export const CentralInteligenciaFinanceira = () => {
           <div>
             <h2 className="text-xl font-bold text-foreground">Central de Inteligência Financeira</h2>
             <p className="text-sm text-muted-foreground">Previsões, tendências e score de saúde do negócio</p>
+            <p className="text-sm text-destructive mt-1">
+              Este relatório é baseado 100% nos dados dos últimos 30, 60 e 90 dias. Para garantir maior precisão na previsão de faturamento, mantenha sempre seus lançamentos de receitas atualizados.
+            </p>
           </div>
         </div>
         <Select
