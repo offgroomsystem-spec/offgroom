@@ -43,6 +43,13 @@ interface Insight {
   cor: "green" | "red" | "yellow" | "blue";
 }
 
+interface ScoreDetalhes {
+  crescimento: number;
+  estabilidade: number;
+  atividadeRecente: number;
+  base: number;
+}
+
 interface DadoProjecao {
   dia: number;
   conservador: number;
