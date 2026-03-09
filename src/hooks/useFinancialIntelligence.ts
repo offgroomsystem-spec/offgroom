@@ -408,6 +408,7 @@ export function useFinancialIntelligence(): FinancialIntelligenceData {
       score,
       scoreCor,
       scoreLabel,
+      scoreDetalhes,
       dadosDiarios,
       dadosProjecao,
       insights,
