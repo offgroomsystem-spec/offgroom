@@ -283,9 +283,16 @@ export function useFinancialIntelligence(): FinancialIntelligenceData {
     // Score de Saúde (0-100)
     const scoreCrescimento = Math.min(Math.max((taxaCrescimento + 0.1) / 0.3, 0), 1) * 25;
     const scoreEstabilidade = Math.min(Math.max(1 - volatilidade, 0), 1) * 25;
-    const scorePrevisao = mediaDiaria > 0 ? 25 : 0;
+    const mediaEsperada30d = mediaDiaria * 30;
+    const scoreAtividadeRecente = mediaEsperada30d > 0 ? Math.min(faturamento30d / mediaEsperada30d, 1) * 25 : 0;
     const scoreBase = totalPeriodo > 0 ? 25 : 0;
-    const score = Math.round(scoreCrescimento + scoreEstabilidade + scorePrevisao + scoreBase);
+    const score = Math.round(scoreCrescimento + scoreEstabilidade + scoreAtividadeRecente + scoreBase);
+    const scoreDetalhes: ScoreDetalhes = {
+      crescimento: Math.round(scoreCrescimento),
+      estabilidade: Math.round(scoreEstabilidade),
+      atividadeRecente: Math.round(scoreAtividadeRecente),
+      base: Math.round(scoreBase),
+    };
     const scoreCor: "red" | "yellow" | "green" | "blue" =
       score < 30 ? "red" : score < 50 ? "yellow" : score < 75 ? "green" : "blue";
     const scoreLabel =
