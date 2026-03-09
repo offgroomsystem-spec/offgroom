@@ -223,9 +223,13 @@ export function useFinancialIntelligence(): FinancialIntelligenceData {
       count: semanaMesAcc[i].count,
     }));
 
-    // Camada 4 - Volatilidade
-    const valoresDiarios = Array.from(dailyMap.values());
-    const desvio = calcDesvio(valoresDiarios, mediaDiaria);
+    // Camada 4 - Volatilidade (incluindo dias zerados)
+    const valoresDiariosCompletos: number[] = [];
+    for (let i = periodoDias - 1; i >= 0; i--) {
+      const d = format(subDays(hojeDate, i), "yyyy-MM-dd");
+      valoresDiariosCompletos.push(dailyMap.get(d) || 0);
+    }
+    const desvio = calcDesvio(valoresDiariosCompletos, mediaDiaria);
     const volatilidade = mediaDiaria > 0 ? desvio / mediaDiaria : 0;
     const classificacaoVolatilidade: "Estável" | "Em Crescimento" | "Volátil" =
       volatilidade < 0.3 ? "Estável" : volatilidade < 0.6 ? "Em Crescimento" : "Volátil";
