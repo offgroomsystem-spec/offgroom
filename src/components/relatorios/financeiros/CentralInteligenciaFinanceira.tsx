@@ -4,6 +4,7 @@ import { AlertCard } from "@/components/relatorios/shared/AlertCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -63,6 +64,9 @@ export const CentralInteligenciaFinanceira = () => {
           <div>
             <h2 className="text-xl font-bold text-foreground">Central de Inteligência Financeira</h2>
             <p className="text-sm text-muted-foreground">Previsões, tendências e score de saúde do negócio</p>
+            <p className="text-sm text-destructive mt-1">
+              Este relatório é baseado 100% nos dados dos últimos 30, 60 e 90 dias. Para garantir maior precisão na previsão de faturamento, mantenha sempre seus lançamentos de receitas atualizados.
+            </p>
           </div>
         </div>
         <Select
@@ -83,38 +87,71 @@ export const CentralInteligenciaFinanceira = () => {
       </div>
 
       {/* Score de Saúde */}
-      <Card className="border-2">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="relative">
-              <div
-                className={`w-28 h-28 rounded-full bg-gradient-to-br ${scoreColors[data.scoreCor]} flex items-center justify-center shadow-lg`}
-              >
-                <div className="text-center">
-                  <div className="text-3xl font-black text-white">{data.score}</div>
-                  <div className="text-xs text-white/80">/ 100</div>
+      <HoverCard openDelay={200} closeDelay={100}>
+        <HoverCardTrigger asChild>
+          <Card className="border-2 cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="relative">
+                  <div
+                    className={`w-28 h-28 rounded-full bg-gradient-to-br ${scoreColors[data.scoreCor]} flex items-center justify-center shadow-lg`}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl font-black text-white">{data.score}</div>
+                      <div className="text-xs text-white/80">/ 100</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center sm:text-left">
+                  <div className="flex items-center gap-2 justify-center sm:justify-start">
+                    <span className="text-2xl">{scoreEmoji[data.scoreCor]}</span>
+                    <h3 className="text-lg font-bold text-foreground">{data.scoreLabel}</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Score baseado em crescimento, estabilidade, atividade recente e volatilidade do faturamento.
+                  </p>
+                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                    <span>Volatilidade: {data.classificacaoVolatilidade}</span>
+                    <span>•</span>
+                    <span>
+                      Tendência: {data.tendencia === "crescimento" ? "Alta" : data.tendencia === "queda" ? "Baixa" : "Estável"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 italic">Passe o mouse para ver os detalhes do cálculo</p>
                 </div>
               </div>
-            </div>
-            <div className="text-center sm:text-left">
-              <div className="flex items-center gap-2 justify-center sm:justify-start">
-                <span className="text-2xl">{scoreEmoji[data.scoreCor]}</span>
-                <h3 className="text-lg font-bold text-foreground">{data.scoreLabel}</h3>
+            </CardContent>
+          </Card>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80" side="bottom" align="start">
+          <div className="space-y-3">
+            <h4 className="font-semibold text-sm text-foreground">Como o Score é calculado</h4>
+            <p className="text-xs text-muted-foreground">O score é composto por 4 componentes, cada um valendo até 25 pontos:</p>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">📈 Crescimento (últimos 30d vs anterior)</span>
+                <span className="font-semibold text-foreground">{data.scoreDetalhes.crescimento}/25</span>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Score baseado em crescimento, estabilidade, previsões e volatilidade do faturamento.
-              </p>
-              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                <span>Volatilidade: {data.classificacaoVolatilidade}</span>
-                <span>•</span>
-                <span>
-                  Tendência: {data.tendencia === "crescimento" ? "Alta" : data.tendencia === "queda" ? "Baixa" : "Estável"}
-                </span>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">📊 Estabilidade (volatilidade diária)</span>
+                <span className="font-semibold text-foreground">{data.scoreDetalhes.estabilidade}/25</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">⚡ Atividade Recente (fat. 30d vs média)</span>
+                <span className="font-semibold text-foreground">{data.scoreDetalhes.atividadeRecente}/25</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">🏦 Base (há faturamento no período?)</span>
+                <span className="font-semibold text-foreground">{data.scoreDetalhes.base}/25</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between items-center font-semibold">
+                <span className="text-foreground">Total</span>
+                <span className="text-foreground">{data.score}/100</span>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </HoverCardContent>
+      </HoverCard>
 
       {/* Alertas Inteligentes */}
       {data.alertas.length > 0 && (

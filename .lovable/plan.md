@@ -1,28 +1,48 @@
 
 
-## Melhorias na Central de Inteligência Financeira
+## Melhorias no Formulário "Lançar Financeiro"
 
-### 1. Texto informativo abaixo do subtítulo
-Adicionar o texto de aviso em vermelho logo abaixo de "Previsões, tendências e score de saúde do negócio" no componente `CentralInteligenciaFinanceira.tsx`.
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-### 2. Tooltip no card do Score
-Envolver o card do Score com um `HoverCard` (já existe no projeto) que ao passar o mouse mostra uma janela explicando a lógica do cálculo:
-- Crescimento (0-25 pts): baseado na taxa de crescimento dos últimos 30 dias vs 30 dias anteriores
-- Estabilidade (0-25 pts): baseado na volatilidade do faturamento diário
-- Atividade Recente (0-25 pts): baseado no faturamento dos últimos 30 dias vs média do período
-- Base (0-25 pts): se há faturamento no período analisado
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-### 3. Correção da lógica do Score
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-**Problema identificado**: O score atual dá 25 pts para `scorePrevisao` se `mediaDiaria > 0` e 25 pts para `scoreBase` se `totalPeriodo > 0`. Com 90 dias de período e receita apenas nos primeiros 60 dias, ambos retornam 25 pts. Além disso, `volatilidade` é calculada apenas sobre dias COM lançamentos (ignora dias zerados), então a estabilidade também fica alta. Resultado: score ~50-75 mesmo com 30 dias sem faturamento.
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-**Correção em `useFinancialIntelligence.ts`**:
+**Mudancas no `ItemLancamentoForm`:**
 
-- **`scorePrevisao` → `scoreAtividadeRecente`**: Em vez de verificar apenas se `mediaDiaria > 0`, comparar `faturamento30d` com a média esperada. Se faturamento30d = 0, este componente = 0 pts. Fórmula: `min(faturamento30d / (mediaDiaria * 30), 1) * 25`
-- **`scoreEstabilidade`**: Incluir dias zerados no cálculo de volatilidade (usar array completo do período, não só dias com lançamento), para que 30 dias sem receita aumente a volatilidade
-- **Exportar componentes do score** para exibir no tooltip: adicionar `scoreDetalhes` ao retorno do hook com os 4 valores individuais
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-**Arquivo**: `src/hooks/useFinancialIntelligence.ts` — linhas 271-276 (score) e linha de volatilidade
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-**Arquivo**: `src/components/relatorios/financeiros/CentralInteligenciaFinanceira.tsx` — linhas 60-117 (header + score card)
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+
+Mesma correção na linha 2162 (subtotal com dedução).
+
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 

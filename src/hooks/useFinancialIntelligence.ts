@@ -43,6 +43,13 @@ interface Insight {
   cor: "green" | "red" | "yellow" | "blue";
 }
 
+interface ScoreDetalhes {
+  crescimento: number;
+  estabilidade: number;
+  atividadeRecente: number;
+  base: number;
+}
+
 interface DadoProjecao {
   dia: number;
   conservador: number;
@@ -78,6 +85,7 @@ export interface FinancialIntelligenceData {
   score: number;
   scoreCor: "red" | "yellow" | "green" | "blue";
   scoreLabel: string;
+  scoreDetalhes: ScoreDetalhes;
   // Dados gráficos
   dadosDiarios: DadoDiario[];
   dadosProjecao: DadoProjecao[];
@@ -215,9 +223,13 @@ export function useFinancialIntelligence(): FinancialIntelligenceData {
       count: semanaMesAcc[i].count,
     }));
 
-    // Camada 4 - Volatilidade
-    const valoresDiarios = Array.from(dailyMap.values());
-    const desvio = calcDesvio(valoresDiarios, mediaDiaria);
+    // Camada 4 - Volatilidade (incluindo dias zerados)
+    const valoresDiariosCompletos: number[] = [];
+    for (let i = periodoDias - 1; i >= 0; i--) {
+      const d = format(subDays(hojeDate, i), "yyyy-MM-dd");
+      valoresDiariosCompletos.push(dailyMap.get(d) || 0);
+    }
+    const desvio = calcDesvio(valoresDiariosCompletos, mediaDiaria);
     const volatilidade = mediaDiaria > 0 ? desvio / mediaDiaria : 0;
     const classificacaoVolatilidade: "Estável" | "Em Crescimento" | "Volátil" =
       volatilidade < 0.3 ? "Estável" : volatilidade < 0.6 ? "Em Crescimento" : "Volátil";
@@ -271,9 +283,16 @@ export function useFinancialIntelligence(): FinancialIntelligenceData {
     // Score de Saúde (0-100)
     const scoreCrescimento = Math.min(Math.max((taxaCrescimento + 0.1) / 0.3, 0), 1) * 25;
     const scoreEstabilidade = Math.min(Math.max(1 - volatilidade, 0), 1) * 25;
-    const scorePrevisao = mediaDiaria > 0 ? 25 : 0;
+    const mediaEsperada30d = mediaDiaria * 30;
+    const scoreAtividadeRecente = mediaEsperada30d > 0 ? Math.min(faturamento30d / mediaEsperada30d, 1) * 25 : 0;
     const scoreBase = totalPeriodo > 0 ? 25 : 0;
-    const score = Math.round(scoreCrescimento + scoreEstabilidade + scorePrevisao + scoreBase);
+    const score = Math.round(scoreCrescimento + scoreEstabilidade + scoreAtividadeRecente + scoreBase);
+    const scoreDetalhes: ScoreDetalhes = {
+      crescimento: Math.round(scoreCrescimento),
+      estabilidade: Math.round(scoreEstabilidade),
+      atividadeRecente: Math.round(scoreAtividadeRecente),
+      base: Math.round(scoreBase),
+    };
     const scoreCor: "red" | "yellow" | "green" | "blue" =
       score < 30 ? "red" : score < 50 ? "yellow" : score < 75 ? "green" : "blue";
     const scoreLabel =
@@ -389,6 +408,7 @@ export function useFinancialIntelligence(): FinancialIntelligenceData {
       score,
       scoreCor,
       scoreLabel,
+      scoreDetalhes,
       dadosDiarios,
       dadosProjecao,
       insights,
