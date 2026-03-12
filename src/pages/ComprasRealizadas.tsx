@@ -1244,8 +1244,7 @@ export default function ComprasRealizadas() {
                   toast.error("Existem campos de prazo de pagamento vazios. Preencha todos os campos ou remova os que não serão utilizados.");
                   return;
                 }
-                toast.success("Formas de pagamento salvas com sucesso!");
-                setFormasPagamentoOpen(false);
+                salvarFormasPagamento();
               }}
             >
               Salvar
