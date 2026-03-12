@@ -503,6 +503,7 @@ const Agendamentos = () => {
   }, [formData.pet, formData.raca, servicos, clientes]);
 
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
+  const [dataVendaManual, setDataVendaManual] = useState(false);
   const [openServicoCombobox, setOpenServicoCombobox] = useState(false);
   const [openEditServicoCombobox, setOpenEditServicoCombobox] = useState(false);
   
