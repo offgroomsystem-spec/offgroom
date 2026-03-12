@@ -1,48 +1,21 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Adicionar campo "Quantidade" para itens não-Venda
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Contexto
+Atualmente, o campo "Qtd" só aparece quando `isVenda === true`. Para os demais tipos (Despesas, etc.), a quantidade é assumida como 1. O usuário quer um campo "Quantidade" visível em todos os cenários.
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+### Alterações em `src/pages/ControleFinanceiro.tsx` — `ItemLancamentoForm`
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+**Layout atual (não-Venda):** Descrição 2 (4) + Observação (4) + Valor (2) + Total (2) = 12
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+**Layout novo (não-Venda):** Descrição 2 (3) + Observação (3) + Quantidade (1) + Valor (2) + Total (3) = 12
 
-**Mudancas no `ItemLancamentoForm`:**
+1. **Ajustar col-spans dos campos Descrição 2 e Observação** quando NÃO é Venda: de `col-span-4` para `col-span-3`
+2. **Remover a condição `{isVenda && ...}`** do campo Qtd — torná-lo sempre visível
+3. **Alterar o label** de "Qtd *" para "Quantidade" (sem asterisco, já que terá valor padrão 1)
+4. **Garantir `quantidade` inicializada com 1** — o campo já exibe `item.quantidade || ""`, ajustar para exibir o valor (que já é inicializado como 1 na criação do item). Verificar onde o item é criado para confirmar que `quantidade: 1` é o default.
+5. **Campo Total** já calcula `item.valor * (item.quantidade || 1)` — nenhuma mudança necessária na fórmula
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
-
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
-
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
-
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
-
-Mesma correção na linha 2162 (subtotal com dedução).
-
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+Preciso verificar onde os itens são inicializados para garantir que `quantidade: 1` é o default.
 
