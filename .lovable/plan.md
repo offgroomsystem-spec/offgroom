@@ -1,48 +1,43 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Correções: Mês Competência e Persistência de Formas de Pagamento
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Problema 1: Mês Competência com formato errado
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+Em `ComprasRealizadas.tsx` (linha 292), o `mes_competencia` é salvo como `"Fevereiro/2026"`, mas no `ControleFinanceiro.tsx` o formato esperado é `"02"` (dois dígitos). Por isso a listbox "Mês Competência" não mostra seleção ao abrir o lançamento criado automaticamente.
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+**Correção em `src/pages/ComprasRealizadas.tsx`:**
+- Linha 292: mudar de `const mesCompetencia = \`${meses[dataCompra.getMonth()]}/${ano}\`;` para simplesmente `const mesCompetencia = mes;` (que já é `String(dataCompra.getMonth() + 1).padStart(2, "0")` na linha 290).
+- Linha 313: usar `mesCompetencia` (que agora será `"02"` em vez de `"Fevereiro/2026"`).
+- Remover o array `meses` local (linhas 291) que não será mais necessário.
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+### Problema 2: Formas de Pagamento não persistidas
 
-**Mudancas no `ItemLancamentoForm`:**
+O state `prazosPagamento` é local (`useState`), então ao recarregar a página as opções se perdem. Precisamos criar uma tabela no banco para armazená-las.
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+**Migração SQL:**
+```sql
+CREATE TABLE public.formas_pagamento (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  dias integer NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
+ALTER TABLE public.formas_pagamento ENABLE ROW LEVEL SECURITY;
 
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
+CREATE POLICY "Users can manage own formas_pagamento"
+  ON public.formas_pagamento FOR ALL
+  TO public
+  USING (user_id = get_effective_user_id(auth.uid()))
+  WITH CHECK (user_id = get_effective_user_id(auth.uid()));
+```
 
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+**Alterações em `src/pages/ComprasRealizadas.tsx`:**
 
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+1. **Carregar formas de pagamento do banco** ao montar o componente (`loadFormasPagamento`): query `formas_pagamento` filtrando por `user_id = ownerId`, ordenado por `dias ASC`. Popular `prazosPagamento` com os valores retornados.
 
-Mesma correção na linha 2162 (subtotal com dedução).
+2. **Salvar formas de pagamento no banco** quando o usuário clica "Salvar" no modal: deletar registros existentes do usuário e inserir os novos valores. Após salvar, recarregar do banco.
 
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+3. **Inicializar `prazosPagamento`** como `[]` (vazio) em vez de `[""]`, e ao abrir o modal, se estiver vazio, adicionar um campo vazio para o usuário começar a preencher.
 
