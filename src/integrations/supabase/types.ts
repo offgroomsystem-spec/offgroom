@@ -586,6 +586,27 @@ export type Database = {
         }
         Relationships: []
       }
+      formas_pagamento: {
+        Row: {
+          created_at: string | null
+          dias: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dias: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dias?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fornecedores: {
         Row: {
           bairro: string | null

@@ -100,7 +100,7 @@ export default function ComprasRealizadas() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [formasPagamentoOpen, setFormasPagamentoOpen] = useState(false);
-  const [prazosPagamento, setPrazosPagamento] = useState<string[]>([""]);
+  const [prazosPagamento, setPrazosPagamento] = useState<string[]>([]);
 
   // Filtros
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
@@ -138,7 +138,52 @@ export default function ComprasRealizadas() {
     loadCompras();
     loadFornecedores();
     loadProdutos();
+    loadFormasPagamento();
   }, []);
+
+  const loadFormasPagamento = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("formas_pagamento")
+        .select("dias")
+        .eq("user_id", ownerId)
+        .order("dias", { ascending: true });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setPrazosPagamento(data.map((d: any) => String(d.dias)));
+      }
+    } catch (error: any) {
+      console.error("Erro ao carregar formas de pagamento:", error);
+    }
+  };
+
+  const salvarFormasPagamento = async () => {
+    try {
+      // Delete existing
+      await supabase.from("formas_pagamento").delete().eq("user_id", ownerId);
+
+      // Insert new
+      const registros = prazosPagamento
+        .filter((p) => p.trim() !== "")
+        .map((p) => ({
+          user_id: ownerId,
+          dias: parseInt(p),
+        }));
+
+      if (registros.length > 0) {
+        const { error } = await supabase.from("formas_pagamento").insert(registros);
+        if (error) throw error;
+      }
+
+      toast.success("Formas de pagamento salvas com sucesso!");
+      setFormasPagamentoOpen(false);
+      await loadFormasPagamento();
+    } catch (error: any) {
+      console.error("Erro ao salvar formas de pagamento:", error);
+      toast.error("Erro ao salvar formas de pagamento");
+    }
+  };
 
   const loadCompras = async () => {
     try {
@@ -288,8 +333,6 @@ export default function ComprasRealizadas() {
       const dataCompra = new Date(formData.data_compra + "T12:00:00");
       const ano = dataCompra.getFullYear().toString();
       const mes = String(dataCompra.getMonth() + 1).padStart(2, "0");
-      const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-      const mesCompetencia = `${meses[dataCompra.getMonth()]}/${ano}`;
 
       let parcelas: { dataPagamento: string; valor: number }[] = [];
 
@@ -310,7 +353,7 @@ export default function ComprasRealizadas() {
           .insert({
             user_id: ownerId,
             ano,
-            mes_competencia: mesCompetencia,
+            mes_competencia: mes,
             tipo: "Despesa",
             descricao1: formData.descricao1,
             fornecedor_id: formData.fornecedor_id,
@@ -522,7 +565,12 @@ export default function ComprasRealizadas() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setFormasPagamentoOpen(true)}
+            onClick={() => {
+              if (prazosPagamento.length === 0) {
+                setPrazosPagamento([""]);
+              }
+              setFormasPagamentoOpen(true);
+            }}
             className="gap-2"
           >
             <CreditCard className="h-4 w-4" />
@@ -1196,8 +1244,7 @@ export default function ComprasRealizadas() {
                   toast.error("Existem campos de prazo de pagamento vazios. Preencha todos os campos ou remova os que não serão utilizados.");
                   return;
                 }
-                toast.success("Formas de pagamento salvas com sucesso!");
-                setFormasPagamentoOpen(false);
+                salvarFormasPagamento();
               }}
             >
               Salvar
