@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, FileText, Trash2, Eye, Filter, X, Calendar, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, Filter, X, Calendar, Search, Check, ChevronsUpDown, CreditCard } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -95,6 +95,8 @@ export default function ComprasRealizadas() {
   const [selectedCompra, setSelectedCompra] = useState<CompraNF | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [formasPagamentoOpen, setFormasPagamentoOpen] = useState(false);
+  const [prazosPagamento, setPrazosPagamento] = useState<string[]>([""]);
 
   // Filtros
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
@@ -413,6 +415,16 @@ export default function ComprasRealizadas() {
           >
             <Filter className="h-4 w-4" />
             {mostrarFiltros ? "Ocultar Filtros" : "Filtros"}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFormasPagamentoOpen(true)}
+            className="gap-2"
+          >
+            <CreditCard className="h-4 w-4" />
+            Formas de Pagamento
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
@@ -846,6 +858,85 @@ export default function ComprasRealizadas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal Formas de Pagamento */}
+      <Dialog open={formasPagamentoOpen} onOpenChange={setFormasPagamentoOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Formas de Pagamento</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Adicione em cada campo a quantidade de dias após a emissão da NF em que cada parcela deverá ser paga.
+          </p>
+          <div className="space-y-3 mt-2">
+            {prazosPagamento.map((valor, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Ex: 30"
+                  value={valor}
+                  onChange={(e) => {
+                    const novos = [...prazosPagamento];
+                    novos[index] = e.target.value;
+                    setPrazosPagamento(novos);
+                  }}
+                  onKeyDown={(e) => {
+                    if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  className="w-24"
+                />
+                {valor.trim() !== "" && index === prazosPagamento.length - 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPrazosPagamento([...prazosPagamento, ""])}
+                    className="text-xs whitespace-nowrap"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Adicionar mais dias para parcelamento
+                  </Button>
+                )}
+                {index > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => {
+                      const novos = prazosPagamento.filter((_, i) => i !== index);
+                      setPrazosPagamento(novos);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setFormasPagamentoOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                const temVazio = prazosPagamento.some((p) => p.trim() === "");
+                if (temVazio) {
+                  toast.error("Existem campos de prazo de pagamento vazios. Preencha todos os campos ou remova os que não serão utilizados.");
+                  return;
+                }
+                toast.success("Formas de pagamento salvas com sucesso!");
+                setFormasPagamentoOpen(false);
+              }}
+            >
+              Salvar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
