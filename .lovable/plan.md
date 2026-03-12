@@ -1,48 +1,66 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Plano: Novos campos no formulário "Nova Compra (NF)" + criação automática de lançamento financeiro
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### 1. Atualizar interface `Fornecedor` para incluir campos de busca
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+Expandir a interface para incluir `cnpj_cpf` e `nome_fantasia`, e atualizar a query `loadFornecedores` para buscar esses campos adicionais.
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+### 2. Substituir Select de Fornecedor por Combobox com busca (lupa)
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+Trocar o `<Select>` do campo "Fornecedor" por um `<Popover>` + `<Command>` (igual ao produto), permitindo busca por razão social, nome fantasia ou CPF/CNPJ.
 
-**Mudancas no `ItemLancamentoForm`:**
+### 3. Adicionar campo "Dias de Pagamento" (listbox com busca)
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+- Posicionar entre "Data da Emissão da NFe" e "Valor Total" (mudar grid de 2 para 3 colunas nessa linha)
+- Usar Popover + Command com campo de busca
+- Primeira opção: "À Vista"
+- Demais opções: prazos cadastrados no modal "Formas de Pagamento" (state `prazosPagamento`), formatados como "30", "30/60", "30/60/90" etc., em ordem crescente
+- Novo state: `diasPagamentoSelecionado`
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
+### 4. Adicionar linha com "Descrição 1 *" e "Descrição 2 *"
 
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
+- Nova linha abaixo de "Data da Emissão da NFe / Dias de Pagamento / Valor Total"
+- Grid 2 colunas: Descrição 1 e Descrição 2
+- Usar as mesmas constantes do `ControleFinanceiro.tsx` — extrair `categoriasDescricao1` e `categoriasDescricao2` para um arquivo compartilhado (ex: `src/constants/categorias.ts`) e importar em ambas as páginas
+- Como no formulário de compra o tipo é sempre "Despesa", a Descrição 1 mostrará apenas as opções de Despesa: "Despesa Fixa", "Despesa Operacional", "Despesa Não Operacional"
+- Descrição 2 fica desabilitada até Descrição 1 ser selecionada, carregando as subcategorias correspondentes (mesma regra condicional do Controle Financeiro)
+- Novos states: `descricao1` e `descricao2` no formData
+- Ambos obrigatórios — validar antes de salvar
 
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+### 5. Atualizar `calcularValorTotal` para considerar quantidade × valor
 
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+Atualmente soma apenas `valor_compra`. Precisa multiplicar `quantidade × valor_compra` por item.
 
-Mesma correção na linha 2162 (subtotal com dedução).
+### 6. Criação automática de lançamento financeiro ao salvar
 
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+Ao salvar a compra com sucesso, criar lançamento(s) financeiro(s) na tabela `lancamentos_financeiros` + `lancamentos_financeiros_itens`:
+
+- Se "À Vista": criar 1 lançamento com `data_pagamento = data_compra`
+- Se prazo (ex: "30/60/90"): criar N lançamentos, um para cada prazo, com `data_pagamento = data_compra + X dias`. O valor de cada lançamento será `valorTotal / N` (dividido igualmente entre as parcelas).
+
+Campos de cada lançamento:
+- `user_id`: ownerId
+- `ano`: ano da data_compra
+- `mes_competencia`: mês da data_compra
+- `tipo`: "Despesa"
+- `descricao1`: valor selecionado
+- `fornecedor_id`: fornecedor selecionado
+- `valor_total`: valorTotal (ou valorTotal/N se parcelado)
+- `data_pagamento`: calculada
+- `conta_id`: null
+- `pago`: false
+
+Item do lançamento:
+- `descricao2`: valor selecionado
+- `produto_servico`: null ou descrição genérica
+- `valor`: mesmo do lançamento
+- `quantidade`: 1
+
+### 7. Atualizar `resetForm` para limpar os novos campos
+
+### Arquivos alterados:
+- **Novo**: `src/constants/categorias.ts` — exportar `categoriasDescricao1` e `categoriasDescricao2`
+- **`src/pages/ControleFinanceiro.tsx`** — importar categorias do arquivo compartilhado (remover as constantes locais)
+- **`src/pages/ComprasRealizadas.tsx`** — todas as mudanças de UI e lógica descritas acima
 
