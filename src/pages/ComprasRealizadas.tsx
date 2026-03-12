@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, FileText, Trash2, Eye, Filter, X, Calendar, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, Filter, X, Calendar, Search, Check, ChevronsUpDown, CreditCard } from "lucide-react";
 import {
   Dialog,
   DialogContent,
