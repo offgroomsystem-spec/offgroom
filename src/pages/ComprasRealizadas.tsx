@@ -353,7 +353,7 @@ export default function ComprasRealizadas() {
           .insert({
             user_id: ownerId,
             ano,
-            mes_competencia: mesCompetencia,
+            mes_competencia: mes,
             tipo: "Despesa",
             descricao1: formData.descricao1,
             fornecedor_id: formData.fornecedor_id,
