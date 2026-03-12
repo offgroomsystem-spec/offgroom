@@ -589,7 +589,7 @@ export default function ComprasRealizadas() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Valor de Compra *</Label>
+                          <Label>Valor de Compra unitário *</Label>
                           <Input
                             type="number"
                             step="0.01"
