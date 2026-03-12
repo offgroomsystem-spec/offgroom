@@ -1,48 +1,41 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Adicionar botão "Formas de Pagamento" com modal dinâmica
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Alterações em `src/pages/ComprasRealizadas.tsx`
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+**1. Novo state para controlar o modal e os prazos:**
+- `formasPagamentoOpen` (boolean) — controla abertura do modal
+- `prazosPagamento` (number[]) — array de dias, inicializado com `[null]` representando o primeiro campo
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+**2. Novo botão entre "Adicionar Compra (NF)" e o botão "Filtros":**
+- Posicionado à direita do botão "Adicionar Compra (NF)" na div `flex gap-2` (linha 407)
+- Mesmo estilo do botão "Filtros": `variant="outline"`, `size="sm"`, com ícone `CreditCard` do lucide-react
+- Texto: "Formas de Pagamento"
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+**3. Modal (Dialog) "Formas de Pagamento":**
+- Instrução no topo: "Adicione em cada campo a quantidade de dias após a emissão da NF em que cada parcela deverá ser paga."
+- Lista dinâmica de inputs numéricos (type="number", `min=1`, bloqueia caracteres não numéricos via `onKeyDown`)
+- Quando um campo tem valor, aparece botão "Adicionar mais dias para parcelamento" à direita
+- Campos a partir do 2º têm botão "X" para remoção
+- Botão "Salvar" no footer valida campos vazios e exibe toast de erro se houver algum vazio
+- Ao salvar, armazena os prazos no state (por ora local, sem persistência em banco — pode ser integrado depois ao formulário de compra)
 
-**Mudancas no `ItemLancamentoForm`:**
+**4. Import adicional:** `CreditCard` do lucide-react (já importa outros ícones do mesmo pacote)
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+### Estrutura visual do modal
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
-
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
-
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
-
-Mesma correção na linha 2162 (subtotal com dedução).
-
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+```text
+┌─────────────────────────────────────────────┐
+│  Formas de Pagamento                        │
+│─────────────────────────────────────────────│
+│  "Adicione em cada campo a quantidade..."   │
+│                                             │
+│  [ 30 ]  [+ Adicionar mais dias...]        │
+│  [ 60 ]  [+ Adicionar mais dias...]  [X]   │
+│  [ 90 ]  [+ Adicionar mais dias...]  [X]   │
+│                                             │
+│                          [Cancelar] [Salvar]│
+└─────────────────────────────────────────────┘
+```
 
