@@ -468,7 +468,7 @@ export default function ComprasRealizadas() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="data_compra">Data da Compra *</Label>
+                      <Label htmlFor="data_compra">Data da Emissão da NFe *</Label>
                       <Input
                         id="data_compra"
                         type="date"
