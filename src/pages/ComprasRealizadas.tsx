@@ -333,8 +333,6 @@ export default function ComprasRealizadas() {
       const dataCompra = new Date(formData.data_compra + "T12:00:00");
       const ano = dataCompra.getFullYear().toString();
       const mes = String(dataCompra.getMonth() + 1).padStart(2, "0");
-      const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-      const mesCompetencia = `${meses[dataCompra.getMonth()]}/${ano}`;
 
       let parcelas: { dataPagamento: string; valor: number }[] = [];
 
