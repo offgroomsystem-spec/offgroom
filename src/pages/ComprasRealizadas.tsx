@@ -51,7 +51,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
+import { cn } from "@/lib/utils";
+import { categoriasDescricao1, categoriasDescricao2 } from "@/constants/categorias";
 
 interface CompraItem {
   id?: string;
@@ -77,6 +79,8 @@ interface CompraNF {
 interface Fornecedor {
   id: string;
   nome_fornecedor: string;
+  cnpj_cpf: string;
+  nome_fantasia: string | null;
 }
 
 interface Produto {
@@ -109,6 +113,9 @@ export default function ComprasRealizadas() {
     chave_nf: "",
     fornecedor_id: "",
     data_compra: "",
+    dias_pagamento: "",
+    descricao1: "",
+    descricao2: "",
   });
 
   const [itens, setItens] = useState<CompraItem[]>([
@@ -122,6 +129,10 @@ export default function ComprasRealizadas() {
   ]);
 
   const [openProdutoIndex, setOpenProdutoIndex] = useState<number | null>(null);
+  const [openFornecedor, setOpenFornecedor] = useState(false);
+  const [openDiasPagamento, setOpenDiasPagamento] = useState(false);
+  const [openDescricao1, setOpenDescricao1] = useState(false);
+  const [openDescricao2, setOpenDescricao2] = useState(false);
 
   useEffect(() => {
     loadCompras();
@@ -145,13 +156,11 @@ export default function ComprasRealizadas() {
 
       if (error) throw error;
 
-      // Carregar fornecedores e produtos separadamente
       const [fornecedoresData, produtosData] = await Promise.all([
         supabase.from("fornecedores").select("id, nome_fornecedor").eq("user_id", ownerId),
         supabase.from("produtos").select("id, nome, codigo").eq("user_id", ownerId),
       ]);
 
-      // Mapear fornecedores e produtos aos dados
       const comprasComRelacoes = data?.map((compra) => {
         const fornecedor = fornecedoresData.data?.find((f) => f.id === compra.fornecedor_id);
         const itensComProdutos = compra.compras_nf_itens?.map((item: any) => {
@@ -175,7 +184,7 @@ export default function ComprasRealizadas() {
 
       const { data, error } = await supabase
         .from("fornecedores")
-        .select("id, nome_fornecedor")
+        .select("id, nome_fornecedor, cnpj_cpf, nome_fantasia")
         .eq("user_id", ownerId)
         .order("nome_fornecedor");
 
@@ -232,20 +241,15 @@ export default function ComprasRealizadas() {
   const calcularValorTotal = () => {
     return itens.reduce((total, item) => {
       const valor = parseFloat(item.valor_compra) || 0;
-      return total + valor;
+      const quantidade = parseFloat(item.quantidade) || 0;
+      return total + (quantidade * valor);
     }, 0);
   };
 
   const formatarChaveNF = (value: string) => {
-    // Remove tudo que não é número
     const numeros = value.replace(/\D/g, '');
-    
-    // Limita a 44 dígitos
     const limitado = numeros.slice(0, 44);
-    
-    // Adiciona espaços a cada 4 dígitos
     const formatado = limitado.match(/.{1,4}/g)?.join(' ') || limitado;
-    
     return formatado;
   };
 
@@ -254,11 +258,105 @@ export default function ComprasRealizadas() {
     setFormData({ ...formData, chave_nf: formatado });
   };
 
+  // Build payment term options from prazosPagamento
+  const opcoesDiasPagamento = () => {
+    const opcoes: { label: string; value: string }[] = [
+      { label: "À Vista", value: "avista" },
+    ];
+
+    // Build cumulative payment terms sorted ascending
+    const prazosNumericos = prazosPagamento
+      .filter((p) => p.trim() !== "")
+      .map((p) => parseInt(p))
+      .filter((n) => !isNaN(n))
+      .sort((a, b) => a - b);
+
+    // Generate cumulative options: "30", "30/60", "30/60/90"
+    for (let i = 0; i < prazosNumericos.length; i++) {
+      const label = prazosNumericos.slice(0, i + 1).join("/");
+      opcoes.push({ label, value: label });
+    }
+
+    return opcoes;
+  };
+
+  const opcoesDescricao1Despesa = categoriasDescricao1["Despesa"] || [];
+  const opcoesDescricao2Atual = formData.descricao1 ? categoriasDescricao2[formData.descricao1] || [] : [];
+
+  const criarLancamentosFinanceiros = async (nfId: string, valorTotal: number) => {
+    try {
+      const dataCompra = new Date(formData.data_compra + "T12:00:00");
+      const ano = dataCompra.getFullYear().toString();
+      const mes = String(dataCompra.getMonth() + 1).padStart(2, "0");
+      const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      const mesCompetencia = `${meses[dataCompra.getMonth()]}/${ano}`;
+
+      let parcelas: { dataPagamento: string; valor: number }[] = [];
+
+      if (formData.dias_pagamento === "avista" || !formData.dias_pagamento) {
+        parcelas = [{ dataPagamento: formData.data_compra, valor: valorTotal }];
+      } else {
+        const dias = formData.dias_pagamento.split("/").map((d) => parseInt(d));
+        const valorParcela = valorTotal / dias.length;
+        parcelas = dias.map((d) => ({
+          dataPagamento: format(addDays(dataCompra, d), "yyyy-MM-dd"),
+          valor: valorParcela,
+        }));
+      }
+
+      for (const parcela of parcelas) {
+        const { data: lancData, error: lancError } = await supabase
+          .from("lancamentos_financeiros")
+          .insert({
+            user_id: ownerId,
+            ano,
+            mes_competencia: mesCompetencia,
+            tipo: "Despesa",
+            descricao1: formData.descricao1,
+            fornecedor_id: formData.fornecedor_id,
+            valor_total: parcela.valor,
+            data_pagamento: parcela.dataPagamento,
+            conta_id: null,
+            pago: false,
+          })
+          .select()
+          .single();
+
+        if (lancError) throw lancError;
+
+        const { error: itemError } = await supabase
+          .from("lancamentos_financeiros_itens")
+          .insert({
+            lancamento_id: lancData.id,
+            descricao2: formData.descricao2,
+            produto_servico: null,
+            valor: parcela.valor,
+            quantidade: 1,
+          });
+
+        if (itemError) throw itemError;
+      }
+    } catch (error: any) {
+      console.error("Erro ao criar lançamento financeiro:", error);
+      toast.error("Compra salva, mas houve erro ao criar lançamento financeiro");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.chave_nf || !formData.fornecedor_id || !formData.data_compra) {
       toast.error("Preencha todos os campos obrigatórios da NF");
+      return;
+    }
+
+    if (!formData.descricao1) {
+      toast.error("Selecione a Descrição 1");
+      return;
+    }
+
+    if (!formData.descricao2) {
+      toast.error("Selecione a Descrição 2");
       return;
     }
 
@@ -277,16 +375,13 @@ export default function ComprasRealizadas() {
 
       const valorTotal = calcularValorTotal();
       
-      // Remove espaços da chave NF antes de salvar
       const chaveNFLimpa = formData.chave_nf.replace(/\s/g, '');
       
-      // Valida se tem exatamente 44 dígitos
       if (chaveNFLimpa.length !== 44) {
         toast.error("A chave da NF deve ter exatamente 44 dígitos");
         return;
       }
 
-      // Inserir a NF
       const { data: nfData, error: nfError } = await supabase
         .from("compras_nf")
         .insert({
@@ -301,7 +396,6 @@ export default function ComprasRealizadas() {
 
       if (nfError) throw nfError;
 
-      // Inserir os itens
       const itensParaInserir = itensValidos.map((item) => ({
         nf_id: nfData.id,
         produto_id: item.produto_id,
@@ -316,6 +410,9 @@ export default function ComprasRealizadas() {
         .insert(itensParaInserir);
 
       if (itensError) throw itensError;
+
+      // Criar lançamento(s) financeiro(s) automaticamente
+      await criarLancamentosFinanceiros(nfData.id, valorTotal);
 
       toast.success("Compra registrada com sucesso!");
       await loadCompras();
@@ -336,6 +433,9 @@ export default function ComprasRealizadas() {
       chave_nf: "",
       fornecedor_id: "",
       data_compra: "",
+      dias_pagamento: "",
+      descricao1: "",
+      descricao2: "",
     });
     setItens([
       {
@@ -398,6 +498,8 @@ export default function ComprasRealizadas() {
     setFiltroProduto("");
   };
 
+  const fornecedorSelecionado = fornecedores.find((f) => f.id === formData.fornecedor_id);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -458,27 +560,58 @@ export default function ComprasRealizadas() {
                       </p>
                     </div>
 
+                    {/* Fornecedor com busca */}
                     <div className="space-y-2">
-                      <Label htmlFor="fornecedor_id">Fornecedor *</Label>
-                      <Select
-                        value={formData.fornecedor_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, fornecedor_id: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o fornecedor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {fornecedores.map((fornecedor) => (
-                            <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                              {fornecedor.nome_fornecedor}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Fornecedor *</Label>
+                      <Popover open={openFornecedor} onOpenChange={setOpenFornecedor}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openFornecedor}
+                            className="w-full justify-between"
+                          >
+                            {fornecedorSelecionado
+                              ? fornecedorSelecionado.nome_fornecedor
+                              : "Selecione o fornecedor"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar por nome, fantasia ou CPF/CNPJ..." className="h-9" />
+                            <CommandList>
+                              <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {fornecedores.map((f) => (
+                                  <CommandItem
+                                    key={f.id}
+                                    value={`${f.nome_fornecedor} ${f.nome_fantasia || ""} ${f.cnpj_cpf}`}
+                                    onSelect={() => {
+                                      setFormData({ ...formData, fornecedor_id: f.id });
+                                      setOpenFornecedor(false);
+                                    }}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{f.nome_fornecedor}</span>
+                                      {f.nome_fantasia && (
+                                        <span className="text-xs text-muted-foreground">{f.nome_fantasia}</span>
+                                      )}
+                                      <span className="text-xs text-muted-foreground">{f.cnpj_cpf}</span>
+                                    </div>
+                                    <Check
+                                      className={cn("ml-auto h-4 w-4", formData.fornecedor_id === f.id ? "opacity-100" : "opacity-0")}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
+                    {/* Linha: Data Emissão + Dias Pagamento + Valor Total */}
                     <div className="space-y-2">
                       <Label htmlFor="data_compra">Data da Emissão da NFe *</Label>
                       <Input
@@ -492,6 +625,53 @@ export default function ComprasRealizadas() {
                       />
                     </div>
 
+                    {/* Dias de Pagamento */}
+                    <div className="space-y-2">
+                      <Label>Dias de Pagamento</Label>
+                      <Popover open={openDiasPagamento} onOpenChange={setOpenDiasPagamento}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openDiasPagamento}
+                            className="w-full justify-between"
+                          >
+                            {formData.dias_pagamento
+                              ? formData.dias_pagamento === "avista"
+                                ? "À Vista"
+                                : formData.dias_pagamento
+                              : "Selecione"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[250px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar..." className="h-9" />
+                            <CommandList>
+                              <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
+                              <CommandGroup>
+                                {opcoesDiasPagamento().map((op) => (
+                                  <CommandItem
+                                    key={op.value}
+                                    value={op.label}
+                                    onSelect={() => {
+                                      setFormData({ ...formData, dias_pagamento: op.value });
+                                      setOpenDiasPagamento(false);
+                                    }}
+                                  >
+                                    {op.label}
+                                    <Check
+                                      className={cn("ml-auto h-4 w-4", formData.dias_pagamento === op.value ? "opacity-100" : "opacity-0")}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
                     <div className="space-y-2">
                       <Label>Valor Total</Label>
                       <Input
@@ -499,6 +679,94 @@ export default function ComprasRealizadas() {
                         disabled
                         className="bg-muted"
                       />
+                    </div>
+                  </div>
+
+                  {/* Descrição 1 e Descrição 2 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Descrição 1 *</Label>
+                      <Popover open={openDescricao1} onOpenChange={setOpenDescricao1}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openDescricao1}
+                            className="w-full justify-between"
+                          >
+                            {formData.descricao1 || "Selecione"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar..." className="h-9" />
+                            <CommandList>
+                              <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
+                              <CommandGroup>
+                                {opcoesDescricao1Despesa.map((desc) => (
+                                  <CommandItem
+                                    key={desc}
+                                    value={desc}
+                                    onSelect={() => {
+                                      setFormData({ ...formData, descricao1: desc, descricao2: "" });
+                                      setOpenDescricao1(false);
+                                    }}
+                                  >
+                                    {desc}
+                                    <Check
+                                      className={cn("ml-auto h-4 w-4", formData.descricao1 === desc ? "opacity-100" : "opacity-0")}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Descrição 2 *</Label>
+                      <Popover open={openDescricao2} onOpenChange={setOpenDescricao2}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openDescricao2}
+                            className="w-full justify-between"
+                            disabled={!formData.descricao1}
+                          >
+                            {formData.descricao2 || (formData.descricao1 ? "Selecione" : "Selecione Descrição 1 primeiro")}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar..." className="h-9" />
+                            <CommandList>
+                              <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
+                              <CommandGroup>
+                                {opcoesDescricao2Atual.map((desc) => (
+                                  <CommandItem
+                                    key={desc}
+                                    value={desc}
+                                    onSelect={() => {
+                                      setFormData({ ...formData, descricao2: desc });
+                                      setOpenDescricao2(false);
+                                    }}
+                                  >
+                                    {desc}
+                                    <Check
+                                      className={cn("ml-auto h-4 w-4", formData.descricao2 === desc ? "opacity-100" : "opacity-0")}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </div>
