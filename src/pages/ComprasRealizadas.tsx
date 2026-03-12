@@ -138,7 +138,52 @@ export default function ComprasRealizadas() {
     loadCompras();
     loadFornecedores();
     loadProdutos();
+    loadFormasPagamento();
   }, []);
+
+  const loadFormasPagamento = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("formas_pagamento")
+        .select("dias")
+        .eq("user_id", ownerId)
+        .order("dias", { ascending: true });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setPrazosPagamento(data.map((d: any) => String(d.dias)));
+      }
+    } catch (error: any) {
+      console.error("Erro ao carregar formas de pagamento:", error);
+    }
+  };
+
+  const salvarFormasPagamento = async () => {
+    try {
+      // Delete existing
+      await supabase.from("formas_pagamento").delete().eq("user_id", ownerId);
+
+      // Insert new
+      const registros = prazosPagamento
+        .filter((p) => p.trim() !== "")
+        .map((p) => ({
+          user_id: ownerId,
+          dias: parseInt(p),
+        }));
+
+      if (registros.length > 0) {
+        const { error } = await supabase.from("formas_pagamento").insert(registros);
+        if (error) throw error;
+      }
+
+      toast.success("Formas de pagamento salvas com sucesso!");
+      setFormasPagamentoOpen(false);
+      await loadFormasPagamento();
+    } catch (error: any) {
+      console.error("Erro ao salvar formas de pagamento:", error);
+      toast.error("Erro ao salvar formas de pagamento");
+    }
+  };
 
   const loadCompras = async () => {
     try {
