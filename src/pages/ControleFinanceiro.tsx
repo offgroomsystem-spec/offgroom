@@ -383,7 +383,7 @@ const ItemLancamentoForm = ({
         />
       </div>
 
-      <div className={isVenda ? "col-span-3 space-y-0.5" : "col-span-2 space-y-0.5"}>
+      <div className="col-span-3 space-y-0.5">
         <div className="flex items-end gap-1">
           <div className="flex-1">
             <Label className="text-[10px] font-semibold">Total</Label>
