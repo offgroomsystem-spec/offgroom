@@ -101,6 +101,7 @@ export default function ComprasRealizadas() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [formasPagamentoOpen, setFormasPagamentoOpen] = useState(false);
   const [prazosPagamento, setPrazosPagamento] = useState<string[]>([]);
+  const [prazoExcluir, setPrazoExcluir] = useState<string | null>(null);
 
   // Filtros
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
