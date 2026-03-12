@@ -602,7 +602,7 @@ export default function ComprasRealizadas() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Data de Validade</Label>
+                          <Label>Data de Validade do produto</Label>
                           <Input
                             type="date"
                             value={item.data_validade}
