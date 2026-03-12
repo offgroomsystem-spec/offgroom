@@ -2337,12 +2337,13 @@ const { error } = await supabase
                       id="dataVenda"
                       type="date"
                       value={formData.dataVenda}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFormData({
                           ...formData,
                           dataVenda: e.target.value,
-                        })
-                      }
+                        });
+                        setDataVendaManual(true);
+                      }}
                       className="h-8 text-xs"
                       required
                     />
