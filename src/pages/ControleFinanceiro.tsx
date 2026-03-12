@@ -330,7 +330,7 @@ const ItemLancamentoForm = ({
         </Select>
       </div>
 
-      <div className={isVenda ? "col-span-3 space-y-0.5" : "col-span-4 space-y-0.5"}>
+      <div className="col-span-3 space-y-0.5">
         <Label className="text-[10px] font-semibold">
           {isServicos ? "Serviço" : isVenda ? "Produto" : "Observação"}
           {isObrigatorio && " *"}
