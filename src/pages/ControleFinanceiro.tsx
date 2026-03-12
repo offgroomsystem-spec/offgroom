@@ -355,19 +355,20 @@ const ItemLancamentoForm = ({
         )}
       </div>
 
-      {isVenda && (
-        <div className="col-span-1 space-y-0.5">
-          <Label className="text-[10px] font-semibold">Qtd *</Label>
-          <Input
-            type="number"
-            step="1"
-            min="1"
-            value={item.quantidade || ""}
-            onChange={(e) => onChange({ ...item, quantidade: parseInt(e.target.value) || 0 })}
-            className="h-7 text-xs"
-          />
-        </div>
-      )}
+      <div className="col-span-1 space-y-0.5">
+        <Label className="text-[10px] font-semibold">Quantidade</Label>
+        <Input
+          type="number"
+          step="1"
+          min="1"
+          value={item.quantidade || ""}
+          onChange={(e) => {
+            const val = parseInt(e.target.value);
+            onChange({ ...item, quantidade: isNaN(val) ? 0 : Math.max(1, val) });
+          }}
+          className="h-7 text-xs"
+        />
+      </div>
 
       <div className="col-span-2 space-y-0.5">
         <Label className="text-[10px] font-semibold">Valor *</Label>
