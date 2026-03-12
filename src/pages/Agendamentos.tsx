@@ -503,6 +503,7 @@ const Agendamentos = () => {
   }, [formData.pet, formData.raca, servicos, clientes]);
 
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
+  const [dataVendaManual, setDataVendaManual] = useState(false);
   const [openServicoCombobox, setOpenServicoCombobox] = useState(false);
   const [openEditServicoCombobox, setOpenEditServicoCombobox] = useState(false);
   
@@ -953,13 +954,13 @@ const Agendamentos = () => {
 
   // Sincronizar Data da Venda com Data do Agendamento
   useEffect(() => {
-    if (formData.data && !formData.dataVenda) {
+    if (formData.data && !dataVendaManual) {
       setFormData((prev) => ({
         ...prev,
         dataVenda: formData.data,
       }));
     }
-  }, [formData.data]);
+  }, [formData.data, dataVendaManual]);
   const getWeekDates = () => {
     const today = new Date(selectedDate);
     const currentDay = today.getDay();
@@ -1102,6 +1103,7 @@ const Agendamentos = () => {
       taxiDog: "",
     });
     setIsPacoteSelecionado(false);
+    setDataVendaManual(false);
     setSimpleClienteSearch("");
     setSimplePetSearch("");
     setSimpleFilteredClientes([]);
@@ -2090,12 +2092,13 @@ const { error } = await supabase
                       id="data"
                       type="date"
                       value={formData.data}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFormData({
                           ...formData,
                           data: e.target.value,
-                        })
-                      }
+                        });
+                        setDataVendaManual(false);
+                      }}
                       className="h-8 text-xs"
                       required
                     />
@@ -2334,12 +2337,13 @@ const { error } = await supabase
                       id="dataVenda"
                       type="date"
                       value={formData.dataVenda}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFormData({
                           ...formData,
                           dataVenda: e.target.value,
-                        })
-                      }
+                        });
+                        setDataVendaManual(true);
+                      }}
                       className="h-8 text-xs"
                       required
                     />
