@@ -1103,6 +1103,7 @@ const Agendamentos = () => {
       taxiDog: "",
     });
     setIsPacoteSelecionado(false);
+    setDataVendaManual(false);
     setSimpleClienteSearch("");
     setSimplePetSearch("");
     setSimpleFilteredClientes([]);
