@@ -565,7 +565,12 @@ export default function ComprasRealizadas() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setFormasPagamentoOpen(true)}
+            onClick={() => {
+              if (prazosPagamento.length === 0) {
+                setPrazosPagamento([""]);
+              }
+              setFormasPagamentoOpen(true);
+            }}
             className="gap-2"
           >
             <CreditCard className="h-4 w-4" />
