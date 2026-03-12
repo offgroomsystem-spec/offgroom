@@ -954,13 +954,13 @@ const Agendamentos = () => {
 
   // Sincronizar Data da Venda com Data do Agendamento
   useEffect(() => {
-    if (formData.data && !formData.dataVenda) {
+    if (formData.data && !dataVendaManual) {
       setFormData((prev) => ({
         ...prev,
         dataVenda: formData.data,
       }));
     }
-  }, [formData.data]);
+  }, [formData.data, dataVendaManual]);
   const getWeekDates = () => {
     const today = new Date(selectedDate);
     const currentDay = today.getDay();
