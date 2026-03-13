@@ -162,7 +162,7 @@ export default function ComprasRealizadas() {
 
   const salvarFormasPagamento = async () => {
     try {
-      const novosValidos = novosPrazos.filter((p) => p.trim() !== "").map((p) => parseInt(p));
+      const novosValidos = novosPrazos.map((p) => p.trim().replace(/\s/g, "")).filter((p) => p !== "");
       
       // Checar duplicidade entre novos
       const novosSet = new Set(novosValidos);
@@ -172,9 +172,8 @@ export default function ComprasRealizadas() {
       }
       
       // Checar duplicidade contra os já salvos
-      const existentes = prazosPagamento.map((p) => parseInt(p));
       for (const novo of novosValidos) {
-        if (existentes.includes(novo)) {
+        if (prazosPagamento.includes(novo)) {
           toast.error("Essa condição de pagamento já existe!");
           return;
         }
@@ -207,7 +206,7 @@ export default function ComprasRealizadas() {
         .from("formas_pagamento")
         .delete()
         .eq("user_id", ownerId)
-        .eq("dias", parseInt(dias));
+        .eq("dias", dias);
       if (error) throw error;
       toast.success("Condição de pagamento excluída!");
       setPrazoExcluir(null);
@@ -343,17 +342,17 @@ export default function ComprasRealizadas() {
       { label: "À Vista", value: "avista" },
     ];
 
-    // Build cumulative payment terms sorted ascending
-    const prazosNumericos = prazosPagamento
+    // Add saved payment terms as options
+    const prazosFiltrados = prazosPagamento
       .filter((p) => p.trim() !== "")
-      .map((p) => parseInt(p))
-      .filter((n) => !isNaN(n))
-      .sort((a, b) => a - b);
+      .sort((a, b) => {
+        const numA = parseInt(a.split("/")[0]) || 0;
+        const numB = parseInt(b.split("/")[0]) || 0;
+        return numA - numB;
+      });
 
-    // Generate cumulative options: "30", "30/60", "30/60/90"
-    for (let i = 0; i < prazosNumericos.length; i++) {
-      const label = prazosNumericos.slice(0, i + 1).join("/");
-      opcoes.push({ label, value: label });
+    for (const prazo of prazosFiltrados) {
+      opcoes.push({ label: `${prazo} dias`, value: prazo });
     }
 
     return opcoes;
@@ -1242,21 +1241,16 @@ export default function ComprasRealizadas() {
             {novosPrazos.map((valor, index) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
-                  type="number"
-                  min={1}
-                  placeholder="Ex: 30"
+                  type="text"
+                  placeholder="Ex: 30 ou 30/60"
                   value={valor}
                   onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9/]/g, "");
                     const novos = [...novosPrazos];
-                    novos[index] = e.target.value;
+                    novos[index] = val;
                     setNovosPrazos(novos);
                   }}
-                  onKeyDown={(e) => {
-                    if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="w-24"
+                  className="w-32"
                 />
                 {valor.trim() !== "" && index === novosPrazos.length - 1 && (
                   <Button
