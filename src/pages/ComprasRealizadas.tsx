@@ -156,7 +156,7 @@ export default function ComprasRealizadas() {
         setPrazosPagamento(data.map((d: any) => String(d.dias)));
       }
     } catch (error: any) {
-      console.error("Erro ao carregar formas de pagamento:", error);
+      console.error("Erro ao carregar condições de pagamento:", error);
     }
   };
 
