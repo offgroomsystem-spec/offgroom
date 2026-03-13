@@ -5,42 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, FileText, Trash2, Eye, Filter, X, Calendar, Search, Check, ChevronsUpDown, CreditCard } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Plus,
+  FileText,
+  Trash2,
+  Eye,
+  Filter,
+  X,
+  Calendar,
+  Search,
+  Check,
+  ChevronsUpDown,
+  CreditCard,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,9 +82,7 @@ export default function ComprasRealizadas() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [formasPagamentoOpen, setFormasPagamentoOpen] = useState(false);
-  const [prazosPagamento, setPrazosPagamento] = useState<string[]>([]);
-  const [novosPrazos, setNovosPrazos] = useState<string[][]>([[""]]);
-  const [prazoExcluir, setPrazoExcluir] = useState<string | null>(null);
+  const [prazosPagamento, setPrazosPagamento] = useState<string[]>([""]);
 
   // Filtros
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
@@ -140,98 +120,23 @@ export default function ComprasRealizadas() {
     loadCompras();
     loadFornecedores();
     loadProdutos();
-    loadFormasPagamento();
   }, []);
-
-  const loadFormasPagamento = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("formas_pagamento")
-        .select("dias")
-        .eq("user_id", ownerId)
-        .order("dias", { ascending: true });
-
-      if (error) throw error;
-      if (data && data.length > 0) {
-        setPrazosPagamento(data.map((d: any) => String(d.dias)));
-      }
-    } catch (error: any) {
-      console.error("Erro ao carregar formas de pagamento:", error);
-    }
-  };
-
-  const salvarFormasPagamento = async () => {
-    try {
-      // Converter cada array de parcelas em string "30/60"
-      const novosValidos = novosPrazos
-        .map((parcelas) => parcelas.map((p) => p.trim()).filter((p) => p !== "").join("/"))
-        .filter((p) => p !== "");
-      
-      // Checar duplicidade entre novos
-      const novosSet = new Set(novosValidos);
-      if (novosSet.size !== novosValidos.length) {
-        toast.error("Essa condição de pagamento já existe!");
-        return;
-      }
-      
-      // Checar duplicidade contra os já salvos
-      for (const novo of novosValidos) {
-        if (prazosPagamento.includes(novo)) {
-          toast.error("Essa condição de pagamento já existe!");
-          return;
-        }
-      }
-
-      // Insert only new ones
-      const registros = novosValidos.map((dias) => ({
-        user_id: ownerId,
-        dias,
-      }));
-
-      if (registros.length > 0) {
-        const { error } = await supabase.from("formas_pagamento").insert(registros);
-        if (error) throw error;
-      }
-
-      toast.success("Formas de pagamento salvas com sucesso!");
-      setNovosPrazos([[""]]);
-      setFormasPagamentoOpen(false);
-      await loadFormasPagamento();
-    } catch (error: any) {
-      console.error("Erro ao salvar formas de pagamento:", error);
-      toast.error("Erro ao salvar formas de pagamento");
-    }
-  };
-
-  const excluirFormaPagamento = async (dias: string) => {
-    try {
-      const { error } = await supabase
-        .from("formas_pagamento")
-        .delete()
-        .eq("user_id", ownerId)
-        .eq("dias", dias);
-      if (error) throw error;
-      toast.success("Condição de pagamento excluída!");
-      setPrazoExcluir(null);
-      setFormasPagamentoOpen(false);
-      await loadFormasPagamento();
-    } catch (error: any) {
-      console.error("Erro ao excluir forma de pagamento:", error);
-      toast.error("Erro ao excluir forma de pagamento");
-    }
-  };
 
   const loadCompras = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
         .from("compras_nf")
-        .select(`
+        .select(
+          `
           *,
           compras_nf_itens (*)
-        `)
+        `,
+        )
         .eq("user_id", ownerId)
         .order("data_compra", { ascending: false });
 
@@ -260,7 +165,9 @@ export default function ComprasRealizadas() {
 
   const loadFornecedores = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -278,7 +185,9 @@ export default function ComprasRealizadas() {
 
   const loadProdutos = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -323,14 +232,14 @@ export default function ComprasRealizadas() {
     return itens.reduce((total, item) => {
       const valor = parseFloat(item.valor_compra) || 0;
       const quantidade = parseFloat(item.quantidade) || 0;
-      return total + (quantidade * valor);
+      return total + quantidade * valor;
     }, 0);
   };
 
   const formatarChaveNF = (value: string) => {
-    const numeros = value.replace(/\D/g, '');
+    const numeros = value.replace(/\D/g, "");
     const limitado = numeros.slice(0, 44);
-    const formatado = limitado.match(/.{1,4}/g)?.join(' ') || limitado;
+    const formatado = limitado.match(/.{1,4}/g)?.join(" ") || limitado;
     return formatado;
   };
 
@@ -341,21 +250,19 @@ export default function ComprasRealizadas() {
 
   // Build payment term options from prazosPagamento
   const opcoesDiasPagamento = () => {
-    const opcoes: { label: string; value: string }[] = [
-      { label: "À Vista", value: "avista" },
-    ];
+    const opcoes: { label: string; value: string }[] = [{ label: "À Vista", value: "avista" }];
 
-    // Add saved payment terms as options
-    const prazosFiltrados = prazosPagamento
+    // Build cumulative payment terms sorted ascending
+    const prazosNumericos = prazosPagamento
       .filter((p) => p.trim() !== "")
-      .sort((a, b) => {
-        const numA = parseInt(a.split("/")[0]) || 0;
-        const numB = parseInt(b.split("/")[0]) || 0;
-        return numA - numB;
-      });
+      .map((p) => parseInt(p))
+      .filter((n) => !isNaN(n))
+      .sort((a, b) => a - b);
 
-    for (const prazo of prazosFiltrados) {
-      opcoes.push({ label: `${prazo} dias`, value: prazo });
+    // Generate cumulative options: "30", "30/60", "30/60/90"
+    for (let i = 0; i < prazosNumericos.length; i++) {
+      const label = prazosNumericos.slice(0, i + 1).join("/");
+      opcoes.push({ label, value: label });
     }
 
     return opcoes;
@@ -369,6 +276,21 @@ export default function ComprasRealizadas() {
       const dataCompra = new Date(formData.data_compra + "T12:00:00");
       const ano = dataCompra.getFullYear().toString();
       const mes = String(dataCompra.getMonth() + 1).padStart(2, "0");
+      const meses = [
+        "Janeiro",
+        "Fevereiro",
+        "Março",
+        "Abril",
+        "Maio",
+        "Junho",
+        "Julho",
+        "Agosto",
+        "Setembro",
+        "Outubro",
+        "Novembro",
+        "Dezembro",
+      ];
+      const mesCompetencia = `${meses[dataCompra.getMonth()]}/${ano}`;
 
       let parcelas: { dataPagamento: string; valor: number }[] = [];
 
@@ -389,7 +311,7 @@ export default function ComprasRealizadas() {
           .insert({
             user_id: ownerId,
             ano,
-            mes_competencia: mes,
+            mes_competencia: mesCompetencia,
             tipo: "Despesa",
             descricao1: formData.descricao1,
             fornecedor_id: formData.fornecedor_id,
@@ -403,15 +325,13 @@ export default function ComprasRealizadas() {
 
         if (lancError) throw lancError;
 
-        const { error: itemError } = await supabase
-          .from("lancamentos_financeiros_itens")
-          .insert({
-            lancamento_id: lancData.id,
-            descricao2: formData.descricao2,
-            produto_servico: null,
-            valor: parcela.valor,
-            quantidade: 1,
-          });
+        const { error: itemError } = await supabase.from("lancamentos_financeiros_itens").insert({
+          lancamento_id: lancData.id,
+          descricao2: formData.descricao2,
+          produto_servico: null,
+          valor: parcela.valor,
+          quantidade: 1,
+        });
 
         if (itemError) throw itemError;
       }
@@ -439,9 +359,7 @@ export default function ComprasRealizadas() {
       return;
     }
 
-    const itensValidos = itens.filter(
-      (item) => item.produto_id && item.quantidade && item.valor_compra
-    );
+    const itensValidos = itens.filter((item) => item.produto_id && item.quantidade && item.valor_compra);
 
     if (itensValidos.length === 0) {
       toast.error("Adicione pelo menos um produto válido");
@@ -449,13 +367,15 @@ export default function ComprasRealizadas() {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       const valorTotal = calcularValorTotal();
-      
-      const chaveNFLimpa = formData.chave_nf.replace(/\s/g, '');
-      
+
+      const chaveNFLimpa = formData.chave_nf.replace(/\s/g, "");
+
       if (chaveNFLimpa.length !== 44) {
         toast.error("A chave da NF deve ter exatamente 44 dígitos");
         return;
@@ -484,9 +404,7 @@ export default function ComprasRealizadas() {
         observacoes: item.observacoes || null,
       }));
 
-      const { error: itensError } = await supabase
-        .from("compras_nf_itens")
-        .insert(itensParaInserir);
+      const { error: itensError } = await supabase.from("compras_nf_itens").insert(itensParaInserir);
 
       if (itensError) throw itensError;
 
@@ -562,9 +480,7 @@ export default function ComprasRealizadas() {
     if (filtroDataInicio && compra.data_compra < filtroDataInicio) return false;
     if (filtroDataFim && compra.data_compra > filtroDataFim) return false;
     if (filtroProduto) {
-      const temProduto = compra.compras_nf_itens?.some(
-        (item) => item.produto_id === filtroProduto
-      );
+      const temProduto = compra.compras_nf_itens?.some((item) => item.produto_id === filtroProduto);
       if (!temProduto) return false;
     }
     return true;
@@ -588,27 +504,14 @@ export default function ComprasRealizadas() {
         </div>
 
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMostrarFiltros(!mostrarFiltros)}
-            className="gap-2"
-          >
+          <Button variant="outline" size="sm" onClick={() => setMostrarFiltros(!mostrarFiltros)} className="gap-2">
             <Filter className="h-4 w-4" />
             {mostrarFiltros ? "Ocultar Filtros" : "Filtros"}
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setNovosPrazos([[""]]);
-              setFormasPagamentoOpen(true);
-            }}
-            className="gap-2"
-          >
+          <Button variant="outline" size="sm" onClick={() => setFormasPagamentoOpen(true)} className="gap-2">
             <CreditCard className="h-4 w-4" />
-            Formas de Pagamento
+            Condição de Pagamento
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
@@ -637,9 +540,7 @@ export default function ComprasRealizadas() {
                         maxLength={54}
                         required
                       />
-                      <p className="text-xs text-muted-foreground">
-                        44 dígitos numéricos
-                      </p>
+                      <p className="text-xs text-muted-foreground">44 dígitos numéricos</p>
                     </div>
 
                     {/* Fornecedor com busca */}
@@ -653,9 +554,7 @@ export default function ComprasRealizadas() {
                             aria-expanded={openFornecedor}
                             className="w-full justify-between"
                           >
-                            {fornecedorSelecionado
-                              ? fornecedorSelecionado.nome_fornecedor
-                              : "Selecione o fornecedor"}
+                            {fornecedorSelecionado ? fornecedorSelecionado.nome_fornecedor : "Selecione o fornecedor"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
@@ -682,7 +581,10 @@ export default function ComprasRealizadas() {
                                       <span className="text-xs text-muted-foreground">{f.cnpj_cpf}</span>
                                     </div>
                                     <Check
-                                      className={cn("ml-auto h-4 w-4", formData.fornecedor_id === f.id ? "opacity-100" : "opacity-0")}
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        formData.fornecedor_id === f.id ? "opacity-100" : "opacity-0",
+                                      )}
                                     />
                                   </CommandItem>
                                 ))}
@@ -700,9 +602,7 @@ export default function ComprasRealizadas() {
                         id="data_compra"
                         type="date"
                         value={formData.data_compra}
-                        onChange={(e) =>
-                          setFormData({ ...formData, data_compra: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, data_compra: e.target.value })}
                         required
                       />
                     </div>
@@ -743,7 +643,10 @@ export default function ComprasRealizadas() {
                                   >
                                     {op.label}
                                     <Check
-                                      className={cn("ml-auto h-4 w-4", formData.dias_pagamento === op.value ? "opacity-100" : "opacity-0")}
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        formData.dias_pagamento === op.value ? "opacity-100" : "opacity-0",
+                                      )}
                                     />
                                   </CommandItem>
                                 ))}
@@ -756,11 +659,7 @@ export default function ComprasRealizadas() {
 
                     <div className="space-y-2">
                       <Label>Valor Total</Label>
-                      <Input
-                        value={`R$ ${calcularValorTotal().toFixed(2)}`}
-                        disabled
-                        className="bg-muted"
-                      />
+                      <Input value={`R$ ${calcularValorTotal().toFixed(2)}`} disabled className="bg-muted" />
                     </div>
                   </div>
 
@@ -797,7 +696,10 @@ export default function ComprasRealizadas() {
                                   >
                                     {desc}
                                     <Check
-                                      className={cn("ml-auto h-4 w-4", formData.descricao1 === desc ? "opacity-100" : "opacity-0")}
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        formData.descricao1 === desc ? "opacity-100" : "opacity-0",
+                                      )}
                                     />
                                   </CommandItem>
                                 ))}
@@ -819,7 +721,8 @@ export default function ComprasRealizadas() {
                             className="w-full justify-between"
                             disabled={!formData.descricao1}
                           >
-                            {formData.descricao2 || (formData.descricao1 ? "Selecione" : "Selecione Descrição 1 primeiro")}
+                            {formData.descricao2 ||
+                              (formData.descricao1 ? "Selecione" : "Selecione Descrição 1 primeiro")}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
@@ -840,7 +743,10 @@ export default function ComprasRealizadas() {
                                   >
                                     {desc}
                                     <Check
-                                      className={cn("ml-auto h-4 w-4", formData.descricao2 === desc ? "opacity-100" : "opacity-0")}
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        formData.descricao2 === desc ? "opacity-100" : "opacity-0",
+                                      )}
                                     />
                                   </CommandItem>
                                 ))}
@@ -883,8 +789,8 @@ export default function ComprasRealizadas() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>Produto *</Label>
-                          <Popover 
-                            open={openProdutoIndex === index} 
+                          <Popover
+                            open={openProdutoIndex === index}
                             onOpenChange={(open) => setOpenProdutoIndex(open ? index : null)}
                           >
                             <PopoverTrigger asChild>
@@ -896,18 +802,15 @@ export default function ComprasRealizadas() {
                               >
                                 {item.produto_id
                                   ? produtos.find((p) => p.id === item.produto_id)
-                                      ? `${produtos.find((p) => p.id === item.produto_id)?.codigo} - ${produtos.find((p) => p.id === item.produto_id)?.nome}`
-                                      : "Selecione o produto"
+                                    ? `${produtos.find((p) => p.id === item.produto_id)?.codigo} - ${produtos.find((p) => p.id === item.produto_id)?.nome}`
+                                    : "Selecione o produto"
                                   : "Selecione o produto"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[400px] p-0" align="start">
                               <Command>
-                                <CommandInput 
-                                  placeholder="Buscar produto..." 
-                                  className="h-9"
-                                />
+                                <CommandInput placeholder="Buscar produto..." className="h-9" />
                                 <CommandList>
                                   <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
                                   <CommandGroup>
@@ -923,9 +826,7 @@ export default function ComprasRealizadas() {
                                         {produto.codigo} - {produto.nome}
                                         <Check
                                           className={`ml-auto h-4 w-4 ${
-                                            item.produto_id === produto.id
-                                              ? "opacity-100"
-                                              : "opacity-0"
+                                            item.produto_id === produto.id ? "opacity-100" : "opacity-0"
                                           }`}
                                         />
                                       </CommandItem>
@@ -943,9 +844,7 @@ export default function ComprasRealizadas() {
                             type="number"
                             step="0.01"
                             value={item.quantidade}
-                            onChange={(e) =>
-                              atualizarItem(index, "quantidade", e.target.value)
-                            }
+                            onChange={(e) => atualizarItem(index, "quantidade", e.target.value)}
                             placeholder="0"
                           />
                         </div>
@@ -956,9 +855,7 @@ export default function ComprasRealizadas() {
                             type="number"
                             step="0.01"
                             value={item.valor_compra}
-                            onChange={(e) =>
-                              atualizarItem(index, "valor_compra", e.target.value)
-                            }
+                            onChange={(e) => atualizarItem(index, "valor_compra", e.target.value)}
                             placeholder="0.00"
                           />
                         </div>
@@ -968,9 +865,7 @@ export default function ComprasRealizadas() {
                           <Input
                             type="date"
                             value={item.data_validade}
-                            onChange={(e) =>
-                              atualizarItem(index, "data_validade", e.target.value)
-                            }
+                            onChange={(e) => atualizarItem(index, "data_validade", e.target.value)}
                           />
                         </div>
 
@@ -978,9 +873,7 @@ export default function ComprasRealizadas() {
                           <Label>Observações</Label>
                           <Input
                             value={item.observacoes}
-                            onChange={(e) =>
-                              atualizarItem(index, "observacoes", e.target.value)
-                            }
+                            onChange={(e) => atualizarItem(index, "observacoes", e.target.value)}
                             placeholder="Observações sobre este item"
                           />
                         </div>
@@ -990,11 +883,7 @@ export default function ComprasRealizadas() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancelar
                   </Button>
                   <Button type="submit">Salvar Compra</Button>
@@ -1034,20 +923,12 @@ export default function ComprasRealizadas() {
 
             <div className="space-y-2">
               <Label>Data Início</Label>
-              <Input
-                type="date"
-                value={filtroDataInicio}
-                onChange={(e) => setFiltroDataInicio(e.target.value)}
-              />
+              <Input type="date" value={filtroDataInicio} onChange={(e) => setFiltroDataInicio(e.target.value)} />
             </div>
 
             <div className="space-y-2">
               <Label>Data Fim</Label>
-              <Input
-                type="date"
-                value={filtroDataFim}
-                onChange={(e) => setFiltroDataFim(e.target.value)}
-              />
+              <Input type="date" value={filtroDataFim} onChange={(e) => setFiltroDataFim(e.target.value)} />
             </div>
 
             <div className="space-y-2">
@@ -1093,22 +974,14 @@ export default function ComprasRealizadas() {
             ) : (
               comprasFiltradas.map((compra) => (
                 <TableRow key={compra.id}>
-                  <TableCell className="font-mono text-xs">
-                    {compra.chave_nf.substring(0, 20)}...
-                  </TableCell>
+                  <TableCell className="font-mono text-xs">{compra.chave_nf.substring(0, 20)}...</TableCell>
                   <TableCell>{compra.fornecedor?.nome_fornecedor || "N/A"}</TableCell>
-                  <TableCell>
-                    {format(new Date(compra.data_compra), "dd/MM/yyyy")}
-                  </TableCell>
+                  <TableCell>{format(new Date(compra.data_compra), "dd/MM/yyyy")}</TableCell>
                   <TableCell>{compra.compras_nf_itens?.length || 0}</TableCell>
                   <TableCell>R$ {compra.valor_total.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => visualizarDetalhes(compra)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => visualizarDetalhes(compra)}>
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
@@ -1176,9 +1049,7 @@ export default function ComprasRealizadas() {
                         <TableCell>{item.quantidade}</TableCell>
                         <TableCell>R$ {parseFloat(item.valor_compra).toFixed(2)}</TableCell>
                         <TableCell>
-                          {item.data_validade
-                            ? format(new Date(item.data_validade), "dd/MM/yyyy")
-                            : "-"}
+                          {item.data_validade ? format(new Date(item.data_validade), "dd/MM/yyyy") : "-"}
                         </TableCell>
                         <TableCell>{item.observacoes || "-"}</TableCell>
                       </TableRow>
@@ -1202,117 +1073,71 @@ export default function ComprasRealizadas() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal Formas de Pagamento */}
+      {/* Modal Condição de Pagamento */}
       <Dialog open={formasPagamentoOpen} onOpenChange={setFormasPagamentoOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Formas de Pagamento</DialogTitle>
+            <DialogTitle>Condição de Pagamento</DialogTitle>
           </DialogHeader>
-
-          {/* Lista de formas já cadastradas */}
-          {prazosPagamento.length > 0 && (
-            <div className="border rounded-md p-3 space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Condições cadastradas:</p>
-              {prazosPagamento.map((dias) => (
-                <div key={dias} className="flex items-center justify-between bg-muted/50 rounded px-3 py-1.5">
-                  <span className="text-sm">{dias} dias</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setPrazoExcluir(dias)}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-
           <p className="text-sm text-muted-foreground">
             Adicione em cada campo a quantidade de dias após a emissão da NF em que cada parcela deverá ser paga.
           </p>
           <div className="space-y-3 mt-2">
-            {novosPrazos.map((parcelas, condIndex) => (
-              <div key={condIndex} className="space-y-2">
-                <div className="flex items-center gap-1 flex-wrap">
-                  {parcelas.map((parcela, parcIndex) => (
-                    <div key={parcIndex} className="flex items-center gap-1">
-                      {parcIndex > 0 && (
-                        <span className="text-sm font-semibold text-muted-foreground">/</span>
-                      )}
-                      <Input
-                        type="text"
-                        placeholder="Ex: 30"
-                        value={parcela}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          const novos = novosPrazos.map((c, ci) =>
-                            ci === condIndex
-                              ? c.map((p, pi) => (pi === parcIndex ? val : p))
-                              : c
-                          );
-                          setNovosPrazos(novos);
-                        }}
-                        className="w-20"
-                      />
-                      {parcIndex > 0 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
-                          onClick={() => {
-                            const novos = novosPrazos.map((c, ci) =>
-                              ci === condIndex ? c.filter((_, pi) => pi !== parcIndex) : c
-                            );
-                            setNovosPrazos(novos);
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  {parcelas[parcelas.length - 1]?.trim() !== "" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const novos = novosPrazos.map((c, ci) =>
-                          ci === condIndex ? [...c, ""] : c
-                        );
-                        setNovosPrazos(novos);
-                      }}
-                      className="text-xs h-7 px-2"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Parcela
-                    </Button>
-                  )}
-                  {condIndex > 0 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => {
-                        setNovosPrazos(novosPrazos.filter((_, i) => i !== condIndex));
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+            {prazosPagamento.map((valor, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Ex: 30"
+                  value={valor}
+                  onChange={(e) => {
+                    const novos = [...prazosPagamento];
+                    novos[index] = e.target.value;
+                    setPrazosPagamento(novos);
+                  }}
+                  onKeyDown={(e) => {
+                    if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  className="w-24"
+                />
+                {valor.trim() !== "" && index === prazosPagamento.length - 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPrazosPagamento([...prazosPagamento, ""])}
+                    className="text-xs whitespace-nowrap"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Adicionar mais dias para parcelamento
+                  </Button>
+                )}
+                {index > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => {
+                      const novos = prazosPagamento.filter((_, i) => i !== index);
+                      setPrazosPagamento(novos);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -1322,21 +1147,15 @@ export default function ComprasRealizadas() {
             </Button>
             <Button
               onClick={() => {
-                const temCondicaoIncompleta = novosPrazos.some((parcelas) => {
-                  const preenchidas = parcelas.filter((p) => p.trim() !== "");
-                  const vazias = parcelas.filter((p) => p.trim() === "");
-                  return preenchidas.length > 0 && vazias.length > 0;
-                });
-                if (temCondicaoIncompleta) {
-                  toast.error("Existem campos de parcela vazios. Preencha todos os campos ou remova os que não serão utilizados.");
+                const temVazio = prazosPagamento.some((p) => p.trim() === "");
+                if (temVazio) {
+                  toast.error(
+                    "Existem campos de prazo de pagamento vazios. Preencha todos os campos ou remova os que não serão utilizados.",
+                  );
                   return;
                 }
-                const temPreenchido = novosPrazos.some((parcelas) => parcelas.some((p) => p.trim() !== ""));
-                if (!temPreenchido) {
-                  setFormasPagamentoOpen(false);
-                  return;
-                }
-                salvarFormasPagamento();
+                toast.success("Condição de pagamento salvas com sucesso!");
+                setFormasPagamentoOpen(false);
               }}
             >
               Salvar
@@ -1344,27 +1163,6 @@ export default function ComprasRealizadas() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* AlertDialog de confirmação de exclusão de forma de pagamento */}
-      <AlertDialog open={!!prazoExcluir} onOpenChange={(open) => { if (!open) setPrazoExcluir(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Condição de Pagamento</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que gostaria de excluir essa condição de pagamento?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Não</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => prazoExcluir && excluirFormaPagamento(prazoExcluir)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Sim
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
