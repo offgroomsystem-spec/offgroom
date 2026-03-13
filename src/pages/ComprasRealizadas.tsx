@@ -248,12 +248,12 @@ export default function ComprasRealizadas() {
     setFormData({ ...formData, chave_nf: formatado });
   };
 
-  // Build payment term options from prazosPagamento
-  const opcoesDiasPagamento = () => {
+  // Build payment term options from prazosCondicao
+  const opcoesCondicaoPagamento = () => {
     const opcoes: { label: string; value: string }[] = [{ label: "À Vista", value: "avista" }];
 
     // Build cumulative payment terms sorted ascending
-    const prazosNumericos = prazosPagamento
+    const prazosNumericos = prazosCondicao
       .filter((p) => p.trim() !== "")
       .map((p) => parseInt(p))
       .filter((n) => !isNaN(n))
