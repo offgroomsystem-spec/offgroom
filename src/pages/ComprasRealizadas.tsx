@@ -1241,44 +1241,88 @@ export default function ComprasRealizadas() {
             Adicione em cada campo a quantidade de dias após a emissão da NF em que cada parcela deverá ser paga.
           </p>
           <div className="space-y-3 mt-2">
-            {novosPrazos.map((valor, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  type="text"
-                  placeholder="Ex: 30 ou 30/60"
-                  value={valor}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9/]/g, "");
-                    const novos = [...novosPrazos];
-                    novos[index] = val;
-                    setNovosPrazos(novos);
-                  }}
-                  className="w-32"
-                />
-                {valor.trim() !== "" && index === novosPrazos.length - 1 && (
+            {novosPrazos.map((parcelas, condIndex) => (
+              <div key={condIndex} className="space-y-2">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {parcelas.map((parcela, parcIndex) => (
+                    <div key={parcIndex} className="flex items-center gap-1">
+                      {parcIndex > 0 && (
+                        <span className="text-sm font-semibold text-muted-foreground">/</span>
+                      )}
+                      <Input
+                        type="text"
+                        placeholder="Ex: 30"
+                        value={parcela}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          const novos = novosPrazos.map((c, ci) =>
+                            ci === condIndex
+                              ? c.map((p, pi) => (pi === parcIndex ? val : p))
+                              : c
+                          );
+                          setNovosPrazos(novos);
+                        }}
+                        className="w-20"
+                      />
+                      {parcIndex > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            const novos = novosPrazos.map((c, ci) =>
+                              ci === condIndex ? c.filter((_, pi) => pi !== parcIndex) : c
+                            );
+                            setNovosPrazos(novos);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {parcelas[parcelas.length - 1]?.trim() !== "" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const novos = novosPrazos.map((c, ci) =>
+                          ci === condIndex ? [...c, ""] : c
+                        );
+                        setNovosPrazos(novos);
+                      }}
+                      className="text-xs h-7 px-2"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Parcela
+                    </Button>
+                  )}
+                  {condIndex > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => {
+                        setNovosPrazos(novosPrazos.filter((_, i) => i !== condIndex));
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {condIndex === novosPrazos.length - 1 && parcelas.some((p) => p.trim() !== "") && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setNovosPrazos([...novosPrazos, ""])}
+                    onClick={() => setNovosPrazos([...novosPrazos, [""]])}
                     className="text-xs whitespace-nowrap"
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Adicionar mais dias para parcelamento
-                  </Button>
-                )}
-                {index > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => {
-                      const novos = novosPrazos.filter((_, i) => i !== index);
-                      setNovosPrazos(novos);
-                    }}
-                  >
-                    <X className="h-4 w-4" />
+                    Adicionar outra condição
                   </Button>
                 )}
               </div>
