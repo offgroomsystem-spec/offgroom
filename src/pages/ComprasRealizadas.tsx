@@ -602,7 +602,7 @@ export default function ComprasRealizadas() {
             variant="outline"
             size="sm"
             onClick={() => {
-              setNovosPrazos([""]);
+              setNovosPrazos([[""]]);
               setFormasPagamentoOpen(true);
             }}
             className="gap-2"
