@@ -608,7 +608,7 @@ export default function ComprasRealizadas() {
             className="gap-2"
           >
             <CreditCard className="h-4 w-4" />
-            Formas de Pagamento
+            Condição de Pagamento
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
