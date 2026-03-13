@@ -162,7 +162,7 @@ export default function ComprasRealizadas() {
 
   const salvarFormasPagamento = async () => {
     try {
-      const novosValidos = novosPrazos.filter((p) => p.trim() !== "").map((p) => parseInt(p));
+      const novosValidos = novosPrazos.map((p) => p.trim().replace(/\s/g, "")).filter((p) => p !== "");
       
       // Checar duplicidade entre novos
       const novosSet = new Set(novosValidos);
@@ -172,9 +172,8 @@ export default function ComprasRealizadas() {
       }
       
       // Checar duplicidade contra os já salvos
-      const existentes = prazosPagamento.map((p) => parseInt(p));
       for (const novo of novosValidos) {
-        if (existentes.includes(novo)) {
+        if (prazosPagamento.includes(novo)) {
           toast.error("Essa condição de pagamento já existe!");
           return;
         }
