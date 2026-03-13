@@ -1239,7 +1239,7 @@ export default function ComprasRealizadas() {
             Adicione em cada campo a quantidade de dias após a emissão da NF em que cada parcela deverá ser paga.
           </p>
           <div className="space-y-3 mt-2">
-            {prazosPagamento.map((valor, index) => (
+            {novosPrazos.map((valor, index) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -1247,9 +1247,9 @@ export default function ComprasRealizadas() {
                   placeholder="Ex: 30"
                   value={valor}
                   onChange={(e) => {
-                    const novos = [...prazosPagamento];
+                    const novos = [...novosPrazos];
                     novos[index] = e.target.value;
-                    setPrazosPagamento(novos);
+                    setNovosPrazos(novos);
                   }}
                   onKeyDown={(e) => {
                     if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
@@ -1258,12 +1258,12 @@ export default function ComprasRealizadas() {
                   }}
                   className="w-24"
                 />
-                {valor.trim() !== "" && index === prazosPagamento.length - 1 && (
+                {valor.trim() !== "" && index === novosPrazos.length - 1 && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setPrazosPagamento([...prazosPagamento, ""])}
+                    onClick={() => setNovosPrazos([...novosPrazos, ""])}
                     className="text-xs whitespace-nowrap"
                   >
                     <Plus className="h-3 w-3 mr-1" />
@@ -1277,8 +1277,8 @@ export default function ComprasRealizadas() {
                     size="icon"
                     className="h-8 w-8 shrink-0"
                     onClick={() => {
-                      const novos = prazosPagamento.filter((_, i) => i !== index);
-                      setPrazosPagamento(novos);
+                      const novos = novosPrazos.filter((_, i) => i !== index);
+                      setNovosPrazos(novos);
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -1293,9 +1293,14 @@ export default function ComprasRealizadas() {
             </Button>
             <Button
               onClick={() => {
-                const temVazio = prazosPagamento.some((p) => p.trim() === "");
-                if (temVazio) {
+                const temVazio = novosPrazos.some((p) => p.trim() === "");
+                const temPreenchido = novosPrazos.some((p) => p.trim() !== "");
+                if (temVazio && temPreenchido) {
                   toast.error("Existem campos de prazo de pagamento vazios. Preencha todos os campos ou remova os que não serão utilizados.");
+                  return;
+                }
+                if (!temPreenchido) {
+                  setFormasPagamentoOpen(false);
                   return;
                 }
                 salvarFormasPagamento();
