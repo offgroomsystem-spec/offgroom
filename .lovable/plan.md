@@ -1,48 +1,33 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Alterar Input de Formas de Pagamento para Campos Individuais por Parcela
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Conceito
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+Em vez de um único campo de texto onde o usuário digita "30/60", cada condição de pagamento será composta por **múltiplos campos numéricos individuais** (um por parcela). O primeiro campo aceita apenas dígitos (ex: "30"), e ao preenchê-lo, aparece um botão "+" para adicionar outra parcela (ex: "60"). O resultado salvo no banco será a concatenação com "/" — ex: "30/60".
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+### Alterações em `src/pages/ComprasRealizadas.tsx`
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+**1. Alterar o state `novosPrazos`:**
+- De `string[]` (lista de condições completas) para `string[][]` — cada condição é um array de parcelas individuais
+- Inicializar como `[[""]`] (uma condição com uma parcela vazia)
+- No reset ao abrir o modal: `setNovosPrazos([[""]])`
 
-**Mudancas no `ItemLancamentoForm`:**
+**2. Refatorar o UI do modal (linhas ~1240-1282):**
+- Loop externo: cada condição (índice `i`)
+- Loop interno: cada parcela da condição (índice `j`)
+  - Input `type="text"` que aceita apenas dígitos (`value.replace(/\D/g, "")`)
+  - Placeholder: "Ex: 30"
+  - Entre cada campo de parcela, exibir um separador visual "/" 
+  - Botão "+" ao lado da última parcela para adicionar mais uma parcela àquela condição
+  - Botão "X" para remover parcelas extras (quando há mais de uma)
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+**3. Refatorar `salvarFormasPagamento` (linhas ~163-200):**
+- Converter cada `string[]` em uma string concatenada com "/" — ex: `["30", "60"]` → `"30/60"`
+- Filtrar parcelas vazias dentro de cada condição
+- Manter a mesma lógica de duplicidade, agora comparando as strings resultantes
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
-
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
-
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
-
-Mesma correção na linha 2162 (subtotal com dedução).
-
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+**4. Validação:**
+- Cada campo aceita apenas dígitos (sem "/" no input)
+- Não permitir parcelas vazias no meio de uma condição
 
