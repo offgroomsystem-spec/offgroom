@@ -162,21 +162,26 @@ export default function ComprasRealizadas() {
 
   const salvarFormasPagamento = async () => {
     try {
-      // Validação de duplicidade
-      const valores = prazosPagamento.filter((p) => p.trim() !== "").map((p) => parseInt(p));
-      const uniqueSet = new Set(valores);
-      if (uniqueSet.size !== valores.length) {
+      const novosValidos = novosPrazos.filter((p) => p.trim() !== "").map((p) => parseInt(p));
+      
+      // Checar duplicidade entre novos
+      const novosSet = new Set(novosValidos);
+      if (novosSet.size !== novosValidos.length) {
         toast.error("Essa condição de pagamento já existe!");
         return;
       }
-      // Checar contra os já salvos no banco (prazosPagamento carregados)
-      // Neste caso os novos campos são parte do mesmo array, então a checagem acima cobre
+      
+      // Checar duplicidade contra os já salvos
+      const existentes = prazosPagamento.map((p) => parseInt(p));
+      for (const novo of novosValidos) {
+        if (existentes.includes(novo)) {
+          toast.error("Essa condição de pagamento já existe!");
+          return;
+        }
+      }
 
-      // Delete existing
-      await supabase.from("formas_pagamento").delete().eq("user_id", ownerId);
-
-      // Insert new
-      const registros = valores.map((dias) => ({
+      // Insert only new ones
+      const registros = novosValidos.map((dias) => ({
         user_id: ownerId,
         dias,
       }));
@@ -187,6 +192,7 @@ export default function ComprasRealizadas() {
       }
 
       toast.success("Formas de pagamento salvas com sucesso!");
+      setNovosPrazos([""]);
       setFormasPagamentoOpen(false);
       await loadFormasPagamento();
     } catch (error: any) {
