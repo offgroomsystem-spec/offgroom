@@ -1209,7 +1209,7 @@ export default function ComprasRealizadas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal Formas de Pagamento */}
+      {/* Modal Condição de Pagamento */}
       <Dialog open={formasPagamentoOpen} onOpenChange={setFormasPagamentoOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
