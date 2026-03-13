@@ -162,7 +162,10 @@ export default function ComprasRealizadas() {
 
   const salvarFormasPagamento = async () => {
     try {
-      const novosValidos = novosPrazos.map((p) => p.trim().replace(/\s/g, "")).filter((p) => p !== "");
+      // Converter cada array de parcelas em string "30/60"
+      const novosValidos = novosPrazos
+        .map((parcelas) => parcelas.map((p) => p.trim()).filter((p) => p !== "").join("/"))
+        .filter((p) => p !== "");
       
       // Checar duplicidade entre novos
       const novosSet = new Set(novosValidos);
@@ -191,7 +194,7 @@ export default function ComprasRealizadas() {
       }
 
       toast.success("Formas de pagamento salvas com sucesso!");
-      setNovosPrazos([""]);
+      setNovosPrazos([[""]]);
       setFormasPagamentoOpen(false);
       await loadFormasPagamento();
     } catch (error: any) {
