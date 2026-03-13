@@ -342,17 +342,17 @@ export default function ComprasRealizadas() {
       { label: "À Vista", value: "avista" },
     ];
 
-    // Build cumulative payment terms sorted ascending
-    const prazosNumericos = prazosPagamento
+    // Add saved payment terms as options
+    const prazosFiltrados = prazosPagamento
       .filter((p) => p.trim() !== "")
-      .map((p) => parseInt(p))
-      .filter((n) => !isNaN(n))
-      .sort((a, b) => a - b);
+      .sort((a, b) => {
+        const numA = parseInt(a.split("/")[0]) || 0;
+        const numB = parseInt(b.split("/")[0]) || 0;
+        return numA - numB;
+      });
 
-    // Generate cumulative options: "30", "30/60", "30/60/90"
-    for (let i = 0; i < prazosNumericos.length; i++) {
-      const label = prazosNumericos.slice(0, i + 1).join("/");
-      opcoes.push({ label, value: label });
+    for (const prazo of prazosFiltrados) {
+      opcoes.push({ label: `${prazo} dias`, value: prazo });
     }
 
     return opcoes;
