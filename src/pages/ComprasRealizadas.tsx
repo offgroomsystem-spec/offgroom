@@ -1313,18 +1313,6 @@ export default function ComprasRealizadas() {
                     </Button>
                   )}
                 </div>
-                {condIndex === novosPrazos.length - 1 && parcelas.some((p) => p.trim() !== "") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setNovosPrazos([...novosPrazos, [""]])}
-                    className="text-xs whitespace-nowrap"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Adicionar outra condição
-                  </Button>
-                )}
               </div>
             ))}
           </div>
