@@ -1241,21 +1241,16 @@ export default function ComprasRealizadas() {
             {novosPrazos.map((valor, index) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
-                  type="number"
-                  min={1}
-                  placeholder="Ex: 30"
+                  type="text"
+                  placeholder="Ex: 30 ou 30/60"
                   value={valor}
                   onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9/]/g, "");
                     const novos = [...novosPrazos];
-                    novos[index] = e.target.value;
+                    novos[index] = val;
                     setNovosPrazos(novos);
                   }}
-                  onKeyDown={(e) => {
-                    if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="w-24"
+                  className="w-32"
                 />
                 {valor.trim() !== "" && index === novosPrazos.length - 1 && (
                   <Button

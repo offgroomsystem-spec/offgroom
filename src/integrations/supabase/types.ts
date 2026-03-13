@@ -589,19 +589,19 @@ export type Database = {
       formas_pagamento: {
         Row: {
           created_at: string | null
-          dias: number
+          dias: string
           id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
-          dias: number
+          dias: string
           id?: string
           user_id: string
         }
         Update: {
           created_at?: string | null
-          dias?: number
+          dias?: string
           id?: string
           user_id?: string
         }
