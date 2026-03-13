@@ -81,8 +81,8 @@ export default function ComprasRealizadas() {
   const [selectedCompra, setSelectedCompra] = useState<CompraNF | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [formasPagamentoOpen, setFormasPagamentoOpen] = useState(false);
-  const [prazosPagamento, setPrazosPagamento] = useState<string[]>([""]);
+  const [condicaoPagamentoOpen, setCondicaoPagamentoOpen] = useState(false);
+  const [prazosCondicao, setPrazosCondicao] = useState<string[]>([""]);
 
   // Filtros
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
@@ -248,12 +248,12 @@ export default function ComprasRealizadas() {
     setFormData({ ...formData, chave_nf: formatado });
   };
 
-  // Build payment term options from prazosPagamento
-  const opcoesDiasPagamento = () => {
+  // Build payment term options from prazosCondicao
+  const opcoesCondicaoPagamento = () => {
     const opcoes: { label: string; value: string }[] = [{ label: "À Vista", value: "avista" }];
 
     // Build cumulative payment terms sorted ascending
-    const prazosNumericos = prazosPagamento
+    const prazosNumericos = prazosCondicao
       .filter((p) => p.trim() !== "")
       .map((p) => parseInt(p))
       .filter((n) => !isNaN(n))
@@ -509,7 +509,7 @@ export default function ComprasRealizadas() {
             {mostrarFiltros ? "Ocultar Filtros" : "Filtros"}
           </Button>
 
-          <Button variant="outline" size="sm" onClick={() => setFormasPagamentoOpen(true)} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCondicaoPagamentoOpen(true)} className="gap-2">
             <CreditCard className="h-4 w-4" />
             Condição de Pagamento
           </Button>
@@ -632,7 +632,7 @@ export default function ComprasRealizadas() {
                             <CommandList>
                               <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
                               <CommandGroup>
-                                {opcoesDiasPagamento().map((op) => (
+                                {opcoesCondicaoPagamento().map((op) => (
                                   <CommandItem
                                     key={op.value}
                                     value={op.label}
@@ -1084,7 +1084,7 @@ export default function ComprasRealizadas() {
       </AlertDialog>
 
       {/* Modal Condição de Pagamento */}
-      <Dialog open={formasPagamentoOpen} onOpenChange={setFormasPagamentoOpen}>
+      <Dialog open={condicaoPagamentoOpen} onOpenChange={setCondicaoPagamentoOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Condição de Pagamento</DialogTitle>
@@ -1093,7 +1093,7 @@ export default function ComprasRealizadas() {
             Adicione em cada campo a quantidade de dias após a emissão da NF em que cada parcela deverá ser paga.
           </p>
           <div className="space-y-3 mt-2">
-            {prazosPagamento.map((valor, index) => (
+            {prazosCondicao.map((valor, index) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -1101,9 +1101,9 @@ export default function ComprasRealizadas() {
                   placeholder="Ex: 30"
                   value={valor}
                   onChange={(e) => {
-                    const novos = [...prazosPagamento];
+                    const novos = [...prazosCondicao];
                     novos[index] = e.target.value;
-                    setPrazosPagamento(novos);
+                    setPrazosCondicao(novos);
                   }}
                   onKeyDown={(e) => {
                     if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
@@ -1112,12 +1112,12 @@ export default function ComprasRealizadas() {
                   }}
                   className="w-24"
                 />
-                {valor.trim() !== "" && index === prazosPagamento.length - 1 && (
+                {valor.trim() !== "" && index === prazosCondicao.length - 1 && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setPrazosPagamento([...prazosPagamento, ""])}
+                    onClick={() => setPrazosCondicao([...prazosCondicao, ""])}
                     className="text-xs whitespace-nowrap"
                   >
                     <Plus className="h-3 w-3 mr-1" />
@@ -1131,8 +1131,8 @@ export default function ComprasRealizadas() {
                     size="icon"
                     className="h-8 w-8 shrink-0"
                     onClick={() => {
-                      const novos = prazosPagamento.filter((_, i) => i !== index);
-                      setPrazosPagamento(novos);
+                      const novos = prazosCondicao.filter((_, i) => i !== index);
+                      setPrazosCondicao(novos);
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -1142,12 +1142,12 @@ export default function ComprasRealizadas() {
             ))}
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setFormasPagamentoOpen(false)}>
+            <Button variant="outline" onClick={() => setCondicaoPagamentoOpen(false)}>
               Cancelar
             </Button>
             <Button
               onClick={() => {
-                const temVazio = prazosPagamento.some((p) => p.trim() === "");
+                const temVazio = prazosCondicao.some((p) => p.trim() === "");
                 if (temVazio) {
                   toast.error(
                     "Existem campos de prazo de pagamento vazios. Preencha todos os campos ou remova os que não serão utilizados.",
@@ -1155,7 +1155,7 @@ export default function ComprasRealizadas() {
                   return;
                 }
                 toast.success("Condição de pagamento salvas com sucesso!");
-                setFormasPagamentoOpen(false);
+                setCondicaoPagamentoOpen(false);
               }}
             >
               Salvar
