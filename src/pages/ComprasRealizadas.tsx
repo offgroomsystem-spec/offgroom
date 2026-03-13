@@ -161,16 +161,24 @@ export default function ComprasRealizadas() {
 
   const salvarFormasPagamento = async () => {
     try {
+      // Validação de duplicidade
+      const valores = prazosPagamento.filter((p) => p.trim() !== "").map((p) => parseInt(p));
+      const uniqueSet = new Set(valores);
+      if (uniqueSet.size !== valores.length) {
+        toast.error("Essa condição de pagamento já existe!");
+        return;
+      }
+      // Checar contra os já salvos no banco (prazosPagamento carregados)
+      // Neste caso os novos campos são parte do mesmo array, então a checagem acima cobre
+
       // Delete existing
       await supabase.from("formas_pagamento").delete().eq("user_id", ownerId);
 
       // Insert new
-      const registros = prazosPagamento
-        .filter((p) => p.trim() !== "")
-        .map((p) => ({
-          user_id: ownerId,
-          dias: parseInt(p),
-        }));
+      const registros = valores.map((dias) => ({
+        user_id: ownerId,
+        dias,
+      }));
 
       if (registros.length > 0) {
         const { error } = await supabase.from("formas_pagamento").insert(registros);
@@ -183,6 +191,24 @@ export default function ComprasRealizadas() {
     } catch (error: any) {
       console.error("Erro ao salvar formas de pagamento:", error);
       toast.error("Erro ao salvar formas de pagamento");
+    }
+  };
+
+  const excluirFormaPagamento = async (dias: string) => {
+    try {
+      const { error } = await supabase
+        .from("formas_pagamento")
+        .delete()
+        .eq("user_id", ownerId)
+        .eq("dias", parseInt(dias));
+      if (error) throw error;
+      toast.success("Condição de pagamento excluída!");
+      setPrazoExcluir(null);
+      setFormasPagamentoOpen(false);
+      await loadFormasPagamento();
+    } catch (error: any) {
+      console.error("Erro ao excluir forma de pagamento:", error);
+      toast.error("Erro ao excluir forma de pagamento");
     }
   };
 
