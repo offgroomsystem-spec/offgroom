@@ -1213,7 +1213,7 @@ export default function ComprasRealizadas() {
       <Dialog open={formasPagamentoOpen} onOpenChange={setFormasPagamentoOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Formas de Pagamento</DialogTitle>
+            <DialogTitle>Condição de Pagamento</DialogTitle>
           </DialogHeader>
 
           {/* Lista de formas já cadastradas */}
