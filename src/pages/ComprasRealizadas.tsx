@@ -198,8 +198,8 @@ export default function ComprasRealizadas() {
       setFormasPagamentoOpen(false);
       await loadFormasPagamento();
     } catch (error: any) {
-      console.error("Erro ao salvar formas de pagamento:", error);
-      toast.error("Erro ao salvar formas de pagamento");
+      console.error("Erro ao salvar condição de pagamento:", error);
+      toast.error("Erro ao salvar condição de pagamento");
     }
   };
 
