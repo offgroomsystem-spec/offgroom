@@ -632,7 +632,7 @@ export default function ComprasRealizadas() {
                             <CommandList>
                               <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
                               <CommandGroup>
-                                {opcoesDiasPagamento().map((op) => (
+                                {opcoesCondicaoPagamento().map((op) => (
                                   <CommandItem
                                     key={op.value}
                                     value={op.label}
