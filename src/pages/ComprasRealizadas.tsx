@@ -1334,12 +1334,16 @@ export default function ComprasRealizadas() {
             </Button>
             <Button
               onClick={() => {
-                const temVazio = novosPrazos.some((p) => p.trim() === "");
-                const temPreenchido = novosPrazos.some((p) => p.trim() !== "");
-                if (temVazio && temPreenchido) {
-                  toast.error("Existem campos de prazo de pagamento vazios. Preencha todos os campos ou remova os que não serão utilizados.");
+                const temCondicaoIncompleta = novosPrazos.some((parcelas) => {
+                  const preenchidas = parcelas.filter((p) => p.trim() !== "");
+                  const vazias = parcelas.filter((p) => p.trim() === "");
+                  return preenchidas.length > 0 && vazias.length > 0;
+                });
+                if (temCondicaoIncompleta) {
+                  toast.error("Existem campos de parcela vazios. Preencha todos os campos ou remova os que não serão utilizados.");
                   return;
                 }
+                const temPreenchido = novosPrazos.some((parcelas) => parcelas.some((p) => p.trim() !== ""));
                 if (!temPreenchido) {
                   setFormasPagamentoOpen(false);
                   return;
