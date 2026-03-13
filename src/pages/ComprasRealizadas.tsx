@@ -156,7 +156,7 @@ export default function ComprasRealizadas() {
         setPrazosPagamento(data.map((d: any) => String(d.dias)));
       }
     } catch (error: any) {
-      console.error("Erro ao carregar formas de pagamento:", error);
+      console.error("Erro ao carregar condições de pagamento:", error);
     }
   };
 
@@ -193,13 +193,13 @@ export default function ComprasRealizadas() {
         if (error) throw error;
       }
 
-      toast.success("Formas de pagamento salvas com sucesso!");
+      toast.success("Condição de pagamento salva com sucesso!");
       setNovosPrazos([[""]]);
       setFormasPagamentoOpen(false);
       await loadFormasPagamento();
     } catch (error: any) {
-      console.error("Erro ao salvar formas de pagamento:", error);
-      toast.error("Erro ao salvar formas de pagamento");
+      console.error("Erro ao salvar condição de pagamento:", error);
+      toast.error("Erro ao salvar condição de pagamento");
     }
   };
 
@@ -608,7 +608,7 @@ export default function ComprasRealizadas() {
             className="gap-2"
           >
             <CreditCard className="h-4 w-4" />
-            Formas de Pagamento
+            Condição de Pagamento
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
@@ -1209,11 +1209,11 @@ export default function ComprasRealizadas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal Formas de Pagamento */}
+      {/* Modal Condição de Pagamento */}
       <Dialog open={formasPagamentoOpen} onOpenChange={setFormasPagamentoOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Formas de Pagamento</DialogTitle>
+            <DialogTitle>Condição de Pagamento</DialogTitle>
           </DialogHeader>
 
           {/* Lista de formas já cadastradas */}
