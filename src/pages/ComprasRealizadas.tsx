@@ -206,7 +206,7 @@ export default function ComprasRealizadas() {
         .from("formas_pagamento")
         .delete()
         .eq("user_id", ownerId)
-        .eq("dias", parseInt(dias));
+        .eq("dias", dias);
       if (error) throw error;
       toast.success("Condição de pagamento excluída!");
       setPrazoExcluir(null);
