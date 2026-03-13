@@ -101,6 +101,7 @@ export default function ComprasRealizadas() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [formasPagamentoOpen, setFormasPagamentoOpen] = useState(false);
   const [prazosPagamento, setPrazosPagamento] = useState<string[]>([]);
+  const [prazoExcluir, setPrazoExcluir] = useState<string | null>(null);
 
   // Filtros
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
@@ -160,16 +161,24 @@ export default function ComprasRealizadas() {
 
   const salvarFormasPagamento = async () => {
     try {
+      // Validação de duplicidade
+      const valores = prazosPagamento.filter((p) => p.trim() !== "").map((p) => parseInt(p));
+      const uniqueSet = new Set(valores);
+      if (uniqueSet.size !== valores.length) {
+        toast.error("Essa condição de pagamento já existe!");
+        return;
+      }
+      // Checar contra os já salvos no banco (prazosPagamento carregados)
+      // Neste caso os novos campos são parte do mesmo array, então a checagem acima cobre
+
       // Delete existing
       await supabase.from("formas_pagamento").delete().eq("user_id", ownerId);
 
       // Insert new
-      const registros = prazosPagamento
-        .filter((p) => p.trim() !== "")
-        .map((p) => ({
-          user_id: ownerId,
-          dias: parseInt(p),
-        }));
+      const registros = valores.map((dias) => ({
+        user_id: ownerId,
+        dias,
+      }));
 
       if (registros.length > 0) {
         const { error } = await supabase.from("formas_pagamento").insert(registros);
@@ -182,6 +191,24 @@ export default function ComprasRealizadas() {
     } catch (error: any) {
       console.error("Erro ao salvar formas de pagamento:", error);
       toast.error("Erro ao salvar formas de pagamento");
+    }
+  };
+
+  const excluirFormaPagamento = async (dias: string) => {
+    try {
+      const { error } = await supabase
+        .from("formas_pagamento")
+        .delete()
+        .eq("user_id", ownerId)
+        .eq("dias", parseInt(dias));
+      if (error) throw error;
+      toast.success("Condição de pagamento excluída!");
+      setPrazoExcluir(null);
+      setFormasPagamentoOpen(false);
+      await loadFormasPagamento();
+    } catch (error: any) {
+      console.error("Erro ao excluir forma de pagamento:", error);
+      toast.error("Erro ao excluir forma de pagamento");
     }
   };
 
@@ -1181,6 +1208,28 @@ export default function ComprasRealizadas() {
           <DialogHeader>
             <DialogTitle>Formas de Pagamento</DialogTitle>
           </DialogHeader>
+
+          {/* Lista de formas já cadastradas */}
+          {prazosPagamento.length > 0 && (
+            <div className="border rounded-md p-3 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Condições cadastradas:</p>
+              {prazosPagamento.map((dias) => (
+                <div key={dias} className="flex items-center justify-between bg-muted/50 rounded px-3 py-1.5">
+                  <span className="text-sm">{dias} dias</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setPrazoExcluir(dias)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <p className="text-sm text-muted-foreground">
             Adicione em cada campo a quantidade de dias após a emissão da NF em que cada parcela deverá ser paga.
           </p>
@@ -1252,6 +1301,27 @@ export default function ComprasRealizadas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog de confirmação de exclusão de forma de pagamento */}
+      <AlertDialog open={!!prazoExcluir} onOpenChange={(open) => { if (!open) setPrazoExcluir(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Condição de Pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que gostaria de excluir essa condição de pagamento?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => prazoExcluir && excluirFormaPagamento(prazoExcluir)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
