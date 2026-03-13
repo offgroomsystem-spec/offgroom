@@ -193,7 +193,7 @@ export default function ComprasRealizadas() {
         if (error) throw error;
       }
 
-      toast.success("Formas de pagamento salvas com sucesso!");
+      toast.success("Condição de pagamento salva com sucesso!");
       setNovosPrazos([[""]]);
       setFormasPagamentoOpen(false);
       await loadFormasPagamento();
