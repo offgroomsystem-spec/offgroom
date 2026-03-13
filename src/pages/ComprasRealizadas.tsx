@@ -509,7 +509,7 @@ export default function ComprasRealizadas() {
             {mostrarFiltros ? "Ocultar Filtros" : "Filtros"}
           </Button>
 
-          <Button variant="outline" size="sm" onClick={() => setFormasPagamentoOpen(true)} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCondicaoPagamentoOpen(true)} className="gap-2">
             <CreditCard className="h-4 w-4" />
             Condição de Pagamento
           </Button>
