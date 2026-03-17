@@ -1,42 +1,48 @@
 
 
-## Correções no formulário de Novo Agendamento
+## Melhorias no Formulário "Lançar Financeiro"
 
-### Problema 1: "Horário de Fim" não atualiza ao preencher "Tempo de Serviço"
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-**Causa**: O campo "Tempo de Serviço" usa um `Input` com formatação manual. Quando o usuário digita apenas 1 dígito (ex: "1"), o valor fica sem ":" e a função `calcularHorarioTermino` tenta fazer `split(":")` e obtém `NaN`, retornando string vazia. Com 2 dígitos (ex: "13" → "1:3"), funciona mas dá resultado intermediário incorreto. O cálculo só funciona corretamente com 3 dígitos (ex: "130" → "1:30").
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-**Solução**: Adicionar validação na função `calcularHorarioTermino` para tratar valores sem ":" (interpretar como minutos ou horas conforme o caso) e garantir que o cálculo aconteça mesmo com valores parciais. Também adicionar proteção contra NaN no resultado.
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-### Problema 2: Campos não limpam ao fechar o dialog sem "Cancelar"
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-**Causa**: O `Dialog` usa `onOpenChange={setIsDialogOpen}` que apenas fecha o dialog sem resetar o `formData`.
+**Mudancas no `ItemLancamentoForm`:**
 
-**Solução**: Alterar o `onOpenChange` do Dialog de "Novo Agendamento" (linha 2055) para resetar todos os campos do `formData` quando o dialog fecha.
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-### Alterações no `src/pages/Agendamentos.tsx`
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-1. **Linha ~2055**: Mudar `onOpenChange={setIsDialogOpen}` para uma função que reseta o `formData` ao fechar:
-```tsx
-onOpenChange={(open) => {
-  setIsDialogOpen(open);
-  if (!open) {
-    setFormData({ cliente: "", pet: "", raca: "", whatsapp: "", servico: "", data: "", horario: "", tempoServico: "", horarioTermino: "", dataVenda: "", numeroServicoPacote: "", groomer: "", taxiDog: "" });
-  }
-}}
-```
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
 
-2. **Linha ~1213**: Melhorar `calcularHorarioTermino` para tratar tempo sem `:` e proteger contra NaN:
-```tsx
-const calcularHorarioTermino = (inicio: string, tempo: string): string => {
-  if (!inicio || !tempo) return "";
-  if (!inicio.includes(":") || !tempo.includes(":")) return "";
-  const [inicioH, inicioM] = inicio.split(":").map(Number);
-  const [tempoH, tempoM] = tempo.split(":").map(Number);
-  if (isNaN(inicioH) || isNaN(inicioM) || isNaN(tempoH) || isNaN(tempoM)) return "";
-  // ... resto igual
-};
-```
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
 
-3. **Aplicar mesma lógica nos 3 formulários** (Novo Agendamento, Editar Gerenciamento, Editar Calendário) para garantir consistência.
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+
+Mesma correção na linha 2162 (subtotal com dedução).
+
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 
