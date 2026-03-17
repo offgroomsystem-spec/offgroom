@@ -192,7 +192,7 @@ export default function Clientes() {
 
     for (let i = 0; i < pets.length; i++) {
       const pet = pets[i];
-      if (!pet.nome_pet.trim() || !pet.porte || !pet.raca) {
+      if (!pet.nome_pet.trim() || !pet.porte || !pet.raca || !pet.sexo) {
         toast.error(`Preencha todos os campos obrigatórios do Pet ${i + 1}`);
         return;
       }
