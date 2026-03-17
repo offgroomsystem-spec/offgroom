@@ -3598,6 +3598,7 @@ const { error } = await supabase
                       <th className="p-1.5 border text-left w-[50px]">N° PCT</th>
                       <th className="p-1.5 border text-left w-[30px]">Taxi Dog</th>
                       <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
+                      <th className="p-1.5 border text-center w-[45px]" style={{ backgroundColor: '#B9DFAE' }}>Pronto</th>
                     </tr>
                   </thead>
                   <tbody>
