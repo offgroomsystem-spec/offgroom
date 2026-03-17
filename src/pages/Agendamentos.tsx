@@ -3866,7 +3866,7 @@ const Agendamentos = () => {
                     type="button"
                     onClick={() => {
                       if (editingAgendamento.tipo === "pacote") {
-                        const horarioTermino = calcularHorarioTermino(
+                        const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
                           editFormData.horarioInicio,
                           editFormData.tempoServico
                         );
