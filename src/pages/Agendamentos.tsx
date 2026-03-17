@@ -362,6 +362,7 @@ const Agendamentos = () => {
             porte: pet.porte,
             raca: pet.raca,
             observacao: pet.observacao || "",
+            sexo: pet.sexo || "",
           });
           return acc;
         },
