@@ -1055,7 +1055,7 @@ const Agendamentos = () => {
       return;
     }
 
-    const horarioTermino = calcularHorarioTermino(formData.horario, formData.tempoServico);
+    const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
     // Criar string concatenada para exibição no calendário
     const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
