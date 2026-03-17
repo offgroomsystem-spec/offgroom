@@ -1603,9 +1603,9 @@ const Agendamentos = () => {
 
     let mensagem = "";
     if (taxiDog === "Sim") {
-      mensagem = `Oii ${primeiroNome}!\n\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj}!\n\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
+      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
     } else {
-      mensagem = `Oii ${primeiroNome}!\n\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}!`;
+      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}!`;
     }
 
     // Obter número do WhatsApp
