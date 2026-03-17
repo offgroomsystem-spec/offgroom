@@ -100,6 +100,7 @@ interface Pet {
   porte: string;
   raca: string;
   observacao: string;
+  sexo: string;
 }
 
 interface Cliente {
