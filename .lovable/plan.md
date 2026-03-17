@@ -1,48 +1,64 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Clonagem de Dados e Acesso VIP para Conta de Demonstração
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Resumo dos dados na conta de origem (`rodrygo.sv12@gmail.com` / `e368f8e7-dae7-4e29-aed6-9bce03b6bb94`)
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+| Tabela | Total | ~50% |
+|--------|-------|------|
+| clientes | 224 | 112 |
+| pets | 300 | ~150 (vinculados aos clientes selecionados) |
+| racas | 6 | 6 (todas, são poucas) |
+| servicos | 18 | 18 (todos, são poucos) |
+| pacotes | 4 | 4 (todos) |
+| groomers | 3 | 3 (todos) |
+| contas_bancarias | 3 | 3 (todas) |
+| formas_pagamento | 3 | 3 (todas) |
+| fornecedores | 35 | 18 |
+| empresa_config | 1 | 1 |
+| agendamentos | 422 | ~211 (mais recentes) |
+| agendamentos_pacotes | 260 | ~130 (mais recentes) |
+| lancamentos_financeiros | 830 | ~415 (mais recentes) |
+| lancamentos_financeiros_itens | 1061 | ~relacionados aos lançamentos clonados |
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+Conta de destino (`carloseduardopereira2254@gmail.com` / `85c44900-5f73-47fb-acb9-233cfc1b4917`) está vazia.
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+### Plano de Execução
 
-**Mudancas no `ItemLancamentoForm`:**
+**Parte 1 - Acesso VIP vitalício**
+- Adicionar `carloseduardopereira2254@gmail.com` ao array `VIP_EMAILS` em `supabase/functions/check-subscription-status/index.ts`
+- Atualizar o profile da conta destino: `plano_ativo = 'VIP Vitalício'`, `pagamento_em_dia = 'Sim'`
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+**Parte 2 - Script de clonagem (via edge function temporária ou exec)**
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
+Ordem de clonagem respeitando dependências:
 
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
+1. **Tabelas independentes** (clonar 100% por serem configurações pequenas):
+   - `racas`, `servicos`, `pacotes`, `groomers`, `contas_bancarias`, `formas_pagamento`, `empresa_config`
 
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+2. **Clientes** (~50%, os 112 mais recentes por `created_at`):
+   - Gerar mapeamento `old_id → new_id` para manter referências
 
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+3. **Pets** (todos os pets vinculados aos clientes clonados):
+   - Usar mapeamento de `cliente_id` para o novo ID
 
-Mesma correção na linha 2162 (subtotal com dedução).
+4. **Fornecedores** (~50%, 18 mais recentes):
+   - Gerar mapeamento `old_id → new_id`
 
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+5. **Agendamentos** (~50%, 211 mais recentes):
+   - Mapear `cliente_id` usando mapeamento de clientes
+
+6. **Agendamentos Pacotes** (~50%, 130 mais recentes)
+
+7. **Contas bancárias** → gerar mapeamento para uso nos lançamentos
+
+8. **Lançamentos financeiros** (~50%, 415 mais recentes):
+   - Mapear `cliente_id`, `conta_id`, `fornecedor_id` usando mapeamentos anteriores
+
+9. **Lançamentos financeiros itens** (todos vinculados aos lançamentos clonados)
+
+O script será executado via `lov-exec` com `psql`, usando INSERTs com `SELECT` e mapeamentos de IDs via tabelas temporárias. Todos os registros clonados terão `user_id = '85c44900-5f73-47fb-acb9-233cfc1b4917'`.
+
+### Arquivos Modificados
+- `supabase/functions/check-subscription-status/index.ts` — adicionar email ao VIP_EMAILS
 
