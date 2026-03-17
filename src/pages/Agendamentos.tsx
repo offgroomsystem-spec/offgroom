@@ -1060,6 +1060,11 @@ const Agendamentos = () => {
 
     const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
+    if (horarioTermino && formData.horario && horarioTermino <= formData.horario) {
+      toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
+      return;
+    }
+
     // Criar string concatenada para exibição no calendário
     const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
 
@@ -1895,6 +1900,11 @@ const Agendamentos = () => {
   // Atualizar agendamento
   const handleAtualizarAgendamento = async () => {
     if (!editandoAgendamento || !user) return;
+
+    if (editandoAgendamento.horarioTermino && editandoAgendamento.horarioInicio && editandoAgendamento.horarioTermino <= editandoAgendamento.horarioInicio) {
+      toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
+      return;
+    }
 
     try {
       // Montar nome do serviço concatenado (principal + extras)
@@ -3956,6 +3966,11 @@ const Agendamentos = () => {
                     <Button
                     type="button"
                     onClick={() => {
+                      const horarioTerminoCheck = editFormData.horarioTermino || calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
+                      if (horarioTerminoCheck && editFormData.horarioInicio && horarioTerminoCheck <= editFormData.horarioInicio) {
+                        toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
+                        return;
+                      }
                       if (editingAgendamento.tipo === "pacote") {
                         const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
                           editFormData.horarioInicio,
