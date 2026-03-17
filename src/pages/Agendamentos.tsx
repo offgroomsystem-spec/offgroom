@@ -2227,7 +2227,7 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
-                      Tempo de Serviço *
+                      Tempo de Serviço*
                     </Label>
                     <Input
                       id="tempoServico"
@@ -2654,7 +2654,7 @@ const Agendamentos = () => {
                       </div>
                       <div className="w-20 px-[13px]">
                         <Label className="text-muted-foreground font-bold text-xs text-right my-0 mx-0 px-0">
-                          Tempo de Serviço *
+                          Tempo de Serviço*
                         </Label>
                       </div>
                     </div>
