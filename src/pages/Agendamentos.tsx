@@ -449,6 +449,9 @@ const Agendamentos = () => {
   }, [user, ownerId]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
+  const [calendarNovoOpen, setCalendarNovoOpen] = useState(false);
+  const [calendarEditGerOpen, setCalendarEditGerOpen] = useState(false);
+  const [calendarEditCalOpen, setCalendarEditCalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
   const [viewMode, setViewMode] = useState<"semana" | "dia">("semana");
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
@@ -2190,20 +2193,43 @@ const Agendamentos = () => {
                     <Label htmlFor="data" className="text-xs">
                       Dia Agendamento*
                     </Label>
-                    <Input
-                      id="data"
-                      type="date"
-                      value={formData.data}
-                      onChange={(e) => {
-                        setFormData({
-                          ...formData,
-                          data: e.target.value
-                        });
-                        setDataVendaManual(false);
-                      }}
-                      className="h-8 text-xs"
-                      required />
-                    
+                    <Popover open={calendarNovoOpen} onOpenChange={setCalendarNovoOpen}>
+                      <PopoverTrigger asChild>
+                        <Input
+                          id="data"
+                          type="date"
+                          value={formData.data}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              data: e.target.value
+                            });
+                            setDataVendaManual(false);
+                          }}
+                          onDoubleClick={() => setCalendarNovoOpen(true)}
+                          className="h-8 text-xs"
+                          required />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.data ? new Date(formData.data + "T00:00:00") : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setFormData({
+                                ...formData,
+                                data: format(date, "yyyy-MM-dd")
+                              });
+                              setDataVendaManual(false);
+                            }
+                            setCalendarNovoOpen(false);
+                          }}
+                          locale={ptBR}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-1">
@@ -2934,17 +2960,39 @@ const Agendamentos = () => {
                   <div className="grid grid-cols-4 gap-1.5">
                     <div className="space-y-1">
                       <Label className="text-xs">Data do Agendamento</Label>
-                      <Input
-                      type="date"
-                      value={editandoAgendamento.data}
-                      onChange={(e) =>
-                      setEditandoAgendamento({
-                        ...editandoAgendamento,
-                        data: e.target.value
-                      })
-                      }
-                      className="h-8 text-xs" />
-                    
+                      <Popover open={calendarEditGerOpen} onOpenChange={setCalendarEditGerOpen}>
+                        <PopoverTrigger asChild>
+                          <Input
+                            type="date"
+                            value={editandoAgendamento.data}
+                            onChange={(e) =>
+                              setEditandoAgendamento({
+                                ...editandoAgendamento,
+                                data: e.target.value
+                              })
+                            }
+                            onDoubleClick={() => setCalendarEditGerOpen(true)}
+                            className="h-8 text-xs" />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={editandoAgendamento.data ? new Date(editandoAgendamento.data + "T00:00:00") : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setEditandoAgendamento({
+                                  ...editandoAgendamento,
+                                  data: format(date, "yyyy-MM-dd")
+                                });
+                              }
+                              setCalendarEditGerOpen(false);
+                            }}
+                            locale={ptBR}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Horário de Início</Label>
@@ -3786,17 +3834,39 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label className="text-xs">Data</Label>
-                    <Input
-                    type="date"
-                    value={editFormData.data}
-                    onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      data: e.target.value
-                    })
-                    }
-                    className="h-8 text-xs" />
-                  
+                    <Popover open={calendarEditCalOpen} onOpenChange={setCalendarEditCalOpen}>
+                      <PopoverTrigger asChild>
+                        <Input
+                          type="date"
+                          value={editFormData.data}
+                          onChange={(e) =>
+                            setEditFormData({
+                              ...editFormData,
+                              data: e.target.value
+                            })
+                          }
+                          onDoubleClick={() => setCalendarEditCalOpen(true)}
+                          className="h-8 text-xs" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editFormData.data ? new Date(editFormData.data + "T00:00:00") : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setEditFormData({
+                                ...editFormData,
+                                data: format(date, "yyyy-MM-dd")
+                              });
+                            }
+                            setCalendarEditCalOpen(false);
+                          }}
+                          locale={ptBR}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5">
