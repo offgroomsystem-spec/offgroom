@@ -1,48 +1,28 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Adicionar calendário ao campo "Dia Agendamento*" com duplo clique
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+O campo atual usa `<Input type="date">` nativo do browser, que em alguns navegadores não exibe um calendário visual intuitivo. A solução é substituir por um componente Popover + Calendar (shadcn) que abre ao clicar duas vezes no campo.
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+### Abordagem
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+Substituir o `<Input type="date">` na linha 2193 por um `Popover` com `Calendar` do shadcn, ativado por duplo clique (`onDoubleClick`). O campo continuará exibindo a data formatada e permitirá digitação manual, mas ao dar duplo clique abrirá o calendário visual.
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+**Implementação**: Usar um estado `calendarOpen` para controlar o Popover. O `PopoverTrigger` envolve o Input existente com `onDoubleClick` para abrir. O `PopoverContent` contém o `Calendar` com `pointer-events-auto`.
 
-**Mudancas no `ItemLancamentoForm`:**
+### Escopo — todos os campos de data relevantes
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+Aplicar a mesma lógica nos seguintes campos de data:
+1. **Novo Agendamento** — "Dia Agendamento*" (linha ~2193)
+2. **Editar Agendamento (gerenciamento)** — "Data do Agendamento" (linha ~2937)
+3. **Editar Agendamento (calendário)** — "Data" (linha ~3789)
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
+Os demais campos de data (dataVenda, filtros) permanecem como estão, a menos que o usuário peça.
 
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
-
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
-
-Mesma correção na linha 2162 (subtotal com dedução).
-
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+### Detalhes técnicos
+- Importar `format, parse` de `date-fns` e `ptBR` locale
+- Adicionar estado `calendarOpen` (boolean)
+- O Input mantém `type="text"` com máscara de data ou `type="date"` com o Popover ao lado
+- Ao selecionar data no Calendar, atualizar `formData.data` no formato `YYYY-MM-DD` e fechar o Popover
+- Converter entre `Date` e string `YYYY-MM-DD` para compatibilidade
 
