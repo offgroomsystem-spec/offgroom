@@ -1212,8 +1212,10 @@ const Agendamentos = () => {
   // Calcular horário de término
   const calcularHorarioTermino = (inicio: string, tempo: string): string => {
     if (!inicio || !tempo) return "";
+    if (!inicio.includes(":") || !tempo.includes(":")) return "";
     const [inicioH, inicioM] = inicio.split(":").map(Number);
     const [tempoH, tempoM] = tempo.split(":").map(Number);
+    if (isNaN(inicioH) || isNaN(inicioM) || isNaN(tempoH) || isNaN(tempoM)) return "";
     const totalMinutos = inicioH * 60 + inicioM + (tempoH * 60 + tempoM);
     const fimH = Math.floor(totalMinutos / 60);
     const fimM = totalMinutos % 60;
