@@ -2315,53 +2315,6 @@ const { error } = await supabase
                   </div>
                 </div>
 
-  // Gerar URL do WhatsApp com mensagem de "Pronto" baseada no sexo do pet e taxi dog
-  const gerarUrlWhatsAppPronto = (agendamentoDia: any): string => {
-    const nomeCliente = agendamentoDia.cliente || "";
-    const primeiroNome = obterPrimeiroNome(nomeCliente);
-    const nomePet = capitalizarPrimeiraLetra(agendamentoDia.pet || "");
-    const taxiDog = agendamentoDia.taxiDog;
-
-    // Buscar sexo do pet nos clientes carregados
-    let sexoPet = "";
-    for (const cliente of clientes) {
-      const petEncontrado = cliente.pets.find(
-        (p) => p.nome.toLowerCase() === (agendamentoDia.pet || "").toLowerCase()
-      );
-      if (petEncontrado) {
-        sexoPet = petEncontrado.sexo;
-        break;
-      }
-    }
-    // Default: Macho se vazio
-    const isFemea = sexoPet === "Fêmea";
-
-    const artigo = isFemea ? "a" : "o";
-    const prontoAdj = isFemea ? "pronta" : "pronto";
-    const pronome = isFemea ? "ela" : "ele";
-    const pronomeMaiusculo = isFemea ? "Ela" : "Ele";
-    const ansiosoAdj = isFemea ? "ansiosa" : "ansioso";
-    const buscarPronome = isFemea ? "buscá-la" : "buscá-lo";
-
-    let mensagem = "";
-    if (taxiDog === "Sim") {
-      mensagem = `Oii ${primeiroNome}!\n\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj}!\n\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
-    } else {
-      mensagem = `Oii ${primeiroNome}!\n\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}!`;
-    }
-
-    // Obter número do WhatsApp
-    let numeroWhatsApp = "";
-    if (agendamentoDia.agendamentoOriginal) {
-      numeroWhatsApp = agendamentoDia.agendamentoOriginal.whatsapp || "";
-    } else if (agendamentoDia.agendamentoPacote) {
-      numeroWhatsApp = agendamentoDia.agendamentoPacote.whatsapp || "";
-    }
-    numeroWhatsApp = numeroWhatsApp.replace(/\D/g, "");
-
-    return `https://api.whatsapp.com/send/?phone=55${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`;
-  };
-
 
                 <div className="space-y-1">
                   <Label htmlFor="groomer" className="text-xs">
