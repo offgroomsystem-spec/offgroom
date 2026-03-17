@@ -302,7 +302,7 @@ export default function Clientes() {
   };
 
   const addPet = () => {
-    setPets([...pets, { nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setPets([...pets, { nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
   };
 
   const removePet = (index: number) => {
