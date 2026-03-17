@@ -2054,7 +2054,26 @@ const Agendamentos = () => {
         </div>
 
         <div className="flex gap-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setFormData({
+                cliente: "",
+                pet: "",
+                raca: "",
+                whatsapp: "",
+                servico: "",
+                data: "",
+                horario: "",
+                tempoServico: "",
+                horarioTermino: "",
+                dataVenda: "",
+                numeroServicoPacote: "",
+                groomer: "",
+                taxiDog: ""
+              });
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2 h-8 text-xs">
                 <Plus className="h-3 w-3" />
