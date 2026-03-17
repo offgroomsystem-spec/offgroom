@@ -3648,7 +3648,7 @@ const Agendamentos = () => {
                             </Button> :
                       null}
                         </td>
-                        <td className="p-1.5 border text-center" style={{ backgroundColor: '#B9DFAE' }}>
+                        <td className="p-1.5 border text-center">
                           <Button
                         variant="ghost"
                         size="sm"
