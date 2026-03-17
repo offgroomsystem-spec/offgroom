@@ -3966,6 +3966,11 @@ const Agendamentos = () => {
                     <Button
                     type="button"
                     onClick={() => {
+                      const horarioTerminoCheck = editFormData.horarioTermino || calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
+                      if (horarioTerminoCheck && editFormData.horarioInicio && horarioTerminoCheck <= editFormData.horarioInicio) {
+                        toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
+                        return;
+                      }
                       if (editingAgendamento.tipo === "pacote") {
                         const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
                           editFormData.horarioInicio,
