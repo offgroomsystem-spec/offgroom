@@ -1219,6 +1219,19 @@ const Agendamentos = () => {
     return `${String(fimH).padStart(2, "0")}:${String(fimM).padStart(2, "0")}`;
   };
 
+  // Calcular tempo de serviço (inverso do calcularHorarioTermino)
+  const calcularTempoServico = (inicio: string, fim: string): string => {
+    if (!inicio || !fim) return "";
+    const [inicioH, inicioM] = inicio.split(":").map(Number);
+    const [fimH, fimM] = fim.split(":").map(Number);
+    if (isNaN(inicioH) || isNaN(inicioM) || isNaN(fimH) || isNaN(fimM)) return "";
+    let diffMinutos = (fimH * 60 + fimM) - (inicioH * 60 + inicioM);
+    if (diffMinutos <= 0) return "";
+    const h = Math.floor(diffMinutos / 60);
+    const m = diffMinutos % 60;
+    return `${h}:${String(m).padStart(2, "0")}`;
+  };
+
   // Atualizar serviço individual
   const handleServicoAgendamentoChange = (index: number, field: keyof ServicoAgendamento, value: string) => {
     const updated = [...servicosAgendamento];
