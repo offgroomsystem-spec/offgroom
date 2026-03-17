@@ -2910,7 +2910,7 @@ const Agendamentos = () => {
 
               {editandoAgendamento &&
               <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     <div className="space-y-1">
                       <Label className="text-xs">Data do Agendamento</Label>
                       <Input
@@ -2926,25 +2926,40 @@ const Agendamentos = () => {
                     
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Horário do Agendamento</Label>
+                      <Label className="text-xs">Horário de Início</Label>
                       <TimeInput
                       value={editandoAgendamento.horarioInicio}
                       onChange={(value) => {
-                        const horarioTermino = calcularHorarioTermino(value, editandoAgendamento.tempoServico);
+                        const horarioTermino = editandoAgendamento.tempoServico ? calcularHorarioTermino(value, editandoAgendamento.tempoServico) : editandoAgendamento.horarioTermino;
+                        const tempoServico = !editandoAgendamento.tempoServico && editandoAgendamento.horarioTermino ? calcularTempoServico(value, editandoAgendamento.horarioTermino) : editandoAgendamento.tempoServico;
                         setEditandoAgendamento({
                           ...editandoAgendamento,
                           horarioInicio: value,
-                          horarioTermino
+                          horarioTermino,
+                          tempoServico
                         });
                       }}
                       className="h-8 text-xs" />
                     
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs">Tempo de Serviço *</Label>
+                      <Label className="text-xs">Horário de Fim</Label>
+                      <TimeInput
+                      value={editandoAgendamento.horarioTermino || ""}
+                      onChange={(value) => {
+                        const tempoServico = editandoAgendamento.horarioInicio ? calcularTempoServico(editandoAgendamento.horarioInicio, value) : "";
+                        setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          horarioTermino: value,
+                          tempoServico
+                        });
+                      }}
+                      placeholder="00:00"
+                      className="h-8 text-xs" />
+                    
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tempo de Serviço</Label>
                       <TimeInput
                       value={editandoAgendamento.tempoServico}
                       onChange={(value) => {
@@ -2958,15 +2973,6 @@ const Agendamentos = () => {
                       placeholder="0:00"
                       className="h-8 text-xs"
                       allowSingleDigitHour={true} />
-                    
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs">Horário de Término</Label>
-                      <Input
-                      value={editandoAgendamento.horarioTermino || "--:--"}
-                      readOnly
-                      className="h-8 text-xs bg-secondary cursor-not-allowed" />
                     
                     </div>
                   </div>
