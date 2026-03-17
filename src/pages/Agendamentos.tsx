@@ -459,6 +459,7 @@ const Agendamentos = () => {
     data: "",
     horarioInicio: "",
     tempoServico: "",
+    horarioTermino: "",
     servico: ""
   });
   const [formData, setFormData] = useState({
