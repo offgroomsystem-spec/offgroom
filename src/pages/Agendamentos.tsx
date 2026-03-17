@@ -1037,8 +1037,8 @@ const Agendamentos = () => {
       toast.error("Favor preencher o Horário de Início do Serviço");
       return;
     }
-    if (!formData.tempoServico) {
-      toast.error("Favor preencher o Tempo do Serviço");
+    if (!formData.tempoServico && !formData.horarioTermino) {
+      toast.error("Favor preencher o Tempo do Serviço ou o Horário de Fim do Serviço");
       return;
     }
     if (!formData.dataVenda) {
