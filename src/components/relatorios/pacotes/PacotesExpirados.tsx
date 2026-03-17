@@ -242,7 +242,19 @@ Aguardamos seu retorno.`;
         }
       }
 
-      setPacotes(pacotesExpiradosLista);
+      // Deduplicar por cliente+pet, mantendo o mais recente
+      const deduplicado = new Map<string, PacoteExpirado>();
+      for (const pacote of pacotesExpiradosLista) {
+        const chave = `${pacote.nomeCliente.trim().toLowerCase()}_${pacote.nomePet.trim().toLowerCase()}`;
+        const existente = deduplicado.get(chave);
+        if (!existente || 
+            (pacote.dataUltimoAgendamento && existente.dataUltimoAgendamento && 
+             pacote.dataUltimoAgendamento > existente.dataUltimoAgendamento) ||
+            (pacote.dataUltimoAgendamento && !existente.dataUltimoAgendamento)) {
+          deduplicado.set(chave, pacote);
+        }
+      }
+      setPacotes(Array.from(deduplicado.values()));
     } catch (error) {
       console.error("Erro ao carregar pacotes expirados:", error);
       toast.error("Erro ao carregar pacotes expirados");
