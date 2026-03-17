@@ -1060,6 +1060,11 @@ const Agendamentos = () => {
 
     const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
+    if (horarioTermino && formData.horario && horarioTermino <= formData.horario) {
+      toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
+      return;
+    }
+
     // Criar string concatenada para exibição no calendário
     const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
 
