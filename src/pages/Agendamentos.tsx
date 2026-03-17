@@ -3598,7 +3598,7 @@ const Agendamentos = () => {
                       <th className="p-1.5 border text-left w-[50px]">N° PCT</th>
                       <th className="p-1.5 border text-left w-[30px]">Taxi Dog</th>
                       <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
-                      <th className="p-1.5 border text-center w-[45px]" style={{ backgroundColor: '#B9DFAE' }}>Pet Pronto</th>
+                      <th className="p-1.5 border text-center w-[45px]">Pet Pronto</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3648,7 +3648,7 @@ const Agendamentos = () => {
                             </Button> :
                       null}
                         </td>
-                        <td className="p-1.5 border text-center" style={{ backgroundColor: '#B9DFAE' }}>
+                        <td className="p-1.5 border text-center">
                           <Button
                         variant="ghost"
                         size="sm"
