@@ -281,6 +281,7 @@ export default function Clientes() {
           nome_pet: pet.nome_pet,
           porte: pet.porte,
           raca: pet.raca,
+          sexo: pet.sexo || null,
           observacao: pet.observacao || "",
         }));
 
