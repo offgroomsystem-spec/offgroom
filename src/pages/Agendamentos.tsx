@@ -9,8 +9,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  DialogTrigger } from
+"@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus,
@@ -25,8 +25,8 @@ import {
   Search,
   Check,
   ChevronsUpDown,
-  X,
-} from "lucide-react";
+  X } from
+"lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -44,8 +44,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogTitle } from
+"@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos } from "@/hooks/useCriarLancamentoAutomatico";
@@ -81,7 +81,7 @@ interface ServicoAgendamento {
   horarioInicio: string;
   tempoServico: string; // Agora em formato hh:mm
   horarioTermino: string;
-  servicosExtras?: { id: string; nome: string; valor: number }[];
+  servicosExtras?: {id: string;nome: string;valor: number;}[];
 }
 interface AgendamentoPacote {
   id: string;
@@ -176,26 +176,26 @@ interface AgendamentoUnificado {
 }
 
 // Componente auxiliar para combobox de serviço extra
-const ServicoExtraCombobox = ({ 
-  extra, 
-  index, 
-  servicos, 
-  onSelect 
-}: { 
-  extra: { id: string; nome: string; valor: number }; 
-  index: number;
-  servicos: Servico[];
-  onSelect: (servico: Servico) => void;
-}) => {
+const ServicoExtraCombobox = ({
+  extra,
+  index,
+  servicos,
+  onSelect
+
+
+
+
+
+}: {extra: {id: string;nome: string;valor: number;};index: number;servicos: Servico[];onSelect: (servico: Servico) => void;}) => {
   const [open, setOpen] = useState(false);
-  
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="flex-1 h-8 text-xs justify-between"
-        >
+          className="flex-1 h-8 text-xs justify-between">
+          
           {extra.nome || "Selecione serviço extra..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -205,29 +205,29 @@ const ServicoExtraCombobox = ({
           <CommandInput placeholder="Buscar serviço..." className="h-9" />
           <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
           <CommandGroup className="max-h-[200px] overflow-y-auto">
-            {servicos.map((s) => (
-              <CommandItem
-                key={s.id}
-                value={s.nome}
-                onSelect={() => {
-                  onSelect(s);
-                  setOpen(false);
-                }}
-              >
+            {servicos.map((s) =>
+            <CommandItem
+              key={s.id}
+              value={s.nome}
+              onSelect={() => {
+                onSelect(s);
+                setOpen(false);
+              }}>
+              
                 <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    extra.nome === s.nome ? "opacity-100" : "opacity-0"
-                  )}
-                />
+                className={cn(
+                  "mr-2 h-4 w-4",
+                  extra.nome === s.nome ? "opacity-100" : "opacity-0"
+                )} />
+              
                 {s.nome} - R$ {s.valor?.toFixed(2)}
               </CommandItem>
-            ))}
+            )}
           </CommandGroup>
         </Command>
       </PopoverContent>
-    </Popover>
-  );
+    </Popover>);
+
 };
 
 const Agendamentos = () => {
@@ -250,7 +250,7 @@ const Agendamentos = () => {
     return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "long",
-      year: "numeric",
+      year: "numeric"
     });
   };
 
@@ -263,10 +263,10 @@ const Agendamentos = () => {
 
   // Função para normalizar porte (ignora capitalização e acentos)
   const normalizarPorte = (porte: string): string => {
-    return porte
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    return porte.
+    toLowerCase().
+    normalize("NFD").
+    replace(/[\u0300-\u036f]/g, "");
   };
 
   const [empresaConfig, setEmpresaConfig] = useState<EmpresaConfig>({
@@ -280,8 +280,8 @@ const Agendamentos = () => {
       quarta: true,
       quinta: true,
       sexta: true,
-      sabado: false,
-    },
+      sabado: false
+    }
   });
 
   // Load agendamentos from Supabase
@@ -289,12 +289,12 @@ const Agendamentos = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from("agendamentos")
-        .select("*")
-        .eq("user_id", ownerId)
-        .order("data", { ascending: true })
-        .order("horario", { ascending: true });
+      const { data, error } = await supabase.
+      from("agendamentos").
+      select("*").
+      eq("user_id", ownerId).
+      order("data", { ascending: true }).
+      order("horario", { ascending: true });
 
       if (error) throw error;
 
@@ -313,7 +313,7 @@ const Agendamentos = () => {
         groomer: ag.groomer,
         taxiDog: ag.taxi_dog,
         status: ag.status as "confirmado" | "pendente" | "concluido",
-        numeroServicoPacote: ag.numero_servico_pacote || undefined,
+        numeroServicoPacote: ag.numero_servico_pacote || undefined
       }));
 
       setAgendamentos(agendamentosFormatados);
@@ -338,10 +338,10 @@ const Agendamentos = () => {
       }
 
       // Load clientes
-      const { data: clientesData, error: clientesError } = await supabase
-        .from("clientes")
-        .select("id, nome_cliente, whatsapp, endereco, observacao")
-        .eq("user_id", ownerId);
+      const { data: clientesData, error: clientesError } = await supabase.
+      from("clientes").
+      select("id, nome_cliente, whatsapp, endereco, observacao").
+      eq("user_id", ownerId);
 
       if (clientesError) throw clientesError;
 
@@ -362,11 +362,11 @@ const Agendamentos = () => {
             porte: pet.porte,
             raca: pet.raca,
             observacao: pet.observacao || "",
-            sexo: pet.sexo || "",
+            sexo: pet.sexo || ""
           });
           return acc;
         },
-        {} as Record<string, Pet[]>,
+        {} as Record<string, Pet[]>
       );
 
       // Montar estrutura final
@@ -376,7 +376,7 @@ const Agendamentos = () => {
         whatsapp: c.whatsapp,
         endereco: c.endereco || "",
         observacao: c.observacao || "",
-        pets: petsPorCliente[c.id] || [],
+        pets: petsPorCliente[c.id] || []
       }));
 
       setClientes(clientesComPets);
@@ -393,8 +393,8 @@ const Agendamentos = () => {
             validade: p.validade,
             descontoPercentual: Number(p.desconto_percentual),
             descontoValor: Number(p.desconto_valor),
-            valorFinal: Number(p.valor_final),
-          })),
+            valorFinal: Number(p.valor_final)
+          }))
         );
       }
 
@@ -407,17 +407,17 @@ const Agendamentos = () => {
             id: s.id,
             nome: s.nome,
             valor: Number(s.valor),
-            porte: s.porte || "",
-          })),
+            porte: s.porte || ""
+          }))
         );
       }
 
       // Load empresa config
-      const { data: empresaData } = await (supabase as any)
-        .from("empresa_config")
-        .select("*")
-        .eq("user_id", ownerId)
-        .single();
+      const { data: empresaData } = await (supabase as any).
+      from("empresa_config").
+      select("*").
+      eq("user_id", ownerId).
+      single();
 
       if (empresaData) {
         const empresa = empresaData as any;
@@ -432,8 +432,8 @@ const Agendamentos = () => {
             quarta: true,
             quinta: true,
             sexta: true,
-            sabado: false,
-          },
+            sabado: false
+          }
         });
       }
     } catch (error) {
@@ -459,7 +459,7 @@ const Agendamentos = () => {
     data: "",
     horarioInicio: "",
     tempoServico: "",
-    servico: "",
+    servico: ""
   });
   const [formData, setFormData] = useState({
     cliente: "",
@@ -474,7 +474,7 @@ const Agendamentos = () => {
     dataVenda: "",
     numeroServicoPacote: "",
     groomer: "",
-    taxiDog: "",
+    taxiDog: ""
   });
 
   // Filtrar serviços pelo porte do pet selecionado (agendamento simples)
@@ -482,12 +482,12 @@ const Agendamentos = () => {
     if (!formData.raca || !formData.pet) {
       return servicos;
     }
-    
+
     let portePet = "";
-    
+
     // Se o cliente está selecionado, buscar apenas nos pets desse cliente
     if (formData.cliente) {
-      const clientesComMesmoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
+      const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
       for (const cliente of clientesComMesmoNome) {
         const pet = cliente.pets.find(
           (p) => p.nome === formData.pet && p.raca === formData.raca
@@ -498,7 +498,7 @@ const Agendamentos = () => {
         }
       }
     }
-    
+
     // Fallback: buscar em todos os clientes
     if (!portePet) {
       for (const cliente of clientes) {
@@ -511,11 +511,11 @@ const Agendamentos = () => {
         }
       }
     }
-    
+
     if (!portePet) {
       return servicos;
     }
-    
+
     const porteNormalizado = normalizarPorte(portePet);
     return servicos.filter(
       (s) => normalizarPorte(s.porte) === porteNormalizado
@@ -526,11 +526,11 @@ const Agendamentos = () => {
   const [dataVendaManual, setDataVendaManual] = useState(false);
   const [openServicoCombobox, setOpenServicoCombobox] = useState(false);
   const [openEditServicoCombobox, setOpenEditServicoCombobox] = useState(false);
-  
+
   // Estado para múltiplos serviços no agendamento simples
   const [servicosSelecionadosSimples, setServicosSelecionadosSimples] = useState<ServicoAgendamentoSimples[]>([
-    { instanceId: crypto.randomUUID(), nome: "", valor: 0 }
-  ]);
+  { instanceId: crypto.randomUUID(), nome: "", valor: 0 }]
+  );
   const [openServicoComboboxIndex, setOpenServicoComboboxIndex] = useState<number | null>(null);
   const [pacoteFormData, setPacoteFormData] = useState({
     nomeCliente: "",
@@ -539,7 +539,7 @@ const Agendamentos = () => {
     whatsapp: "",
     nomePacote: "",
     taxiDog: "",
-    dataVenda: "",
+    dataVenda: ""
   });
   const [servicosAgendamento, setServicosAgendamento] = useState<ServicoAgendamento[]>([]);
 
@@ -570,22 +570,22 @@ const Agendamentos = () => {
     nomeCliente: "",
     dataAgendada: "",
     dataVenda: "",
-    nomePacote: "",
+    nomePacote: ""
   });
   const [filtrosAplicados, setFiltrosAplicados] = useState({
     nomePet: "",
     nomeCliente: "",
     dataAgendada: "",
     dataVenda: "",
-    nomePacote: "",
+    nomePacote: ""
   });
   const [editandoAgendamento, setEditandoAgendamento] = useState<AgendamentoUnificado | null>(null);
   const [editDialogGerenciamento, setEditDialogGerenciamento] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [agendamentoParaDeletar, setAgendamentoParaDeletar] = useState<AgendamentoUnificado | null>(null);
-  
+
   // Estados para edição de serviços extras
-  const [servicosExtrasEdicao, setServicosExtrasEdicao] = useState<{id: string; nome: string; valor: number}[]>([]);
+  const [servicosExtrasEdicao, setServicosExtrasEdicao] = useState<{id: string;nome: string;valor: number;}[]>([]);
   const [openServicoEdicao, setOpenServicoEdicao] = useState(false);
   const [servicoPrincipalEdicao, setServicoPrincipalEdicao] = useState("");
 
@@ -594,11 +594,11 @@ const Agendamentos = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from("agendamentos_pacotes")
-        .select("*")
-        .eq("user_id", ownerId)
-        .order("data_venda", { ascending: false });
+      const { data, error } = await supabase.
+      from("agendamentos_pacotes").
+      select("*").
+      eq("user_id", ownerId).
+      order("data_venda", { ascending: false });
 
       if (error) throw error;
 
@@ -611,7 +611,7 @@ const Agendamentos = () => {
         nomePacote: ap.nome_pacote,
         taxiDog: ap.taxi_dog,
         dataVenda: ap.data_venda,
-        servicos: ap.servicos || [],
+        servicos: ap.servicos || []
       }));
 
       setAgendamentosPacotes(pacotesFormatados);
@@ -636,10 +636,10 @@ const Agendamentos = () => {
     if (clienteSearch.length >= 2) {
       const matches = Array.from(
         new Set(
-          clientes
-            .filter((c) => c.nomeCliente.toLowerCase().startsWith(clienteSearch.toLowerCase()))
-            .map((c) => c.nomeCliente),
-        ),
+          clientes.
+          filter((c) => c.nomeCliente.toLowerCase().startsWith(clienteSearch.toLowerCase())).
+          map((c) => c.nomeCliente)
+        )
       );
       setFilteredClientes(matches);
     } else {
@@ -677,10 +677,10 @@ const Agendamentos = () => {
     if (simpleClienteSearch.length >= 2) {
       const matches = Array.from(
         new Set(
-          clientes
-            .filter((c) => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase()))
-            .map((c) => c.nomeCliente),
-        ),
+          clientes.
+          filter((c) => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase())).
+          map((c) => c.nomeCliente)
+        )
       );
       setSimpleFilteredClientes(matches);
     } else {
@@ -721,20 +721,20 @@ const Agendamentos = () => {
     if (clientesComMesmoNome.length > 0) {
       // Pegar o primeiro cliente para definir whatsapp (poderia ser qualquer um)
       const primeiroCliente = clientesComMesmoNome[0];
-      
+
       setPacoteFormData({
         ...pacoteFormData,
         nomeCliente,
         nomePet: "",
         raca: "",
-        whatsapp: primeiroCliente.whatsapp,
+        whatsapp: primeiroCliente.whatsapp
       });
 
       // Coletar pets de TODOS os clientes com esse nome
-      const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) => 
-        cliente.pets.map((p) => p.nome)
+      const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) =>
+      cliente.pets.map((p) => p.nome)
       );
-      
+
       setFilteredPets(todosPetsDoNome);
       setFilteredClientes([]);
       setAvailableRacas([]);
@@ -749,11 +749,11 @@ const Agendamentos = () => {
     if (searchStartedWith === "cliente" || pacoteFormData.nomeCliente) {
       // Buscar TODOS os clientes com esse nome
       const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === pacoteFormData.nomeCliente);
-      
+
       // Encontrar qual cliente específico possui esse pet
       let clienteCorreto: Cliente | undefined;
       let petEncontrado: Pet | undefined;
-      
+
       for (const cliente of clientesComMesmoNome) {
         const pet = cliente.pets.find((p) => p.nome === nomePet);
         if (pet) {
@@ -769,7 +769,7 @@ const Agendamentos = () => {
           ...pacoteFormData,
           nomePet,
           raca: petEncontrado.raca,
-          whatsapp: clienteCorreto.whatsapp,
+          whatsapp: clienteCorreto.whatsapp
         });
       }
     } else {
@@ -792,7 +792,7 @@ const Agendamentos = () => {
         nomePet,
         nomeCliente: "",
         raca: "",
-        whatsapp: "",
+        whatsapp: ""
       });
     }
     setFilteredPets([]);
@@ -806,7 +806,7 @@ const Agendamentos = () => {
     if (pacoteFormData.nomeCliente) {
       // Buscar TODOS os clientes com esse nome
       const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === pacoteFormData.nomeCliente);
-      
+
       for (const cliente of clientesComMesmoNome) {
         const pet = cliente.pets.find((p) => p.nome === pacoteFormData.nomePet && p.raca === raca);
         if (pet) {
@@ -817,7 +817,7 @@ const Agendamentos = () => {
       }
     } else if (pacoteFormData.nomePet) {
       clienteCorreto = clientes.find((c) =>
-        c.pets.some((p) => p.nome === pacoteFormData.nomePet && p.raca === raca),
+      c.pets.some((p) => p.nome === pacoteFormData.nomePet && p.raca === raca)
       );
 
       if (clienteCorreto) {
@@ -831,7 +831,7 @@ const Agendamentos = () => {
         nomeCliente: clienteCorreto.nomeCliente,
         nomePet: petEncontrado.nome,
         raca: petEncontrado.raca,
-        whatsapp: clienteCorreto.whatsapp,
+        whatsapp: clienteCorreto.whatsapp
       });
       setClienteSearch(clienteCorreto.nomeCliente);
       setPetSearch(petEncontrado.nome);
@@ -852,20 +852,20 @@ const Agendamentos = () => {
     if (clientesComMesmoNome.length > 0) {
       // Pegar o primeiro cliente para definir whatsapp (poderia ser qualquer um)
       const primeiroCliente = clientesComMesmoNome[0];
-      
+
       setFormData({
         ...formData,
         cliente: nomeCliente,
         pet: "",
         raca: "",
-        whatsapp: primeiroCliente.whatsapp,
+        whatsapp: primeiroCliente.whatsapp
       });
 
       // Coletar pets de TODOS os clientes com esse nome
-      const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) => 
-        cliente.pets.map((p) => p.nome)
+      const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) =>
+      cliente.pets.map((p) => p.nome)
       );
-      
+
       setSimpleFilteredPets(todosPetsDoNome);
       setSimpleFilteredClientes([]);
       setSimpleAvailableRacas([]);
@@ -880,11 +880,11 @@ const Agendamentos = () => {
     if (simpleSearchStartedWith === "cliente" || formData.cliente) {
       // Buscar TODOS os clientes com esse nome
       const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
-      
+
       // Encontrar qual cliente específico possui esse pet
       let clienteCorreto: Cliente | undefined;
       let petEncontrado: Pet | undefined;
-      
+
       for (const cliente of clientesComMesmoNome) {
         const pet = cliente.pets.find((p) => p.nome === nomePet);
         if (pet) {
@@ -900,7 +900,7 @@ const Agendamentos = () => {
           ...formData,
           pet: nomePet,
           raca: petEncontrado.raca,
-          whatsapp: clienteCorreto.whatsapp,
+          whatsapp: clienteCorreto.whatsapp
         });
       }
     } else {
@@ -923,7 +923,7 @@ const Agendamentos = () => {
         pet: nomePet,
         cliente: "",
         raca: "",
-        whatsapp: "",
+        whatsapp: ""
       });
     }
     setSimpleFilteredPets([]);
@@ -937,7 +937,7 @@ const Agendamentos = () => {
     if (formData.cliente) {
       // Buscar TODOS os clientes com esse nome
       const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
-      
+
       for (const cliente of clientesComMesmoNome) {
         const pet = cliente.pets.find((p) => p.nome === formData.pet && p.raca === raca);
         if (pet) {
@@ -960,7 +960,7 @@ const Agendamentos = () => {
         cliente: clienteCorreto.nomeCliente,
         pet: petEncontrado.nome,
         raca: petEncontrado.raca,
-        whatsapp: clienteCorreto.whatsapp,
+        whatsapp: clienteCorreto.whatsapp
       });
       setSimpleClienteSearch(clienteCorreto.nomeCliente);
       setSimplePetSearch(petEncontrado.nome);
@@ -977,7 +977,7 @@ const Agendamentos = () => {
     if (formData.data && !dataVendaManual) {
       setFormData((prev) => ({
         ...prev,
-        dataVenda: formData.data,
+        dataVenda: formData.data
       }));
     }
   }, [formData.data, dataVendaManual]);
@@ -988,24 +988,24 @@ const Agendamentos = () => {
     const sunday = new Date(today.setDate(diff));
     return Array.from(
       {
-        length: 7,
+        length: 7
       },
       (_, i) => {
         const date = new Date(sunday);
         date.setDate(sunday.getDate() + i);
         return date;
-      },
+      }
     );
   };
   const weekDates = getWeekDates();
-  
+
   // Filtrar apenas dias de funcionamento
   const filteredWeekDates = weekDates.filter((date) => {
     const dayIndex = date.getDay();
     const dayName = mapDiaSemana[dayIndex];
     return empresaConfig.diasFuncionamento[dayName];
   });
-  
+
   // Funções para buscar TODOS os agendamentos de um slot
   const getAllAgendamentosForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
@@ -1015,7 +1015,7 @@ const Agendamentos = () => {
   const getAllPacotesForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     return agendamentosPacotes.filter((p) =>
-      p.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario)
+    p.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario)
     );
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1055,7 +1055,7 @@ const Agendamentos = () => {
     }
 
     const horarioTermino = calcularHorarioTermino(formData.horario, formData.tempoServico);
-    
+
     // Criar string concatenada para exibição no calendário
     const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
 
@@ -1063,25 +1063,25 @@ const Agendamentos = () => {
     try {
       // Inserir agendamento e obter o ID
       const { data: agendamentoData, error } = await supabase.from("agendamentos").insert([
-        {
-          user_id: ownerId,
-          cliente: formData.cliente,
-          pet: formData.pet,
-          raca: formData.raca,
-          whatsapp: formData.whatsapp,
-          servico: servicosNomes, // Ex: "Banho + Tosa"
-          servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })), // Array JSON
-          data: formData.data,
-          horario: formData.horario,
-          tempo_servico: formData.tempoServico,
-          horario_termino: horarioTermino,
-          data_venda: formData.dataVenda,
-          numero_servico_pacote: formData.numeroServicoPacote || null,
-          groomer: formData.groomer,
-          taxi_dog: formData.taxiDog,
-          status: "confirmado",
-        },
-      ]).select("id").single();
+      {
+        user_id: ownerId,
+        cliente: formData.cliente,
+        pet: formData.pet,
+        raca: formData.raca,
+        whatsapp: formData.whatsapp,
+        servico: servicosNomes, // Ex: "Banho + Tosa"
+        servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })), // Array JSON
+        data: formData.data,
+        horario: formData.horario,
+        tempo_servico: formData.tempoServico,
+        horario_termino: horarioTermino,
+        data_venda: formData.dataVenda,
+        numero_servico_pacote: formData.numeroServicoPacote || null,
+        groomer: formData.groomer,
+        taxi_dog: formData.taxiDog,
+        status: "confirmado"
+      }]
+      ).select("id").single();
 
       if (error) throw error;
 
@@ -1093,7 +1093,7 @@ const Agendamentos = () => {
         servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
         dataAgendamento: formData.data,
         dataVenda: formData.dataVenda,
-        ownerId: ownerId || user.id,
+        ownerId: ownerId || user.id
       });
 
       toast.success("Agendamento criado com sucesso!");
@@ -1120,7 +1120,7 @@ const Agendamentos = () => {
       dataVenda: "",
       numeroServicoPacote: "",
       groomer: "",
-      taxiDog: "",
+      taxiDog: ""
     });
     setIsPacoteSelecionado(false);
     setDataVendaManual(false);
@@ -1142,7 +1142,7 @@ const Agendamentos = () => {
       whatsapp: "",
       nomePacote: "",
       taxiDog: "",
-      dataVenda: "",
+      dataVenda: ""
     });
     setServicosAgendamento([]);
     setClienteSearch("");
@@ -1157,9 +1157,9 @@ const Agendamentos = () => {
   // Funções para gerenciar múltiplos serviços no agendamento simples
   const adicionarServicoSimples = () => {
     setServicosSelecionadosSimples([
-      ...servicosSelecionadosSimples,
-      { instanceId: crypto.randomUUID(), nome: "", valor: 0 }
-    ]);
+    ...servicosSelecionadosSimples,
+    { instanceId: crypto.randomUUID(), nome: "", valor: 0 }]
+    );
   };
 
   const removerServicoSimples = (instanceId: string) => {
@@ -1174,9 +1174,9 @@ const Agendamentos = () => {
     const servicoEncontrado = servicos.find((s) => s.nome === servicoNome);
     setServicosSelecionadosSimples(
       servicosSelecionadosSimples.map((s) =>
-        s.instanceId === instanceId
-          ? { ...s, nome: servicoNome, valor: servicoEncontrado?.valor || 0 }
-          : s
+      s.instanceId === instanceId ?
+      { ...s, nome: servicoNome, valor: servicoEncontrado?.valor || 0 } :
+      s
       )
     );
     setOpenServicoComboboxIndex(null);
@@ -1185,7 +1185,7 @@ const Agendamentos = () => {
   const handlePacoteSelect = (nomePacote: string) => {
     setPacoteFormData({
       ...pacoteFormData,
-      nomePacote,
+      nomePacote
     });
     const pacoteSelecionado = pacotes.find((p) => p.nome === nomePacote);
     if (pacoteSelecionado) {
@@ -1201,7 +1201,7 @@ const Agendamentos = () => {
           horarioInicio: "",
           tempoServico: "",
           horarioTermino: "",
-          servicosExtras: extras,
+          servicosExtras: extras
         };
       });
       setServicosAgendamento(servicosInit);
@@ -1224,7 +1224,7 @@ const Agendamentos = () => {
     const updated = [...servicosAgendamento];
     updated[index] = {
       ...updated[index],
-      [field]: value,
+      [field]: value
     };
 
     // Calcular horário de término
@@ -1303,32 +1303,32 @@ const Agendamentos = () => {
     setSalvando(true);
     try {
       const { error } = await supabase.from("agendamentos_pacotes").insert([
-        {
-          user_id: ownerId,
-          nome_cliente: pacoteFormData.nomeCliente,
-          nome_pet: pacoteFormData.nomePet,
-          raca: pacoteFormData.raca,
-          whatsapp: pacoteFormData.whatsapp,
-          nome_pacote: pacoteFormData.nomePacote,
-          taxi_dog: pacoteFormData.taxiDog,
-          data_venda: pacoteFormData.dataVenda,
-          servicos: servicosAgendamento as any,
-        },
-      ]);
+      {
+        user_id: ownerId,
+        nome_cliente: pacoteFormData.nomeCliente,
+        nome_pet: pacoteFormData.nomePet,
+        raca: pacoteFormData.raca,
+        whatsapp: pacoteFormData.whatsapp,
+        nome_pacote: pacoteFormData.nomePacote,
+        taxi_dog: pacoteFormData.taxiDog,
+        data_venda: pacoteFormData.dataVenda,
+        servicos: servicosAgendamento as any
+      }]
+      );
 
       if (error) throw error;
 
       // Automação: criar lançamento financeiro automaticamente
       // Usar a primeira data de serviço para definir mês/ano
       const primeiraDataServico = servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
-      
+
       criarLancamentoFinanceiroPacote({
         nomeCliente: pacoteFormData.nomeCliente,
         nomePet: pacoteFormData.nomePet,
         nomePacote: pacoteFormData.nomePacote,
         dataVenda: pacoteFormData.dataVenda,
         primeiraDataServico: primeiraDataServico,
-        ownerId: ownerId || "",
+        ownerId: ownerId || ""
       });
 
       toast.success("Pacote agendado com sucesso!");
@@ -1384,11 +1384,11 @@ const Agendamentos = () => {
   const gerarMensagemWhatsApp = (pacote: AgendamentoPacote, servico: ServicoAgendamento) => {
     const primeiroNomeCliente = pacote.nomeCliente.split(" ")[0];
     const nomeClienteFormatado =
-      primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
+    primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
     const primeiroNomePet = pacote.nomePet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
     const dataFormatada = new Date(servico.data + "T00:00:00").toLocaleDateString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
+      timeZone: "America/Sao_Paulo"
     });
 
     const isUltimoServico = servico.numero.split("/")[0] === servico.numero.split("/")[1];
@@ -1420,11 +1420,11 @@ const Agendamentos = () => {
   const gerarMensagemWhatsAppSimples = (agendamento: Agendamento) => {
     const primeiroNomeCliente = agendamento.cliente.split(" ")[0];
     const nomeClienteFormatado =
-      primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
+    primeiroNomeCliente.charAt(0).toUpperCase() + primeiroNomeCliente.slice(1).toLowerCase();
     const primeiroNomePet = agendamento.pet.split(" ")[0];
     const nomePetFormatado = primeiroNomePet.charAt(0).toUpperCase() + primeiroNomePet.slice(1).toLowerCase();
     const dataFormatada = new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
+      timeZone: "America/Sao_Paulo"
     });
 
     let mensagem = `Oii, ${nomeClienteFormatado}! Passando apenas para confirmar o agendamento de ${nomePetFormatado} com a gente.\n`;
@@ -1489,7 +1489,7 @@ const Agendamentos = () => {
     const nomePet = capitalizarPrimeiraLetra(agendamento.pet);
     const nomeServico = capitalizarPrimeiraLetra(agendamento.servico);
     const dataFormatada = new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
+      timeZone: "America/Sao_Paulo"
     });
 
     const horarioFormatado = agendamento.horario.substring(0, 5); // HH:MM
@@ -1522,7 +1522,7 @@ const Agendamentos = () => {
     const nomePet = capitalizarPrimeiraLetra(pacote.nomePet);
     const nomePacote = capitalizarPrimeiraLetra(pacote.nomePacote);
     const dataFormatada = new Date(servico.data + "T00:00:00").toLocaleDateString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
+      timeZone: "America/Sao_Paulo"
     });
 
     const horarioFormatado = servico.horarioInicio.substring(0, 5); // HH:MM
@@ -1556,13 +1556,13 @@ const Agendamentos = () => {
       await navigator.clipboard.writeText(url);
       toast.success("✅ Link copiado!", {
         description: "Cole no navegador (Ctrl+V) para abrir o WhatsApp",
-        duration: 5000,
+        duration: 5000
       });
     } catch (error) {
       console.error("Erro ao copiar link:", error);
       toast.error("⚠️ Não foi possível copiar", {
         description: "Tente novamente ou copie manualmente",
-        duration: 4000,
+        duration: 4000
       });
     }
   };
@@ -1638,48 +1638,48 @@ const Agendamentos = () => {
   // Obter agendamentos do dia para Gantt
   const getAgendamentosDia = () => {
     const dateStr = selectedDate;
-    const agendamentosSimples = agendamentos
-      .filter((a) => a.data === dateStr)
-      .map((a) => ({
-        tipo: "simples" as const,
-        horarioInicio: a.horario,
-        horarioFim: a.horarioTermino || a.horario,
-        cliente: a.cliente,
-        pet: a.pet,
-        raca: a.raca,
-        servico: a.servico,
-        pacote: null,
-        numeroPacote: null,
-        taxiDog: a.taxiDog,
-        agendamento: a,
-        agendamentoOriginal: a,
-      }));
+    const agendamentosSimples = agendamentos.
+    filter((a) => a.data === dateStr).
+    map((a) => ({
+      tipo: "simples" as const,
+      horarioInicio: a.horario,
+      horarioFim: a.horarioTermino || a.horario,
+      cliente: a.cliente,
+      pet: a.pet,
+      raca: a.raca,
+      servico: a.servico,
+      pacote: null,
+      numeroPacote: null,
+      taxiDog: a.taxiDog,
+      agendamento: a,
+      agendamentoOriginal: a
+    }));
     const agendamentosPacote = agendamentosPacotes.flatMap((p) =>
-      p.servicos
-        .filter((s) => s.data === dateStr)
-        .map((s) => {
-          // Montar nome do serviço com extras
-          const extras = (s as any).servicosExtras || [];
-          const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
-          const servicoCompleto = nomesExtras 
-            ? `${s.nomeServico} + ${nomesExtras}` 
-            : s.nomeServico;
-          
-          return {
-            tipo: "pacote" as const,
-            horarioInicio: s.horarioInicio,
-            horarioFim: s.horarioTermino,
-            cliente: p.nomeCliente,
-            pet: p.nomePet,
-            raca: p.raca,
-            servico: servicoCompleto,
-            pacote: p.nomePacote,
-            numeroPacote: s.numero,
-            taxiDog: p.taxiDog,
-            agendamentoPacote: p,
-            servicoAgendamento: s,
-          };
-        }),
+    p.servicos.
+    filter((s) => s.data === dateStr).
+    map((s) => {
+      // Montar nome do serviço com extras
+      const extras = (s as any).servicosExtras || [];
+      const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
+      const servicoCompleto = nomesExtras ?
+      `${s.nomeServico} + ${nomesExtras}` :
+      s.nomeServico;
+
+      return {
+        tipo: "pacote" as const,
+        horarioInicio: s.horarioInicio,
+        horarioFim: s.horarioTermino,
+        cliente: p.nomeCliente,
+        pet: p.nomePet,
+        raca: p.raca,
+        servico: servicoCompleto,
+        pacote: p.nomePacote,
+        numeroPacote: s.numero,
+        taxiDog: p.taxiDog,
+        agendamentoPacote: p,
+        servicoAgendamento: s
+      };
+    })
     );
     return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
       return a.horarioInicio.localeCompare(b.horarioInicio);
@@ -1706,38 +1706,38 @@ const Agendamentos = () => {
       whatsapp: a.whatsapp,
       tempoServico: a.tempoServico || "",
       groomer: a.groomer || "",
-      agendamentoOriginal: a,
+      agendamentoOriginal: a
     }));
     const agendamentosPacote: AgendamentoUnificado[] = agendamentosPacotes.flatMap((p) =>
-      p.servicos.map((s) => {
-        // Montar nome do serviço com extras
-        const extras = (s as any).servicosExtras || [];
-        const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
-        const servicoCompleto = nomesExtras 
-          ? `${s.nomeServico} + ${nomesExtras}` 
-          : s.nomeServico;
-        
-        return {
-          id: `${p.id}-${s.numero}`,
-          tipo: "pacote" as const,
-          data: s.data,
-          horarioInicio: s.horarioInicio,
-          horarioTermino: s.horarioTermino,
-          cliente: p.nomeCliente,
-          pet: p.nomePet,
-          raca: p.raca,
-          servico: servicoCompleto,
-          nomePacote: p.nomePacote,
-          numeroPacote: s.numero,
-          taxiDog: p.taxiDog,
-          dataVenda: p.dataVenda,
-          whatsapp: p.whatsapp,
-          tempoServico: s.tempoServico,
-          groomer: "",
-          pacoteOriginal: p,
-          servicoOriginal: s,
-        };
-      }),
+    p.servicos.map((s) => {
+      // Montar nome do serviço com extras
+      const extras = (s as any).servicosExtras || [];
+      const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
+      const servicoCompleto = nomesExtras ?
+      `${s.nomeServico} + ${nomesExtras}` :
+      s.nomeServico;
+
+      return {
+        id: `${p.id}-${s.numero}`,
+        tipo: "pacote" as const,
+        data: s.data,
+        horarioInicio: s.horarioInicio,
+        horarioTermino: s.horarioTermino,
+        cliente: p.nomeCliente,
+        pet: p.nomePet,
+        raca: p.raca,
+        servico: servicoCompleto,
+        nomePacote: p.nomePacote,
+        numeroPacote: s.numero,
+        taxiDog: p.taxiDog,
+        dataVenda: p.dataVenda,
+        whatsapp: p.whatsapp,
+        tempoServico: s.tempoServico,
+        groomer: "",
+        pacoteOriginal: p,
+        servicoOriginal: s
+      };
+    })
     );
     return [...agendamentosSimples, ...agendamentosPacote].sort((a, b) => {
       const dataCompare = a.data.localeCompare(b.data);
@@ -1753,9 +1753,9 @@ const Agendamentos = () => {
         return false;
       }
       if (
-        filtrosAplicados.nomeCliente &&
-        !a.cliente.toLowerCase().includes(filtrosAplicados.nomeCliente.toLowerCase())
-      ) {
+      filtrosAplicados.nomeCliente &&
+      !a.cliente.toLowerCase().includes(filtrosAplicados.nomeCliente.toLowerCase()))
+      {
         return false;
       }
       if (filtrosAplicados.dataAgendada && a.data !== filtrosAplicados.dataAgendada) {
@@ -1765,9 +1765,9 @@ const Agendamentos = () => {
         return false;
       }
       if (
-        filtrosAplicados.nomePacote &&
-        !a.nomePacote.toLowerCase().includes(filtrosAplicados.nomePacote.toLowerCase())
-      ) {
+      filtrosAplicados.nomePacote &&
+      !a.nomePacote.toLowerCase().includes(filtrosAplicados.nomePacote.toLowerCase()))
+      {
         return false;
       }
       return true;
@@ -1789,7 +1789,7 @@ const Agendamentos = () => {
         return a.horarioInicio.localeCompare(b.horarioInicio);
       });
     },
-    [agendamentosUnificados, filtrosAplicados],
+    [agendamentosUnificados, filtrosAplicados]
   );
 
   // Contador total
@@ -1798,7 +1798,7 @@ const Agendamentos = () => {
   // Buscar
   const handleBuscar = () => {
     setFiltrosAplicados({
-      ...filtros,
+      ...filtros
     });
   };
 
@@ -1809,21 +1809,21 @@ const Agendamentos = () => {
       nomeCliente: "",
       dataAgendada: "",
       dataVenda: "",
-      nomePacote: "",
+      nomePacote: ""
     });
     setFiltrosAplicados({
       nomePet: "",
       nomeCliente: "",
       dataAgendada: "",
       dataVenda: "",
-      nomePacote: "",
+      nomePacote: ""
     });
   };
 
   // Handler para gerenciar abertura/fechamento do modal de gerenciamento
   const handleGerenciamentoOpenChange = (open: boolean) => {
     setGerenciamentoOpen(open);
-    
+
     // Se o modal está fechando, limpar todos os filtros
     if (!open) {
       limparFiltros();
@@ -1833,7 +1833,7 @@ const Agendamentos = () => {
   // Abrir edição
   const handleEditarClick = (agendamento: AgendamentoUnificado) => {
     setEditandoAgendamento(agendamento);
-    
+
     // Inicializar serviços extras a partir do agendamento
     if (agendamento.tipo === "pacote" && agendamento.servicoOriginal) {
       const extras = (agendamento.servicoOriginal as any).servicosExtras || [];
@@ -1856,7 +1856,7 @@ const Agendamentos = () => {
         const partesServico = agendamento.servico.split(' + ');
         setServicoPrincipalEdicao(partesServico[0]);
         if (partesServico.length > 1) {
-          setServicosExtrasEdicao(partesServico.slice(1).map(nome => ({
+          setServicosExtrasEdicao(partesServico.slice(1).map((nome) => ({
             id: crypto.randomUUID(),
             nome: nome.trim(),
             valor: 0
@@ -1869,7 +1869,7 @@ const Agendamentos = () => {
       setServicosExtrasEdicao([]);
       setServicoPrincipalEdicao(agendamento.servico.split(' + ')[0]);
     }
-    
+
     setEditDialogGerenciamento(true);
   };
 
@@ -1879,76 +1879,76 @@ const Agendamentos = () => {
 
     try {
       // Montar nome do serviço concatenado (principal + extras)
-      const extrasNomes = servicosExtrasEdicao
-        .filter(e => e.nome)
-        .map(e => e.nome);
-      const servicoCompleto = extrasNomes.length > 0
-        ? `${servicoPrincipalEdicao} + ${extrasNomes.join(' + ')}`
-        : servicoPrincipalEdicao;
+      const extrasNomes = servicosExtrasEdicao.
+      filter((e) => e.nome).
+      map((e) => e.nome);
+      const servicoCompleto = extrasNomes.length > 0 ?
+      `${servicoPrincipalEdicao} + ${extrasNomes.join(' + ')}` :
+      servicoPrincipalEdicao;
 
       // Montar array de serviços para persistência
-      const servicoPrincipalObj = servicos.find(s => s.nome === servicoPrincipalEdicao);
+      const servicoPrincipalObj = servicos.find((s) => s.nome === servicoPrincipalEdicao);
       const todosServicosArray = [
-        { id: servicoPrincipalObj?.id || '', nome: servicoPrincipalEdicao, valor: servicoPrincipalObj?.valor || 0 },
-        ...servicosExtrasEdicao.filter(e => e.nome)
-      ];
+      { id: servicoPrincipalObj?.id || '', nome: servicoPrincipalEdicao, valor: servicoPrincipalObj?.valor || 0 },
+      ...servicosExtrasEdicao.filter((e) => e.nome)];
+
 
       if (editandoAgendamento.tipo === "simples" && editandoAgendamento.agendamentoOriginal) {
-        const { error } = await supabase
-          .from("agendamentos")
-          .update({
-            cliente: editandoAgendamento.cliente,
-            pet: editandoAgendamento.pet,
-            raca: editandoAgendamento.raca,
-            whatsapp: editandoAgendamento.whatsapp,
-            servico: servicoCompleto,
-            servicos: todosServicosArray,
-            data: editandoAgendamento.data,
-            horario: editandoAgendamento.horarioInicio,
-            tempo_servico: editandoAgendamento.tempoServico,
-            horario_termino: editandoAgendamento.horarioTermino,
-            data_venda: editandoAgendamento.dataVenda,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editandoAgendamento.agendamentoOriginal.id);
+        const { error } = await supabase.
+        from("agendamentos").
+        update({
+          cliente: editandoAgendamento.cliente,
+          pet: editandoAgendamento.pet,
+          raca: editandoAgendamento.raca,
+          whatsapp: editandoAgendamento.whatsapp,
+          servico: servicoCompleto,
+          servicos: todosServicosArray,
+          data: editandoAgendamento.data,
+          horario: editandoAgendamento.horarioInicio,
+          tempo_servico: editandoAgendamento.tempoServico,
+          horario_termino: editandoAgendamento.horarioTermino,
+          data_venda: editandoAgendamento.dataVenda,
+          updated_at: new Date().toISOString()
+        }).
+        eq("id", editandoAgendamento.agendamentoOriginal.id);
 
         if (error) throw error;
 
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentos();
       } else if (
-        editandoAgendamento.tipo === "pacote" &&
-        editandoAgendamento.pacoteOriginal &&
-        editandoAgendamento.servicoOriginal
-      ) {
+      editandoAgendamento.tipo === "pacote" &&
+      editandoAgendamento.pacoteOriginal &&
+      editandoAgendamento.servicoOriginal)
+      {
         const updatedServicos = editandoAgendamento.pacoteOriginal.servicos.map((s) =>
-          s.numero === editandoAgendamento.servicoOriginal!.numero
-            ? {
-                ...s,
-                nomeServico: servicoPrincipalEdicao,
-                servicosExtras: servicosExtrasEdicao.filter(e => e.nome),
-                data: editandoAgendamento.data,
-                horarioInicio: editandoAgendamento.horarioInicio,
-                tempoServico: editandoAgendamento.tempoServico,
-                horarioTermino: calcularHorarioTermino(
-                  editandoAgendamento.horarioInicio,
-                  editandoAgendamento.tempoServico,
-                ),
-              }
-            : s,
+        s.numero === editandoAgendamento.servicoOriginal!.numero ?
+        {
+          ...s,
+          nomeServico: servicoPrincipalEdicao,
+          servicosExtras: servicosExtrasEdicao.filter((e) => e.nome),
+          data: editandoAgendamento.data,
+          horarioInicio: editandoAgendamento.horarioInicio,
+          tempoServico: editandoAgendamento.tempoServico,
+          horarioTermino: calcularHorarioTermino(
+            editandoAgendamento.horarioInicio,
+            editandoAgendamento.tempoServico
+          )
+        } :
+        s
         );
 
         // Também atualizar whatsapp no pacote se foi alterado
-const { error } = await supabase
-          .from("agendamentos_pacotes")
-          .update({
-            servicos: updatedServicos as any,
-            whatsapp: editandoAgendamento.whatsapp,
-            data_venda: editandoAgendamento.dataVenda,
-            taxi_dog: editandoAgendamento.taxiDog,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editandoAgendamento.pacoteOriginal.id);
+        const { error } = await supabase.
+        from("agendamentos_pacotes").
+        update({
+          servicos: updatedServicos as any,
+          whatsapp: editandoAgendamento.whatsapp,
+          data_venda: editandoAgendamento.dataVenda,
+          taxi_dog: editandoAgendamento.taxiDog,
+          updated_at: new Date().toISOString()
+        }).
+        eq("id", editandoAgendamento.pacoteOriginal.id);
 
         if (error) throw error;
 
@@ -1976,42 +1976,42 @@ const { error } = await supabase
 
     try {
       if (agendamentoParaDeletar.tipo === "simples" && agendamentoParaDeletar.agendamentoOriginal) {
-        const { error } = await supabase
-          .from("agendamentos")
-          .delete()
-          .eq("id", agendamentoParaDeletar.agendamentoOriginal.id);
+        const { error } = await supabase.
+        from("agendamentos").
+        delete().
+        eq("id", agendamentoParaDeletar.agendamentoOriginal.id);
 
         if (error) throw error;
 
         toast.success("Agendamento excluído com sucesso!");
         await loadAgendamentos();
       } else if (
-        agendamentoParaDeletar.tipo === "pacote" &&
-        agendamentoParaDeletar.pacoteOriginal &&
-        agendamentoParaDeletar.servicoOriginal
-      ) {
+      agendamentoParaDeletar.tipo === "pacote" &&
+      agendamentoParaDeletar.pacoteOriginal &&
+      agendamentoParaDeletar.servicoOriginal)
+      {
         // Remove specific service from package or delete entire package if it's the last service
         const servicosAtualizados = agendamentoParaDeletar.pacoteOriginal.servicos.filter(
-          (s) => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero,
+          (s) => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero
         );
 
         if (servicosAtualizados.length === 0) {
           // Delete entire package if no services left
-          const { error } = await supabase
-            .from("agendamentos_pacotes")
-            .delete()
-            .eq("id", agendamentoParaDeletar.pacoteOriginal.id);
+          const { error } = await supabase.
+          from("agendamentos_pacotes").
+          delete().
+          eq("id", agendamentoParaDeletar.pacoteOriginal.id);
 
           if (error) throw error;
         } else {
           // Update package with remaining services
-          const { error } = await supabase
-            .from("agendamentos_pacotes")
-            .update({
-              servicos: servicosAtualizados as any,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", agendamentoParaDeletar.pacoteOriginal.id);
+          const { error } = await supabase.
+          from("agendamentos_pacotes").
+          update({
+            servicos: servicosAtualizados as any,
+            updated_at: new Date().toISOString()
+          }).
+          eq("id", agendamentoParaDeletar.pacoteOriginal.id);
 
           if (error) throw error;
         }
@@ -2062,21 +2062,21 @@ const { error } = await supabase
                       value={simpleClienteSearch}
                       onChange={(e) => setSimpleClienteSearch(e.target.value)}
                       placeholder="Digite o nome do cliente..."
-                      className="h-8 text-xs"
-                    />
-                    {simpleFilteredClientes.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {simpleFilteredClientes.map((nome, idx) => (
-                          <div
-                            key={idx}
-                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
-                            onClick={() => handleSimpleClienteSelect(nome)}
-                          >
+                      className="h-8 text-xs" />
+                    
+                    {simpleFilteredClientes.length > 0 &&
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {simpleFilteredClientes.map((nome, idx) =>
+                      <div
+                        key={idx}
+                        className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                        onClick={() => handleSimpleClienteSelect(nome)}>
+                        
                             {nome}
                           </div>
-                        ))}
+                      )}
                       </div>
-                    )}
+                    }
                   </div>
 
                   <div className="space-y-1 relative">
@@ -2088,21 +2088,21 @@ const { error } = await supabase
                       value={simplePetSearch}
                       onChange={(e) => setSimplePetSearch(e.target.value)}
                       placeholder="Digite o nome do pet..."
-                      className="h-8 text-xs"
-                    />
-                    {simpleFilteredPets.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {simpleFilteredPets.map((nome, idx) => (
-                          <div
-                            key={idx}
-                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
-                            onClick={() => handleSimplePetSelect(nome)}
-                          >
+                      className="h-8 text-xs" />
+                    
+                    {simpleFilteredPets.length > 0 &&
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {simpleFilteredPets.map((nome, idx) =>
+                      <div
+                        key={idx}
+                        className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                        onClick={() => handleSimplePetSelect(nome)}>
+                        
                             {nome}
                           </div>
-                        ))}
+                      )}
                       </div>
-                    )}
+                    }
                   </div>
                 </div>
 
@@ -2114,21 +2114,21 @@ const { error } = await supabase
                     <Select
                       value={formData.raca}
                       onValueChange={handleSimpleRacaSelect}
-                      disabled={simpleAvailableRacas.length === 0}
-                    >
+                      disabled={simpleAvailableRacas.length === 0}>
+                      
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue
                           placeholder={
-                            simpleAvailableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"
-                          }
-                        />
+                          simpleAvailableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"
+                          } />
+                        
                       </SelectTrigger>
                       <SelectContent>
-                        {simpleAvailableRacas.map((raca, idx) => (
-                          <SelectItem key={idx} value={raca} className="text-xs">
+                        {simpleAvailableRacas.map((raca, idx) =>
+                        <SelectItem key={idx} value={raca} className="text-xs">
                             {raca}
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -2140,13 +2140,13 @@ const { error } = await supabase
                     <Input
                       id="whatsapp"
                       value={
-                        formData.whatsapp
-                          ? `(${formData.whatsapp.slice(0, 2)}) ${formData.whatsapp.slice(2, 7)}-${formData.whatsapp.slice(7)}`
-                          : ""
+                      formData.whatsapp ?
+                      `(${formData.whatsapp.slice(0, 2)}) ${formData.whatsapp.slice(2, 7)}-${formData.whatsapp.slice(7)}` :
+                      ""
                       }
                       readOnly
-                      className="h-8 text-xs bg-secondary"
-                    />
+                      className="h-8 text-xs bg-secondary" />
+                    
                   </div>
                 </div>
 
@@ -2162,13 +2162,13 @@ const { error } = await supabase
                       onChange={(e) => {
                         setFormData({
                           ...formData,
-                          data: e.target.value,
+                          data: e.target.value
                         });
                         setDataVendaManual(false);
                       }}
                       className="h-8 text-xs"
-                      required
-                    />
+                      required />
+                    
                   </div>
 
                   <div className="space-y-1">
@@ -2182,12 +2182,12 @@ const { error } = await supabase
                         setFormData({
                           ...formData,
                           horario: value,
-                          horarioTermino,
+                          horarioTermino
                         });
                       }}
                       placeholder="00:00"
-                      className="h-8 text-xs"
-                    />
+                      className="h-8 text-xs" />
+                    
                   </div>
                 </div>
 
@@ -2248,7 +2248,7 @@ const { error } = await supabase
                           numeroServicoPacote: formData.numeroServicoPacote,
                           groomer: formData.groomer,
                           dataVenda: formData.dataVenda,
-                          taxiDog: formData.taxiDog,
+                          taxiDog: formData.taxiDog
                         });
                       }}
                       onBlur={(event) => {
@@ -2262,8 +2262,8 @@ const { error } = await supabase
                       className="h-8 text-xs"
                       required
                       maxLength={4}
-                      pattern="[0-9]{1}:[0-5][0-9]"
-                    />
+                      pattern="[0-9]{1}:[0-5][0-9]" />
+                    
                   </div>
 
                   {/* Campo oculto fora do grid para não ocupar espaço */}
@@ -2273,26 +2273,26 @@ const { error } = await supabase
                       value={formData.horarioTermino}
                       readOnly
                       className="h-8 text-xs bg-secondary cursor-not-allowed"
-                      placeholder="--:--"
-                    />
+                      placeholder="--:--" />
+                    
                   </div>
 
                   <div className="space-y-1 col-span-1">
                     <Label className="text-xs">Serviço(s) *</Label>
                     <div className="space-y-2">
-                      {servicosSelecionadosSimples.map((servicoItem, index) => (
-                        <div key={servicoItem.instanceId} className="flex items-center gap-1">
-                          <Popover 
-                            open={openServicoComboboxIndex === index} 
-                            onOpenChange={(open) => setOpenServicoComboboxIndex(open ? index : null)}
-                          >
+                      {servicosSelecionadosSimples.map((servicoItem, index) =>
+                      <div key={servicoItem.instanceId} className="flex items-center gap-1">
+                          <Popover
+                          open={openServicoComboboxIndex === index}
+                          onOpenChange={(open) => setOpenServicoComboboxIndex(open ? index : null)}>
+                          
                             <PopoverTrigger asChild>
                               <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openServicoComboboxIndex === index}
-                                className="h-8 flex-1 justify-between text-xs font-normal"
-                              >
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openServicoComboboxIndex === index}
+                              className="h-8 flex-1 justify-between text-xs font-normal">
+                              
                                 {servicoItem.nome || "Selecione um serviço"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
@@ -2301,63 +2301,63 @@ const { error } = await supabase
                               <Command>
                                 <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
                                 <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
-                                  {formData.raca 
-                                    ? "Nenhum serviço cadastrado para este porte."
-                                    : "Selecione cliente e pet primeiro"}
+                                  {formData.raca ?
+                                "Nenhum serviço cadastrado para este porte." :
+                                "Selecione cliente e pet primeiro"}
                                 </CommandEmpty>
-                                {servicosFiltradosPorPorte.length > 0 && (
-                                  <CommandGroup heading="Serviços" className="text-xs">
-                                    {servicosFiltradosPorPorte.map((servico) => (
-                                      <CommandItem
-                                        key={`servico-${servico.id}`}
-                                        value={servico.nome}
-                                        onSelect={(currentValue) => {
-                                          atualizarServicoSimples(servicoItem.instanceId, currentValue);
-                                        }}
-                                        className="text-xs"
-                                      >
+                                {servicosFiltradosPorPorte.length > 0 &&
+                              <CommandGroup heading="Serviços" className="text-xs">
+                                    {servicosFiltradosPorPorte.map((servico) =>
+                                <CommandItem
+                                  key={`servico-${servico.id}`}
+                                  value={servico.nome}
+                                  onSelect={(currentValue) => {
+                                    atualizarServicoSimples(servicoItem.instanceId, currentValue);
+                                  }}
+                                  className="text-xs">
+                                  
                                         <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4",
-                                            servicoItem.nome === servico.nome ? "opacity-100" : "opacity-0"
-                                          )}
-                                        />
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      servicoItem.nome === servico.nome ? "opacity-100" : "opacity-0"
+                                    )} />
+                                  
                                         {servico.nome}
                                       </CommandItem>
-                                    ))}
-                                  </CommandGroup>
                                 )}
+                                  </CommandGroup>
+                              }
                               </Command>
                             </PopoverContent>
                           </Popover>
                           
                           {/* Botão X para remover (vermelho, discreto) */}
-                          {servicosSelecionadosSimples.length > 1 && (
-                            <Button 
-                              type="button"
-                              variant="ghost" 
-                              size="sm"
-                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => removerServicoSimples(servicoItem.instanceId)}
-                            >
+                          {servicosSelecionadosSimples.length > 1 &&
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => removerServicoSimples(servicoItem.instanceId)}>
+                          
                               <X className="h-3 w-3" />
                             </Button>
-                          )}
+                        }
                           
                           {/* Botão "+ Serviço" ao lado do último campo */}
-                          {index === servicosSelecionadosSimples.length - 1 && servicoItem.nome && (
-                            <Button 
-                              type="button"
-                              variant="ghost" 
-                              size="sm"
-                              className="h-6 px-2 text-xs text-primary hover:text-primary/80"
-                              onClick={adicionarServicoSimples}
-                            >
+                          {index === servicosSelecionadosSimples.length - 1 && servicoItem.nome &&
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs text-primary hover:text-primary/80"
+                          onClick={adicionarServicoSimples}>
+                          
                               + Serviço
                             </Button>
-                          )}
+                        }
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2370,27 +2370,27 @@ const { error } = await supabase
                   <Select
                     value={formData.groomer}
                     onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        groomer: value,
-                      })
-                    }
-                  >
+                    setFormData({
+                      ...formData,
+                      groomer: value
+                    })
+                    }>
+                    
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Selecione o groomer" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
-                      {groomers.length === 0 ? (
-                        <SelectItem value="none" disabled className="text-xs">
+                      {groomers.length === 0 ?
+                      <SelectItem value="none" disabled className="text-xs">
                           Nenhum groomer cadastrado
-                        </SelectItem>
-                      ) : (
-                        groomers.map((g) => (
-                          <SelectItem key={g.id} value={g.nome} className="text-xs">
+                        </SelectItem> :
+
+                      groomers.map((g) =>
+                      <SelectItem key={g.id} value={g.nome} className="text-xs">
                             {g.nome}
                           </SelectItem>
-                        ))
-                      )}
+                      )
+                      }
                     </SelectContent>
                   </Select>
                 </div>
@@ -2407,13 +2407,13 @@ const { error } = await supabase
                       onChange={(e) => {
                         setFormData({
                           ...formData,
-                          dataVenda: e.target.value,
+                          dataVenda: e.target.value
                         });
                         setDataVendaManual(true);
                       }}
                       className="h-8 text-xs"
-                      required
-                    />
+                      required />
+                    
                   </div>
 
                   <div className="space-y-1">
@@ -2423,13 +2423,13 @@ const { error } = await supabase
                     <Select
                       value={formData.taxiDog}
                       onValueChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          taxiDog: value,
-                        })
+                      setFormData({
+                        ...formData,
+                        taxiDog: value
+                      })
                       }
-                      required
-                    >
+                      required>
+                      
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -2483,21 +2483,21 @@ const { error } = await supabase
                       value={clienteSearch}
                       onChange={(e) => setClienteSearch(e.target.value)}
                       placeholder="Digite o nome do cliente..."
-                      className="h-8 text-xs"
-                    />
-                    {filteredClientes.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {filteredClientes.map((nome, idx) => (
-                          <div
-                            key={idx}
-                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
-                            onClick={() => handleClienteSelect(nome)}
-                          >
+                      className="h-8 text-xs" />
+                    
+                    {filteredClientes.length > 0 &&
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {filteredClientes.map((nome, idx) =>
+                      <div
+                        key={idx}
+                        className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                        onClick={() => handleClienteSelect(nome)}>
+                        
                             {nome}
                           </div>
-                        ))}
+                      )}
                       </div>
-                    )}
+                    }
                   </div>
 
                   <div className="space-y-1 relative">
@@ -2509,21 +2509,21 @@ const { error } = await supabase
                       value={petSearch}
                       onChange={(e) => setPetSearch(e.target.value)}
                       placeholder="Digite o nome do pet..."
-                      className="h-8 text-xs"
-                    />
-                    {filteredPets.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {filteredPets.map((nome, idx) => (
-                          <div
-                            key={idx}
-                            className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
-                            onClick={() => handlePetSelect(nome)}
-                          >
+                      className="h-8 text-xs" />
+                    
+                    {filteredPets.length > 0 &&
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {filteredPets.map((nome, idx) =>
+                      <div
+                        key={idx}
+                        className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                        onClick={() => handlePetSelect(nome)}>
+                        
                             {nome}
                           </div>
-                        ))}
+                      )}
                       </div>
-                    )}
+                    }
                   </div>
                 </div>
 
@@ -2535,21 +2535,21 @@ const { error } = await supabase
                     <Select
                       value={pacoteFormData.raca}
                       onValueChange={handleRacaSelect}
-                      disabled={availableRacas.length === 0}
-                    >
+                      disabled={availableRacas.length === 0}>
+                      
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue
                           placeholder={
-                            availableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"
-                          }
-                        />
+                          availableRacas.length === 0 ? "Selecione cliente e pet primeiro" : "Selecione a raça"
+                          } />
+                        
                       </SelectTrigger>
                       <SelectContent>
-                        {availableRacas.map((raca, idx) => (
-                          <SelectItem key={idx} value={raca} className="text-xs">
+                        {availableRacas.map((raca, idx) =>
+                        <SelectItem key={idx} value={raca} className="text-xs">
                             {raca}
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -2561,13 +2561,13 @@ const { error } = await supabase
                     <Input
                       id="whatsapp"
                       value={
-                        pacoteFormData.whatsapp
-                          ? `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}`
-                          : ""
+                      pacoteFormData.whatsapp ?
+                      `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}` :
+                      ""
                       }
                       readOnly
-                      className="h-8 text-xs bg-secondary"
-                    />
+                      className="h-8 text-xs bg-secondary" />
+                    
                   </div>
 
                   <div className="space-y-1">
@@ -2577,12 +2577,12 @@ const { error } = await supabase
                     <Select
                       value={pacoteFormData.taxiDog}
                       onValueChange={(value) =>
-                        setPacoteFormData({
-                          ...pacoteFormData,
-                          taxiDog: value,
-                        })
-                      }
-                    >
+                      setPacoteFormData({
+                        ...pacoteFormData,
+                        taxiDog: value
+                      })
+                      }>
+                      
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -2607,17 +2607,17 @@ const { error } = await supabase
                       <SelectValue placeholder="Selecione o pacote" />
                     </SelectTrigger>
                     <SelectContent>
-                      {pacotes.length === 0 ? (
-                        <SelectItem value="sem-pacote" disabled className="text-xs">
+                      {pacotes.length === 0 ?
+                      <SelectItem value="sem-pacote" disabled className="text-xs">
                           Nenhum pacote cadastrado
-                        </SelectItem>
-                      ) : (
-                        pacotes.map((pacote) => (
-                          <SelectItem key={pacote.id} value={pacote.nome} className="text-xs">
+                        </SelectItem> :
+
+                      pacotes.map((pacote) =>
+                      <SelectItem key={pacote.id} value={pacote.nome} className="text-xs">
                             {pacote.nome}
                           </SelectItem>
-                        ))
-                      )}
+                      )
+                      }
                     </SelectContent>
                   </Select>
                 </div>
@@ -2631,18 +2631,18 @@ const { error } = await supabase
                     type="date"
                     value={pacoteFormData.dataVenda}
                     onChange={(e) =>
-                      setPacoteFormData({
-                        ...pacoteFormData,
-                        dataVenda: e.target.value,
-                      })
+                    setPacoteFormData({
+                      ...pacoteFormData,
+                      dataVenda: e.target.value
+                    })
                     }
                     className="h-8 text-xs"
-                    required
-                  />
+                    required />
+                  
                 </div>
 
-                {servicosAgendamento.length > 0 && (
-                  <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                {servicosAgendamento.length > 0 &&
+                <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
                     <Label className="text-xs font-semibold">Agendamentos dos Serviços do Pacote</Label>
 
                     {/* Header com títulos das colunas */}
@@ -2666,27 +2666,27 @@ const { error } = await supabase
                     </div>
 
                     <div className="space-y-2">
-                      {servicosAgendamento.map((servico, index) => (
-                        <div key={index} className="flex gap-2 items-end">
+                      {servicosAgendamento.map((servico, index) =>
+                    <div key={index} className="flex gap-2 items-end">
                           <div className="flex flex-col gap-1">
                             <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => moveServico(index, "up")}
-                              disabled={index === 0}
-                              className="h-6 w-6 p-0"
-                            >
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveServico(index, "up")}
+                          disabled={index === 0}
+                          className="h-6 w-6 p-0">
+                          
                               <ChevronUp className="h-3 w-3" />
                             </Button>
                             <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => moveServico(index, "down")}
-                              disabled={index === servicosAgendamento.length - 1}
-                              className="h-6 w-6 p-0"
-                            >
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveServico(index, "down")}
+                          disabled={index === servicosAgendamento.length - 1}
+                          className="h-6 w-6 p-0">
+                          
                               <ChevronDown className="h-3 w-3" />
                             </Button>
                           </div>
@@ -2701,36 +2701,36 @@ const { error } = await supabase
 
                           <div className="w-32">
                             <Input
-                              type="date"
-                              value={servico.data}
-                              onChange={(e) => handleServicoAgendamentoChange(index, "data", e.target.value)}
-                              className="h-8 text-xs py-0 px-[11px] my-[9px]"
-                            />
+                          type="date"
+                          value={servico.data}
+                          onChange={(e) => handleServicoAgendamentoChange(index, "data", e.target.value)}
+                          className="h-8 text-xs py-0 px-[11px] my-[9px]" />
+                        
                           </div>
 
                           <div className="w-20 my-[9px]">
                             <TimeInput
-                              value={servico.horarioInicio}
-                              onChange={(value) => handleServicoAgendamentoChange(index, "horarioInicio", value)}
-                              placeholder="00:00"
-                              className="h-8 text-xs"
-                            />
+                          value={servico.horarioInicio}
+                          onChange={(value) => handleServicoAgendamentoChange(index, "horarioInicio", value)}
+                          placeholder="00:00"
+                          className="h-8 text-xs" />
+                        
                           </div>
 
                           <div className="w-20 my-[9px]">
                             <TimeInput
-                              value={servico.tempoServico}
-                              onChange={(value) => handleServicoAgendamentoChange(index, "tempoServico", value)}
-                              placeholder="0:00"
-                              className="h-8 text-xs"
-                              allowSingleDigitHour={true}
-                            />
+                          value={servico.tempoServico}
+                          onChange={(value) => handleServicoAgendamentoChange(index, "tempoServico", value)}
+                          placeholder="0:00"
+                          className="h-8 text-xs"
+                          allowSingleDigitHour={true} />
+                        
                           </div>
                         </div>
-                      ))}
+                    )}
                     </div>
                   </div>
-                )}
+                }
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={resetPacoteForm} className="h-8 text-xs">
@@ -2766,24 +2766,24 @@ const { error } = await supabase
                     placeholder="Buscar por Nome do Pet"
                     value={filtros.nomePet}
                     onChange={(e) =>
-                      setFiltros({
-                        ...filtros,
-                        nomePet: e.target.value,
-                      })
+                    setFiltros({
+                      ...filtros,
+                      nomePet: e.target.value
+                    })
                     }
-                    className="h-8 text-xs my-[28px]"
-                  />
+                    className="h-8 text-xs my-[28px]" />
+                  
                   <Input
                     placeholder="Buscar por Nome do Cliente"
                     value={filtros.nomeCliente}
                     onChange={(e) =>
-                      setFiltros({
-                        ...filtros,
-                        nomeCliente: e.target.value,
-                      })
+                    setFiltros({
+                      ...filtros,
+                      nomeCliente: e.target.value
+                    })
                     }
-                    className="h-8 text-xs py-0 my-[28px]"
-                  />
+                    className="h-8 text-xs py-0 my-[28px]" />
+                  
                   <div className="space-y-1 py-0">
                     <Label htmlFor="dataAgendada" className="text-[10px] font-medium">
                       Buscar por Data Agendada
@@ -2793,13 +2793,13 @@ const { error } = await supabase
                       type="date"
                       value={filtros.dataAgendada}
                       onChange={(e) =>
-                        setFiltros({
-                          ...filtros,
-                          dataAgendada: e.target.value,
-                        })
+                      setFiltros({
+                        ...filtros,
+                        dataAgendada: e.target.value
+                      })
                       }
-                      className="h-8 text-xs"
-                    />
+                      className="h-8 text-xs" />
+                    
                   </div>
                   <div className="space-y-1 my-0 px-0 py-0">
                     <Label htmlFor="dataVenda" className="text-[10px] font-medium">
@@ -2810,25 +2810,25 @@ const { error } = await supabase
                       type="date"
                       value={filtros.dataVenda}
                       onChange={(e) =>
-                        setFiltros({
-                          ...filtros,
-                          dataVenda: e.target.value,
-                        })
+                      setFiltros({
+                        ...filtros,
+                        dataVenda: e.target.value
+                      })
                       }
-                      className="h-8 text-xs"
-                    />
+                      className="h-8 text-xs" />
+                    
                   </div>
                   <Input
                     placeholder="Nome do Pacote"
                     value={filtros.nomePacote}
                     onChange={(e) =>
-                      setFiltros({
-                        ...filtros,
-                        nomePacote: e.target.value,
-                      })
+                    setFiltros({
+                      ...filtros,
+                      nomePacote: e.target.value
+                    })
                     }
-                    className="h-8 text-xs my-[28px]"
-                  />
+                    className="h-8 text-xs my-[28px]" />
+                  
                 </div>
                 <div className="flex gap-2 py-0 my-0">
                   <Button onClick={handleBuscar} className="h-8 text-xs">
@@ -2859,23 +2859,23 @@ const { error } = await supabase
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {agendamentosFiltrados.length === 0 ? (
-                      <TableRow>
+                    {agendamentosFiltrados.length === 0 ?
+                    <TableRow>
                         <TableCell colSpan={11} className="text-center text-xs text-muted-foreground py-8">
                           Nenhum agendamento encontrado
                         </TableCell>
-                      </TableRow>
-                    ) : (
-                      agendamentosFiltrados.map((agendamento) => (
-                        <TableRow
-                          key={agendamento.id}
-                          className="cursor-pointer hover:bg-cyan-500/20"
-                          onClick={() => handleEditarClick(agendamento)}
-                        >
+                      </TableRow> :
+
+                    agendamentosFiltrados.map((agendamento) =>
+                    <TableRow
+                      key={agendamento.id}
+                      className="cursor-pointer hover:bg-cyan-500/20"
+                      onClick={() => handleEditarClick(agendamento)}>
+                      
                           <TableCell className="text-[10px] p-1.5">
-                            {agendamento.data
-                              ? new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR")
-                              : "-"}
+                            {agendamento.data ?
+                        new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR") :
+                        "-"}
                           </TableCell>
                           <TableCell className="text-[10px] p-1.5">
                             {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
@@ -2891,13 +2891,13 @@ const { error } = await supabase
                           <TableCell className="text-[10px] p-1.5">{agendamento.numeroPacote || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">{agendamento.taxiDog || "-"}</TableCell>
                           <TableCell className="text-[10px] p-1.5">
-                            {agendamento.dataVenda
-                              ? new Date(agendamento.dataVenda + "T00:00:00").toLocaleDateString("pt-BR")
-                              : "-"}
+                            {agendamento.dataVenda ?
+                        new Date(agendamento.dataVenda + "T00:00:00").toLocaleDateString("pt-BR") :
+                        "-"}
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
+                    )
+                    }
                   </TableBody>
                 </Table>
               </div>
@@ -2914,37 +2914,37 @@ const { error } = await supabase
                 </DialogDescription>
               </DialogHeader>
 
-              {editandoAgendamento && (
-                <div className="space-y-3">
+              {editandoAgendamento &&
+              <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Data do Agendamento</Label>
                       <Input
-                        type="date"
-                        value={editandoAgendamento.data}
-                        onChange={(e) =>
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            data: e.target.value,
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
+                      type="date"
+                      value={editandoAgendamento.data}
+                      onChange={(e) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        data: e.target.value
+                      })
+                      }
+                      className="h-8 text-xs" />
+                    
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Horário do Agendamento</Label>
                       <TimeInput
-                        value={editandoAgendamento.horarioInicio}
-                        onChange={(value) => {
-                          const horarioTermino = calcularHorarioTermino(value, editandoAgendamento.tempoServico);
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            horarioInicio: value,
-                            horarioTermino,
-                          });
-                        }}
-                        className="h-8 text-xs"
-                      />
+                      value={editandoAgendamento.horarioInicio}
+                      onChange={(value) => {
+                        const horarioTermino = calcularHorarioTermino(value, editandoAgendamento.tempoServico);
+                        setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          horarioInicio: value,
+                          horarioTermino
+                        });
+                      }}
+                      className="h-8 text-xs" />
+                    
                     </div>
                   </div>
 
@@ -2952,28 +2952,28 @@ const { error } = await supabase
                     <div className="space-y-1">
                       <Label className="text-xs">Tempo de Serviço *</Label>
                       <TimeInput
-                        value={editandoAgendamento.tempoServico}
-                        onChange={(value) => {
-                          const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            tempoServico: value,
-                            horarioTermino,
-                          });
-                        }}
-                        placeholder="0:00"
-                        className="h-8 text-xs"
-                        allowSingleDigitHour={true}
-                      />
+                      value={editandoAgendamento.tempoServico}
+                      onChange={(value) => {
+                        const horarioTermino = calcularHorarioTermino(editandoAgendamento.horarioInicio, value);
+                        setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          tempoServico: value,
+                          horarioTermino
+                        });
+                      }}
+                      placeholder="0:00"
+                      className="h-8 text-xs"
+                      allowSingleDigitHour={true} />
+                    
                     </div>
 
                     <div className="space-y-1">
                       <Label className="text-xs">Horário de Término</Label>
                       <Input
-                        value={editandoAgendamento.horarioTermino || "--:--"}
-                        readOnly
-                        className="h-8 text-xs bg-secondary cursor-not-allowed"
-                      />
+                      value={editandoAgendamento.horarioTermino || "--:--"}
+                      readOnly
+                      className="h-8 text-xs bg-secondary cursor-not-allowed" />
+                    
                     </div>
                   </div>
 
@@ -2981,28 +2981,28 @@ const { error } = await supabase
                     <div className="space-y-1">
                       <Label className="text-xs">Nome do Cliente</Label>
                       <Input
-                        value={editandoAgendamento.cliente}
-                        onChange={(e) =>
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            cliente: e.target.value,
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
+                      value={editandoAgendamento.cliente}
+                      onChange={(e) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        cliente: e.target.value
+                      })
+                      }
+                      className="h-8 text-xs" />
+                    
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Nome do Pet</Label>
                       <Input
-                        value={editandoAgendamento.pet}
-                        onChange={(e) =>
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            pet: e.target.value,
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
+                      value={editandoAgendamento.pet}
+                      onChange={(e) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        pet: e.target.value
+                      })
+                      }
+                      className="h-8 text-xs" />
+                    
                     </div>
                   </div>
 
@@ -3010,28 +3010,28 @@ const { error } = await supabase
                     <div className="space-y-1">
                       <Label className="text-xs">Raça</Label>
                       <Input
-                        value={editandoAgendamento.raca}
-                        onChange={(e) =>
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            raca: e.target.value,
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
+                      value={editandoAgendamento.raca}
+                      onChange={(e) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        raca: e.target.value
+                      })
+                      }
+                      className="h-8 text-xs" />
+                    
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">WhatsApp</Label>
                       <Input
-                        value={editandoAgendamento.whatsapp}
-                        onChange={(e) =>
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            whatsapp: e.target.value,
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
+                      value={editandoAgendamento.whatsapp}
+                      onChange={(e) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        whatsapp: e.target.value
+                      })
+                      }
+                      className="h-8 text-xs" />
+                    
                     </div>
                   </div>
 
@@ -3042,11 +3042,11 @@ const { error } = await supabase
                       <Popover open={openServicoEdicao} onOpenChange={setOpenServicoEdicao}>
                         <PopoverTrigger asChild>
                           <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openServicoEdicao}
-                            className="flex-1 h-8 text-xs justify-between"
-                          >
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openServicoEdicao}
+                          className="flex-1 h-8 text-xs justify-between">
+                          
                             {servicoPrincipalEdicao || "Selecione o serviço..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -3056,24 +3056,24 @@ const { error } = await supabase
                             <CommandInput placeholder="Buscar serviço..." className="h-9" />
                             <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
                             <CommandGroup className="max-h-[200px] overflow-y-auto">
-                              {servicos.map((s) => (
-                                <CommandItem
-                                  key={s.id}
-                                  value={s.nome}
-                                  onSelect={() => {
-                                    setServicoPrincipalEdicao(s.nome);
-                                    setOpenServicoEdicao(false);
-                                  }}
-                                >
+                              {servicos.map((s) =>
+                            <CommandItem
+                              key={s.id}
+                              value={s.nome}
+                              onSelect={() => {
+                                setServicoPrincipalEdicao(s.nome);
+                                setOpenServicoEdicao(false);
+                              }}>
+                              
                                   <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      servicoPrincipalEdicao === s.nome ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  servicoPrincipalEdicao === s.nome ? "opacity-100" : "opacity-0"
+                                )} />
+                              
                                   {s.nome} - R$ {s.valor?.toFixed(2)}
                                 </CommandItem>
-                              ))}
+                            )}
                             </CommandGroup>
                           </Command>
                         </PopoverContent>
@@ -3081,128 +3081,128 @@ const { error } = await supabase
                       
                       {/* Botão + Serviço */}
                       <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs whitespace-nowrap"
-                        onClick={() => {
-                          setServicosExtrasEdicao([
-                            ...servicosExtrasEdicao,
-                            { id: crypto.randomUUID(), nome: "", valor: 0 }
-                          ]);
-                        }}
-                      >
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs whitespace-nowrap"
+                      onClick={() => {
+                        setServicosExtrasEdicao([
+                        ...servicosExtrasEdicao,
+                        { id: crypto.randomUUID(), nome: "", valor: 0 }]
+                        );
+                      }}>
+                      
                         + Serviço
                       </Button>
                     </div>
                   </div>
 
                   {/* Serviços Extras */}
-                  {servicosExtrasEdicao.length > 0 && (
-                    <div className="space-y-2">
+                  {servicosExtrasEdicao.length > 0 &&
+                <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground">Serviços Extras</Label>
-                      {servicosExtrasEdicao.map((extra, index) => (
-                        <div key={extra.id} className="flex gap-2 items-center">
+                      {servicosExtrasEdicao.map((extra, index) =>
+                  <div key={extra.id} className="flex gap-2 items-center">
                           <ServicoExtraCombobox
-                            extra={extra}
-                            index={index}
-                            servicos={servicos}
-                            onSelect={(selectedServico) => {
-                              const novosExtras = [...servicosExtrasEdicao];
-                              novosExtras[index] = { 
-                                id: selectedServico.id, 
-                                nome: selectedServico.nome, 
-                                valor: selectedServico.valor 
-                              };
-                              setServicosExtrasEdicao(novosExtras);
-                            }}
-                          />
+                      extra={extra}
+                      index={index}
+                      servicos={servicos}
+                      onSelect={(selectedServico) => {
+                        const novosExtras = [...servicosExtrasEdicao];
+                        novosExtras[index] = {
+                          id: selectedServico.id,
+                          nome: selectedServico.nome,
+                          valor: selectedServico.valor
+                        };
+                        setServicosExtrasEdicao(novosExtras);
+                      }} />
+                    
                           
                           {/* Botão Remover */}
                           <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            onClick={() => {
-                              setServicosExtrasEdicao(servicosExtrasEdicao.filter((_, i) => i !== index));
-                            }}
-                          >
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setServicosExtrasEdicao(servicosExtrasEdicao.filter((_, i) => i !== index));
+                      }}>
+                      
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
-                      ))}
-                    </div>
                   )}
+                    </div>
+                }
 
-                  {editandoAgendamento.tipo === "simples" && (
-                    <div className="space-y-1">
+                  {editandoAgendamento.tipo === "simples" &&
+                <div className="space-y-1">
                       <Label className="text-xs">Groomer</Label>
                       <Select
-                        value={editandoAgendamento.groomer}
-                        onValueChange={(value) =>
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            groomer: value,
-                          })
-                        }
-                      >
+                    value={editandoAgendamento.groomer}
+                    onValueChange={(value) =>
+                    setEditandoAgendamento({
+                      ...editandoAgendamento,
+                      groomer: value
+                    })
+                    }>
+                    
                         <SelectTrigger className="h-8 text-xs">
                           <SelectValue placeholder="Selecione o groomer" />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
-                          {groomers.length === 0 ? (
-                            <SelectItem value="none" disabled className="text-xs">
+                          {groomers.length === 0 ?
+                      <SelectItem value="none" disabled className="text-xs">
                               Nenhum groomer cadastrado
-                            </SelectItem>
-                          ) : (
-                            groomers.map((g) => (
-                              <SelectItem key={g.id} value={g.nome} className="text-xs">
+                            </SelectItem> :
+
+                      groomers.map((g) =>
+                      <SelectItem key={g.id} value={g.nome} className="text-xs">
                                 {g.nome}
                               </SelectItem>
-                            ))
-                          )}
+                      )
+                      }
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
+                }
 
-                  {editandoAgendamento.tipo === "pacote" && (
-                    <>
+                  {editandoAgendamento.tipo === "pacote" &&
+                <>
                       <div className="space-y-1">
                         <Label className="text-xs">Nome do Pacote</Label>
                         <Input
-                          value={editandoAgendamento.nomePacote}
-                          onChange={(e) =>
-                            setEditandoAgendamento({
-                              ...editandoAgendamento,
-                              nomePacote: e.target.value,
-                            })
-                          }
-                          className="h-8 text-xs"
-                        />
+                      value={editandoAgendamento.nomePacote}
+                      onChange={(e) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        nomePacote: e.target.value
+                      })
+                      }
+                      className="h-8 text-xs" />
+                    
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">N° do Serviço do Pacote</Label>
                           <Input
-                            value={editandoAgendamento.numeroPacote}
-                            readOnly
-                            className="h-8 text-xs bg-secondary"
-                          />
+                        value={editandoAgendamento.numeroPacote}
+                        readOnly
+                        className="h-8 text-xs bg-secondary" />
+                      
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Taxi Dog</Label>
                           <Select
-                            value={editandoAgendamento.taxiDog}
-                            onValueChange={(value) =>
-                              setEditandoAgendamento({
-                                ...editandoAgendamento,
-                                taxiDog: value,
-                              })
-                            }
-                          >
+                        value={editandoAgendamento.taxiDog}
+                        onValueChange={(value) =>
+                        setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          taxiDog: value
+                        })
+                        }>
+                        
                             <SelectTrigger className="h-8 text-xs">
                               <SelectValue />
                             </SelectTrigger>
@@ -3218,36 +3218,36 @@ const { error } = await supabase
                         </div>
                       </div>
                     </>
-                  )}
+                }
 
-                  {editandoAgendamento.tipo === "simples" && (
-                    <div className="grid grid-cols-2 gap-2">
+                  {editandoAgendamento.tipo === "simples" &&
+                <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-xs">Data da Venda</Label>
                         <Input
-                          type="date"
-                          value={editandoAgendamento.dataVenda}
-                          onChange={(e) =>
-                            setEditandoAgendamento({
-                              ...editandoAgendamento,
-                              dataVenda: e.target.value,
-                            })
-                          }
-                          className="h-8 text-xs"
-                        />
+                      type="date"
+                      value={editandoAgendamento.dataVenda}
+                      onChange={(e) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        dataVenda: e.target.value
+                      })
+                      }
+                      className="h-8 text-xs" />
+                    
                       </div>
 
                       <div className="space-y-1">
                         <Label className="text-xs">Taxi Dog *</Label>
                         <Select
-                          value={editandoAgendamento.taxiDog}
-                          onValueChange={(value) =>
-                            setEditandoAgendamento({
-                              ...editandoAgendamento,
-                              taxiDog: value,
-                            })
-                          }
-                        >
+                      value={editandoAgendamento.taxiDog}
+                      onValueChange={(value) =>
+                      setEditandoAgendamento({
+                        ...editandoAgendamento,
+                        taxiDog: value
+                      })
+                      }>
+                      
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
@@ -3262,45 +3262,45 @@ const { error } = await supabase
                         </Select>
                       </div>
                     </div>
-                  )}
+                }
 
-                  {editandoAgendamento.tipo === "pacote" && (
-                    <div className="space-y-1">
+                  {editandoAgendamento.tipo === "pacote" &&
+                <div className="space-y-1">
                       <Label className="text-xs">Data da Venda</Label>
                       <Input
-                        type="date"
-                        value={editandoAgendamento.dataVenda}
-                        onChange={(e) =>
-                          setEditandoAgendamento({
-                            ...editandoAgendamento,
-                            dataVenda: e.target.value,
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
+                    type="date"
+                    value={editandoAgendamento.dataVenda}
+                    onChange={(e) =>
+                    setEditandoAgendamento({
+                      ...editandoAgendamento,
+                      dataVenda: e.target.value
+                    })
+                    }
+                    className="h-8 text-xs" />
+                  
                     </div>
-                  )}
+                }
 
                   <div className="flex justify-between gap-2 pt-4">
                     <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => handleExcluirAgendamento(editandoAgendamento)}
-                      className="h-8 text-xs gap-2"
-                    >
+                    type="button"
+                    variant="destructive"
+                    onClick={() => handleExcluirAgendamento(editandoAgendamento)}
+                    className="h-8 text-xs gap-2">
+                    
                       <Trash2 className="h-3 w-3" />
                       Excluir Agendamento
                     </Button>
                     <div className="flex gap-2">
                       <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setEditDialogGerenciamento(false);
-                          setEditandoAgendamento(null);
-                        }}
-                        className="h-8 text-xs"
-                      >
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setEditDialogGerenciamento(false);
+                        setEditandoAgendamento(null);
+                      }}
+                      className="h-8 text-xs">
+                      
                         Cancelar
                       </Button>
                       <Button type="button" onClick={handleAtualizarAgendamento} className="h-8 text-xs">
@@ -3309,7 +3309,7 @@ const { error } = await supabase
                     </div>
                   </div>
                 </div>
-              )}
+              }
             </DialogContent>
           </Dialog>
 
@@ -3327,14 +3327,14 @@ const { error } = await supabase
                   onClick={() => {
                     setDeleteDialogOpen(false);
                     setAgendamentoParaDeletar(null);
-                  }}
-                >
+                  }}>
+                  
                   Cancelar
                 </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={confirmarExclusao}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -3351,13 +3351,13 @@ const { error } = await supabase
                 <Button
                   variant={viewMode === "semana" ? "default" : "outline"}
                   onClick={() => setViewMode("semana")}
-                  className="h-7 text-xs"
-                >
+                  className="h-7 text-xs">
+                  
                   Semana
                 </Button>
                 <Button
                   variant={
-                    selectedDate === formatDateForInput(new Date()) && viewMode === "dia" ? "default" : "outline"
+                  selectedDate === formatDateForInput(new Date()) && viewMode === "dia" ? "default" : "outline"
                   }
                   onClick={() => {
                     setViewMode("dia");
@@ -3365,72 +3365,72 @@ const { error } = await supabase
                     setSelectedDate(today);
                     setCalendarDate(new Date());
                   }}
-                  className="h-7 text-xs"
-                >
+                  className="h-7 text-xs">
+                  
                   Hoje
                 </Button>
-                {viewMode === "dia" && (
-                  <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                {viewMode === "dia" &&
+                <Popover open={showCalendar} onOpenChange={setShowCalendar}>
                     <PopoverTrigger asChild>
                       <Button
-                        variant={selectedDate !== formatDateForInput(new Date()) ? "default" : "outline"}
-                        className="h-7 text-xs gap-2"
-                      >
+                      variant={selectedDate !== formatDateForInput(new Date()) ? "default" : "outline"}
+                      className="h-7 text-xs gap-2">
+                      
                         <CalendarIcon className="h-3 w-3" />
                         {format(calendarDate, "dd/MM/yyyy", {
-                          locale: ptBR,
-                        })}
+                        locale: ptBR
+                      })}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        mode="single"
-                        selected={calendarDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            setCalendarDate(date);
-                            setSelectedDate(formatDateForInput(date));
-                            setShowCalendar(false);
-                          }
-                        }}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
+                      mode="single"
+                      selected={calendarDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setCalendarDate(date);
+                          setSelectedDate(formatDateForInput(date));
+                          setShowCalendar(false);
+                        }
+                      }}
+                      initialFocus
+                      className="pointer-events-auto" />
+                    
                     </PopoverContent>
                   </Popover>
-                )}
+                }
               </div>
 
-              {viewMode === "semana" ? (
-                <>
+              {viewMode === "semana" ?
+              <>
                   <CardTitle className="text-base">Agenda Semanal</CardTitle>
                   <CardDescription className="text-xs">
                     Semana de{" "}
                     {weekDates[0].toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "long",
-                    })}{" "}
+                    day: "2-digit",
+                    month: "long"
+                  })}{" "}
                     a{" "}
                     {weekDates[6].toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "long",
-                    })}
+                    day: "2-digit",
+                    month: "long"
+                  })}
                   </CardDescription>
                   <p className="text-xs text-muted-foreground mt-1">
                     Houve {contarAgendamentos()} agendamentos realizados nesta semana.
                   </p>
-                </>
-              ) : (
-                <>
+                </> :
+
+              <>
                   <CardTitle className="text-base">Agenda do Dia</CardTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Houve {contarAgendamentos()} agendamentos realizados neste dia.
                   </p>
                 </>
-              )}
+              }
             </div>
-            {viewMode === "semana" && (
-              <div className="flex gap-2">
+            {viewMode === "semana" &&
+            <div className="flex gap-2">
                 <Button variant="outline" onClick={() => navigateWeek(-1)} className="h-8 text-xs">
                   ← Semana Anterior
                 </Button>
@@ -3438,76 +3438,76 @@ const { error } = await supabase
                   Próxima Semana →
                 </Button>
               </div>
-            )}
+            }
           </div>
         </CardHeader>
         <CardContent className="py-2">
-          {viewMode === "semana" ? (
-            <div className="overflow-x-auto">
+          {viewMode === "semana" ?
+          <div className="overflow-x-auto">
               <div className="min-w-[600px]">
                 <div className="grid gap-2" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
                   <div className="p-2 font-semibold">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  {filteredWeekDates.map((date, idx) => (
-                    <div key={idx} className="p-2 text-center">
+                  {filteredWeekDates.map((date, idx) =>
+                <div key={idx} className="p-2 text-center">
                       <div className="font-semibold text-sm">{diasSemana[date.getDay()]}</div>
                       <div className="text-xs text-muted-foreground">
                         {date.toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                        })}
+                      day: "2-digit",
+                      month: "2-digit"
+                    })}
                       </div>
                     </div>
-                  ))}
+                )}
                 </div>
 
-                {horarios.map((horario) => (
-                  <div key={horario} className="grid gap-2 border-t" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
+                {horarios.map((horario) =>
+              <div key={horario} className="grid gap-2 border-t" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
                     <div className="p-2 text-sm font-medium text-muted-foreground">{horario}</div>
                     {filteredWeekDates.map((date, idx) => {
-                      const allAgendamentos = getAllAgendamentosForSlot(date, horario);
-                      const allPacotes = getAllPacotesForSlot(date, horario);
-                      const total = allAgendamentos.length + allPacotes.length;
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-1 rounded-lg min-h-[60px] transition-colors ${total > 0 ? "bg-accent/50" : "bg-secondary/30 hover:bg-secondary/50"}`}
-                        >
+                  const allAgendamentos = getAllAgendamentosForSlot(date, horario);
+                  const allPacotes = getAllPacotesForSlot(date, horario);
+                  const total = allAgendamentos.length + allPacotes.length;
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-1 rounded-lg min-h-[60px] transition-colors ${total > 0 ? "bg-accent/50" : "bg-secondary/30 hover:bg-secondary/50"}`}>
+                      
                           <div className="flex flex-wrap gap-1">
-                            {allAgendamentos.map((ag, i) => (
-                              <div key={`ag-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground">
+                            {allAgendamentos.map((ag, i) =>
+                        <div key={`ag-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground">
                                 <div className="font-semibold truncate">{ag.pet}</div>
                                 <div className="text-[10px] text-[#4590DB]/80 dark:text-accent-foreground/80 truncate">{ag.cliente}</div>
                                 <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60 truncate">{ag.servico}</div>
                               </div>
-                            ))}
+                        )}
                             {allPacotes.map((p, i) => {
-                              const servicoDoHorario = p.servicos.find(s => s.data === formatDateForInput(date) && s.horarioInicio === horario);
-                              return (
-                                <div key={`pk-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground">
+                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && s.horarioInicio === horario);
+                          return (
+                            <div key={`pk-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground">
                                   <div className="flex items-center gap-1">
                                     <Package className="h-3 w-3" />
                                     <span className="font-semibold truncate">{p.nomePet}</span>
                                   </div>
                                   <div className="text-[10px] text-[#4590DB]/80 dark:text-primary-foreground/80 truncate">{p.nomeCliente}</div>
                                   <div className="text-[10px] text-[#4590DB]/60 dark:text-primary-foreground/60 truncate">{p.nomePacote}</div>
-                                  {servicoDoHorario && (
-                                    <div className="text-[10px] text-[#4590DB]/60 dark:text-primary-foreground/60 truncate">{servicoDoHorario.nomeServico}</div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                  {servicoDoHorario &&
+                              <div className="text-[10px] text-[#4590DB]/60 dark:text-primary-foreground/60 truncate">{servicoDoHorario.nomeServico}</div>
+                              }
+                                </div>);
+
+                        })}
                           </div>
-                        </div>
-                      );
-                    })}
+                        </div>);
+
+                })}
                   </div>
-                ))}
+              )}
               </div>
-            </div>
-          ) : (
-            <div className="flex gap-2">
+            </div> :
+
+          <div className="flex gap-2">
               {/* Gantt Chart */}
               <div className="flex-1 overflow-x-auto">
                 <div className="min-w-[400px] relative">
@@ -3516,65 +3516,65 @@ const { error } = await supabase
                     {/* Linhas verticais de fundo */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
-                        length: (horariosGantt.length - 1) * 2 + 1,
-                      }).map((_, i) => (
-                        <div key={i} className="flex-1 border-r border-gray-300/30" />
-                      ))}
+                      length: (horariosGantt.length - 1) * 2 + 1
+                    }).map((_, i) =>
+                    <div key={i} className="flex-1 border-r border-gray-300/30" />
+                    )}
                     </div>
 
-                    {horariosGantt.map((h) => (
-                      <div
-                        key={h}
-                        className="flex-1 text-center text-[10px] font-semibold text-muted-foreground relative z-10"
-                      >
+                    {horariosGantt.map((h) =>
+                  <div
+                    key={h}
+                    className="flex-1 text-center text-[10px] font-semibold text-muted-foreground relative z-10">
+                    
                         {h}
                       </div>
-                    ))}
+                  )}
                   </div>
 
                   {/* Barras de agendamentos */}
                   <div
-                    className="space-y-0 relative"
-                    style={{
-                      minHeight: `${Math.max(agendamentosDia.length * 8 + 16, 200)}px`,
-                    }}
-                  >
+                  className="space-y-0 relative"
+                  style={{
+                    minHeight: `${Math.max(agendamentosDia.length * 8 + 16, 200)}px`
+                  }}>
+                  
                     {/* Linhas verticais estendidas para a área de barras */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {Array.from({
-                        length: (horariosGantt.length - 1) * 2 + 1,
-                      }).map((_, i) => (
-                        <div key={i} className="flex-1 border-r border-gray-300/30 h-full" />
-                      ))}
+                      length: (horariosGantt.length - 1) * 2 + 1
+                    }).map((_, i) =>
+                    <div key={i} className="flex-1 border-r border-gray-300/30 h-full" />
+                    )}
                     </div>
 
                     {agendamentosDia.map((agendamento, index) => {
-                      const [inicioH, inicioM] = agendamento.horarioInicio.split(":").map(Number);
-                      const [fimH, fimM] = agendamento.horarioFim
-                        ? agendamento.horarioFim.split(":").map(Number)
-                        : [inicioH + 1, inicioM];
-                      const [primeiroH] = horariosGantt[0].split(":").map(Number);
-                      const [ultimoH] = horariosGantt[horariosGantt.length - 1].split(":").map(Number);
-                      const totalMinutos = (ultimoH - primeiroH + 1) * 60;
-                      const inicioMinutos = (inicioH - primeiroH) * 60 + inicioM;
-                      const duracaoMinutos = (fimH - inicioH) * 60 + (fimM - inicioM);
-                      const left = (inicioMinutos / totalMinutos) * 100;
-                      const width = (duracaoMinutos / totalMinutos) * 100;
-                      return (
-                        <div
-                          key={index}
-                          className="absolute h-4 bg-orange-500 rounded flex items-center justify-center text-[8px] font-semibold text-black relative z-10"
-                          style={{
-                            left: `${left}%`,
-                            width: `${Math.max(width, 5)}%`,
-                            top: `${index * 8}px`,
-                          }}
-                        >
+                    const [inicioH, inicioM] = agendamento.horarioInicio.split(":").map(Number);
+                    const [fimH, fimM] = agendamento.horarioFim ?
+                    agendamento.horarioFim.split(":").map(Number) :
+                    [inicioH + 1, inicioM];
+                    const [primeiroH] = horariosGantt[0].split(":").map(Number);
+                    const [ultimoH] = horariosGantt[horariosGantt.length - 1].split(":").map(Number);
+                    const totalMinutos = (ultimoH - primeiroH + 1) * 60;
+                    const inicioMinutos = (inicioH - primeiroH) * 60 + inicioM;
+                    const duracaoMinutos = (fimH - inicioH) * 60 + (fimM - inicioM);
+                    const left = inicioMinutos / totalMinutos * 100;
+                    const width = duracaoMinutos / totalMinutos * 100;
+                    return (
+                      <div
+                        key={index}
+                        className="absolute h-4 bg-orange-500 rounded flex items-center justify-center text-[8px] font-semibold text-black relative z-10"
+                        style={{
+                          left: `${left}%`,
+                          width: `${Math.max(width, 5)}%`,
+                          top: `${index * 8}px`
+                        }}>
+                        
                           {agendamento.horarioInicio.substring(0, 5)} -{" "}
                           {agendamento.horarioFim?.substring(0, 5) || agendamento.horarioInicio.substring(0, 5)}
-                        </div>
-                      );
-                    })}
+                        </div>);
+
+                  })}
                   </div>
                 </div>
               </div>
@@ -3598,12 +3598,12 @@ const { error } = await supabase
                       <th className="p-1.5 border text-left w-[50px]">N° PCT</th>
                       <th className="p-1.5 border text-left w-[30px]">Taxi Dog</th>
                       <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
-                      <th className="p-1.5 border text-center w-[45px]" style={{ backgroundColor: '#B9DFAE' }}>Pronto</th>
+                      <th className="p-1.5 border text-center w-[45px]" style={{ backgroundColor: '#B9DFAE' }}>Pet Pronto</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {agendamentosDia.map((agendamento, index) => (
-                      <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
+                    {agendamentosDia.map((agendamento, index) =>
+                  <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
                         <td className="p-1.5 border">
                           {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
                         </td>
@@ -3620,51 +3620,51 @@ const { error } = await supabase
                         </td>
                         <td className="p-1.5 border">
                           {agendamento.tipo === "pacote" &&
-                          agendamento.agendamentoPacote &&
-                          agendamento.servicoAgendamento ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) =>
-                                abrirWhatsApp(
-                                  gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
-                                  e,
-                                )
-                              }
-                              className="h-5 w-5 p-0"
-                            >
+                      agendamento.agendamentoPacote &&
+                      agendamento.servicoAgendamento ?
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) =>
+                        abrirWhatsApp(
+                          gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
+                          e
+                        )
+                        }
+                        className="h-5 w-5 p-0">
+                        
                               <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
-                            </Button>
-                          ) : agendamento.tipo === "simples" && agendamento.agendamentoOriginal ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) =>
-                                abrirWhatsApp(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), e)
-                              }
-                              className="h-5 w-5 p-0"
-                            >
+                            </Button> :
+                      agendamento.tipo === "simples" && agendamento.agendamentoOriginal ?
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) =>
+                        abrirWhatsApp(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), e)
+                        }
+                        className="h-5 w-5 p-0">
+                        
                               <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
-                            </Button>
-                          ) : null}
+                            </Button> :
+                      null}
                         </td>
                         <td className="p-1.5 border text-center" style={{ backgroundColor: '#B9DFAE' }}>
                           <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => abrirWhatsApp(gerarUrlWhatsAppPronto(agendamento), e)}
-                            className="h-5 w-5 p-0"
-                          >
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => abrirWhatsApp(gerarUrlWhatsAppPronto(agendamento), e)}
+                        className="h-5 w-5 p-0">
+                        
                             <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                  )}
                   </tbody>
                 </table>
               </div>
             </div>
-          )}
+          }
 
           {/* Dialog de edição */}
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -3674,8 +3674,8 @@ const { error } = await supabase
                 <DialogDescription className="text-xs">Altere as informações do agendamento</DialogDescription>
               </DialogHeader>
 
-              {editingAgendamento && (
-                <div className="space-y-3">
+              {editingAgendamento &&
+              <div className="space-y-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Cliente</Label>
                     <Input value={editingAgendamento.cliente} disabled className="h-8 text-xs bg-secondary" />
@@ -3691,11 +3691,11 @@ const { error } = await supabase
                     <Popover open={openEditServicoCombobox} onOpenChange={setOpenEditServicoCombobox}>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openEditServicoCombobox}
-                          className="h-8 w-full justify-between text-xs font-normal"
-                        >
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openEditServicoCombobox}
+                        className="h-8 w-full justify-between text-xs font-normal">
+                        
                           {editFormData.servico || "Selecione um serviço"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -3706,58 +3706,58 @@ const { error } = await supabase
                           <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
                             Nenhum serviço encontrado.
                           </CommandEmpty>
-                          {servicos.length > 0 && (
-                            <CommandGroup heading="Serviços Individuais" className="text-xs">
-                              {servicos.map((servico) => (
-                                <CommandItem
-                                  key={`servico-${servico.id}`}
-                                  value={servico.nome}
-                                  onSelect={(currentValue) => {
-                                    setEditFormData({
-                                      ...editFormData,
-                                      servico: currentValue,
-                                    });
-                                    setOpenEditServicoCombobox(false);
-                                  }}
-                                  className="text-xs"
-                                >
+                          {servicos.length > 0 &&
+                        <CommandGroup heading="Serviços Individuais" className="text-xs">
+                              {servicos.map((servico) =>
+                          <CommandItem
+                            key={`servico-${servico.id}`}
+                            value={servico.nome}
+                            onSelect={(currentValue) => {
+                              setEditFormData({
+                                ...editFormData,
+                                servico: currentValue
+                              });
+                              setOpenEditServicoCombobox(false);
+                            }}
+                            className="text-xs">
+                            
                                   <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      editFormData.servico === servico.nome ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                editFormData.servico === servico.nome ? "opacity-100" : "opacity-0"
+                              )} />
+                            
                                   {servico.nome}
                                 </CommandItem>
-                              ))}
-                            </CommandGroup>
                           )}
-                          {pacotes.length > 0 && (
-                            <CommandGroup heading="Pacotes de Serviços" className="text-xs">
-                              {pacotes.map((pacote) => (
-                                <CommandItem
-                                  key={`pacote-${pacote.id}`}
-                                  value={pacote.nome}
-                                  onSelect={(currentValue) => {
-                                    setEditFormData({
-                                      ...editFormData,
-                                      servico: currentValue,
-                                    });
-                                    setOpenEditServicoCombobox(false);
-                                  }}
-                                  className="text-xs"
-                                >
+                            </CommandGroup>
+                        }
+                          {pacotes.length > 0 &&
+                        <CommandGroup heading="Pacotes de Serviços" className="text-xs">
+                              {pacotes.map((pacote) =>
+                          <CommandItem
+                            key={`pacote-${pacote.id}`}
+                            value={pacote.nome}
+                            onSelect={(currentValue) => {
+                              setEditFormData({
+                                ...editFormData,
+                                servico: currentValue
+                              });
+                              setOpenEditServicoCombobox(false);
+                            }}
+                            className="text-xs">
+                            
                                   <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      editFormData.servico === pacote.nome ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                editFormData.servico === pacote.nome ? "opacity-100" : "opacity-0"
+                              )} />
+                            
                                   {pacote.nome}
                                 </CommandItem>
-                              ))}
-                            </CommandGroup>
                           )}
+                            </CommandGroup>
+                        }
                         </Command>
                       </PopoverContent>
                     </Popover>
@@ -3766,122 +3766,122 @@ const { error } = await supabase
                   <div className="space-y-1">
                     <Label className="text-xs">Data</Label>
                     <Input
-                      type="date"
-                      value={editFormData.data}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          data: e.target.value,
-                        })
-                      }
-                      className="h-8 text-xs"
-                    />
+                    type="date"
+                    value={editFormData.data}
+                    onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      data: e.target.value
+                    })
+                    }
+                    className="h-8 text-xs" />
+                  
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Horário de Início</Label>
                     <TimeInput
-                      value={editFormData.horarioInicio}
-                      onChange={(value) =>
-                        setEditFormData({
-                          ...editFormData,
-                          horarioInicio: value,
-                        })
-                      }
-                      placeholder="00:00"
-                      className="h-8 text-xs"
-                    />
+                    value={editFormData.horarioInicio}
+                    onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      horarioInicio: value
+                    })
+                    }
+                    placeholder="00:00"
+                    className="h-8 text-xs" />
+                  
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Tempo de Serviço (horas)</Label>
                     <TimeInput
-                      value={editFormData.tempoServico}
-                      onChange={(value) =>
-                        setEditFormData({
-                          ...editFormData,
-                          tempoServico: value,
-                        })
-                      }
-                      placeholder="00:00"
-                      className="h-8 text-xs"
-                    />
+                    value={editFormData.tempoServico}
+                    onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      tempoServico: value
+                    })
+                    }
+                    placeholder="00:00"
+                    className="h-8 text-xs" />
+                  
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
                     <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => {
-                        if (editingAgendamento.tipo === "pacote") {
-                          const updated = agendamentosPacotes
-                            .map((p) => {
-                              if (p.id === editingAgendamento.agendamentoPacote.id) {
-                                return {
-                                  ...p,
-                                  servicos: p.servicos.filter(
-                                    (s) => s.numero !== editingAgendamento.servicoAgendamento.numero,
-                                  ),
-                                };
-                              }
-                              return p;
-                            })
-                            .filter((p) => p.servicos.length > 0);
-                          setAgendamentosPacotes(updated);
-                          toast.success("Agendamento excluído!");
-                          setEditDialogOpen(false);
-                        }
-                      }}
-                      className="h-8 text-xs"
-                    >
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      if (editingAgendamento.tipo === "pacote") {
+                        const updated = agendamentosPacotes.
+                        map((p) => {
+                          if (p.id === editingAgendamento.agendamentoPacote.id) {
+                            return {
+                              ...p,
+                              servicos: p.servicos.filter(
+                                (s) => s.numero !== editingAgendamento.servicoAgendamento.numero
+                              )
+                            };
+                          }
+                          return p;
+                        }).
+                        filter((p) => p.servicos.length > 0);
+                        setAgendamentosPacotes(updated);
+                        toast.success("Agendamento excluído!");
+                        setEditDialogOpen(false);
+                      }
+                    }}
+                    className="h-8 text-xs">
+                    
                       Excluir Agendamento
                     </Button>
                     <Button
-                      type="button"
-                      onClick={() => {
-                        if (editingAgendamento.tipo === "pacote") {
-                          const horarioTermino = calcularHorarioTermino(
-                            editFormData.horarioInicio,
-                            editFormData.tempoServico,
-                          );
-                          const updated = agendamentosPacotes.map((p) => {
-                            if (p.id === editingAgendamento.agendamentoPacote.id) {
-                              return {
-                                ...p,
-                                servicos: p.servicos.map((s) => {
-                                  if (s.numero === editingAgendamento.servicoAgendamento.numero) {
-                                    return {
-                                      ...s,
-                                      nomeServico: editFormData.servico,
-                                      data: editFormData.data,
-                                      horarioInicio: editFormData.horarioInicio,
-                                      tempoServico: editFormData.tempoServico,
-                                      horarioTermino,
-                                    };
-                                  }
-                                  return s;
-                                }),
-                              };
-                            }
-                            return p;
-                          });
-                          setAgendamentosPacotes(updated);
-                          toast.success("Agendamento atualizado!");
-                          setEditDialogOpen(false);
-                        }
-                      }}
-                      className="h-8 text-xs"
-                    >
+                    type="button"
+                    onClick={() => {
+                      if (editingAgendamento.tipo === "pacote") {
+                        const horarioTermino = calcularHorarioTermino(
+                          editFormData.horarioInicio,
+                          editFormData.tempoServico
+                        );
+                        const updated = agendamentosPacotes.map((p) => {
+                          if (p.id === editingAgendamento.agendamentoPacote.id) {
+                            return {
+                              ...p,
+                              servicos: p.servicos.map((s) => {
+                                if (s.numero === editingAgendamento.servicoAgendamento.numero) {
+                                  return {
+                                    ...s,
+                                    nomeServico: editFormData.servico,
+                                    data: editFormData.data,
+                                    horarioInicio: editFormData.horarioInicio,
+                                    tempoServico: editFormData.tempoServico,
+                                    horarioTermino
+                                  };
+                                }
+                                return s;
+                              })
+                            };
+                          }
+                          return p;
+                        });
+                        setAgendamentosPacotes(updated);
+                        toast.success("Agendamento atualizado!");
+                        setEditDialogOpen(false);
+                      }
+                    }}
+                    className="h-8 text-xs">
+                    
                       Atualizar Agendamento
                     </Button>
                   </div>
                 </div>
-              )}
+              }
             </DialogContent>
           </Dialog>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>);
+
 };
 export default Agendamentos;
