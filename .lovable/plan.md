@@ -1,48 +1,76 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Correção: Filtragem de serviços por porte do pet no agendamento
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Problema reportado
+Ao selecionar um pet com raça "Buldogue" e porte "grande", a listbox de serviços não exibe apenas os serviços de porte grande como esperado.
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+### Análise
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+Inspecionei o código de filtragem em `servicosFiltradosPorPorte` (linhas 479-503 de `Agendamentos.tsx`). A lógica busca o pet nos clientes comparando `p.nome === formData.pet && p.raca === formData.raca`, obtém o `porte` do pet, e filtra os serviços via `normalizarPorte`.
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+Dados no banco:
+- Pet "Argus" → `porte: "grande"`, `raca: "BULDOGUE"`
+- Serviços de porte grande → `porte: "Grande"`
+- `normalizarPorte` converte ambos para `"grande"` → deveria funcionar
 
-**Mudancas no `ItemLancamentoForm`:**
+**Possível causa raiz**: O `useMemo` depende de `[formData.pet, formData.raca, servicos, clientes]`, mas a busca do pet dentro do memo não filtra pelo cliente selecionado. Se houver múltiplos pets com o mesmo nome em clientes diferentes (ou se `formData.cliente` estiver vazio nesse momento), o primeiro pet encontrado na iteração pode ter um porte diferente do esperado.
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+Outra possibilidade: quando `handleSimplePetSelect` auto-define a raça (linha 882), o estado pode não ter sido atualizado no render em que o combobox de serviços é aberto.
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
+### Solução proposta
 
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
+**Arquivo**: `src/pages/Agendamentos.tsx`
 
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+1. **Melhorar a busca do pet no `servicosFiltradosPorPorte`** — adicionar `formData.cliente` como critério de busca para encontrar o pet correto quando o cliente já está selecionado:
 
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+```typescript
+const servicosFiltradosPorPorte = useMemo(() => {
+    if (!formData.raca || !formData.pet) {
+      return servicos;
+    }
+    
+    let portePet = "";
+    
+    // Se o cliente está selecionado, buscar apenas nos pets desse cliente
+    if (formData.cliente) {
+      const clientesComMesmoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
+      for (const cliente of clientesComMesmoNome) {
+        const pet = cliente.pets.find(
+          (p) => p.nome === formData.pet && p.raca === formData.raca
+        );
+        if (pet) {
+          portePet = pet.porte;
+          break;
+        }
+      }
+    } else {
+      // Fallback: buscar em todos os clientes
+      for (const cliente of clientes) {
+        const pet = cliente.pets.find(
+          (p) => p.nome === formData.pet && p.raca === formData.raca
+        );
+        if (pet) {
+          portePet = pet.porte;
+          break;
+        }
+      }
+    }
+    
+    if (!portePet) {
+      return servicos;
+    }
+    
+    const porteNormalizado = normalizarPorte(portePet);
+    return servicos.filter(
+      (s) => normalizarPorte(s.porte) === porteNormalizado
+    );
+}, [formData.pet, formData.raca, formData.cliente, servicos, clientes]);
+```
 
-Mesma correção na linha 2162 (subtotal com dedução).
+2. **Adicionar `formData.cliente` à lista de dependências do useMemo** para garantir que a filtragem seja recalculada quando o cliente muda.
 
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+### Observação
+
+A mudança principal é adicionar `formData.cliente` tanto na lógica de busca quanto nas dependências do useMemo, garantindo que o pet correto seja encontrado mesmo quando existem pets com nomes/raças iguais em clientes diferentes.
 
