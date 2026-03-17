@@ -2167,7 +2167,7 @@ const Agendamentos = () => {
                 <div className="grid grid-cols-4 gap-1.5">
                   <div className="space-y-1">
                     <Label htmlFor="data" className="text-xs">
-                      Data do Agendamento *
+                      Dia Agendamento*
                     </Label>
                     <Input
                       id="data"
