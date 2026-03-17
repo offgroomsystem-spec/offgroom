@@ -27,6 +27,7 @@ interface Pet {
   nome_pet: string;
   porte: string;
   raca: string;
+  sexo: string;
   observacao: string;
 }
 
