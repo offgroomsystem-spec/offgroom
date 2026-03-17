@@ -459,6 +459,7 @@ const Agendamentos = () => {
     data: "",
     horarioInicio: "",
     tempoServico: "",
+    horarioTermino: "",
     servico: ""
   });
   const [formData, setFormData] = useState({
@@ -1037,8 +1038,8 @@ const Agendamentos = () => {
       toast.error("Favor preencher o Horário de Início do Serviço");
       return;
     }
-    if (!formData.tempoServico) {
-      toast.error("Favor preencher o Tempo do Serviço");
+    if (!formData.tempoServico && !formData.horarioTermino) {
+      toast.error("Favor preencher o Tempo do Serviço ou o Horário de Fim do Serviço");
       return;
     }
     if (!formData.dataVenda) {
@@ -1054,7 +1055,7 @@ const Agendamentos = () => {
       return;
     }
 
-    const horarioTermino = calcularHorarioTermino(formData.horario, formData.tempoServico);
+    const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
     // Criar string concatenada para exibição no calendário
     const servicosNomes = servicosValidos.map((s) => s.nome).join(" + ");
@@ -1217,6 +1218,19 @@ const Agendamentos = () => {
     const fimH = Math.floor(totalMinutos / 60);
     const fimM = totalMinutos % 60;
     return `${String(fimH).padStart(2, "0")}:${String(fimM).padStart(2, "0")}`;
+  };
+
+  // Calcular tempo de serviço (inverso do calcularHorarioTermino)
+  const calcularTempoServico = (inicio: string, fim: string): string => {
+    if (!inicio || !fim) return "";
+    const [inicioH, inicioM] = inicio.split(":").map(Number);
+    const [fimH, fimM] = fim.split(":").map(Number);
+    if (isNaN(inicioH) || isNaN(inicioM) || isNaN(fimH) || isNaN(fimM)) return "";
+    let diffMinutos = (fimH * 60 + fimM) - (inicioH * 60 + inicioM);
+    if (diffMinutos <= 0) return "";
+    const h = Math.floor(diffMinutos / 60);
+    const m = diffMinutos % 60;
+    return `${h}:${String(m).padStart(2, "0")}`;
   };
 
   // Atualizar serviço individual
@@ -2150,7 +2164,7 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-4 gap-1.5">
                   <div className="space-y-1">
                     <Label htmlFor="data" className="text-xs">
                       Data do Agendamento *
@@ -2173,26 +2187,44 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label htmlFor="horario" className="text-xs">
-                      Horário de Início do Serviço *
+                      Horário de Início *
                     </Label>
                     <TimeInput
                       value={formData.horario}
                       onChange={(value) => {
-                        const horarioTermino = calcularHorarioTermino(value, formData.tempoServico);
+                        const horarioTermino = formData.tempoServico ? calcularHorarioTermino(value, formData.tempoServico) : formData.horarioTermino;
+                        const tempoServico = !formData.tempoServico && formData.horarioTermino ? calcularTempoServico(value, formData.horarioTermino) : formData.tempoServico;
                         setFormData({
                           ...formData,
                           horario: value,
-                          horarioTermino
+                          horarioTermino,
+                          tempoServico
                         });
                       }}
                       placeholder="00:00"
                       className="h-8 text-xs" />
                     
                   </div>
-                </div>
 
-                {/* Tempo de Serviço e Serviço (Horário Término oculto sem ocupar espaço) */}
-                <div className="grid grid-cols-[28%_72%] gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="horarioFim" className="text-xs">
+                      Horário de Fim *
+                    </Label>
+                    <TimeInput
+                      value={formData.horarioTermino}
+                      onChange={(value) => {
+                        const tempoServico = formData.horario ? calcularTempoServico(formData.horario, value) : "";
+                        setFormData({
+                          ...formData,
+                          horarioTermino: value,
+                          tempoServico
+                        });
+                      }}
+                      placeholder="00:00"
+                      className="h-8 text-xs" />
+                    
+                  </div>
+
                   <div className="space-y-1">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço *
@@ -2202,57 +2234,31 @@ const Agendamentos = () => {
                       type="text"
                       value={formData.tempoServico}
                       onChange={(event) => {
-                        // Captura o valor digitado no campo
                         let valorDigitado = event.target.value;
-
-                        // Remove todos os caracteres que não sejam números
                         valorDigitado = valorDigitado.replace(/\D/g, "");
-
-                        // Limita o número total de dígitos a 3 (por exemplo: 130 -> 130, 1234 -> 123)
                         if (valorDigitado.length > 3) {
                           valorDigitado = valorDigitado.slice(0, 3);
                         }
-
-                        // Aplica a máscara automática no formato h:mm
                         if (valorDigitado.length === 0) {
                           valorDigitado = "";
-                        } else if (valorDigitado.length === 1) {
-                          // Exemplo: "1" continua "1"
-                          valorDigitado = valorDigitado;
                         } else if (valorDigitado.length === 2) {
-                          // Exemplo: "12" vira "1:2"
                           valorDigitado = `${valorDigitado[0]}:${valorDigitado[1]}`;
                         } else if (valorDigitado.length === 3) {
-                          // Exemplo: "130" vira "1:30"
                           valorDigitado = `${valorDigitado[0]}:${valorDigitado.slice(1, 3)}`;
                         }
-
-                        // Impede que os minutos sejam maiores que 59
                         const partes = valorDigitado.split(":");
                         if (partes.length === 2 && parseInt(partes[1], 10) > 59) {
                           partes[1] = "59";
                           valorDigitado = `${partes[0]}:${partes[1]}`;
                         }
-
-                        // Atualiza o estado do formulário com o novo valor
+                        const horarioTermino = formData.horario ? calcularHorarioTermino(formData.horario, valorDigitado) : "";
                         setFormData({
-                          cliente: formData.cliente,
-                          pet: formData.pet,
-                          raca: formData.raca,
-                          whatsapp: formData.whatsapp,
-                          data: formData.data,
-                          horario: formData.horario,
+                          ...formData,
                           tempoServico: valorDigitado,
-                          horarioTermino: formData.horarioTermino,
-                          servico: formData.servico,
-                          numeroServicoPacote: formData.numeroServicoPacote,
-                          groomer: formData.groomer,
-                          dataVenda: formData.dataVenda,
-                          taxiDog: formData.taxiDog
+                          horarioTermino
                         });
                       }}
                       onBlur={(event) => {
-                        // Valida o formato final do campo quando o usuário sai dele
                         const regexFinal = /^[0-9]{1}:[0-5][0-9]$/;
                         if (event.target.value && !regexFinal.test(event.target.value)) {
                           alert("Formato inválido! Use o formato h:mm (exemplo: 1:30)");
@@ -2260,24 +2266,13 @@ const Agendamentos = () => {
                       }}
                       placeholder="0:00"
                       className="h-8 text-xs"
-                      required
                       maxLength={4}
                       pattern="[0-9]{1}:[0-5][0-9]" />
                     
                   </div>
+                </div>
 
-                  {/* Campo oculto fora do grid para não ocupar espaço */}
-                  <div className="hidden">
-                    <Input
-                      id="horarioTermino"
-                      value={formData.horarioTermino}
-                      readOnly
-                      className="h-8 text-xs bg-secondary cursor-not-allowed"
-                      placeholder="--:--" />
-                    
-                  </div>
-
-                  <div className="space-y-1 col-span-1">
+                  <div className="space-y-1">
                     <Label className="text-xs">Serviço(s) *</Label>
                     <div className="space-y-2">
                       {servicosSelecionadosSimples.map((servicoItem, index) =>
@@ -2360,7 +2355,6 @@ const Agendamentos = () => {
                       )}
                     </div>
                   </div>
-                </div>
 
 
                 <div className="space-y-1">
@@ -2916,7 +2910,7 @@ const Agendamentos = () => {
 
               {editandoAgendamento &&
               <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     <div className="space-y-1">
                       <Label className="text-xs">Data do Agendamento</Label>
                       <Input
@@ -2932,25 +2926,40 @@ const Agendamentos = () => {
                     
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Horário do Agendamento</Label>
+                      <Label className="text-xs">Horário de Início</Label>
                       <TimeInput
                       value={editandoAgendamento.horarioInicio}
                       onChange={(value) => {
-                        const horarioTermino = calcularHorarioTermino(value, editandoAgendamento.tempoServico);
+                        const horarioTermino = editandoAgendamento.tempoServico ? calcularHorarioTermino(value, editandoAgendamento.tempoServico) : editandoAgendamento.horarioTermino;
+                        const tempoServico = !editandoAgendamento.tempoServico && editandoAgendamento.horarioTermino ? calcularTempoServico(value, editandoAgendamento.horarioTermino) : editandoAgendamento.tempoServico;
                         setEditandoAgendamento({
                           ...editandoAgendamento,
                           horarioInicio: value,
-                          horarioTermino
+                          horarioTermino,
+                          tempoServico
                         });
                       }}
                       className="h-8 text-xs" />
                     
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs">Tempo de Serviço *</Label>
+                      <Label className="text-xs">Horário de Fim</Label>
+                      <TimeInput
+                      value={editandoAgendamento.horarioTermino || ""}
+                      onChange={(value) => {
+                        const tempoServico = editandoAgendamento.horarioInicio ? calcularTempoServico(editandoAgendamento.horarioInicio, value) : "";
+                        setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          horarioTermino: value,
+                          tempoServico
+                        });
+                      }}
+                      placeholder="00:00"
+                      className="h-8 text-xs" />
+                    
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tempo de Serviço</Label>
                       <TimeInput
                       value={editandoAgendamento.tempoServico}
                       onChange={(value) => {
@@ -2964,15 +2973,6 @@ const Agendamentos = () => {
                       placeholder="0:00"
                       className="h-8 text-xs"
                       allowSingleDigitHour={true} />
-                    
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs">Horário de Término</Label>
-                      <Input
-                      value={editandoAgendamento.horarioTermino || "--:--"}
-                      readOnly
-                      className="h-8 text-xs bg-secondary cursor-not-allowed" />
                     
                     </div>
                   </div>
@@ -3778,34 +3778,60 @@ const Agendamentos = () => {
                   
                   </div>
 
+                  <div className="grid grid-cols-3 gap-1.5">
                   <div className="space-y-1">
                     <Label className="text-xs">Horário de Início</Label>
                     <TimeInput
                     value={editFormData.horarioInicio}
-                    onChange={(value) =>
-                    setEditFormData({
-                      ...editFormData,
-                      horarioInicio: value
-                    })
-                    }
+                    onChange={(value) => {
+                      const horarioTermino = editFormData.tempoServico ? calcularHorarioTermino(value, editFormData.tempoServico) : "";
+                      const tempoServico = !editFormData.tempoServico && editFormData.horarioTermino ? calcularTempoServico(value, editFormData.horarioTermino) : editFormData.tempoServico;
+                      setEditFormData({
+                        ...editFormData,
+                        horarioInicio: value,
+                        horarioTermino,
+                        tempoServico
+                      });
+                    }}
                     placeholder="00:00"
                     className="h-8 text-xs" />
                   
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Tempo de Serviço (horas)</Label>
+                    <Label className="text-xs">Horário de Fim</Label>
                     <TimeInput
-                    value={editFormData.tempoServico}
-                    onChange={(value) =>
-                    setEditFormData({
-                      ...editFormData,
-                      tempoServico: value
-                    })
-                    }
+                    value={editFormData.horarioTermino || ""}
+                    onChange={(value) => {
+                      const tempoServico = editFormData.horarioInicio ? calcularTempoServico(editFormData.horarioInicio, value) : "";
+                      setEditFormData({
+                        ...editFormData,
+                        horarioTermino: value,
+                        tempoServico
+                      });
+                    }}
                     placeholder="00:00"
                     className="h-8 text-xs" />
                   
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tempo de Serviço</Label>
+                    <TimeInput
+                    value={editFormData.tempoServico}
+                    onChange={(value) => {
+                      const horarioTermino = editFormData.horarioInicio ? calcularHorarioTermino(editFormData.horarioInicio, value) : "";
+                      setEditFormData({
+                        ...editFormData,
+                        tempoServico: value,
+                        horarioTermino
+                      });
+                    }}
+                    placeholder="0:00"
+                    className="h-8 text-xs"
+                    allowSingleDigitHour={true} />
+                  
+                  </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
@@ -3840,7 +3866,7 @@ const Agendamentos = () => {
                     type="button"
                     onClick={() => {
                       if (editingAgendamento.tipo === "pacote") {
-                        const horarioTermino = calcularHorarioTermino(
+                        const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
                           editFormData.horarioInicio,
                           editFormData.tempoServico
                         );

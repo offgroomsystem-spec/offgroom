@@ -1,35 +1,48 @@
 
 
-## Ajustes nos campos de horário da tela de Agendamento
+## Melhorias no Formulário "Lançar Financeiro"
 
-### Resumo
-Adicionar campo "Horário de Fim do Serviço" entre "Horário de Início" e "Tempo de Serviço", com cálculo automático bidirecional. Aplicar em 3 formulários: Novo Agendamento, Editar Agendamento (gerenciamento) e Editar Agendamento (calendário).
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-### Alterações no `src/pages/Agendamentos.tsx`
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-#### 1. Nova função `calcularTempoServico`
-Inversa da `calcularHorarioTermino`: recebe horário de início e horário de fim, retorna o tempo de serviço no formato `h:mm`.
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-#### 2. Formulário "Novo Agendamento" (linhas ~2153-2278)
-- Mudar grid de `grid-cols-2` para `grid-cols-4` com tamanhos compactos
-- Colocar os 4 campos na mesma linha: Data, Início, Fim, Tempo
-- O campo "Horário de Fim do Serviço" será um `TimeInput` editável (não mais `readOnly` e `hidden`)
-- Ao preencher "Tempo de Serviço": calcular automaticamente "Horário de Fim" via `calcularHorarioTermino`
-- Ao preencher "Horário de Fim": calcular automaticamente "Tempo de Serviço" via `calcularTempoServico`
-- Ao alterar "Horário de Início": recalcular "Horário de Fim" se "Tempo de Serviço" estiver preenchido
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-#### 3. Validação do submit (linha ~1040)
-- Mudar validação: exigir `formData.horario` + pelo menos um entre `formData.tempoServico` ou `formData.horarioTermino`
+**Mudancas no `ItemLancamentoForm`:**
 
-#### 4. Formulário "Editar Agendamento" - Gerenciamento (linhas ~2919-2978)
-- Reorganizar para 4 campos na mesma linha (Data, Início, Fim, Tempo)
-- Tornar "Horário de Término" editável com a mesma lógica bidirecional
-- Ao preencher Fim: calcular Tempo; ao preencher Tempo: calcular Fim
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-#### 5. Formulário "Editar Agendamento" - Calendário (linhas ~3780-3808)
-- Adicionar campo "Horário de Fim" entre Início e Tempo
-- Mesma lógica bidirecional de cálculo automático
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-#### 6. Lógica de salvamento
-- Garantir que `horarioTermino` seja calculado/persistido corretamente em ambos os fluxos (simples e pacote)
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+
+Mesma correção na linha 2162 (subtotal com dedução).
+
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 
