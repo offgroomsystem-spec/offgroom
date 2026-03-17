@@ -443,7 +443,7 @@ export default function Clientes() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                               <Label>Nome do Pet *</Label>
                               <Input
@@ -462,6 +462,18 @@ export default function Clientes() {
                                   <SelectItem value="pequeno">Pequeno</SelectItem>
                                   <SelectItem value="medio">Médio</SelectItem>
                                   <SelectItem value="grande">Grande</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Sexo *</Label>
+                              <Select value={pet.sexo} onValueChange={(value) => updatePet(index, "sexo", value)}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o sexo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Macho">Macho</SelectItem>
+                                  <SelectItem value="Fêmea">Fêmea</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
