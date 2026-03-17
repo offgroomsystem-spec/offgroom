@@ -3834,17 +3834,39 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label className="text-xs">Data</Label>
-                    <Input
-                    type="date"
-                    value={editFormData.data}
-                    onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      data: e.target.value
-                    })
-                    }
-                    className="h-8 text-xs" />
-                  
+                    <Popover open={calendarEditCalOpen} onOpenChange={setCalendarEditCalOpen}>
+                      <PopoverTrigger asChild>
+                        <Input
+                          type="date"
+                          value={editFormData.data}
+                          onChange={(e) =>
+                            setEditFormData({
+                              ...editFormData,
+                              data: e.target.value
+                            })
+                          }
+                          onDoubleClick={() => setCalendarEditCalOpen(true)}
+                          className="h-8 text-xs" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editFormData.data ? new Date(editFormData.data + "T00:00:00") : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setEditFormData({
+                                ...editFormData,
+                                data: format(date, "yyyy-MM-dd")
+                              });
+                            }
+                            setCalendarEditCalOpen(false);
+                          }}
+                          locale={ptBR}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5">
