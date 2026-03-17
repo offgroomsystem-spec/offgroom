@@ -154,7 +154,7 @@ export default function Clientes() {
     setWhatsapp(cliente.whatsapp);
     setEndereco(cliente.endereco || "");
     setObservacaoCliente(cliente.observacao || "");
-    setPets(cliente.pets.length > 0 ? cliente.pets : [{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "" })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
     setCpfCnpj(cliente.cpf_cnpj || "");
     setEmailCliente(cliente.email || "");
     setDialogOpen(true);
