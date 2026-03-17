@@ -1007,6 +1007,7 @@ export type Database = {
           observacao: string | null
           porte: string
           raca: string
+          sexo: string | null
           updated_at: string
           user_id: string
         }
@@ -1018,6 +1019,7 @@ export type Database = {
           observacao?: string | null
           porte: string
           raca: string
+          sexo?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1029,6 +1031,7 @@ export type Database = {
           observacao?: string | null
           porte?: string
           raca?: string
+          sexo?: string | null
           updated_at?: string
           user_id?: string
         }

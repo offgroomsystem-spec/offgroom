@@ -27,6 +27,7 @@ interface Pet {
   nome_pet: string;
   porte: string;
   raca: string;
+  sexo: string;
   observacao: string;
 }
 
@@ -55,7 +56,7 @@ export default function Clientes() {
   const [whatsapp, setWhatsapp] = useState("");
   const [endereco, setEndereco] = useState("");
   const [observacaoCliente, setObservacaoCliente] = useState("");
-  const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+  const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
   const [racaPopoverOpen, setRacaPopoverOpen] = useState<{ [key: number]: boolean }>({});
   // Campos fiscais
   const [cpfCnpj, setCpfCnpj] = useState("");
@@ -140,7 +141,7 @@ export default function Clientes() {
     setWhatsapp("");
     setEndereco("");
     setObservacaoCliente("");
-    setPets([{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setPets([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
     setEditingId(null);
     setRacaPopoverOpen({});
     setCpfCnpj("");
@@ -153,7 +154,7 @@ export default function Clientes() {
     setWhatsapp(cliente.whatsapp);
     setEndereco(cliente.endereco || "");
     setObservacaoCliente(cliente.observacao || "");
-    setPets(cliente.pets.length > 0 ? cliente.pets : [{ nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "" })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
     setCpfCnpj(cliente.cpf_cnpj || "");
     setEmailCliente(cliente.email || "");
     setDialogOpen(true);
@@ -191,7 +192,7 @@ export default function Clientes() {
 
     for (let i = 0; i < pets.length; i++) {
       const pet = pets[i];
-      if (!pet.nome_pet.trim() || !pet.porte || !pet.raca) {
+      if (!pet.nome_pet.trim() || !pet.porte || !pet.raca || !pet.sexo) {
         toast.error(`Preencha todos os campos obrigatórios do Pet ${i + 1}`);
         return;
       }
@@ -236,6 +237,7 @@ export default function Clientes() {
                 nome_pet: pet.nome_pet,
                 porte: pet.porte,
                 raca: pet.raca,
+                sexo: pet.sexo || null,
                 observacao: pet.observacao || "",
               })
               .eq("id", pet.id);
@@ -247,6 +249,7 @@ export default function Clientes() {
               nome_pet: pet.nome_pet,
               porte: pet.porte,
               raca: pet.raca,
+              sexo: pet.sexo || null,
               observacao: pet.observacao || "",
             });
           }
@@ -278,6 +281,7 @@ export default function Clientes() {
           nome_pet: pet.nome_pet,
           porte: pet.porte,
           raca: pet.raca,
+          sexo: pet.sexo || null,
           observacao: pet.observacao || "",
         }));
 
@@ -298,7 +302,7 @@ export default function Clientes() {
   };
 
   const addPet = () => {
-    setPets([...pets, { nome_pet: "", porte: "", raca: "", observacao: "" }]);
+    setPets([...pets, { nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
   };
 
   const removePet = (index: number) => {
@@ -439,7 +443,7 @@ export default function Clientes() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                               <Label>Nome do Pet *</Label>
                               <Input
@@ -458,6 +462,18 @@ export default function Clientes() {
                                   <SelectItem value="pequeno">Pequeno</SelectItem>
                                   <SelectItem value="medio">Médio</SelectItem>
                                   <SelectItem value="grande">Grande</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Sexo *</Label>
+                              <Select value={pet.sexo} onValueChange={(value) => updatePet(index, "sexo", value)}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o sexo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Macho">Macho</SelectItem>
+                                  <SelectItem value="Fêmea">Fêmea</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
