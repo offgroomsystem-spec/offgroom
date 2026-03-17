@@ -449,6 +449,9 @@ const Agendamentos = () => {
   }, [user, ownerId]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
+  const [calendarNovoOpen, setCalendarNovoOpen] = useState(false);
+  const [calendarEditGerOpen, setCalendarEditGerOpen] = useState(false);
+  const [calendarEditCalOpen, setCalendarEditCalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
   const [viewMode, setViewMode] = useState<"semana" | "dia">("semana");
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
