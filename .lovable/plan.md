@@ -1,42 +1,48 @@
 
 
-## Adicionar coluna "Pronto" na tabela de agendamentos do dia
+## Melhorias no Formulário "Lançar Financeiro"
 
-### Resumo
-Adicionar uma nova coluna "Pronto" à direita da coluna "Whatsapp" na tabela de agendamentos diários, com cor de fundo `#B9DFAE`, contendo um ícone clicável que abre o WhatsApp com mensagem personalizada de "pet pronto" baseada no sexo do pet e status do Taxi Dog.
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-### Alterações
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-**Arquivo: `src/pages/Agendamentos.tsx`**
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-1. **Interface `Pet`** (linha 97): adicionar `sexo: string`
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-2. **Mapeamento de pets** (linha 358): incluir `sexo: pet.sexo || ""` ao montar os pets
+**Mudancas no `ItemLancamentoForm`:**
 
-3. **Função `gerarMensagemPronto`** (nova): criar função que recebe o agendamento do dia e gera a URL do WhatsApp com a lógica:
-   - Buscar o pet nos clientes para obter o campo `sexo`
-   - Se `sexo` vazio/null → tratar como "Macho"
-   - Se `taxiDog === "Sim"`:
-     ```
-     Oii [PrimeiroNome]!
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-     Passando para avisar que [a/o] [NomePet] já está [pronta/pronto]!
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-     Já já o Taxi Dog chega e [ela/ele] estará indo de volta pra casa!
-     ```
-   - Se `taxiDog !== "Sim"`:
-     ```
-     Oii [PrimeiroNome]!
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
 
-     Passando para avisar que [a/o] [NomePet] já está [pronta/pronto] para ir para casa!
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
 
-     [Ela/Ele] está [ansiosa/ansioso] te esperando para [buscá-la/buscá-lo]!
-     ```
-   - URL: `https://api.whatsapp.com/send/?phone=55{numero}&text={mensagem}`
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
 
-4. **Cabeçalho da tabela** (após linha 3551): adicionar `<th>` com título "Pronto" e fundo `#B9DFAE`
+Mesma correção na linha 2162 (subtotal com dedução).
 
-5. **Corpo da tabela** (após linha 3600): adicionar `<td>` com fundo `#B9DFAE` contendo ícone `fi fi-tr-comment-alt-check` clicável que chama `abrirWhatsApp` com a URL gerada pela função acima
-
-6. **Busca do WhatsApp**: para agendamentos simples usar `agendamento.agendamentoOriginal.whatsapp`, para pacotes usar `agendamento.agendamentoPacote.whatsapp`
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 

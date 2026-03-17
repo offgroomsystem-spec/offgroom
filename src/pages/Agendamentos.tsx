@@ -100,6 +100,7 @@ interface Pet {
   porte: string;
   raca: string;
   observacao: string;
+  sexo: string;
 }
 
 interface Cliente {
@@ -361,6 +362,7 @@ const Agendamentos = () => {
             porte: pet.porte,
             raca: pet.raca,
             observacao: pet.observacao || "",
+            sexo: pet.sexo || "",
           });
           return acc;
         },
@@ -1571,7 +1573,54 @@ const Agendamentos = () => {
     window.open(url, '_blank');
   };
 
-  // Obter horários do Gantt baseado na config da empresa
+  // Gerar URL do WhatsApp com mensagem de "Pronto" baseada no sexo do pet e taxi dog
+  const gerarUrlWhatsAppPronto = (agendamentoDia: any): string => {
+    const nomeCliente = agendamentoDia.cliente || "";
+    const primeiroNome = obterPrimeiroNome(nomeCliente);
+    const nomePet = capitalizarPrimeiraLetra(agendamentoDia.pet || "");
+    const taxiDog = agendamentoDia.taxiDog;
+
+    // Buscar sexo do pet nos clientes carregados
+    let sexoPet = "";
+    for (const cliente of clientes) {
+      const petEncontrado = cliente.pets.find(
+        (p) => p.nome.toLowerCase() === (agendamentoDia.pet || "").toLowerCase()
+      );
+      if (petEncontrado) {
+        sexoPet = petEncontrado.sexo;
+        break;
+      }
+    }
+    // Default: Macho se vazio
+    const isFemea = sexoPet === "Fêmea";
+
+    const artigo = isFemea ? "a" : "o";
+    const prontoAdj = isFemea ? "pronta" : "pronto";
+    const pronome = isFemea ? "ela" : "ele";
+    const pronomeMaiusculo = isFemea ? "Ela" : "Ele";
+    const ansiosoAdj = isFemea ? "ansiosa" : "ansioso";
+    const buscarPronome = isFemea ? "buscá-la" : "buscá-lo";
+
+    let mensagem = "";
+    if (taxiDog === "Sim") {
+      mensagem = `Oii ${primeiroNome}!\n\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj}!\n\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
+    } else {
+      mensagem = `Oii ${primeiroNome}!\n\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}!`;
+    }
+
+    // Obter número do WhatsApp
+    let numeroWhatsApp = "";
+    if (agendamentoDia.agendamentoOriginal) {
+      numeroWhatsApp = agendamentoDia.agendamentoOriginal.whatsapp || "";
+    } else if (agendamentoDia.agendamentoPacote) {
+      numeroWhatsApp = agendamentoDia.agendamentoPacote.whatsapp || "";
+    }
+    numeroWhatsApp = numeroWhatsApp.replace(/\D/g, "");
+
+    return `https://api.whatsapp.com/send/?phone=55${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`;
+  };
+
+
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
       const [inicioH] = empresaConfig.horarioInicio.split(":").map(Number);
@@ -3549,6 +3598,7 @@ const { error } = await supabase
                       <th className="p-1.5 border text-left w-[50px]">N° PCT</th>
                       <th className="p-1.5 border text-left w-[30px]">Taxi Dog</th>
                       <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
+                      <th className="p-1.5 border text-center w-[45px]" style={{ backgroundColor: '#B9DFAE' }}>Pronto</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3597,6 +3647,16 @@ const { error } = await supabase
                               <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
                             </Button>
                           ) : null}
+                        </td>
+                        <td className="p-1.5 border text-center" style={{ backgroundColor: '#B9DFAE' }}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => abrirWhatsApp(gerarUrlWhatsAppPronto(agendamento), e)}
+                            className="h-5 w-5 p-0"
+                          >
+                            <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
+                          </Button>
                         </td>
                       </tr>
                     ))}
