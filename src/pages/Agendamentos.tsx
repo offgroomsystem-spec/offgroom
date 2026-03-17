@@ -3778,34 +3778,60 @@ const Agendamentos = () => {
                   
                   </div>
 
+                  <div className="grid grid-cols-3 gap-1.5">
                   <div className="space-y-1">
                     <Label className="text-xs">Horário de Início</Label>
                     <TimeInput
                     value={editFormData.horarioInicio}
-                    onChange={(value) =>
-                    setEditFormData({
-                      ...editFormData,
-                      horarioInicio: value
-                    })
-                    }
+                    onChange={(value) => {
+                      const horarioTermino = editFormData.tempoServico ? calcularHorarioTermino(value, editFormData.tempoServico) : "";
+                      const tempoServico = !editFormData.tempoServico && editFormData.horarioTermino ? calcularTempoServico(value, editFormData.horarioTermino) : editFormData.tempoServico;
+                      setEditFormData({
+                        ...editFormData,
+                        horarioInicio: value,
+                        horarioTermino,
+                        tempoServico
+                      });
+                    }}
                     placeholder="00:00"
                     className="h-8 text-xs" />
                   
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Tempo de Serviço (horas)</Label>
+                    <Label className="text-xs">Horário de Fim</Label>
                     <TimeInput
-                    value={editFormData.tempoServico}
-                    onChange={(value) =>
-                    setEditFormData({
-                      ...editFormData,
-                      tempoServico: value
-                    })
-                    }
+                    value={editFormData.horarioTermino || ""}
+                    onChange={(value) => {
+                      const tempoServico = editFormData.horarioInicio ? calcularTempoServico(editFormData.horarioInicio, value) : "";
+                      setEditFormData({
+                        ...editFormData,
+                        horarioTermino: value,
+                        tempoServico
+                      });
+                    }}
                     placeholder="00:00"
                     className="h-8 text-xs" />
                   
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tempo de Serviço</Label>
+                    <TimeInput
+                    value={editFormData.tempoServico}
+                    onChange={(value) => {
+                      const horarioTermino = editFormData.horarioInicio ? calcularHorarioTermino(editFormData.horarioInicio, value) : "";
+                      setEditFormData({
+                        ...editFormData,
+                        tempoServico: value,
+                        horarioTermino
+                      });
+                    }}
+                    placeholder="0:00"
+                    className="h-8 text-xs"
+                    allowSingleDigitHour={true} />
+                  
+                  </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
