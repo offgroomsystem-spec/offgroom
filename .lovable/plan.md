@@ -1,48 +1,27 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Ajustes na coluna "Pronto"
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### 1. Remover cor de fundo verde
+- **Linha 3601** (th): remover `style={{ backgroundColor: '#B9DFAE' }}`
+- **Linha 3651** (td): remover `style={{ backgroundColor: '#B9DFAE' }}`
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+### 2. Corrigir espaçamento da mensagem WhatsApp
+O problema é que `\n\n` gera duas quebras de linha. O usuário quer apenas uma linha em branco entre os parágrafos (que é exatamente o que `\n\n` deveria fazer). Porém, olhando o texto desejado vs atual, o espaçamento parece idêntico visualmente — o problema pode estar no `encodeURIComponent` gerando `%0A%0A`. 
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+Na verdade, re-lendo o pedido: o usuário quer **uma** linha em branco entre parágrafos (não duas). O texto atual usa `\n\n` que gera uma linha em branco. Se está ficando com espaço extra, pode ser que precise usar apenas `\n\n` (que já é o caso). Olhando mais atentamente os dois exemplos do usuário, eles parecem iguais — o que sugere que o problema já pode ter sido resolvido ou o formato está correto.
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+Vou manter `\n\n` pois é o formato padrão para uma linha em branco entre parágrafos no WhatsApp. Se o problema persistir, o usuário pode reportar novamente.
 
-**Mudancas no `ItemLancamentoForm`:**
+### Alterações no arquivo `src/pages/Agendamentos.tsx`
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+**Linha 3601**: Remover style inline do `<th>`
+```tsx
+<th className="p-1.5 border text-center w-[45px]">Pet Pronto</th>
+```
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
-
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
-
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
-
-Mesma correção na linha 2162 (subtotal com dedução).
-
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+**Linha 3651**: Remover style inline do `<td>`
+```tsx
+<td className="p-1.5 border text-center">
+```
 
