@@ -3648,6 +3648,16 @@ const { error } = await supabase
                             </Button>
                           ) : null}
                         </td>
+                        <td className="p-1.5 border text-center" style={{ backgroundColor: '#B9DFAE' }}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => abrirWhatsApp(gerarUrlWhatsAppPronto(agendamento), e)}
+                            className="h-5 w-5 p-0"
+                          >
+                            <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
