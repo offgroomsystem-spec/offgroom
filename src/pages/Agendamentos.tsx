@@ -2271,7 +2271,7 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                  <div className="space-y-1 col-span-1">
+                  <div className="space-y-1">
                     <Label className="text-xs">Serviço(s) *</Label>
                     <div className="space-y-2">
                       {servicosSelecionadosSimples.map((servicoItem, index) =>
