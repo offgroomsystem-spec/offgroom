@@ -2193,20 +2193,43 @@ const Agendamentos = () => {
                     <Label htmlFor="data" className="text-xs">
                       Dia Agendamento*
                     </Label>
-                    <Input
-                      id="data"
-                      type="date"
-                      value={formData.data}
-                      onChange={(e) => {
-                        setFormData({
-                          ...formData,
-                          data: e.target.value
-                        });
-                        setDataVendaManual(false);
-                      }}
-                      className="h-8 text-xs"
-                      required />
-                    
+                    <Popover open={calendarNovoOpen} onOpenChange={setCalendarNovoOpen}>
+                      <PopoverTrigger asChild>
+                        <Input
+                          id="data"
+                          type="date"
+                          value={formData.data}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              data: e.target.value
+                            });
+                            setDataVendaManual(false);
+                          }}
+                          onDoubleClick={() => setCalendarNovoOpen(true)}
+                          className="h-8 text-xs"
+                          required />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.data ? new Date(formData.data + "T00:00:00") : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setFormData({
+                                ...formData,
+                                data: format(date, "yyyy-MM-dd")
+                              });
+                              setDataVendaManual(false);
+                            }
+                            setCalendarNovoOpen(false);
+                          }}
+                          locale={ptBR}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-1">
