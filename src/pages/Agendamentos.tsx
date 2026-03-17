@@ -2960,17 +2960,39 @@ const Agendamentos = () => {
                   <div className="grid grid-cols-4 gap-1.5">
                     <div className="space-y-1">
                       <Label className="text-xs">Data do Agendamento</Label>
-                      <Input
-                      type="date"
-                      value={editandoAgendamento.data}
-                      onChange={(e) =>
-                      setEditandoAgendamento({
-                        ...editandoAgendamento,
-                        data: e.target.value
-                      })
-                      }
-                      className="h-8 text-xs" />
-                    
+                      <Popover open={calendarEditGerOpen} onOpenChange={setCalendarEditGerOpen}>
+                        <PopoverTrigger asChild>
+                          <Input
+                            type="date"
+                            value={editandoAgendamento.data}
+                            onChange={(e) =>
+                              setEditandoAgendamento({
+                                ...editandoAgendamento,
+                                data: e.target.value
+                              })
+                            }
+                            onDoubleClick={() => setCalendarEditGerOpen(true)}
+                            className="h-8 text-xs" />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={editandoAgendamento.data ? new Date(editandoAgendamento.data + "T00:00:00") : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setEditandoAgendamento({
+                                  ...editandoAgendamento,
+                                  data: format(date, "yyyy-MM-dd")
+                                });
+                              }
+                              setCalendarEditGerOpen(false);
+                            }}
+                            locale={ptBR}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Horário de Início</Label>
