@@ -222,7 +222,7 @@ const ServicoExtraCombobox = ({
             {servicos.map((s) =>
             <CommandItem
               key={s.id}
-              value={s.nome}
+              value={`${s.nome}__${s.id}`}
               onSelect={() => {
                 onSelect(s);
                 setOpen(false);
@@ -231,7 +231,7 @@ const ServicoExtraCombobox = ({
                 <Check
                 className={cn(
                   "mr-2 h-4 w-4",
-                  extra.nome === s.nome ? "opacity-100" : "opacity-0"
+                  extra.nome === s.nome && extra.valor === s.valor ? "opacity-100" : "opacity-0"
                 )} />
               
                 {s.nome} - R$ {s.valor?.toFixed(2)}
@@ -1198,12 +1198,13 @@ const Agendamentos = () => {
     }
   };
 
-  const atualizarServicoSimples = (instanceId: string, servicoNome: string) => {
-    const servicoEncontrado = servicos.find((s) => s.nome === servicoNome);
+  const atualizarServicoSimples = (instanceId: string, servicoIdOrNome: string) => {
+    const id = servicoIdOrNome.includes("__") ? servicoIdOrNome.split("__").pop() : null;
+    const servicoEncontrado = id ? servicos.find((s) => s.id === id) : servicos.find((s) => s.nome === servicoIdOrNome);
     setServicosSelecionadosSimples(
       servicosSelecionadosSimples.map((s) =>
       s.instanceId === instanceId ?
-      { ...s, nome: servicoNome, valor: servicoEncontrado?.valor || 0 } :
+      { ...s, nome: servicoEncontrado?.nome || servicoIdOrNome, valor: servicoEncontrado?.valor || 0 } :
       s
       )
     );
@@ -2437,7 +2438,7 @@ const Agendamentos = () => {
                                     {servicosFiltradosPorPorte.map((servico) =>
                                 <CommandItem
                                   key={`servico-${servico.id}`}
-                                  value={servico.nome}
+                                  value={`${servico.nome}__${servico.id}`}
                                   onSelect={(currentValue) => {
                                     atualizarServicoSimples(servicoItem.instanceId, currentValue);
                                   }}
@@ -2446,7 +2447,7 @@ const Agendamentos = () => {
                                         <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      servicoItem.nome === servico.nome ? "opacity-100" : "opacity-0"
+                                      servicoItem.nome === servico.nome && servicoItem.valor === servico.valor ? "opacity-100" : "opacity-0"
                                     )} />
                                   
                                         {servico.nome} — {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(servico.valor)}
@@ -3216,7 +3217,7 @@ const Agendamentos = () => {
                               {servicos.map((s) =>
                             <CommandItem
                               key={s.id}
-                              value={s.nome}
+                              value={`${s.nome}__${s.id}`}
                               onSelect={() => {
                                 setServicoPrincipalEdicao(s.nome);
                                 setOpenServicoEdicao(false);
@@ -3888,11 +3889,11 @@ const Agendamentos = () => {
                               {servicos.map((servico) =>
                           <CommandItem
                             key={`servico-${servico.id}`}
-                            value={servico.nome}
-                            onSelect={(currentValue) => {
+                            value={`${servico.nome}__${servico.id}`}
+                            onSelect={() => {
                               setEditFormData({
                                 ...editFormData,
-                                servico: currentValue
+                                servico: servico.nome
                               });
                               setOpenEditServicoCombobox(false);
                             }}
@@ -3914,11 +3915,11 @@ const Agendamentos = () => {
                               {pacotes.map((pacote) =>
                           <CommandItem
                             key={`pacote-${pacote.id}`}
-                            value={pacote.nome}
-                            onSelect={(currentValue) => {
+                            value={`${pacote.nome}__${pacote.id}`}
+                            onSelect={() => {
                               setEditFormData({
                                 ...editFormData,
-                                servico: currentValue
+                                servico: pacote.nome
                               });
                               setOpenEditServicoCombobox(false);
                             }}
