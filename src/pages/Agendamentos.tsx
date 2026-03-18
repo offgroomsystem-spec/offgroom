@@ -3217,7 +3217,7 @@ const Agendamentos = () => {
                               {servicos.map((s) =>
                             <CommandItem
                               key={s.id}
-                              value={s.nome}
+                              value={`${s.nome}__${s.id}`}
                               onSelect={() => {
                                 setServicoPrincipalEdicao(s.nome);
                                 setOpenServicoEdicao(false);
