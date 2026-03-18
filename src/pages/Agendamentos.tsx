@@ -3477,6 +3477,26 @@ const Agendamentos = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Dialog Pet Pronto - Atualizar horário de fim */}
+          <AlertDialog open={petProntoDialogOpen} onOpenChange={setPetProntoDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Pet Pronto</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja atualizar o horário do Fim do serviço para {petProntoHoraAtual}?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => handlePetProntoConfirm(false)}>
+                  Não
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={() => handlePetProntoConfirm(true)}>
+                  Sim
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
