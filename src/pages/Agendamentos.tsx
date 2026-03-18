@@ -2438,7 +2438,7 @@ const Agendamentos = () => {
                                     {servicosFiltradosPorPorte.map((servico) =>
                                 <CommandItem
                                   key={`servico-${servico.id}`}
-                                  value={servico.nome}
+                                  value={`${servico.nome}__${servico.id}`}
                                   onSelect={(currentValue) => {
                                     atualizarServicoSimples(servicoItem.instanceId, currentValue);
                                   }}
@@ -2447,7 +2447,7 @@ const Agendamentos = () => {
                                         <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      servicoItem.nome === servico.nome ? "opacity-100" : "opacity-0"
+                                      servicoItem.nome === servico.nome && servicoItem.valor === servico.valor ? "opacity-100" : "opacity-0"
                                     )} />
                                   
                                         {servico.nome} — {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(servico.valor)}
