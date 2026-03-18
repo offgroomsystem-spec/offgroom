@@ -261,6 +261,11 @@ const Agendamentos = () => {
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
 
+  // Pet Pronto dialog states
+  const [petProntoDialogOpen, setPetProntoDialogOpen] = useState(false);
+  const [petProntoAgendamento, setPetProntoAgendamento] = useState<any>(null);
+  const [petProntoHoraAtual, setPetProntoHoraAtual] = useState("");
+
   // Função para normalizar porte (ignora capitalização e acentos)
   const normalizarPorte = (porte: string): string => {
     return porte.
