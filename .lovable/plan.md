@@ -1,48 +1,37 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Corrigir seleção duplicada de serviços com mesmo nome
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### Problema
+O componente `cmdk` (Command) usa a prop `value` do `CommandItem` para identificar e destacar itens. Quando dois serviços têm o mesmo nome (ex: "Tosa Bebê"), ambos ficam grifados ao mesmo tempo porque compartilham o mesmo `value`.
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+### Solução
+Alterar a prop `value` de cada `CommandItem` para incluir o `id` do serviço, tornando cada item único. Ajustar os handlers `onSelect` para extrair o `id` e localizar o serviço correto.
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+### Alterações — `src/pages/Agendamentos.tsx`
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+Nos **5 locais** onde `CommandItem` renderiza serviços, trocar:
+```tsx
+value={servico.nome}
+```
+por:
+```tsx
+value={`${servico.nome}__${servico.id}`}
+```
 
-**Mudancas no `ItemLancamentoForm`:**
+E nos respectivos `onSelect`, em vez de buscar pelo nome:
+```tsx
+onSelect={(val) => {
+  const id = val.split("__").pop();
+  const found = servicos.find(s => s.id === id);
+  // usar found...
+}}
+```
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
-
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
-
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
-
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
-
-Mesma correção na linha 2162 (subtotal com dedução).
-
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+**Locais afetados:**
+1. ~Linha 223 — Filtro de serviço no topo da página
+2. ~Linha 2438 — Novo Agendamento (serviços filtrados por porte)
+3. ~Linha 3217 — Editar Agendamento gerenciamento
+4. ~Linha 3889 — Editar Agendamento calendário (serviços individuais)
+5. ~Linha 3915 — Editar Agendamento calendário (pacotes)
 
