@@ -2280,12 +2280,14 @@ const Agendamentos = () => {
                         <Input
                           id="data"
                            type="text"
-                           placeholder="aaaa-mm-dd"
-                          value={formData.data}
+                           placeholder="dd/mm/aaaa"
+                          value={toDisplayDate(formData.data)}
                           onChange={(e) => {
+                            const raw = e.target.value;
+                            const iso = fromDisplayDate(raw);
                             setFormData({
                               ...formData,
-                              data: e.target.value
+                              data: iso
                             });
                             setDataVendaManual(false);
                           }}
