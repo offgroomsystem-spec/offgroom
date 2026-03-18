@@ -33,8 +33,22 @@ import { toast } from "sonner";
 import { TimeInput } from "@/components/TimeInput";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const toDisplayDate = (isoDate: string): string => {
+  if (!isoDate) return "";
+  const parts = isoDate.split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return isoDate;
+};
+
+const fromDisplayDate = (displayDate: string): string => {
+  if (!displayDate) return "";
+  const parts = displayDate.split("/");
+  if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return displayDate;
+};
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -2266,12 +2280,14 @@ const Agendamentos = () => {
                         <Input
                           id="data"
                            type="text"
-                           placeholder="aaaa-mm-dd"
-                          value={formData.data}
+                           placeholder="dd/mm/aaaa"
+                          value={toDisplayDate(formData.data)}
                           onChange={(e) => {
+                            const raw = e.target.value;
+                            const iso = fromDisplayDate(raw);
                             setFormData({
                               ...formData,
-                              data: e.target.value
+                              data: iso
                             });
                             setDataVendaManual(false);
                           }}
@@ -3033,13 +3049,15 @@ const Agendamentos = () => {
                         <PopoverTrigger asChild>
                           <Input
                              type="text"
-                             placeholder="aaaa-mm-dd"
-                            value={editandoAgendamento.data}
-                            onChange={(e) =>
+                             placeholder="dd/mm/aaaa"
+                            value={toDisplayDate(editandoAgendamento.data)}
+                            onChange={(e) => {
+                              const iso = fromDisplayDate(e.target.value);
                               setEditandoAgendamento({
                                 ...editandoAgendamento,
-                                data: e.target.value
-                              })
+                                data: iso
+                              });
+                            }
                             }
                             onDoubleClick={() => setCalendarEditGerOpen(true)}
                             className="h-8 text-xs" />
@@ -3928,13 +3946,15 @@ const Agendamentos = () => {
                       <PopoverTrigger asChild>
                         <Input
                            type="text"
-                           placeholder="aaaa-mm-dd"
-                          value={editFormData.data}
-                          onChange={(e) =>
+                           placeholder="dd/mm/aaaa"
+                          value={toDisplayDate(editFormData.data)}
+                          onChange={(e) => {
+                            const iso = fromDisplayDate(e.target.value);
                             setEditFormData({
                               ...editFormData,
-                              data: e.target.value
-                            })
+                              data: iso
+                            });
+                          }
                           }
                           onDoubleClick={() => setCalendarEditCalOpen(true)}
                           className="h-8 text-xs" />
