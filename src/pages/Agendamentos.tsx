@@ -3032,7 +3032,8 @@ const Agendamentos = () => {
                       <Popover open={calendarEditGerOpen} onOpenChange={setCalendarEditGerOpen}>
                         <PopoverTrigger asChild>
                           <Input
-                            type="date"
+                             type="text"
+                             placeholder="aaaa-mm-dd"
                             value={editandoAgendamento.data}
                             onChange={(e) =>
                               setEditandoAgendamento({
