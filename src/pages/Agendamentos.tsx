@@ -222,7 +222,7 @@ const ServicoExtraCombobox = ({
             {servicos.map((s) =>
             <CommandItem
               key={s.id}
-              value={s.nome}
+              value={`${s.nome}__${s.id}`}
               onSelect={() => {
                 onSelect(s);
                 setOpen(false);
@@ -231,7 +231,7 @@ const ServicoExtraCombobox = ({
                 <Check
                 className={cn(
                   "mr-2 h-4 w-4",
-                  extra.nome === s.nome ? "opacity-100" : "opacity-0"
+                  extra.nome === s.nome && extra.valor === s.valor ? "opacity-100" : "opacity-0"
                 )} />
               
                 {s.nome} - R$ {s.valor?.toFixed(2)}
