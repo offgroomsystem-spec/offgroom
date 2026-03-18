@@ -12,6 +12,10 @@ interface TimeInputProps {
 export const TimeInput = ({ value, onChange, placeholder = "00:00", className, allowSingleDigitHour = false }: TimeInputProps) => {
   const [displayValue, setDisplayValue] = useState(value);
 
+  useEffect(() => {
+    setDisplayValue(value);
+  }, [value]);
+
   const formatTime = (input: string) => {
     // Remove tudo que não é número
     const numbers = input.replace(/\D/g, '');
