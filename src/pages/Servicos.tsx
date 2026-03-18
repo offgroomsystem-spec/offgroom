@@ -248,6 +248,7 @@ const Servicos = () => {
                     <SelectValue placeholder="Selecione o porte" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Todos">Para todos os portes</SelectItem>
                     <SelectItem value="Pequeno">Pequeno</SelectItem>
                     <SelectItem value="Médio">Médio</SelectItem>
                     <SelectItem value="Grande">Grande</SelectItem>
