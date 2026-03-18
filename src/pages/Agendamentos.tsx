@@ -2265,7 +2265,8 @@ const Agendamentos = () => {
                       <PopoverTrigger asChild>
                         <Input
                           id="data"
-                          type="date"
+                           type="text"
+                           placeholder="aaaa-mm-dd"
                           value={formData.data}
                           onChange={(e) => {
                             setFormData({
@@ -3031,7 +3032,8 @@ const Agendamentos = () => {
                       <Popover open={calendarEditGerOpen} onOpenChange={setCalendarEditGerOpen}>
                         <PopoverTrigger asChild>
                           <Input
-                            type="date"
+                             type="text"
+                             placeholder="aaaa-mm-dd"
                             value={editandoAgendamento.data}
                             onChange={(e) =>
                               setEditandoAgendamento({
@@ -3925,7 +3927,8 @@ const Agendamentos = () => {
                     <Popover open={calendarEditCalOpen} onOpenChange={setCalendarEditCalOpen}>
                       <PopoverTrigger asChild>
                         <Input
-                          type="date"
+                           type="text"
+                           placeholder="aaaa-mm-dd"
                           value={editFormData.data}
                           onChange={(e) =>
                             setEditFormData({
