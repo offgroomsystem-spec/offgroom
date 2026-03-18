@@ -33,8 +33,22 @@ import { toast } from "sonner";
 import { TimeInput } from "@/components/TimeInput";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const toDisplayDate = (isoDate: string): string => {
+  if (!isoDate) return "";
+  const parts = isoDate.split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return isoDate;
+};
+
+const fromDisplayDate = (displayDate: string): string => {
+  if (!displayDate) return "";
+  const parts = displayDate.split("/");
+  if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return displayDate;
+};
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
