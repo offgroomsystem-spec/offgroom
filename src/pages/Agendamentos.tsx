@@ -541,7 +541,7 @@ const Agendamentos = () => {
 
     const porteNormalizado = normalizarPorte(portePet);
     return servicos.filter(
-      (s) => normalizarPorte(s.porte) === porteNormalizado
+      (s) => normalizarPorte(s.porte) === porteNormalizado || normalizarPorte(s.porte) === "todos"
     );
   }, [formData.pet, formData.raca, formData.cliente, servicos, clientes]);
 

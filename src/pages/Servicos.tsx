@@ -315,10 +315,11 @@ const Servicos = () => {
                   <SelectValue placeholder="Filtrar por Porte" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Pequeno">Pequeno</SelectItem>
-                  <SelectItem value="Médio">Médio</SelectItem>
-                  <SelectItem value="Grande">Grande</SelectItem>
+                   <SelectItem value="all">Todos</SelectItem>
+                   <SelectItem value="Todos">Para todos os portes</SelectItem>
+                   <SelectItem value="Pequeno">Pequeno</SelectItem>
+                   <SelectItem value="Médio">Médio</SelectItem>
+                   <SelectItem value="Grande">Grande</SelectItem>
                 </SelectContent>
               </Select>
               <div className="relative w-64">
