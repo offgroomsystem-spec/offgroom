@@ -1198,12 +1198,13 @@ const Agendamentos = () => {
     }
   };
 
-  const atualizarServicoSimples = (instanceId: string, servicoNome: string) => {
-    const servicoEncontrado = servicos.find((s) => s.nome === servicoNome);
+  const atualizarServicoSimples = (instanceId: string, servicoIdOrNome: string) => {
+    const id = servicoIdOrNome.includes("__") ? servicoIdOrNome.split("__").pop() : null;
+    const servicoEncontrado = id ? servicos.find((s) => s.id === id) : servicos.find((s) => s.nome === servicoIdOrNome);
     setServicosSelecionadosSimples(
       servicosSelecionadosSimples.map((s) =>
       s.instanceId === instanceId ?
-      { ...s, nome: servicoNome, valor: servicoEncontrado?.valor || 0 } :
+      { ...s, nome: servicoEncontrado?.nome || servicoIdOrNome, valor: servicoEncontrado?.valor || 0 } :
       s
       )
     );
