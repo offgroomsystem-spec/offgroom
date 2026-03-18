@@ -3946,13 +3946,15 @@ const Agendamentos = () => {
                       <PopoverTrigger asChild>
                         <Input
                            type="text"
-                           placeholder="aaaa-mm-dd"
-                          value={editFormData.data}
-                          onChange={(e) =>
+                           placeholder="dd/mm/aaaa"
+                          value={toDisplayDate(editFormData.data)}
+                          onChange={(e) => {
+                            const iso = fromDisplayDate(e.target.value);
                             setEditFormData({
                               ...editFormData,
-                              data: e.target.value
-                            })
+                              data: iso
+                            });
+                          }
                           }
                           onDoubleClick={() => setCalendarEditCalOpen(true)}
                           className="h-8 text-xs" />
