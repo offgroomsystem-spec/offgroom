@@ -3889,11 +3889,11 @@ const Agendamentos = () => {
                               {servicos.map((servico) =>
                           <CommandItem
                             key={`servico-${servico.id}`}
-                            value={servico.nome}
-                            onSelect={(currentValue) => {
+                            value={`${servico.nome}__${servico.id}`}
+                            onSelect={() => {
                               setEditFormData({
                                 ...editFormData,
-                                servico: currentValue
+                                servico: servico.nome
                               });
                               setOpenEditServicoCombobox(false);
                             }}
