@@ -2265,7 +2265,8 @@ const Agendamentos = () => {
                       <PopoverTrigger asChild>
                         <Input
                           id="data"
-                          type="date"
+                           type="text"
+                           placeholder="aaaa-mm-dd"
                           value={formData.data}
                           onChange={(e) => {
                             setFormData({
