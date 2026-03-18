@@ -1,27 +1,48 @@
 
 
-## Correção: Sincronização bidirecional entre "Horário de Fim" e "Tempo de Serviço"
+## Melhorias no Formulário "Lançar Financeiro"
 
-### Causa raiz
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-O componente `TimeInput` (usado nos campos "Horário de Início" e "Horário de Fim") usa `useState(value)` na linha 13, que só captura o valor inicial. Quando o pai atualiza a prop `value` (ex: ao preencher "Tempo de Serviço" e recalcular o "Horário de Fim"), o `displayValue` interno do `TimeInput` **não é atualizado**, então o campo aparece vazio.
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-O caminho inverso funciona porque o campo "Tempo de Serviço" é um `<Input>` nativo que usa `formData.tempoServico` diretamente, sem estado interno.
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-### Correção
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-**Arquivo:** `src/components/TimeInput.tsx`
+**Mudancas no `ItemLancamentoForm`:**
 
-Adicionar um `useEffect` para sincronizar `displayValue` quando a prop `value` muda externamente:
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-```tsx
-import { useState, useEffect } from "react";
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-// Dentro do componente:
-useEffect(() => {
-  setDisplayValue(value);
-}, [value]);
-```
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
 
-Isso é tudo. Essa correção única resolve o problema em **todos os formulários** (Novo Agendamento, Editar Agendamento gerenciamento, Editar Agendamento calendário) porque todos usam o mesmo componente `TimeInput`.
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
+
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+
+Mesma correção na linha 2162 (subtotal com dedução).
+
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 
