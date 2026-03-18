@@ -3789,7 +3789,7 @@ const Agendamentos = () => {
                           <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => abrirWhatsApp(gerarUrlWhatsAppPronto(agendamento), e)}
+                        onClick={(e) => handlePetProntoClick(agendamento, e)}
                         className="h-5 w-5 p-0">
                         
                             <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
