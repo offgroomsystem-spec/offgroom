@@ -1,38 +1,48 @@
 
 
-## Adicionar confirmação de atualização de horário no botão "Pet Pronto"
+## Melhorias no Formulário "Lançar Financeiro"
 
-### O que será feito
+### Problema 1: Campo "Valor" com zero inicial que não apaga
+O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
 
-Ao clicar no botão "Pet Pronto" (ícone fi-tr-comment-alt-check), em vez de abrir o WhatsApp imediatamente, será exibido um `AlertDialog` perguntando:
+**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
 
-> "Deseja atualizar o horário do Fim do serviço para [HH:MM atual]?"
+Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
 
-- **Sim**: Atualiza o `horario_termino` (simples) ou `horarioTermino` dentro do array `servicos` (pacote) no banco, recarrega os dados, e abre o WhatsApp.
-- **Não**: Abre o WhatsApp sem alterar nada.
+### Problema 2: Novo campo "Total" (Qtd × Valor) por item
+Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
 
-### Alterações em `src/pages/Agendamentos.tsx`
+**Mudancas no `ItemLancamentoForm`:**
 
-1. **Novos estados**:
-   - `petProntoDialogOpen` (boolean)
-   - `petProntoAgendamento` (referência ao agendamento da linha clicada)
-   - `petProntoHoraAtual` (string HH:MM capturada no momento do clique)
+1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
+2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
+3. Ajustar o grid de colunas para acomodar o novo campo
 
-2. **Função `handlePetProntoClick`**: Captura a hora atual, armazena o agendamento e abre o AlertDialog (em vez de abrir o WhatsApp diretamente).
+**Layout atualizado do grid (quando `isVenda`):**
+- Descrição 2 (col-span-3)
+- Produto (col-span-3)
+- Qtd (col-span-1)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
+- Botão remover
 
-3. **Função `handlePetProntoConfirm(atualizarHorario: boolean)`**:
-   - Se `atualizarHorario === true`:
-     - Para `tipo === "simples"`: `UPDATE agendamentos SET horario_termino = HH:MM WHERE id = ...`
-     - Para `tipo === "pacote"`: Atualiza o `horarioTermino` do serviço dentro do array JSON e faz `UPDATE agendamentos_pacotes SET servicos = ...`
-     - Recarrega agendamentos
-   - Independente da escolha: abre o WhatsApp com `gerarUrlWhatsAppPronto`
-   - Fecha o AlertDialog
+**Layout quando NÃO é Venda:**
+- Descrição 2 (col-span-4)
+- Observação (col-span-4)
+- Valor (col-span-2)
+- Total (col-span-2) + botão "+ Item"
 
-4. **AlertDialog no JSX** (após os outros dialogs existentes):
-   - Título: "Pet Pronto"
-   - Descrição: "Deseja atualizar o horário do Fim do serviço para {HH:MM}?"
-   - Botão "Sim" → `handlePetProntoConfirm(true)`
-   - Botão "Não" → `handlePetProntoConfirm(false)`
+Neste caso, Qtd não aparece (assume 1), então Total = Valor.
 
-5. **Botão na tabela** (linha ~3734): Trocar o `onClick` de `abrirWhatsApp(...)` para `handlePetProntoClick(agendamento, e)`.
+### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
+A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
+
+Mesma correção na linha 2162 (subtotal com dedução).
+
+### Arquivos a editar
+- `src/pages/ControleFinanceiro.tsx`:
+  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
+  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
+  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
+  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
 

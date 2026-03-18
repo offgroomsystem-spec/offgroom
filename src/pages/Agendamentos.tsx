@@ -261,6 +261,11 @@ const Agendamentos = () => {
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
 
+  // Pet Pronto dialog states
+  const [petProntoDialogOpen, setPetProntoDialogOpen] = useState(false);
+  const [petProntoAgendamento, setPetProntoAgendamento] = useState<any>(null);
+  const [petProntoHoraAtual, setPetProntoHoraAtual] = useState("");
+
   // Função para normalizar porte (ignora capitalização e acentos)
   const normalizarPorte = (porte: string): string => {
     return porte.
@@ -1595,6 +1600,59 @@ const Agendamentos = () => {
   const abrirWhatsApp = (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
     window.open(url, '_blank');
+  };
+
+  // Pet Pronto: abrir dialog de confirmação
+  const handlePetProntoClick = (agendamento: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const agora = new Date();
+    const hh = String(agora.getHours()).padStart(2, '0');
+    const mm = String(agora.getMinutes()).padStart(2, '0');
+    setPetProntoHoraAtual(`${hh}:${mm}`);
+    setPetProntoAgendamento(agendamento);
+    setPetProntoDialogOpen(true);
+  };
+
+  // Pet Pronto: confirmar (atualizar horário ou não) e abrir WhatsApp
+  const handlePetProntoConfirm = async (atualizarHorario: boolean) => {
+    if (!petProntoAgendamento) return;
+
+    if (atualizarHorario) {
+      try {
+        if (petProntoAgendamento.tipo === "simples" && petProntoAgendamento.agendamentoOriginal) {
+          const agId = petProntoAgendamento.agendamentoOriginal.id;
+          const { error } = await supabase
+            .from("agendamentos")
+            .update({ horario_termino: petProntoHoraAtual })
+            .eq("id", agId);
+          if (error) throw error;
+          await loadAgendamentos();
+        } else if (petProntoAgendamento.tipo === "pacote" && petProntoAgendamento.agendamentoPacote && petProntoAgendamento.servicoAgendamento) {
+          const pacote = petProntoAgendamento.agendamentoPacote as AgendamentoPacote;
+          const servicoAtual = petProntoAgendamento.servicoAgendamento as ServicoAgendamento;
+          const servicosAtualizados = pacote.servicos.map((s) =>
+            s.numero === servicoAtual.numero && s.data === servicoAtual.data
+              ? { ...s, horarioTermino: petProntoHoraAtual }
+              : s
+          );
+          const { error } = await supabase
+            .from("agendamentos_pacotes")
+            .update({ servicos: servicosAtualizados as any })
+            .eq("id", pacote.id);
+          if (error) throw error;
+          await loadAgendamentosPacotes();
+        }
+        toast.success("Horário de fim atualizado!");
+      } catch (error) {
+        console.error("Erro ao atualizar horário:", error);
+        toast.error("Erro ao atualizar o horário de fim.");
+      }
+    }
+
+    // Abrir WhatsApp independente da escolha
+    const url = gerarUrlWhatsAppPronto(petProntoAgendamento);
+    window.open(url, '_blank');
+    setPetProntoDialogOpen(false);
   };
 
   // Gerar URL do WhatsApp com mensagem de "Pronto" baseada no sexo do pet e taxi dog
@@ -3419,6 +3477,26 @@ const Agendamentos = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Dialog Pet Pronto - Atualizar horário de fim */}
+          <AlertDialog open={petProntoDialogOpen} onOpenChange={setPetProntoDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Pet Pronto</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja atualizar o horário do Fim do serviço para {petProntoHoraAtual}?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => handlePetProntoConfirm(false)}>
+                  Não
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={() => handlePetProntoConfirm(true)}>
+                  Sim
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -3731,7 +3809,7 @@ const Agendamentos = () => {
                           <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => abrirWhatsApp(gerarUrlWhatsAppPronto(agendamento), e)}
+                        onClick={(e) => handlePetProntoClick(agendamento, e)}
                         className="h-5 w-5 p-0">
                         
                             <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
