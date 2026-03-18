@@ -2449,7 +2449,7 @@ const Agendamentos = () => {
                                       servicoItem.nome === servico.nome ? "opacity-100" : "opacity-0"
                                     )} />
                                   
-                                        {servico.nome}
+                                        {servico.nome} — {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(servico.valor)}
                                       </CommandItem>
                                 )}
                                   </CommandGroup>
