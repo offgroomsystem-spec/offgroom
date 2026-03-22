@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SubscriptionInfoCard } from "@/components/SubscriptionInfoCard";
+import { WhatsAppIntegration } from "@/components/empresa/WhatsAppIntegration";
 import { Search, Loader2 } from "lucide-react";
 import { 
   formatCNPJ, 
@@ -63,7 +64,7 @@ interface Groomer {
 }
 
 const Empresa = () => {
-  const { user, ownerId } = useAuth();
+  const { user, ownerId, isAdministrador } = useAuth();
   const [formData, setFormData] = useState<EmpresaConfig>({
     bordao: "",
     horarioInicio: "",
@@ -386,6 +387,8 @@ const Empresa = () => {
       </div>
 
       <SubscriptionInfoCard />
+
+      {isAdministrador && <WhatsAppIntegration />}
 
       {/* Card Dados Fiscais */}
       <Card>
