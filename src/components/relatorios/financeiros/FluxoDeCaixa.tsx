@@ -1068,8 +1068,13 @@ const FluxoDeCaixa = () => {
 
   const abrirConfirmacaoTransferencia = () => {
     if (!validarTransferencia()) return;
-    setDialogTransferenciaOpen(false);
-    setConfirmTransferenciaOpen(true);
+    if (saldoResultanteOrigem < 0) {
+      setDialogTransferenciaOpen(false);
+      setAlertaSaldoInsuficiente(true);
+    } else {
+      setDialogTransferenciaOpen(false);
+      setConfirmTransferenciaOpen(true);
+    }
   };
 
   const handleConfirmarTransferencia = async () => {
