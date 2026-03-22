@@ -2381,6 +2381,22 @@ const FluxoDeCaixa = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* AlertDialog Saldo Insuficiente */}
+      <AlertDialog open={alertaSaldoInsuficiente} onOpenChange={setAlertaSaldoInsuficiente}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atenção</AlertDialogTitle>
+            <AlertDialogDescription>
+              Atenção: ao transferir o valor de R$ {valorTransferencia}, o saldo da conta {contaOrigem} na data da transferência ficará em R$ {saldoResultanteOrigem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Deseja realmente prosseguir com essa operação?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertaSaldoInsuficiente(false)}>Não</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setAlertaSaldoInsuficiente(false); setConfirmTransferenciaOpen(true); }}>Sim</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Cards Mês Anterior */}
       {comparativoAnteriorCards && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
