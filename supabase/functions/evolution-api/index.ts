@@ -62,7 +62,8 @@ Deno.serve(async (req) => {
       return json({ error: "Unauthorized" }, 401);
     }
 
-    const { action, instanceName, number } = await req.json();
+    const body = await req.json();
+    const { action, instanceName, number, number: toNumber, text } = body;
 
     switch (action) {
       case "create-instance": {
