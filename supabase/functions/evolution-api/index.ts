@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       }
 
       case "send-message": {
-        const { number: toNumber, text } = await req.json().catch(() => ({ number: undefined, text: undefined }));
+        if (!instanceName || !toNumber || !text) {
         if (!instanceName || !toNumber || !text) {
           return json({ error: "instanceName, number e text são obrigatórios" }, 400);
         }
