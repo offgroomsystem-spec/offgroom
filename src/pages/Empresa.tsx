@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SubscriptionInfoCard } from "@/components/SubscriptionInfoCard";
+import { WhatsAppIntegration } from "@/components/empresa/WhatsAppIntegration";
 import { Search, Loader2 } from "lucide-react";
 import { 
   formatCNPJ, 
