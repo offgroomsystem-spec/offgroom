@@ -64,7 +64,7 @@ interface Groomer {
 }
 
 const Empresa = () => {
-  const { user, ownerId } = useAuth();
+  const { user, ownerId, isAdministrador } = useAuth();
   const [formData, setFormData] = useState<EmpresaConfig>({
     bordao: "",
     horarioInicio: "",
