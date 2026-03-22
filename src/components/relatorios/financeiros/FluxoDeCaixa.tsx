@@ -470,6 +470,8 @@ const FluxoDeCaixa = () => {
   const [valorTransferencia, setValorTransferencia] = useState("");
   const [dataTransferencia, setDataTransferencia] = useState<Date>(new Date());
   const [confirmTransferenciaOpen, setConfirmTransferenciaOpen] = useState(false);
+  const [alertaSaldoInsuficiente, setAlertaSaldoInsuficiente] = useState(false);
+  const [saldoResultanteOrigem, setSaldoResultanteOrigem] = useState(0);
 
   // Estados para Criação, Edição e Exclusão
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -1057,18 +1059,22 @@ const FluxoDeCaixa = () => {
       .reduce((acc, l) => acc + l.valorTotal, 0);
     const saldoAteData = receitasAteData - despesasAteData;
 
-    if (valor > saldoAteData) {
-      toast.error(`Saldo insuficiente da conta '${contaOrigem}' para a data selecionada, revise o valor ou selecione outra conta.`);
-      return false;
-    }
+    // Guardar saldo resultante para possível alerta
+    const saldoResultante = saldoAteData - valor;
+    setSaldoResultanteOrigem(saldoResultante);
 
     return true;
   };
 
   const abrirConfirmacaoTransferencia = () => {
     if (!validarTransferencia()) return;
-    setDialogTransferenciaOpen(false);
-    setConfirmTransferenciaOpen(true);
+    if (saldoResultanteOrigem < 0) {
+      setDialogTransferenciaOpen(false);
+      setAlertaSaldoInsuficiente(true);
+    } else {
+      setDialogTransferenciaOpen(false);
+      setConfirmTransferenciaOpen(true);
+    }
   };
 
   const handleConfirmarTransferencia = async () => {
@@ -2371,6 +2377,22 @@ const FluxoDeCaixa = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmarTransferencia}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog Saldo Insuficiente */}
+      <AlertDialog open={alertaSaldoInsuficiente} onOpenChange={setAlertaSaldoInsuficiente}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atenção</AlertDialogTitle>
+            <AlertDialogDescription>
+              Atenção: ao transferir o valor de R$ {valorTransferencia}, o saldo da conta {contaOrigem} na data da transferência ficará em R$ {saldoResultanteOrigem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Deseja realmente prosseguir com essa operação?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertaSaldoInsuficiente(false)}>Não</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setAlertaSaldoInsuficiente(false); setConfirmTransferenciaOpen(true); }}>Sim</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
