@@ -388,6 +388,8 @@ const Empresa = () => {
 
       <SubscriptionInfoCard />
 
+      {isAdministrador && <WhatsAppIntegration />}
+
       {/* Card Dados Fiscais */}
       <Card>
         <CardHeader>
