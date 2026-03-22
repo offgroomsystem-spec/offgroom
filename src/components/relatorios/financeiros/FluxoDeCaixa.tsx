@@ -470,6 +470,8 @@ const FluxoDeCaixa = () => {
   const [valorTransferencia, setValorTransferencia] = useState("");
   const [dataTransferencia, setDataTransferencia] = useState<Date>(new Date());
   const [confirmTransferenciaOpen, setConfirmTransferenciaOpen] = useState(false);
+  const [alertaSaldoInsuficiente, setAlertaSaldoInsuficiente] = useState(false);
+  const [saldoResultanteOrigem, setSaldoResultanteOrigem] = useState(0);
 
   // Estados para Criação, Edição e Exclusão
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
