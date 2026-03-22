@@ -89,7 +89,8 @@ export function WhatsAppIntegration() {
       const mappedStatus = mapStatus(state);
       setStatus(mappedStatus);
       await updateInstanceStatus(mappedStatus);
-    } catch {
+    } catch (err) {
+      console.error("Erro ao verificar status live:", err);
       // Instance might not exist on Evolution side
       setStatus("disconnected");
       await updateInstanceStatus("disconnected");

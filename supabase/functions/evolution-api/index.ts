@@ -47,8 +47,9 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      console.error("JWT validation failed:", userError?.message);
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
