@@ -1,48 +1,24 @@
 
 
-## Melhorias no Formulário "Lançar Financeiro"
+## Permitir transferência com saldo insuficiente (com alerta de confirmação)
 
-### Problema 1: Campo "Valor" com zero inicial que não apaga
-O campo `Valor` usa `type="number"` com `value={item.valor}` (inicializado como `0`). Ao digitar, o zero permanece, resultando em "0200".
+### O que será feito
 
-**Solucao:** Converter o campo para `type="text"` com formatacao manual, ou tratar o `value` para exibir string vazia quando for 0, e usar `onFocus` para limpar.
+Remover a trava que bloqueia transferências quando o valor excede o saldo da conta de origem. Em vez de bloquear, exibir um AlertDialog de alerta informando o saldo resultante negativo, com opções "Sim" (prossegue) e "Não" (cancela).
 
-Abordagem mais simples: exibir `item.valor || ""` em vez de `item.valor`, para que quando o valor for 0 o campo fique vazio. O placeholder "R$ 0,00" já indica o formato.
+### Alterações — `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`
 
-### Problema 2: Novo campo "Total" (Qtd × Valor) por item
-Atualmente o campo `Qtd` só aparece para itens do tipo "Venda" (linha 358-370). O "Valor Total" final soma apenas `item.valor` sem considerar quantidade.
+**1. Novo estado** para controlar o alerta de saldo insuficiente:
+- `alertaSaldoInsuficiente` (boolean)
+- `saldoResultanteOrigem` (number) — saldo que ficará após a transferência
 
-**Mudancas no `ItemLancamentoForm`:**
+**2. Função `validarTransferencia` (~linha 1060-1063)**: Remover o `if (valor > saldoAteData)` que retorna `false`. Em vez disso, guardar o `saldoAteData` para uso posterior.
 
-1. Adicionar campo readonly "Total" ao lado do campo "Valor", calculado como `item.valor * (item.quantidade || 1)`
-2. O botão "+ Item" ficará ao lado do novo campo "Total" (mover de ao lado do Valor para ao lado do Total)
-3. Ajustar o grid de colunas para acomodar o novo campo
+**3. Função `abrirConfirmacaoTransferencia` (~linha 1068-1072)**: Após validação básica, calcular o saldo resultante (`saldoAteData - valor`). Se negativo, abrir o AlertDialog de alerta em vez do de confirmação padrão. Se positivo, seguir o fluxo normal.
 
-**Layout atualizado do grid (quando `isVenda`):**
-- Descrição 2 (col-span-3)
-- Produto (col-span-3)
-- Qtd (col-span-1)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-- Botão remover
-
-**Layout quando NÃO é Venda:**
-- Descrição 2 (col-span-4)
-- Observação (col-span-4)
-- Valor (col-span-2)
-- Total (col-span-2) + botão "+ Item"
-
-Neste caso, Qtd não aparece (assume 1), então Total = Valor.
-
-### Problema 3: "Valor Total" final deve usar o campo Total (Qtd × Valor)
-A linha 2153 calcula: `itensLancamento.reduce((acc, item) => acc + item.valor, 0)` — precisa mudar para `acc + item.valor * (item.quantidade || 1)`.
-
-Mesma correção na linha 2162 (subtotal com dedução).
-
-### Arquivos a editar
-- `src/pages/ControleFinanceiro.tsx`:
-  - **ItemLancamentoForm** (linhas 257-401): Adicionar campo "Total" readonly, mover botão "+ Item", corrigir grid
-  - **Campo Valor** (linha 380): Exibir `item.valor || ""` em vez de `item.valor`
-  - **Valor Total** (linhas 2148-2165): Usar `item.valor * (item.quantidade || 1)` no reduce
-  - **Mesmo ajuste** no dialog de Editar Lançamento (linhas ~3126+) se usar o mesmo componente (já usa `ItemLancamentoForm`, então a correção no componente cobre ambos)
+**4. Novo AlertDialog no JSX** (após o AlertDialog de confirmação existente):
+- Título: "Atenção"
+- Mensagem: "Atenção: ao transferir o valor de R$ X,XX, o saldo da conta [Nome] na data da transferência ficará em R$ X,XX. Deseja realmente prosseguir com essa operação?"
+- Botão "Sim" → fecha alerta, abre confirmação padrão (ou executa direto a transferência)
+- Botão "Não" → fecha alerta e fecha o dialog de transferência
 
