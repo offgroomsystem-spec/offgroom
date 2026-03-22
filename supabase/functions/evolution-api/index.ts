@@ -146,11 +146,12 @@ Deno.serve(async (req) => {
         return json(result.data);
       }
 
-      default:
+      default: {
         return json({ error: `Ação desconhecida: ${action}` }, 400);
+      }
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error("Evolution API error:", err);
-    return json({ error: err.message || "Erro interno" }, 500);
+    return json({ error: err?.message || "Erro interno" }, 500);
   }
 });
