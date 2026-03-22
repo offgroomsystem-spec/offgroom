@@ -1059,10 +1059,9 @@ const FluxoDeCaixa = () => {
       .reduce((acc, l) => acc + l.valorTotal, 0);
     const saldoAteData = receitasAteData - despesasAteData;
 
-    if (valor > saldoAteData) {
-      toast.error(`Saldo insuficiente da conta '${contaOrigem}' para a data selecionada, revise o valor ou selecione outra conta.`);
-      return false;
-    }
+    // Guardar saldo resultante para possível alerta
+    const saldoResultante = saldoAteData - valor;
+    setSaldoResultanteOrigem(saldoResultante);
 
     return true;
   };
