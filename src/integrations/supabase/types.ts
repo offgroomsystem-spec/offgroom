@@ -508,6 +508,8 @@ export type Database = {
           dias_funcionamento: Json | null
           email_fiscal: string | null
           endereco: string | null
+          evolution_auto_send: boolean | null
+          evolution_instance_name: string | null
           horario_fim: string | null
           horario_inicio: string | null
           id: string
@@ -538,6 +540,8 @@ export type Database = {
           dias_funcionamento?: Json | null
           email_fiscal?: string | null
           endereco?: string | null
+          evolution_auto_send?: boolean | null
+          evolution_instance_name?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -568,6 +572,8 @@ export type Database = {
           dias_funcionamento?: Json | null
           email_fiscal?: string | null
           endereco?: string | null
+          evolution_auto_send?: boolean | null
+          evolution_instance_name?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
