@@ -157,9 +157,18 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams) {
     }
   }
 
-  // === MENSAGEM IMEDIATA (agendamento criado com >61min de antecedência + Taxi Dog = "Não") ===
+  // === MENSAGEM DE CONFIRMAÇÃO IMEDIATA (agendamento entre 61min e 3h) ===
+  if (diffMinutes > 61 && diffMinutes <= 3 * 60) {
+    mensagensParaInserir.push({
+      ...baseRecord,
+      tipo_mensagem: "3h",
+      mensagem: confirmationMsg,
+      agendado_para: now.toISOString(),
+    });
+  }
+
+  // === MENSAGEM LEMBRETE IMEDIATA (agendamento >61min e <=24h + Taxi Dog = "Não") ===
   if (diffMinutes > 61 && diffMinutes <= 24 * 60 && params.taxiDog === "Não") {
-    // Se não há mensagem 24h (agendamento é em menos de 24h), enviar imediatamente
     const reminderMsg = buildReminderMessage(params);
     mensagensParaInserir.push({
       ...baseRecord,
