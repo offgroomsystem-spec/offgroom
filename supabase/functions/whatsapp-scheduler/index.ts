@@ -471,7 +471,7 @@ async function autoCreatePacoteMessages(
 
       for (let i = 0; i < servicos.length; i++) {
         const sv = servicos[i];
-        if (!sv.data || !sv.horario) continue;
+        if (!sv.data || !sv.horarioInicio) continue;
         if (sv.data !== todayBRT && sv.data !== tomorrowBRT) continue;
         if (sv.status === "Cancelado") continue;
 
