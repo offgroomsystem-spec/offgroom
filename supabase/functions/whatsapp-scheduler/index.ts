@@ -387,13 +387,13 @@ async function autoCreateMissingMessages(
         }
       }
 
-      // === Immediate message (>61min, <=24h, Taxi Dog = Não) ===
-      if (diffMinutes > 61 && diffMinutes <= 24 * 60 && ag.taxi_dog === "Não" && !existingSet.has(`${ag.id}_imediata`)) {
-        const reminderMsg = buildReminderMessage(ag.cliente, ag.pet, sexoPet, ag.horario);
+      // === Confirmation for appointments between 61min-3h (auto-create only creates confirmation, NOT imediata) ===
+      // "imediata" messages are only created by the frontend when a NEW appointment is saved
+      if (diffMinutes > 61 && diffMinutes <= 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
         mensagensParaInserir.push({
           ...baseRecord,
-          tipo_mensagem: "imediata",
-          mensagem: reminderMsg,
+          tipo_mensagem: "3h",
+          mensagem: confirmMsg,
           agendado_para: now.toISOString(),
         });
       }
@@ -536,10 +536,9 @@ async function autoCreatePacoteMessages(
           }
         }
 
-        // === Imediata ===
-        if (diffMinutes > 61 && diffMinutes <= 24 * 60 && pacote.taxi_dog === "Não" && !existingPacoteSet.has(`${key}_imediata`)) {
-          const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horarioInicio);
-          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "imediata", mensagem: reminderMsg, agendado_para: now.toISOString() });
+        // === Confirmation for 61min-3h (auto-create only, NOT imediata) ===
+        if (diffMinutes > 61 && diffMinutes <= 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
+          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: now.toISOString() });
         }
       }
     }
