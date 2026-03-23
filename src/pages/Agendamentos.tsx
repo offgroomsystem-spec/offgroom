@@ -3633,19 +3633,6 @@ const Agendamentos = () => {
       <Card>
         <CardHeader className="py-2">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              {whatsappConnected ? (
-                <div className="flex items-center gap-1.5 text-green-600">
-                  <Wifi className="h-4 w-4" />
-                  <span className="text-xs font-medium">WhatsApp Conectado</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-destructive">
-                  <WifiOff className="h-4 w-4" />
-                  <span className="text-xs font-medium">WhatsApp Desconectado</span>
-                </div>
-              )}
-            </div>
             <div>
               <div className="flex gap-2 items-center mb-2">
                 <Button
