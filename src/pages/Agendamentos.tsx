@@ -1125,6 +1125,45 @@ const Agendamentos = () => {
         ownerId: ownerId || user.id
       });
 
+      // Agendar mensagens WhatsApp automáticas
+      try {
+        // Buscar sexo do pet
+        let sexoPet = "";
+        for (const cliente of clientes) {
+          const pet = cliente.pets.find(p => p.nome === formData.pet && p.raca === formData.raca);
+          if (pet) { sexoPet = pet.sexo || ""; break; }
+        }
+
+        const isPacote = !!formData.numeroServicoPacote;
+        let isUltimoServicoPacote = false;
+        if (isPacote && formData.numeroServicoPacote) {
+          const parts = formData.numeroServicoPacote.split("/");
+          if (parts.length === 2 && parts[0] === parts[1]) {
+            isUltimoServicoPacote = true;
+          }
+        }
+
+        await scheduleWhatsAppMessages({
+          userId: ownerId || user.id,
+          agendamentoId: agendamentoData.id,
+          nomeCliente: formData.cliente,
+          nomePet: formData.pet,
+          sexoPet,
+          raca: formData.raca,
+          whatsapp: formData.whatsapp,
+          dataAgendamento: formData.data,
+          horarioInicio: formData.horario,
+          servicos: servicosNomes,
+          taxiDog: formData.taxiDog,
+          bordao: empresaConfig.bordao,
+          isPacote,
+          isUltimoServicoPacote,
+          servicoNumero: formData.numeroServicoPacote || undefined,
+        });
+      } catch (schedErr) {
+        console.error("Erro ao agendar mensagens WhatsApp:", schedErr);
+      }
+
       toast.success("Agendamento criado com sucesso!");
       await loadAgendamentos();
       resetForm();
