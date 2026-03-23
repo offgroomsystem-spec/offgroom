@@ -486,7 +486,7 @@ async function autoCreatePacoteMessages(
         const sexoPet = petSexoMap.get(`${pacote.user_id}_${pacote.nome_pet}`) || "Macho";
         const bordao = bordaoMap.get(pacote.user_id) || "";
         const numero = formatNumero(pacote.whatsapp);
-        const servicoNome = sv.servico || sv.nome || "Banho";
+        const servicoNome = sv.nomeServico || sv.servico || sv.nome || "Banho";
 
         const confirmMsg = buildConfirmationMessage(
           pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.data, sv.horario,
