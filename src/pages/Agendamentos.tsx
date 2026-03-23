@@ -1801,10 +1801,12 @@ const Agendamentos = () => {
     if (!whatsappConnected || !whatsappInstanceName) {
       // Fallback: abrir wa.me
       toast.info("WhatsApp não conectado. Abrindo link manual...");
-      if (agendamento.tipo === "pacote" && agendamento.pacoteOriginal && agendamento.servicoOriginal) {
-        window.open(gerarUrlWhatsAppPacote(agendamento.pacoteOriginal, agendamento.servicoOriginal), '_blank');
-      } else if (agendamento.tipo === "simples" && agendamento.agendamentoOriginal) {
-        window.open(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), '_blank');
+      if (agendamento.tipo === "pacote" && (agendamento.pacoteOriginal || agendamento.agendamentoPacote) && (agendamento.servicoOriginal || agendamento.servicoAgendamento)) {
+        const pacote = agendamento.pacoteOriginal || agendamento.agendamentoPacote;
+        const servico = agendamento.servicoOriginal || agendamento.servicoAgendamento;
+        window.open(gerarUrlWhatsAppPacote(pacote, servico), '_blank');
+      } else if (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) {
+        window.open(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal || agendamento.agendamento), '_blank');
       }
       return;
     }
