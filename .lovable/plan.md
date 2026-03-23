@@ -1,50 +1,44 @@
 
 
-## Enviar Mensagem WhatsApp via Evolution API ao Clicar no Ícone
+## Corrigir Espaçamento das Mensagens WhatsApp
 
-### O que será feito
+### Problema
 
-Substituir o comportamento atual do ícone do WhatsApp na tabela de agendamentos do dia (que abre `wa.me` em nova aba) por envio direto via Evolution API, com fila de 10 segundos entre mensagens e feedback visual ao usuário.
+As mensagens enviadas via Evolution API (manual e automática) usam `\n\n` (duas quebras de linha) entre cada campo, criando espaçamento duplo. O usuário quer apenas `\n` (uma quebra de linha) entre os campos, mantendo `\n\n` somente após a saudação inicial e antes do bordão/texto de renovação.
 
-### Alterações — Arquivo: `src/pages/Agendamentos.tsx`
+### Formato correto desejado
 
-**1. Armazenar `instance_name` no state**
+```text
+Oi, [Nome]! Passando apenas para confirmar o agendamento [do/da] [Pet] com a gente.
+\n
+*Dia:* [Data]
+*Horario:* [Hora]
+*Serviço:* [Serviços]
+*N° do Pacote:* [Numero]  (ou *Pacote de serviços:* Sem Pacote 😕)
+*Taxi Dog:* [Sim/Não]
+\n
+[Texto renovação se último pacote]
+\n
+*[Bordão]*
+```
 
-Ao carregar o status do WhatsApp no `loadRelatedData`, salvar também o `instance_name` num state `whatsappInstanceName`.
+Ou seja: `\n\n` após saudação, `\n` entre campos, `\n\n` antes de texto extra e bordão.
 
-**2. Nova função `enviarWhatsAppDireto`**
+### Arquivos a alterar
 
-Função que:
-- Recebe o agendamento da tabela (tipo simples ou pacote)
-- Monta a mensagem conforme os 3 templates (avulso, pacote não-último, pacote último) com as regras de sexo do pet (`do/da`, concordância)
-- Busca o sexo do pet na lista de clientes carregada
-- Formata o número no padrão E.164 (55 + dígitos)
-- Verifica se WhatsApp está conectado; se não, mostra toast de erro
-- Controla fila com intervalo de 10s entre envios (variável `lastSendTime` em ref)
-- Se a última mensagem foi enviada há menos de 10s, agenda o envio com `setTimeout` e mostra toast "Mensagem na fila"
-- Chama `supabase.functions.invoke("evolution-api", { body: { action: "send-message", instanceName, number, text } })`
-- Mostra toast de sucesso/erro
+**1. `src/pages/Agendamentos.tsx` — função `enviarWhatsAppDireto` (linhas ~1836-1843)**
 
-**3. Templates de mensagem (3 variantes):**
+Trocar `\n\n` entre campos por `\n`:
 
-- **Avulso**: `Oi, [PrimeiroNome]! ... *Pacote de serviços:* Sem Pacote 😕 ... *[Bordão]*`
-- **Pacote (não último)**: `Oi, [PrimeiroNome]! ... *N° do Pacote:* [numero] ... *[Bordão]*`
-- **Pacote (último)**: Mesmo + texto de renovação: "Notei que hoje finalizamos o pacote atual..."
+- Avulso: `...\n\n*Dia:*...\n*Horario:*...\n*Serviço:*...\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:*...\n\n*[Bordão]*`
+- Pacote (não último): `...\n\n*Dia:*...\n*Horario:*...\n*Serviço:*...\n*N° do Pacote:*...\n*Taxi Dog:*...\n\n*[Bordão]*`
+- Pacote (último): `...\n\n*Dia:*...\n*Horario:*...\n*Serviço:*...\n*N° do Pacote:*...\n*Taxi Dog:*...\n\nNotei que hoje...\n\n*[Bordão]*`
 
-Todos com concordância de sexo do pet (`do/da`).
+**2. `src/utils/whatsappScheduler.ts` — função `buildConfirmationMessage` (linhas ~46-58)**
 
-**4. Substituir `onClick` dos botões WhatsApp (linhas 3946-3968)**
+Aplicar a mesma correção nos 3 templates do scheduler automático.
 
-Trocar `abrirWhatsApp(gerarUrlWhatsApp...)` por `enviarWhatsAppDireto(agendamento)`.
+**3. `src/utils/whatsappScheduler.ts` — variável `bordaoLine` (linha ~43)**
 
-**5. Fallback**
-
-Se WhatsApp não estiver conectado (`whatsappConnected === false`), manter o comportamento atual de abrir `wa.me` como fallback, com toast informando que o envio automático não está disponível.
-
-### Detalhes técnicos
-
-- Usar `useRef` para controlar `lastSendTimestamp` e a fila de envios pendentes
-- A fila é local (em memória), processada com `setTimeout` de 10s
-- A mensagem é enviada server-side via edge function `evolution-api` action `send-message`
-- Nenhuma alteração de banco de dados necessária
+Alterar de `\n*${params.bordao}*` para `\n\n*${params.bordao}*` para manter separação antes do bordão.
 
