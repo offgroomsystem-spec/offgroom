@@ -1,44 +1,68 @@
 
 
-## Corrigir Espaçamento das Mensagens WhatsApp
+## Corrigir Envio Automático de Mensagens WhatsApp
 
-### Problema
+### Problema Principal
 
-As mensagens enviadas via Evolution API (manual e automática) usam `\n\n` (duas quebras de linha) entre cada campo, criando espaçamento duplo. O usuário quer apenas `\n` (uma quebra de linha) entre os campos, mantendo `\n\n` somente após a saudação inicial e antes do bordão/texto de renovação.
+O envio automático não funciona porque a flag `evolution_auto_send` na tabela `empresa_config` é `false` para todos os usuários. A edge function `whatsapp-scheduler` verifica essa flag e pula todos os envios quando é `false`. Nenhum código no sistema define essa flag como `true` — nem ao conectar o WhatsApp, nem em qualquer toggle na UI.
 
-### Formato correto desejado
+### Solução
 
-```text
-Oi, [Nome]! Passando apenas para confirmar o agendamento [do/da] [Pet] com a gente.
-\n
-*Dia:* [Data]
-*Horario:* [Hora]
-*Serviço:* [Serviços]
-*N° do Pacote:* [Numero]  (ou *Pacote de serviços:* Sem Pacote 😕)
-*Taxi Dog:* [Sim/Não]
-\n
-[Texto renovação se último pacote]
-\n
-*[Bordão]*
+**1. Ativar `evolution_auto_send` automaticamente ao conectar WhatsApp**
+
+**Arquivo: `src/components/empresa/WhatsAppIntegration.tsx`**
+
+Na função `updateInstanceStatus`, quando o status muda para `"connected"`, atualizar `empresa_config` setando `evolution_auto_send = true`. Quando mudar para `"disconnected"`, setar `evolution_auto_send = false`.
+
+```typescript
+// Ao atualizar status para "connected":
+await supabase
+  .from("empresa_config")
+  .update({ evolution_auto_send: true })
+  .eq("user_id", effectiveUserId);
+
+// Ao atualizar status para "disconnected":
+await supabase
+  .from("empresa_config")
+  .update({ evolution_auto_send: false })
+  .eq("user_id", effectiveUserId);
 ```
 
-Ou seja: `\n\n` após saudação, `\n` entre campos, `\n\n` antes de texto extra e bordão.
+**2. Mesma lógica no Agendamentos.tsx**
 
-### Arquivos a alterar
+Na verificação live de status que já existe no `loadRelatedData`, quando o status é atualizado no banco, também atualizar `evolution_auto_send` na `empresa_config`.
 
-**1. `src/pages/Agendamentos.tsx` — função `enviarWhatsAppDireto` (linhas ~1836-1843)**
+**3. Corrigir timezone no `whatsappScheduler.ts`**
 
-Trocar `\n\n` entre campos por `\n`:
+A função `parseDateTime` usa `new Date(year, month-1, day, hours, minutes)` que cria datas no timezone local do navegador. Como o `agendado_para` é armazenado como ISO/UTC, as 7h podem estar sendo gravadas como 7h UTC (que é 4h no horário de Brasília). Ajustar para usar o fuso de Brasília (UTC-3):
 
-- Avulso: `...\n\n*Dia:*...\n*Horario:*...\n*Serviço:*...\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:*...\n\n*[Bordão]*`
-- Pacote (não último): `...\n\n*Dia:*...\n*Horario:*...\n*Serviço:*...\n*N° do Pacote:*...\n*Taxi Dog:*...\n\n*[Bordão]*`
-- Pacote (último): `...\n\n*Dia:*...\n*Horario:*...\n*Serviço:*...\n*N° do Pacote:*...\n*Taxi Dog:*...\n\nNotei que hoje...\n\n*[Bordão]*`
+```typescript
+function parseDateTime(date: string, time: string): Date {
+  // Criar data em UTC-3 (Brasília)
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
+  const dt = new Date(Date.UTC(year, month - 1, day, hours + 3, minutes, 0, 0));
+  return dt;
+}
+```
 
-**2. `src/utils/whatsappScheduler.ts` — função `buildConfirmationMessage` (linhas ~46-58)**
+E ajustar a lógica de "agendar para 7h" para também usar UTC-3:
+```typescript
+// 7h Brasília = 10h UTC
+agendadoPara.setUTCHours(10, 0, 0, 0);
+```
 
-Aplicar a mesma correção nos 3 templates do scheduler automático.
+### Arquivos afetados
 
-**3. `src/utils/whatsappScheduler.ts` — variável `bordaoLine` (linha ~43)**
+| Arquivo | Ação |
+|---|---|
+| `src/components/empresa/WhatsAppIntegration.tsx` | Setar `evolution_auto_send` ao mudar status |
+| `src/pages/Agendamentos.tsx` | Setar `evolution_auto_send` ao verificar status live |
+| `src/utils/whatsappScheduler.ts` | Corrigir timezone para Brasília (UTC-3) |
 
-Alterar de `\n*${params.bordao}*` para `\n\n*${params.bordao}*` para manter separação antes do bordão.
+### Resultado esperado
+
+- Ao conectar o WhatsApp, `evolution_auto_send` será `true` automaticamente
+- O cron job (`whatsapp-scheduler`) vai encontrar o usuário como ativo e processar as mensagens pendentes
+- As mensagens das 7h serão agendadas corretamente no fuso de Brasília
 
