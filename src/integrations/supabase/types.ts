@@ -1496,6 +1496,54 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_mensagens_agendadas: {
+        Row: {
+          agendado_para: string
+          agendamento_id: string | null
+          agendamento_pacote_id: string | null
+          created_at: string | null
+          enviado_em: string | null
+          erro: string | null
+          id: string
+          mensagem: string | null
+          numero_whatsapp: string
+          servico_numero: string | null
+          status: string
+          tipo_mensagem: string
+          user_id: string
+        }
+        Insert: {
+          agendado_para: string
+          agendamento_id?: string | null
+          agendamento_pacote_id?: string | null
+          created_at?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          numero_whatsapp: string
+          servico_numero?: string | null
+          status?: string
+          tipo_mensagem: string
+          user_id: string
+        }
+        Update: {
+          agendado_para?: string
+          agendamento_id?: string | null
+          agendamento_pacote_id?: string | null
+          created_at?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          numero_whatsapp?: string
+          servico_numero?: string | null
+          status?: string
+          tipo_mensagem?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

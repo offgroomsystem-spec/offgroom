@@ -1,0 +1,177 @@
+import { supabase } from "@/integrations/supabase/client";
+
+interface ScheduleParams {
+  userId: string;
+  agendamentoId?: string;
+  agendamentoPacoteId?: string;
+  servicoNumero?: string;
+  nomeCliente: string;
+  nomePet: string;
+  sexoPet: string;
+  raca: string;
+  whatsapp: string;
+  dataAgendamento: string; // YYYY-MM-DD
+  horarioInicio: string; // HH:mm
+  servicos: string;
+  taxiDog: string; // "Sim" ou "Não"
+  bordao: string;
+  isPacote: boolean;
+  isUltimoServicoPacote?: boolean;
+  createdAt?: Date;
+}
+
+function getSexoPrefix(sexo: string, tipo: "do" | "o" | "ele"): string {
+  const isFemea = sexo?.toLowerCase() === "fêmea" || sexo?.toLowerCase() === "femea";
+  if (tipo === "do") return isFemea ? "da" : "do";
+  if (tipo === "o") return isFemea ? "a" : "o";
+  if (tipo === "ele") return isFemea ? "ela" : "ele";
+  return "do";
+}
+
+function getPrimeiroNome(nomeCompleto: string): string {
+  return nomeCompleto.split(" ")[0];
+}
+
+function formatDataBR(dataISO: string): string {
+  const [year, month, day] = dataISO.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function buildConfirmationMessage(params: ScheduleParams): string {
+  const primeiroNome = getPrimeiroNome(params.nomeCliente);
+  const doDa = getSexoPrefix(params.sexoPet, "do");
+  const dataBR = formatDataBR(params.dataAgendamento);
+  const bordaoLine = params.bordao ? `\n*${params.bordao}*` : "";
+
+  if (!params.isPacote) {
+    // Avulso
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n\n*Horario:* ${params.horarioInicio}\n\n*Serviço:* ${params.servicos}\n\n*Pacote de serviços:* Sem Pacote 😕\n\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
+  }
+
+  if (params.isUltimoServicoPacote) {
+    // Pacote - último serviço
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n\n*Horario:* ${params.horarioInicio}\n\n*Serviço:* ${params.servicos}\n\n*N° do Pacote:* ${params.servicoNumero}\n\n*Taxi Dog:* ${params.taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${params.nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+  }
+
+  // Pacote - não último
+  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n\n*Horario:* ${params.horarioInicio}\n\n*Serviço:* ${params.servicos}\n\n*N° do Pacote:* ${params.servicoNumero}\n\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
+}
+
+function buildReminderMessage(params: ScheduleParams): string {
+  const primeiroNome = getPrimeiroNome(params.nomeCliente);
+  const oA = getSexoPrefix(params.sexoPet, "o");
+  const eleEla = getSexoPrefix(params.sexoPet, "ele");
+  return `Oi ${primeiroNome}! 😄\n\nNão esqueça de trazer ${oA} ${params.nomePet} hoje às ${params.horarioInicio}.\n\nEsse horário estamos por aqui prontos para receber ${eleEla}! 🐾💙`;
+}
+
+function parseDateTime(date: string, time: string): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+}
+
+export async function scheduleWhatsAppMessages(params: ScheduleParams) {
+  const now = params.createdAt || new Date();
+  const agendamentoDateTime = parseDateTime(params.dataAgendamento, params.horarioInicio);
+  
+  // Diferença em minutos entre agora e o agendamento
+  const diffMinutes = (agendamentoDateTime.getTime() - now.getTime()) / (1000 * 60);
+
+  // Se o agendamento está dentro de 60 minutos (passado ou futuro próximo), não enviar automático
+  if (diffMinutes <= 60 && diffMinutes >= -60) {
+    return;
+  }
+
+  const confirmationMsg = buildConfirmationMessage(params);
+  const mensagensParaInserir: any[] = [];
+
+  // Formatar número WhatsApp (garantir formato E.164)
+  let numero = params.whatsapp.replace(/\D/g, "");
+  if (!numero.startsWith("55")) {
+    numero = "55" + numero;
+  }
+
+  const baseRecord = {
+    user_id: params.userId,
+    agendamento_id: params.agendamentoId || null,
+    agendamento_pacote_id: params.agendamentoPacoteId || null,
+    servico_numero: params.servicoNumero || null,
+    numero_whatsapp: numero,
+    status: "pendente",
+  };
+
+  // === MENSAGEM 24H ANTES ===
+  if (diffMinutes > 24 * 60) {
+    const agendadoPara24h = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000);
+    // Se a hora calculada for antes das 7h, agendar para 7h do dia
+    if (agendadoPara24h.getHours() < 7) {
+      agendadoPara24h.setHours(7, 0, 0, 0);
+    }
+    mensagensParaInserir.push({
+      ...baseRecord,
+      tipo_mensagem: "24h",
+      mensagem: confirmationMsg,
+      agendado_para: agendadoPara24h.toISOString(),
+    });
+  }
+
+  // === MENSAGEM 3H ANTES ===
+  if (diffMinutes > 3 * 60) {
+    let agendadoPara3h = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
+    
+    // Se o agendamento é antes das 10h, a mensagem "3h" é enviada às 7h do mesmo dia
+    const horaAgendamento = agendamentoDateTime.getHours();
+    if (horaAgendamento < 10) {
+      agendadoPara3h = new Date(agendamentoDateTime);
+      agendadoPara3h.setHours(7, 0, 0, 0);
+    }
+
+    // Não agendar se horário já passou
+    if (agendadoPara3h.getTime() > now.getTime()) {
+      mensagensParaInserir.push({
+        ...baseRecord,
+        tipo_mensagem: "3h",
+        mensagem: confirmationMsg,
+        agendado_para: agendadoPara3h.toISOString(),
+      });
+    }
+  }
+
+  // === MENSAGEM 30MIN ANTES (Apenas Taxi Dog = "Não") ===
+  if (params.taxiDog === "Não" && diffMinutes > 30) {
+    const agendadoPara30min = new Date(agendamentoDateTime.getTime() - 30 * 60 * 1000);
+    
+    if (agendadoPara30min.getTime() > now.getTime()) {
+      const reminderMsg = buildReminderMessage(params);
+      mensagensParaInserir.push({
+        ...baseRecord,
+        tipo_mensagem: "30min",
+        mensagem: reminderMsg,
+        agendado_para: agendadoPara30min.toISOString(),
+      });
+    }
+  }
+
+  // === MENSAGEM IMEDIATA (agendamento criado com >61min de antecedência + Taxi Dog = "Não") ===
+  if (diffMinutes > 61 && diffMinutes <= 24 * 60 && params.taxiDog === "Não") {
+    // Se não há mensagem 24h (agendamento é em menos de 24h), enviar imediatamente
+    const reminderMsg = buildReminderMessage(params);
+    mensagensParaInserir.push({
+      ...baseRecord,
+      tipo_mensagem: "imediata",
+      mensagem: reminderMsg,
+      agendado_para: now.toISOString(),
+    });
+  }
+
+  // Inserir todas as mensagens agendadas
+  if (mensagensParaInserir.length > 0) {
+    const { error } = await supabase
+      .from("whatsapp_mensagens_agendadas" as any)
+      .insert(mensagensParaInserir);
+
+    if (error) {
+      console.error("Erro ao agendar mensagens WhatsApp:", error);
+    }
+  }
+}
