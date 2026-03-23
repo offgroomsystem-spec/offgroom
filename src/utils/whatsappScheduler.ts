@@ -41,20 +41,20 @@ function buildConfirmationMessage(params: ScheduleParams): string {
   const primeiroNome = getPrimeiroNome(params.nomeCliente);
   const doDa = getSexoPrefix(params.sexoPet, "do");
   const dataBR = formatDataBR(params.dataAgendamento);
-  const bordaoLine = params.bordao ? `\n*${params.bordao}*` : "";
+  const bordaoLine = params.bordao ? `\n\n*${params.bordao}*` : "";
 
   if (!params.isPacote) {
     // Avulso
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n\n*Horario:* ${params.horarioInicio}\n\n*Serviço:* ${params.servicos}\n\n*Pacote de serviços:* Sem Pacote 😕\n\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
   }
 
   if (params.isUltimoServicoPacote) {
     // Pacote - último serviço
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n\n*Horario:* ${params.horarioInicio}\n\n*Serviço:* ${params.servicos}\n\n*N° do Pacote:* ${params.servicoNumero}\n\n*Taxi Dog:* ${params.taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${params.nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*N° do Pacote:* ${params.servicoNumero}\n*Taxi Dog:* ${params.taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${params.nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
   }
 
   // Pacote - não último
-  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n\n*Horario:* ${params.horarioInicio}\n\n*Serviço:* ${params.servicos}\n\n*N° do Pacote:* ${params.servicoNumero}\n\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
+  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*N° do Pacote:* ${params.servicoNumero}\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
 }
 
 function buildReminderMessage(params: ScheduleParams): string {
