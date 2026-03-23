@@ -4062,33 +4062,15 @@ const Agendamentos = () => {
                           {agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ""}
                         </td>
                         <td className="p-1.5 border">
-                          {agendamento.tipo === "pacote" &&
-                      agendamento.agendamentoPacote &&
-                      agendamento.servicoAgendamento ?
+                          {(agendamento.tipo === "pacote" && agendamento.pacoteOriginal && agendamento.servicoOriginal) ||
+                      (agendamento.tipo === "simples" && agendamento.agendamentoOriginal) ?
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) =>
-                        abrirWhatsApp(
-                          gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
-                          e
-                        )
-                        }
+                        onClick={(e) => enviarWhatsAppDireto(agendamento, e)}
                         className="h-5 w-5 p-0">
-                        
-                              <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
-                            </Button> :
-                      agendamento.tipo === "simples" && agendamento.agendamentoOriginal ?
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) =>
-                        abrirWhatsApp(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), e)
-                        }
-                        className="h-5 w-5 p-0">
-                        
-                              <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
-                            </Button> :
+                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
+                      </Button> :
                       null}
                         </td>
                         <td className="p-1.5 border text-center">
