@@ -104,9 +104,13 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams) {
   // === MENSAGEM 24H ANTES ===
   if (diffMinutes > 24 * 60) {
     const agendadoPara24h = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000);
-    // Se a hora calculada for antes das 7h, agendar para 7h do dia
-    if (agendadoPara24h.getHours() < 7) {
-      agendadoPara24h.setHours(7, 0, 0, 0);
+    // Se a hora em Brasília (UTC-3) for antes das 7h, agendar para 7h Brasília (10h UTC)
+    if (agendadoPara24h.getUTCHours() < 10 || (agendadoPara24h.getUTCHours() === 10 && agendadoPara24h.getUTCMinutes() === 0)) {
+      // Check if actually before 7h BRT
+      const brtHour = (agendadoPara24h.getUTCHours() - 3 + 24) % 24;
+      if (brtHour < 7) {
+        agendadoPara24h.setUTCHours(10, 0, 0, 0);
+      }
     }
     mensagensParaInserir.push({
       ...baseRecord,
