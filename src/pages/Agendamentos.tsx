@@ -25,7 +25,9 @@ import {
   Search,
   Check,
   ChevronsUpDown,
-  X } from
+  X,
+  Wifi,
+  WifiOff } from
 "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -346,8 +348,22 @@ const Agendamentos = () => {
   };
 
   // Load groomers, clientes, pacotes, servicos from Supabase
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
+
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
+
+    // Load WhatsApp status
+    try {
+      const { data: whatsappData } = await supabase
+        .from("whatsapp_instances")
+        .select("status")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      setWhatsappConnected(whatsappData?.status === 'connected');
+    } catch (e) {
+      console.error('Erro ao verificar status WhatsApp:', e);
+    }
 
     try {
       // Load groomers
@@ -3710,6 +3726,20 @@ const Agendamentos = () => {
                 </Button>
               </div>
             }
+            <div className="flex items-center gap-2">
+              {viewMode !== "semana" && <div />}
+              {whatsappConnected ? (
+                <div className="flex items-center gap-1.5 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">WhatsApp Conectado</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-destructive">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">WhatsApp Desconectado</span>
+                </div>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="py-2">
