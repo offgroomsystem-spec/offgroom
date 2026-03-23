@@ -1794,8 +1794,8 @@ const Agendamentos = () => {
     processingQueueRef.current = false;
   };
 
-  // Enviar WhatsApp direto via Evolution API
-  const enviarWhatsAppDireto = (agendamento: AgendamentoUnificado, e: React.MouseEvent) => {
+  // Enviar WhatsApp direto via Evolution API (aceita AgendamentoUnificado ou agendamentoDia)
+  const enviarWhatsAppDireto = (agendamento: any, e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (!whatsappConnected || !whatsappInstanceName) {
