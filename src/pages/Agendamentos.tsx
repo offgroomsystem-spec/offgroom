@@ -1403,7 +1403,6 @@ const Agendamentos = () => {
       if (error) throw error;
 
       // Automação: criar lançamento financeiro automaticamente
-      // Usar a primeira data de serviço para definir mês/ano
       const primeiraDataServico = servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
 
       criarLancamentoFinanceiroPacote({
@@ -1414,6 +1413,60 @@ const Agendamentos = () => {
         primeiraDataServico: primeiraDataServico,
         ownerId: ownerId || ""
       });
+
+      // Agendar mensagens WhatsApp para cada serviço do pacote
+      try {
+        let sexoPet = "";
+        for (const cliente of clientes) {
+          const pet = cliente.pets.find(p => p.nome === pacoteFormData.nomePet && p.raca === pacoteFormData.raca);
+          if (pet) { sexoPet = pet.sexo || ""; break; }
+        }
+
+        // Buscar o ID do pacote recém-criado
+        const { data: pacoteCriado } = await supabase
+          .from("agendamentos_pacotes")
+          .select("id")
+          .eq("user_id", ownerId)
+          .eq("nome_cliente", pacoteFormData.nomeCliente)
+          .eq("nome_pet", pacoteFormData.nomePet)
+          .eq("nome_pacote", pacoteFormData.nomePacote)
+          .eq("data_venda", pacoteFormData.dataVenda)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        const pacoteId = pacoteCriado?.id;
+
+        for (const servico of servicosAgendamento) {
+          if (!servico.data || !servico.horarioInicio) continue;
+
+          const parts = servico.numero.split("/");
+          const isUltimo = parts.length === 2 && parts[0] === parts[1];
+
+          // Montar nomes dos serviços incluindo extras
+          const servicoNomes = [servico.nomeServico, ...(servico.servicosExtras?.map(e => e.nome) || [])].filter(Boolean).join(" + ");
+
+          await scheduleWhatsAppMessages({
+            userId: ownerId || user.id,
+            agendamentoPacoteId: pacoteId || undefined,
+            servicoNumero: servico.numero,
+            nomeCliente: pacoteFormData.nomeCliente,
+            nomePet: pacoteFormData.nomePet,
+            sexoPet,
+            raca: pacoteFormData.raca,
+            whatsapp: pacoteFormData.whatsapp,
+            dataAgendamento: servico.data,
+            horarioInicio: servico.horarioInicio,
+            servicos: servicoNomes || pacoteFormData.nomePacote,
+            taxiDog: pacoteFormData.taxiDog,
+            bordao: empresaConfig.bordao,
+            isPacote: true,
+            isUltimoServicoPacote: isUltimo,
+          });
+        }
+      } catch (schedErr) {
+        console.error("Erro ao agendar mensagens WhatsApp pacote:", schedErr);
+      }
 
       toast.success("Pacote agendado com sucesso!");
       await loadAgendamentosPacotes();
