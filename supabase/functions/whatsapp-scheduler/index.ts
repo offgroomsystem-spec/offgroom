@@ -471,11 +471,11 @@ async function autoCreatePacoteMessages(
 
       for (let i = 0; i < servicos.length; i++) {
         const sv = servicos[i];
-        if (!sv.data || !sv.horario) continue;
+        if (!sv.data || !sv.horarioInicio) continue;
         if (sv.data !== todayBRT && sv.data !== tomorrowBRT) continue;
         if (sv.status === "Cancelado") continue;
 
-        const agDateTime = parseDateTimeBRT(sv.data, sv.horario);
+        const agDateTime = parseDateTimeBRT(sv.data, sv.horarioInicio);
         const diffMinutes = (agDateTime.getTime() - now.getTime()) / (1000 * 60);
 
         if (diffMinutes < -60) continue;
@@ -486,10 +486,10 @@ async function autoCreatePacoteMessages(
         const sexoPet = petSexoMap.get(`${pacote.user_id}_${pacote.nome_pet}`) || "Macho";
         const bordao = bordaoMap.get(pacote.user_id) || "";
         const numero = formatNumero(pacote.whatsapp);
-        const servicoNome = sv.servico || sv.nome || "Banho";
+        const servicoNome = sv.nomeServico || sv.servico || sv.nome || "Banho";
 
         const confirmMsg = buildConfirmationMessage(
-          pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.data, sv.horario,
+          pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.data, sv.horarioInicio,
           servicoNome, pacote.taxi_dog, bordao, true, servicoNumero, isUltimo
         );
 
@@ -531,14 +531,14 @@ async function autoCreatePacoteMessages(
         if (pacote.taxi_dog === "Não" && diffMinutes > 30 && !existingPacoteSet.has(`${key}_30min`)) {
           const ag30 = new Date(agDateTime.getTime() - 30 * 60 * 1000);
           if (ag30.getTime() > now.getTime()) {
-            const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horario);
+            const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horarioInicio);
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "30min", mensagem: reminderMsg, agendado_para: ag30.toISOString() });
           }
         }
 
         // === Imediata ===
         if (diffMinutes > 61 && diffMinutes <= 24 * 60 && pacote.taxi_dog === "Não" && !existingPacoteSet.has(`${key}_imediata`)) {
-          const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horario);
+          const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horarioInicio);
           mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "imediata", mensagem: reminderMsg, agendado_para: now.toISOString() });
         }
       }
