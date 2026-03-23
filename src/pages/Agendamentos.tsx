@@ -349,6 +349,10 @@ const Agendamentos = () => {
 
   // Load groomers, clientes, pacotes, servicos from Supabase
   const [whatsappConnected, setWhatsappConnected] = useState(false);
+  const [whatsappInstanceName, setWhatsappInstanceName] = useState<string>("");
+  const lastSendTimestampRef = useRef<number>(0);
+  const sendQueueRef = useRef<Array<() => Promise<void>>>([]);
+  const processingQueueRef = useRef(false);
 
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
@@ -362,6 +366,7 @@ const Agendamentos = () => {
         .maybeSingle();
 
       if (whatsappData?.instance_name) {
+        setWhatsappInstanceName(whatsappData.instance_name);
         try {
           const res = await supabase.functions.invoke("evolution-api", {
             body: { action: "check-status", instanceName: whatsappData.instance_name }
@@ -1740,10 +1745,139 @@ const Agendamentos = () => {
     }
   };
 
-  // Abrir link do WhatsApp em nova aba
+  // Abrir link do WhatsApp em nova aba (fallback)
   const abrirWhatsApp = (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
     window.open(url, '_blank');
+  };
+
+  // Obter sexo do pet pelo nome do pet e nome do cliente
+  const obterSexoPet = (nomePet: string, nomeCliente: string): string => {
+    const cliente = clientes.find(c => 
+      c.nomeCliente.toLowerCase().trim() === nomeCliente.toLowerCase().trim()
+    );
+    if (cliente) {
+      const pet = cliente.pets.find(p => 
+        p.nome.toLowerCase().trim() === nomePet.toLowerCase().trim()
+      );
+      if (pet?.sexo) return pet.sexo;
+    }
+    return "Macho"; // default
+  };
+
+  const getSexoPrefix = (sexo: string, tipo: "do" | "o" | "ele"): string => {
+    const isFemea = sexo?.toLowerCase() === "fêmea" || sexo?.toLowerCase() === "femea";
+    if (tipo === "do") return isFemea ? "da" : "do";
+    if (tipo === "o") return isFemea ? "a" : "o";
+    if (tipo === "ele") return isFemea ? "ela" : "ele";
+    return "do";
+  };
+
+  // Processar fila de envios com intervalo de 10s
+  const processarFilaEnvios = async () => {
+    if (processingQueueRef.current) return;
+    processingQueueRef.current = true;
+    
+    while (sendQueueRef.current.length > 0) {
+      const now = Date.now();
+      const timeSinceLast = now - lastSendTimestampRef.current;
+      if (timeSinceLast < 10000) {
+        await new Promise(resolve => setTimeout(resolve, 10000 - timeSinceLast));
+      }
+      const task = sendQueueRef.current.shift();
+      if (task) {
+        lastSendTimestampRef.current = Date.now();
+        await task();
+      }
+    }
+    
+    processingQueueRef.current = false;
+  };
+
+  // Enviar WhatsApp direto via Evolution API (aceita AgendamentoUnificado ou agendamentoDia)
+  const enviarWhatsAppDireto = (agendamento: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!whatsappConnected || !whatsappInstanceName) {
+      // Fallback: abrir wa.me
+      toast.info("WhatsApp não conectado. Abrindo link manual...");
+      if (agendamento.tipo === "pacote" && (agendamento.pacoteOriginal || agendamento.agendamentoPacote) && (agendamento.servicoOriginal || agendamento.servicoAgendamento)) {
+        const pacote = agendamento.pacoteOriginal || agendamento.agendamentoPacote;
+        const servico = agendamento.servicoOriginal || agendamento.servicoAgendamento;
+        window.open(gerarUrlWhatsAppPacote(pacote, servico), '_blank');
+      } else if (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) {
+        window.open(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal || agendamento.agendamento), '_blank');
+      }
+      return;
+    }
+
+    const sexoPet = obterSexoPet(agendamento.pet, agendamento.cliente);
+    const primeiroNome = obterPrimeiroNome(agendamento.cliente);
+    const nomePet = capitalizarPrimeiraLetra(agendamento.pet);
+    const doDa = getSexoPrefix(sexoPet, "do");
+    
+    // Obter data - pode vir de agendamento.data ou do sub-objeto
+    const dataStr = agendamento.data || 
+      agendamento.agendamentoOriginal?.data || 
+      agendamento.agendamento?.data ||
+      agendamento.servicoAgendamento?.data ||
+      agendamento.servicoOriginal?.data ||
+      selectedDate;
+    const dataFormatada = new Date(dataStr + "T00:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    const horarioFormatado = agendamento.horarioInicio.substring(0, 5);
+    const taxiDog = agendamento.taxiDog === "Sim" ? "Sim" : "Não";
+    const servicoNome = capitalizarPrimeiraLetra(agendamento.servico);
+    const bordaoLine = empresaConfig.bordao ? `\n*${empresaConfig.bordao}*` : "";
+
+    let mensagem = "";
+
+    const isPacote = agendamento.tipo === "pacote" && agendamento.numeroPacote && agendamento.numeroPacote.trim() !== "";
+    const isUltimo = isPacote && ehUltimoServicoPacote(agendamento.numeroPacote);
+
+    if (!isPacote) {
+      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*Pacote de serviços:* Sem Pacote 😕\n\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+    } else if (isUltimo) {
+      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*N° do Pacote:* ${agendamento.numeroPacote}\n\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+    } else {
+      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*N° do Pacote:* ${agendamento.numeroPacote}\n\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+    }
+
+    // Obter número WhatsApp do sub-objeto correto
+    const whatsappRaw = agendamento.whatsapp || 
+      agendamento.agendamentoOriginal?.whatsapp || 
+      agendamento.agendamento?.whatsapp ||
+      agendamento.agendamentoPacote?.whatsapp ||
+      agendamento.pacoteOriginal?.whatsapp || "";
+    let numero = whatsappRaw.replace(/\D/g, "");
+    if (!numero.startsWith("55")) numero = "55" + numero;
+
+    const sendTask = async () => {
+      try {
+        const res = await supabase.functions.invoke("evolution-api", {
+          body: { action: "send-message", instanceName: whatsappInstanceName, number: numero, text: mensagem }
+        });
+        if (res.error) throw res.error;
+        toast.success(`✅ Mensagem enviada para ${primeiroNome}!`);
+      } catch (err: any) {
+        console.error("Erro ao enviar WhatsApp:", err);
+        toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
+      }
+    };
+
+    // Adicionar à fila
+    const now = Date.now();
+    const timeSinceLast = now - lastSendTimestampRef.current;
+    
+    if (timeSinceLast >= 10000 && sendQueueRef.current.length === 0) {
+      // Enviar imediatamente
+      lastSendTimestampRef.current = Date.now();
+      sendTask();
+      toast.info(`📤 Enviando mensagem para ${primeiroNome}...`);
+    } else {
+      sendQueueRef.current.push(sendTask);
+      toast.info(`⏳ Mensagem para ${primeiroNome} na fila (${sendQueueRef.current.length} pendente${sendQueueRef.current.length > 1 ? 's' : ''})`);
+      processarFilaEnvios();
+    }
   };
 
   // Pet Pronto: abrir dialog de confirmação
@@ -3940,33 +4074,15 @@ const Agendamentos = () => {
                           {agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ""}
                         </td>
                         <td className="p-1.5 border">
-                          {agendamento.tipo === "pacote" &&
-                      agendamento.agendamentoPacote &&
-                      agendamento.servicoAgendamento ?
+                          {(agendamento.tipo === "pacote" && agendamento.agendamentoPacote && agendamento.servicoAgendamento) ||
+                      (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) ?
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) =>
-                        abrirWhatsApp(
-                          gerarUrlWhatsAppPacote(agendamento.agendamentoPacote, agendamento.servicoAgendamento),
-                          e
-                        )
-                        }
+                        onClick={(e) => enviarWhatsAppDireto(agendamento, e)}
                         className="h-5 w-5 p-0">
-                        
-                              <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
-                            </Button> :
-                      agendamento.tipo === "simples" && agendamento.agendamentoOriginal ?
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) =>
-                        abrirWhatsApp(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal), e)
-                        }
-                        className="h-5 w-5 p-0">
-                        
-                              <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
-                            </Button> :
+                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '12px' }}></i>
+                      </Button> :
                       null}
                         </td>
                         <td className="p-1.5 border text-center">
