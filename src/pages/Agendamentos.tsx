@@ -1815,7 +1815,15 @@ const Agendamentos = () => {
     const primeiroNome = obterPrimeiroNome(agendamento.cliente);
     const nomePet = capitalizarPrimeiraLetra(agendamento.pet);
     const doDa = getSexoPrefix(sexoPet, "do");
-    const dataFormatada = new Date(agendamento.data + "T00:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    
+    // Obter data - pode vir de agendamento.data ou do sub-objeto
+    const dataStr = agendamento.data || 
+      agendamento.agendamentoOriginal?.data || 
+      agendamento.agendamento?.data ||
+      agendamento.servicoAgendamento?.data ||
+      agendamento.servicoOriginal?.data ||
+      selectedDate;
+    const dataFormatada = new Date(dataStr + "T00:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
     const horarioFormatado = agendamento.horarioInicio.substring(0, 5);
     const taxiDog = agendamento.taxiDog === "Sim" ? "Sim" : "Não";
     const servicoNome = capitalizarPrimeiraLetra(agendamento.servico);
@@ -1827,18 +1835,20 @@ const Agendamentos = () => {
     const isUltimo = isPacote && ehUltimoServicoPacote(agendamento.numeroPacote);
 
     if (!isPacote) {
-      // Avulso
       mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*Pacote de serviços:* Sem Pacote 😕\n\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
     } else if (isUltimo) {
-      // Pacote último
       mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*N° do Pacote:* ${agendamento.numeroPacote}\n\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
     } else {
-      // Pacote não último
       mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*N° do Pacote:* ${agendamento.numeroPacote}\n\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
     }
 
-    // Formatar número
-    let numero = agendamento.whatsapp.replace(/\D/g, "");
+    // Obter número WhatsApp do sub-objeto correto
+    const whatsappRaw = agendamento.whatsapp || 
+      agendamento.agendamentoOriginal?.whatsapp || 
+      agendamento.agendamento?.whatsapp ||
+      agendamento.agendamentoPacote?.whatsapp ||
+      agendamento.pacoteOriginal?.whatsapp || "";
+    let numero = whatsappRaw.replace(/\D/g, "");
     if (!numero.startsWith("55")) numero = "55" + numero;
 
     const sendTask = async () => {
