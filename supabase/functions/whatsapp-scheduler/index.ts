@@ -489,7 +489,7 @@ async function autoCreatePacoteMessages(
         const servicoNome = sv.nomeServico || sv.servico || sv.nome || "Banho";
 
         const confirmMsg = buildConfirmationMessage(
-          pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.data, sv.horario,
+          pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.data, sv.horarioInicio,
           servicoNome, pacote.taxi_dog, bordao, true, servicoNumero, isUltimo
         );
 
