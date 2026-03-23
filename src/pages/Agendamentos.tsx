@@ -349,6 +349,10 @@ const Agendamentos = () => {
 
   // Load groomers, clientes, pacotes, servicos from Supabase
   const [whatsappConnected, setWhatsappConnected] = useState(false);
+  const [whatsappInstanceName, setWhatsappInstanceName] = useState<string>("");
+  const lastSendTimestampRef = useRef<number>(0);
+  const sendQueueRef = useRef<Array<() => Promise<void>>>([]);
+  const processingQueueRef = useRef(false);
 
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
