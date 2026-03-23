@@ -366,6 +366,7 @@ const Agendamentos = () => {
         .maybeSingle();
 
       if (whatsappData?.instance_name) {
+        setWhatsappInstanceName(whatsappData.instance_name);
         try {
           const res = await supabase.functions.invoke("evolution-api", {
             body: { action: "check-status", instanceName: whatsappData.instance_name }
