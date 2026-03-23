@@ -25,7 +25,9 @@ import {
   Search,
   Check,
   ChevronsUpDown,
-  X } from
+  X,
+  Wifi,
+  WifiOff } from
 "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
