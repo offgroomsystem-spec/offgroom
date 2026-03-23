@@ -348,8 +348,22 @@ const Agendamentos = () => {
   };
 
   // Load groomers, clientes, pacotes, servicos from Supabase
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
+
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
+
+    // Load WhatsApp status
+    try {
+      const { data: whatsappData } = await supabase
+        .from("whatsapp_instances")
+        .select("status")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      setWhatsappConnected(whatsappData?.status === 'connected');
+    } catch (e) {
+      console.error('Erro ao verificar status WhatsApp:', e);
+    }
 
     try {
       // Load groomers
