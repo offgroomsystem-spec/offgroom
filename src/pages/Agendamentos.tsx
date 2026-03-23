@@ -3726,6 +3726,20 @@ const Agendamentos = () => {
                 </Button>
               </div>
             }
+            <div className="flex items-center gap-2">
+              {viewMode !== "semana" && <div />}
+              {whatsappConnected ? (
+                <div className="flex items-center gap-1.5 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">WhatsApp Conectado</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-destructive">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">WhatsApp Desconectado</span>
+                </div>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="py-2">
