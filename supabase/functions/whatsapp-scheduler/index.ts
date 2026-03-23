@@ -536,10 +536,9 @@ async function autoCreatePacoteMessages(
           }
         }
 
-        // === Imediata ===
-        if (diffMinutes > 61 && diffMinutes <= 24 * 60 && pacote.taxi_dog === "Não" && !existingPacoteSet.has(`${key}_imediata`)) {
-          const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horarioInicio);
-          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "imediata", mensagem: reminderMsg, agendado_para: now.toISOString() });
+        // === Confirmation for 61min-3h (auto-create only, NOT imediata) ===
+        if (diffMinutes > 61 && diffMinutes <= 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
+          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: now.toISOString() });
         }
       }
     }
