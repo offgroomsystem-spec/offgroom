@@ -121,6 +121,15 @@ export function WhatsAppIntegration() {
       .update({ status: newStatus, updated_at: new Date().toISOString() } as any)
       .eq("id", instance.id);
     setInstance((prev) => prev ? { ...prev, status: newStatus } : prev);
+
+    // Sync evolution_auto_send flag
+    if (effectiveUserId) {
+      const autoSend = newStatus === "connected";
+      await supabase
+        .from("empresa_config")
+        .update({ evolution_auto_send: autoSend })
+        .eq("user_id", effectiveUserId);
+    }
   }
 
   // Phone validation

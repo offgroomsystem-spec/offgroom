@@ -65,9 +65,10 @@ function buildReminderMessage(params: ScheduleParams): string {
 }
 
 function parseDateTime(date: string, time: string): Date {
+  // Criar data em UTC representando horário de Brasília (UTC-3)
   const [year, month, day] = date.split("-").map(Number);
   const [hours, minutes] = time.split(":").map(Number);
-  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+  return new Date(Date.UTC(year, month - 1, day, hours + 3, minutes, 0, 0));
 }
 
 export async function scheduleWhatsAppMessages(params: ScheduleParams) {

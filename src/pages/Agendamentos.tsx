@@ -380,6 +380,10 @@ const Agendamentos = () => {
               .update({ status: newStatus, updated_at: new Date().toISOString() })
               .eq("user_id", ownerId);
           }
+          // Sync evolution_auto_send flag
+          await supabase.from("empresa_config")
+            .update({ evolution_auto_send: isConnected })
+            .eq("user_id", ownerId);
         } catch {
           setWhatsappConnected(whatsappData?.status === "connected");
         }
