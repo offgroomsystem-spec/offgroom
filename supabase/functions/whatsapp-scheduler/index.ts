@@ -475,7 +475,7 @@ async function autoCreatePacoteMessages(
         if (sv.data !== todayBRT && sv.data !== tomorrowBRT) continue;
         if (sv.status === "Cancelado") continue;
 
-        const agDateTime = parseDateTimeBRT(sv.data, sv.horario);
+        const agDateTime = parseDateTimeBRT(sv.data, sv.horarioInicio);
         const diffMinutes = (agDateTime.getTime() - now.getTime()) / (1000 * 60);
 
         if (diffMinutes < -60) continue;
