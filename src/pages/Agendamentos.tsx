@@ -63,6 +63,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos } from "@/hooks/useCriarLancamentoAutomatico";
+import { scheduleWhatsAppMessages } from "@/utils/whatsappScheduler";
 
 // Interfaces
 
