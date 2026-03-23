@@ -1827,7 +1827,7 @@ const Agendamentos = () => {
     const horarioFormatado = agendamento.horarioInicio.substring(0, 5);
     const taxiDog = agendamento.taxiDog === "Sim" ? "Sim" : "Não";
     const servicoNome = capitalizarPrimeiraLetra(agendamento.servico);
-    const bordaoLine = empresaConfig.bordao ? `\n*${empresaConfig.bordao}*` : "";
+    const bordaoLine = empresaConfig.bordao ? `\n\n*${empresaConfig.bordao}*` : "";
 
     let mensagem = "";
 
@@ -1835,11 +1835,11 @@ const Agendamentos = () => {
     const isUltimo = isPacote && ehUltimoServicoPacote(agendamento.numeroPacote);
 
     if (!isPacote) {
-      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*Pacote de serviços:* Sem Pacote 😕\n\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n*Horario:* ${horarioFormatado}\n*Serviço:* ${servicoNome}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
     } else if (isUltimo) {
-      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*N° do Pacote:* ${agendamento.numeroPacote}\n\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n*Horario:* ${horarioFormatado}\n*Serviço:* ${servicoNome}\n*N° do Pacote:* ${agendamento.numeroPacote}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
     } else {
-      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n\n*Horario:* ${horarioFormatado}\n\n*Serviço:* ${servicoNome}\n\n*N° do Pacote:* ${agendamento.numeroPacote}\n\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n*Horario:* ${horarioFormatado}\n*Serviço:* ${servicoNome}\n*N° do Pacote:* ${agendamento.numeroPacote}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
     }
 
     // Obter número WhatsApp do sub-objeto correto
