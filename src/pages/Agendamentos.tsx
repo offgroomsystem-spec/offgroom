@@ -4064,8 +4064,8 @@ const Agendamentos = () => {
                           {agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ""}
                         </td>
                         <td className="p-1.5 border">
-                          {(agendamento.tipo === "pacote" && agendamento.pacoteOriginal && agendamento.servicoOriginal) ||
-                      (agendamento.tipo === "simples" && agendamento.agendamentoOriginal) ?
+                          {(agendamento.tipo === "pacote" && agendamento.agendamentoPacote && agendamento.servicoAgendamento) ||
+                      (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) ?
                       <Button
                         variant="ghost"
                         size="sm"
