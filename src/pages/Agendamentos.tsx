@@ -1348,6 +1348,33 @@ const Agendamentos = () => {
     return `${h}:${String(m).padStart(2, "0")}`;
   };
 
+  // Adicionar serviço extra a um serviço do pacote durante agendamento
+  const handleAddServicoExtraAgendamento = (index: number, servicoId: string) => {
+    const servicoExtra = servicos.find(s => s.id === servicoId);
+    if (!servicoExtra) return;
+    const updated = [...servicosAgendamento];
+    const extras = updated[index].servicosExtras || [];
+    if (extras.some(e => e.id === servicoId)) {
+      toast.error("Este serviço extra já foi adicionado");
+      return;
+    }
+    updated[index] = {
+      ...updated[index],
+      servicosExtras: [...extras, { id: servicoExtra.id, nome: servicoExtra.nome, valor: servicoExtra.valor }]
+    };
+    setServicosAgendamento(updated);
+  };
+
+  // Remover serviço extra de um serviço do pacote durante agendamento
+  const handleRemoveServicoExtraAgendamento = (index: number, servicoExtraId: string) => {
+    const updated = [...servicosAgendamento];
+    updated[index] = {
+      ...updated[index],
+      servicosExtras: (updated[index].servicosExtras || []).filter(e => e.id !== servicoExtraId)
+    };
+    setServicosAgendamento(updated);
+  };
+
   // Atualizar serviço individual
   const handleServicoAgendamentoChange = (index: number, field: keyof ServicoAgendamento, value: string) => {
     const updated = [...servicosAgendamento];
