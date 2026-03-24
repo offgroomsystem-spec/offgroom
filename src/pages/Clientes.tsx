@@ -42,6 +42,7 @@ interface Cliente {
   // Campos fiscais
   cpf_cnpj?: string;
   email?: string;
+  whatsapp_ativo?: boolean;
 }
 
 export default function Clientes() {
