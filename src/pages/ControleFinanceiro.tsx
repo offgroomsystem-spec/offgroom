@@ -449,6 +449,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         tipoDeducao: l.tipo_deducao || "",
         fornecedorId: l.fornecedor_id || "",
         nomeFornecedor: "",
+        valorJuros: Number((l as any).valor_juros) || 0,
+        tipoJuros: (l as any).tipo_juros || "",
+        modoAjuste: ((l as any).modo_ajuste || "deducao") as "deducao" | "juros",
       }));
 
       // Map cliente_id and conta_id to names
