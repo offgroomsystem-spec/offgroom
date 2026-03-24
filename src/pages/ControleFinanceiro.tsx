@@ -1411,7 +1411,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
     }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0);
+    // Validação obrigatória de tipo/motivo quando valor >= 0.01
+    if (formData.modoAjuste === "deducao" && (formData.valorDeducao || 0) >= 0.01 && !formData.tipoDeducao) {
+      toast.error("Favor selecionar o Tipo de Dedução!"); return;
+    }
+    if (formData.modoAjuste === "juros" && (formData.valorJuros || 0) >= 0.01 && !formData.tipoJuros) {
+      toast.error("Favor selecionar o Motivo do Juros!"); return;
+    }
+
+    const subtotalEdit = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0);
+    const valorTotal = formData.modoAjuste === "juros"
+      ? subtotalEdit + (formData.valorJuros || 0)
+      : subtotalEdit - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
