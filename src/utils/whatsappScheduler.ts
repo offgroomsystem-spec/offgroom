@@ -110,6 +110,17 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     if (clienteData && (clienteData as any).whatsapp_ativo === false) {
       return;
     }
+
+    // Verificar se o pet tem WhatsApp ativo
+    const { data: petData } = await supabase
+      .from("pets")
+      .select("whatsapp_ativo")
+      .eq("cliente_id", params.clienteId)
+      .eq("nome_pet", params.nomePet)
+      .limit(1);
+    if (petData && petData.length > 0 && (petData[0] as any).whatsapp_ativo === false) {
+      return;
+    }
   }
 
   const agendamentoDateTime = parseDateTime(params.dataAgendamento, params.horarioInicio);

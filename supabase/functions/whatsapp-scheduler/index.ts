@@ -243,7 +243,24 @@ Deno.serve(async (req) => {
                 .eq("id", msg.id);
               continue;
             }
-          }
+            }
+
+            // Verificar se o pet tem whatsapp_ativo
+            if (agAtual.cliente_id) {
+              const { data: petCheck } = await supabase
+                .from("pets")
+                .select("whatsapp_ativo")
+                .eq("cliente_id", agAtual.cliente_id)
+                .eq("nome_pet", agAtual.pet)
+                .limit(1);
+              if (petCheck && petCheck.length > 0 && petCheck[0].whatsapp_ativo === false) {
+                await supabase
+                  .from("whatsapp_mensagens_agendadas")
+                  .update({ status: "cancelado", erro: "WhatsApp desativado para este pet" })
+                  .eq("id", msg.id);
+                continue;
+              }
+            }
 
 
           // Obter sexo do pet
@@ -297,6 +314,21 @@ Deno.serve(async (req) => {
             await supabase
               .from("whatsapp_mensagens_agendadas")
               .update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" })
+              .eq("id", msg.id);
+            continue;
+          }
+
+          // Verificar whatsapp_ativo do pet
+          const { data: petCheckPacote } = await supabase
+            .from("pets")
+            .select("whatsapp_ativo")
+            .eq("user_id", msg.user_id)
+            .eq("nome_pet", pacoteAtual.nome_pet)
+            .limit(1);
+          if (petCheckPacote && petCheckPacote.length > 0 && petCheckPacote[0].whatsapp_ativo === false) {
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "WhatsApp desativado para este pet" })
               .eq("id", msg.id);
             continue;
           }
@@ -432,16 +464,18 @@ async function autoCreateMissingMessages(
     const clienteIds = [...new Set(agendamentos.filter((a: any) => a.cliente_id).map((a: any) => a.cliente_id))];
     let petsMap = new Map<string, string>();
     const whatsappAtivoMap = new Map<string, boolean>();
+    const petWhatsappAtivoMap = new Map<string, boolean>();
 
     if (clienteIds.length > 0) {
       const { data: pets } = await supabase
         .from("pets")
-        .select("cliente_id, nome_pet, sexo")
+        .select("cliente_id, nome_pet, sexo, whatsapp_ativo")
         .in("cliente_id", clienteIds);
 
       if (pets) {
         for (const pet of pets) {
           petsMap.set(`${pet.cliente_id}_${pet.nome_pet}`, pet.sexo || "Macho");
+          petWhatsappAtivoMap.set(`${pet.cliente_id}_${pet.nome_pet}`, pet.whatsapp_ativo !== false);
         }
       }
 
@@ -464,6 +498,9 @@ async function autoCreateMissingMessages(
 
       // Skip if whatsapp_ativo is false for this client
       if (ag.cliente_id && whatsappAtivoMap.get(ag.cliente_id) === false) continue;
+
+      // Skip if whatsapp_ativo is false for this pet
+      if (ag.cliente_id && petWhatsappAtivoMap.get(`${ag.cliente_id}_${ag.pet}`) === false) continue;
 
       // Skip if appointment is in the past
       if (diffMinutes < -60) continue;
@@ -599,18 +636,18 @@ async function autoCreatePacoteMessages(
       (existingPacoteMsgs || []).map((m: any) => `${m.agendamento_pacote_id}_${m.servico_numero}_${m.tipo_mensagem}`)
     );
 
-    // Get pet sexo
-    const clienteNames = [...new Set(pacotes.map((p: any) => p.nome_pet))];
-    // We'll try to find pets by name for each user
+    // Get pet sexo and whatsapp_ativo
     const petSexoMap = new Map<string, string>();
+    const petWhatsappAtivoPacoteMap = new Map<string, boolean>();
     for (const userId of activeUserIds) {
       const { data: pets } = await supabase
         .from("pets")
-        .select("nome_pet, sexo")
+        .select("nome_pet, sexo, whatsapp_ativo")
         .eq("user_id", userId);
       if (pets) {
         for (const pet of pets) {
           petSexoMap.set(`${userId}_${pet.nome_pet}`, pet.sexo || "Macho");
+          petWhatsappAtivoPacoteMap.set(`${userId}_${pet.nome_pet}`, pet.whatsapp_ativo !== false);
         }
       }
     }
@@ -632,8 +669,11 @@ async function autoCreatePacoteMessages(
     const mensagensParaInserir: any[] = [];
 
     for (const pacote of pacotes) {
-      // Skip if whatsapp_ativo is false
+      // Skip if whatsapp_ativo is false for client
       if (whatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_cliente}`) === false) continue;
+
+      // Skip if whatsapp_ativo is false for pet
+      if (petWhatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_pet}`) === false) continue;
 
       const servicos = pacote.servicos as any[];
       if (!servicos || !Array.isArray(servicos)) continue;

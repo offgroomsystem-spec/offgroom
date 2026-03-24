@@ -1028,6 +1028,7 @@ export type Database = {
           sexo: string | null
           updated_at: string
           user_id: string
+          whatsapp_ativo: boolean
         }
         Insert: {
           cliente_id: string
@@ -1040,6 +1041,7 @@ export type Database = {
           sexo?: string | null
           updated_at?: string
           user_id: string
+          whatsapp_ativo?: boolean
         }
         Update: {
           cliente_id?: string
@@ -1052,6 +1054,7 @@ export type Database = {
           sexo?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp_ativo?: boolean
         }
         Relationships: [
           {

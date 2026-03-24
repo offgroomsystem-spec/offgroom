@@ -30,6 +30,7 @@ interface Pet {
   raca: string;
   sexo: string;
   observacao: string;
+  whatsapp_ativo?: boolean;
 }
 
 interface Cliente {
@@ -58,7 +59,7 @@ export default function Clientes() {
   const [whatsapp, setWhatsapp] = useState("");
   const [endereco, setEndereco] = useState("");
   const [observacaoCliente, setObservacaoCliente] = useState("");
-  const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+  const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
   const [racaPopoverOpen, setRacaPopoverOpen] = useState<{ [key: number]: boolean }>({});
   // Campos fiscais
   const [cpfCnpj, setCpfCnpj] = useState("");
@@ -144,7 +145,7 @@ export default function Clientes() {
     setWhatsapp("");
     setEndereco("");
     setObservacaoCliente("");
-    setPets([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+    setPets([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
     setEditingId(null);
     setRacaPopoverOpen({});
     setCpfCnpj("");
@@ -158,7 +159,7 @@ export default function Clientes() {
     setWhatsapp(cliente.whatsapp);
     setEndereco(cliente.endereco || "");
     setObservacaoCliente(cliente.observacao || "");
-    setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "" })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+    setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "", whatsapp_ativo: p.whatsapp_ativo !== false })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
     setCpfCnpj(cliente.cpf_cnpj || "");
     setEmailCliente(cliente.email || "");
     setWhatsappAtivo(cliente.whatsapp_ativo !== false);
@@ -245,7 +246,8 @@ export default function Clientes() {
                 raca: pet.raca,
                 sexo: pet.sexo || null,
                 observacao: pet.observacao || "",
-              })
+                whatsapp_ativo: pet.whatsapp_ativo !== false,
+              } as any)
               .eq("id", pet.id);
           } else {
             // INSERT novo pet
@@ -257,7 +259,8 @@ export default function Clientes() {
               raca: pet.raca,
               sexo: pet.sexo || null,
               observacao: pet.observacao || "",
-            });
+              whatsapp_ativo: pet.whatsapp_ativo !== false,
+            } as any);
           }
         }
 
@@ -290,6 +293,7 @@ export default function Clientes() {
           raca: pet.raca,
           sexo: pet.sexo || null,
           observacao: pet.observacao || "",
+          whatsapp_ativo: pet.whatsapp_ativo !== false,
         }));
 
         const { error: petsError } = await supabase.from("pets").insert(petsParaInserir);
@@ -309,7 +313,7 @@ export default function Clientes() {
   };
 
   const addPet = () => {
-    setPets([...pets, { nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+    setPets([...pets, { nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: whatsappAtivo }]);
   };
 
   const removePet = (index: number) => {
@@ -320,7 +324,7 @@ export default function Clientes() {
     setPets(pets.filter((_, i) => i !== index));
   };
 
-  const updatePet = (index: number, field: keyof Pet, value: string) => {
+  const updatePet = (index: number, field: keyof Pet, value: string | boolean) => {
     const newPets = [...pets];
     newPets[index] = { ...newPets[index], [field]: value };
     setPets(newPets);
@@ -370,7 +374,16 @@ export default function Clientes() {
                         <Switch
                           id="whatsapp_ativo"
                           checked={whatsappAtivo}
-                          onCheckedChange={setWhatsappAtivo}
+                          onCheckedChange={(checked) => {
+                            setWhatsappAtivo(checked);
+                            if (!checked) {
+                              // Desativar todos os pets
+                              setPets(prev => prev.map(p => ({ ...p, whatsapp_ativo: false })));
+                            } else {
+                              // Ativar todos os pets
+                              setPets(prev => prev.map(p => ({ ...p, whatsapp_ativo: true })));
+                            }
+                          }}
                         />
                       </div>
                     </div>
@@ -455,11 +468,40 @@ export default function Clientes() {
                               <PawPrint className="h-4 w-4" />
                               Pet #{index + 1}
                             </h4>
-                            {pets.length > 1 && (
-                              <Button type="button" onClick={() => removePet(index)} variant="ghost" size="sm">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor={`pet_whatsapp_${index}`} className="text-xs font-medium cursor-pointer">
+                                WhatsApp
+                              </Label>
+                              <Switch
+                                id={`pet_whatsapp_${index}`}
+                                checked={pet.whatsapp_ativo !== false}
+                                onCheckedChange={(checked) => {
+                                  const newPets = [...pets];
+                                  newPets[index] = { ...newPets[index], whatsapp_ativo: checked };
+                                  setPets(newPets);
+                                  
+                                  if (!checked) {
+                                    // Se todos os pets ficarem desativados, desativar cliente
+                                    const allDisabled = newPets.every(p => p.whatsapp_ativo === false);
+                                    if (allDisabled) {
+                                      setWhatsappAtivo(false);
+                                    }
+                                    // Se tem apenas 1 pet e desativou, desativar cliente
+                                    if (newPets.length === 1) {
+                                      setWhatsappAtivo(false);
+                                    }
+                                  } else {
+                                    // Se pelo menos 1 pet ativo, ativar cliente
+                                    setWhatsappAtivo(true);
+                                  }
+                                }}
+                              />
+                              {pets.length > 1 && (
+                                <Button type="button" onClick={() => removePet(index)} variant="ghost" size="sm">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-4">
