@@ -2359,7 +2359,7 @@ const Agendamentos = () => {
         const isUltimo = currentIdx === totalServicos - 1;
 
         await scheduleWhatsAppMessages({
-          userId: effectiveUserId || user.id,
+          userId: ownerId || user.id,
           agendamentoPacoteId: pacoteId,
           servicoNumero: servicoNum,
           nomeCliente: editandoAgendamento.cliente,
