@@ -1480,9 +1480,9 @@ const Agendamentos = () => {
       // Automação: criar lançamento financeiro automaticamente
       const primeiraDataServico = servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
 
-      // Coletar todos os serviços extras de todos os serviços do pacote
+      // Coletar apenas os serviços extras adicionados MANUALMENTE (não nativos do pacote)
       const todosExtras = servicosAgendamento.flatMap(s => 
-        (s.servicosExtras || []).map(e => ({ nome: e.nome, valor: e.valor }))
+        (s.servicosExtras || []).filter(e => !e.nativo).map(e => ({ nome: e.nome, valor: e.valor }))
       );
 
       criarLancamentoFinanceiroPacote({
