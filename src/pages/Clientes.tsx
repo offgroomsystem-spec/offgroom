@@ -149,6 +149,7 @@ export default function Clientes() {
     setRacaPopoverOpen({});
     setCpfCnpj("");
     setEmailCliente("");
+    setWhatsappAtivo(true);
   };
 
   const handleEdit = (cliente: Cliente) => {
