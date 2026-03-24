@@ -3162,88 +3162,104 @@ const Agendamentos = () => {
                     <Label className="text-xs font-semibold">Agendamentos dos Serviços do Pacote</Label>
 
                     {/* Header com títulos das colunas */}
-                    <div className="flex gap-2 items-center pb-1">
+                    <div className="flex gap-1.5 items-center pb-1">
+                      <div className="w-10"></div>
                       <div className="w-12"></div>
-                      <div className="w-14"></div>
-                      <div className="flex-1 min-w-[100px]"></div>
-                      <div className="w-32">
-                        <Label className="text-muted-foreground text-[[10px]] font-bold px-px mx-0 my-px py-0">
+                      <div className="flex-1 min-w-[80px]"></div>
+                      <div className="w-28">
+                        <Label className="text-muted-foreground text-[10px] font-bold">
                           Dia Agendamento
                         </Label>
                       </div>
-                      <div className="w-20">
-                        <Label className="text-muted-foreground font-bold text-xs">Hora Início</Label>
+                      <div className="w-[72px]">
+                        <Label className="text-muted-foreground font-bold text-[10px]">Hora Início</Label>
                       </div>
-                      <div className="w-20 px-[13px]">
-                        <Label className="text-muted-foreground font-bold text-xs text-right my-0 mx-0 px-0">
-                          Tempo de Serviço*
+                      <div className="w-[72px]">
+                        <Label className="text-muted-foreground font-bold text-[10px]">
+                          Tempo Serviço*
                         </Label>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      {servicosAgendamento.map((servico, index) =>
-                    <div key={index} className="flex gap-2 items-end">
-                          <div className="flex flex-col gap-1">
-                            <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveServico(index, "up")}
-                          disabled={index === 0}
-                          className="h-6 w-6 p-0">
-                          
-                              <ChevronUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveServico(index, "down")}
-                          disabled={index === servicosAgendamento.length - 1}
-                          className="h-6 w-6 p-0">
-                          
-                              <ChevronDown className="h-3 w-3" />
-                            </Button>
-                          </div>
+                    <div className="space-y-1.5">
+                      {servicosAgendamento.map((servico, index) => {
+                        const extrasLabel = servico.servicosExtras?.length
+                          ? ` + ${servico.servicosExtras.map(e => e.nome).join(" + ")}`
+                          : "";
+                        return (
+                        <div key={index} className="space-y-1">
+                          <div className="flex gap-1.5 items-center">
+                            <div className="flex flex-col gap-0.5 w-10">
+                              <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, "up")} disabled={index === 0} className="h-5 w-5 p-0">
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, "down")} disabled={index === servicosAgendamento.length - 1} className="h-5 w-5 p-0">
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </div>
 
-                          <div className="w-14 py-[16px]">
-                            <Label className="text-xs text-primary font-semibold">{servico.numero}</Label>
-                          </div>
+                            <div className="w-12">
+                              <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
+                            </div>
 
-                          <div className="flex-1 min-w-[100px] py-[16px] px-0 mx-0 my-0">
-                            <Label className="text-xs text-left py-0 my-px mx-[3px] px-0">{servico.nomeServico}</Label>
-                          </div>
+                            <div className="flex-1 min-w-[80px] flex items-center gap-1">
+                              <Label className="text-[10px] text-left truncate" title={`${servico.nomeServico}${extrasLabel}`}>
+                                {servico.nomeServico}{extrasLabel}
+                              </Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button type="button" variant="outline" size="sm" className="h-5 px-1.5 text-[9px] shrink-0 whitespace-nowrap">
+                                    + Serviços
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[280px] p-2 z-50 bg-popover" align="start">
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-medium">Adicionar serviço extra:</p>
+                                    <Select onValueChange={(value) => handleAddServicoExtraAgendamento(index, value)}>
+                                      <SelectTrigger className="h-7 text-xs">
+                                        <SelectValue placeholder="Selecione..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {servicos.map((s) => (
+                                          <SelectItem key={s.id} value={s.id} className="text-xs">
+                                            {s.nome} - R$ {s.valor?.toFixed(2)}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    {(servico.servicosExtras || []).length > 0 && (
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground">Extras adicionados:</p>
+                                        {servico.servicosExtras!.map((extra) => (
+                                          <div key={extra.id} className="flex items-center justify-between bg-secondary/50 rounded px-1.5 py-0.5">
+                                            <span className="text-[10px]">{extra.nome} - R$ {extra.valor?.toFixed(2)}</span>
+                                            <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveServicoExtraAgendamento(index, extra.id)} className="h-4 w-4 p-0 text-destructive hover:text-destructive">
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
 
-                          <div className="w-32">
-                            <Input
-                          type="date"
-                          value={servico.data}
-                          onChange={(e) => handleServicoAgendamentoChange(index, "data", e.target.value)}
-                          className="h-8 text-xs py-0 px-[11px] my-[9px]" />
-                        
-                          </div>
+                            <div className="w-28">
+                              <Input type="date" value={servico.data} onChange={(e) => handleServicoAgendamentoChange(index, "data", e.target.value)} className="h-7 text-[10px] px-1.5" />
+                            </div>
 
-                          <div className="w-20 my-[9px]">
-                            <TimeInput
-                          value={servico.horarioInicio}
-                          onChange={(value) => handleServicoAgendamentoChange(index, "horarioInicio", value)}
-                          placeholder="00:00"
-                          className="h-8 text-xs" />
-                        
-                          </div>
+                            <div className="w-[72px]">
+                              <TimeInput value={servico.horarioInicio} onChange={(value) => handleServicoAgendamentoChange(index, "horarioInicio", value)} placeholder="00:00" className="h-7 text-[10px]" />
+                            </div>
 
-                          <div className="w-20 my-[9px]">
-                            <TimeInput
-                          value={servico.tempoServico}
-                          onChange={(value) => handleServicoAgendamentoChange(index, "tempoServico", value)}
-                          placeholder="0:00"
-                          className="h-8 text-xs"
-                          allowSingleDigitHour={true} />
-                        
+                            <div className="w-[72px]">
+                              <TimeInput value={servico.tempoServico} onChange={(value) => handleServicoAgendamentoChange(index, "tempoServico", value)} placeholder="0:00" className="h-7 text-[10px]" allowSingleDigitHour={true} />
+                            </div>
                           </div>
                         </div>
-                    )}
+                        );
+                      })}
                     </div>
                   </div>
                 }
