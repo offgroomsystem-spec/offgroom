@@ -30,6 +30,7 @@ interface Pet {
   raca: string;
   sexo: string;
   observacao: string;
+  whatsapp_ativo?: boolean;
 }
 
 interface Cliente {
