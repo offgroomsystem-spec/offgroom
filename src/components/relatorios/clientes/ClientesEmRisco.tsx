@@ -152,20 +152,38 @@ export const ClientesEmRisco = () => {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
-      const { data: agendamentos, error: errorAg } = await supabase
-        .from("agendamentos")
-        .select("cliente_id, cliente, data, pet, whatsapp")
-        .eq("user_id", ownerId)
-        .order("data", { ascending: false });
+      // Paginação para buscar TODOS os agendamentos (sem limite de 1000)
+      const allAgendamentos: any[] = [];
+      let page = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("agendamentos")
+          .select("cliente_id, cliente, data, pet, whatsapp")
+          .eq("user_id", ownerId)
+          .order("data", { ascending: false })
+          .range(page * 1000, (page + 1) * 1000 - 1);
+        if (error) throw error;
+        if (data) allAgendamentos.push(...data);
+        if (!data || data.length < 1000) break;
+        page++;
+      }
+      const agendamentos = allAgendamentos;
 
-      if (errorAg) throw errorAg;
-
-      const { data: pacotes, error: errorPac } = await supabase
-        .from("agendamentos_pacotes")
-        .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
-        .eq("user_id", ownerId);
-
-      if (errorPac) throw errorPac;
+      // Paginação para buscar TODOS os pacotes
+      const allPacotes: any[] = [];
+      page = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("agendamentos_pacotes")
+          .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
+          .eq("user_id", ownerId)
+          .range(page * 1000, (page + 1) * 1000 - 1);
+        if (error) throw error;
+        if (data) allPacotes.push(...data);
+        if (!data || data.length < 1000) break;
+        page++;
+      }
+      const pacotes = allPacotes;
 
       const mapa = new Map<string, ClienteRisco>();
 
