@@ -145,6 +145,7 @@ interface ServicoAgendamentoSimples {
 interface Pacote {
   id: string;
   nome: string;
+  porte: string;
   servicos: ServicoSelecionado[];
   validade: string;
   descontoPercentual: number;
