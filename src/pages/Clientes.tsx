@@ -159,7 +159,7 @@ export default function Clientes() {
     setWhatsapp(cliente.whatsapp);
     setEndereco(cliente.endereco || "");
     setObservacaoCliente(cliente.observacao || "");
-    setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "" })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+    setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "", whatsapp_ativo: p.whatsapp_ativo !== false })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
     setCpfCnpj(cliente.cpf_cnpj || "");
     setEmailCliente(cliente.email || "");
     setWhatsappAtivo(cliente.whatsapp_ativo !== false);
