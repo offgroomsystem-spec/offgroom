@@ -3231,9 +3231,10 @@ const Agendamentos = () => {
                                     {(() => {
                                       const pacoteAtual = pacotes.find(p => p.nome === pacoteFormData.nomePacote);
                                       const portePacote = pacoteAtual?.porte || "";
+                                      const servicosSemPacotes = servicos.filter(s => !s.nome.toLowerCase().startsWith("pacote"));
                                       const servicosFiltrados = portePacote
-                                        ? servicos.filter(s => normalizarPorte(s.porte) === normalizarPorte(portePacote) || normalizarPorte(s.porte) === "todos")
-                                        : servicos;
+                                        ? servicosSemPacotes.filter(s => normalizarPorte(s.porte) === normalizarPorte(portePacote) || normalizarPorte(s.porte) === "todos")
+                                        : servicosSemPacotes;
                                       return (
                                         <Command className="rounded-md border">
                                           <CommandInput placeholder="Buscar serviço..." className="h-7 text-xs" />
