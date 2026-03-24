@@ -1,39 +1,34 @@
 
 
-## Plano: Toggle Dedução/Juros nos Formulários Financeiros
+## Plano: Reorganizar Layout do Toggle Dedução/Juros
 
-### Resumo
-Adicionar um toggle (Dedução | Juros) nos formulários de Lançar e Editar Financeiro, tanto em `/controle-financeiro` quanto no Fluxo de Caixa (`/relatorios`). Quando "Juros" estiver selecionado, o valor soma ao total em vez de subtrair. Ambos exigem preenchimento do motivo/tipo quando valor >= 0.01.
+### O que muda
+Colocar o toggle e todos os campos (valor, tipo/motivo, valor total) na **mesma linha horizontal**, com o toggle à esquerda e os campos ao lado direito. Reduzir a largura do input de valor.
 
-### Alterações no Banco de Dados
+### Layout atual
+```text
+[Toggle Dedução | Juros]
+[Valor da Dedução] [Tipo de Dedução] [Valor Total: R$ X]
+```
 
-**Migração**: Adicionar 3 colunas na tabela `lancamentos_financeiros`:
-- `valor_juros` (numeric, default 0) — valor do juros
-- `tipo_juros` (text, nullable) — motivo do juros  
-- `modo_ajuste` (text, default 'deducao') — indica se o lançamento usa dedução ou juros
+### Layout novo
+```text
+[Toggle] [Valor (menor)] [Tipo/Motivo] [Valor Total: R$ X]
+```
 
-### Alterações nos Arquivos
+Tudo em uma única linha usando `flex items-center gap-2`.
 
-**1. `src/pages/ControleFinanceiro.tsx`** (4 seções de mudança):
+### Alterações em 4 blocos (mesmo padrão em todos)
 
-- **Interface/Estado**: Adicionar `valorJuros`, `tipoJuros`, `modoAjuste` ao formData e interface `Lancamento`
-- **Validação (criar e editar)**: Se `modoAjuste === 'deducao'` e `valorDeducao >= 0.01`, exigir `tipoDeducao`. Se `modoAjuste === 'juros'` e `valorJuros >= 0.01`, exigir `tipoJuros`. Ajustar cálculo do valor total: `subtotal - deducao + juros` (apenas um ativo por vez)
-- **Salvamento (criar e editar)**: Incluir `valor_juros`, `tipo_juros`, `modo_ajuste` no insert/update
-- **UI (Lançar e Editar)**: Substituir o bloco de dedução por:
-  - Toggle com 2 opções: "Dedução" (esquerda) e "Juros" (direita)
-  - Quando Dedução: campos atuais (Valor da Dedução + Tipo de Dedução com opções Tarifa Bancária/Desconto)
-  - Quando Juros: "Valor do Juros" (input numérico) + "Motivo do Juros" (select com opções como "Juros de Mora", "Multa", "Correção Monetária")
-  - Valor Total recalculado: `subtotal + juros` quando modo juros, `subtotal - dedução` quando modo dedução
-  - Detalhamento abaixo mostrando o cálculo
+**Arquivos:**
+- `src/pages/ControleFinanceiro.tsx` — formulário Lançar (~linha 2131) e Editar (~linha 3209)
+- `src/components/relatorios/financeiros/FluxoDeCaixa.tsx` — formulário Lançar (~linha 2107) e Editar (~linha 3447)
 
-**2. `src/components/relatorios/financeiros/FluxoDeCaixa.tsx`** (mesmas 4 seções):
-- Mesma lógica aplicada nos formulários de Lançar e Editar do Fluxo de Caixa
-
-### Detalhes Técnicos
-
-- O toggle será implementado com dois botões estilizados lado a lado (não um componente Toggle do radix, para manter visual compacto e consistente)
-- Estado `modoAjuste`: `'deducao' | 'juros'`, default `'deducao'`
-- Ao trocar o toggle, zerar os valores do modo anterior (`valorDeducao=0, tipoDeducao=''` ou `valorJuros=0, tipoJuros=''`)
-- Cálculo do valor total: `subtotal - (modoAjuste === 'deducao' ? valorDeducao : 0) + (modoAjuste === 'juros' ? valorJuros : 0)`
-- Ao carregar lançamento existente para edição, definir `modoAjuste` baseado nos dados salvos
+**Em cada bloco:**
+1. Remover a div separada do toggle (`mb-2`) e o `grid grid-cols-3`
+2. Substituir por um único `flex items-center gap-2` contendo:
+   - O toggle (inline-flex, como está)
+   - Input de valor com largura reduzida (`w-24` ou `max-w-[100px]`)
+   - Select de tipo/motivo com largura adequada (`w-36`)
+   - Valor Total à direita
 
