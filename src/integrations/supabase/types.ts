@@ -728,14 +728,17 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           mes_competencia: string
+          modo_ajuste: string | null
           observacao: string | null
           pago: boolean
           pet_ids: Json | null
           tipo: string
           tipo_deducao: string | null
+          tipo_juros: string | null
           updated_at: string | null
           user_id: string
           valor_deducao: number | null
+          valor_juros: number | null
           valor_total: number
         }
         Insert: {
@@ -750,14 +753,17 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           mes_competencia: string
+          modo_ajuste?: string | null
           observacao?: string | null
           pago?: boolean
           pet_ids?: Json | null
           tipo: string
           tipo_deducao?: string | null
+          tipo_juros?: string | null
           updated_at?: string | null
           user_id: string
           valor_deducao?: number | null
+          valor_juros?: number | null
           valor_total?: number
         }
         Update: {
@@ -772,14 +778,17 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           mes_competencia?: string
+          modo_ajuste?: string | null
           observacao?: string | null
           pago?: boolean
           pet_ids?: Json | null
           tipo?: string
           tipo_deducao?: string | null
+          tipo_juros?: string | null
           updated_at?: string | null
           user_id?: string
           valor_deducao?: number | null
+          valor_juros?: number | null
           valor_total?: number
         }
         Relationships: [
