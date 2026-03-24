@@ -318,6 +318,21 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Verificar whatsapp_ativo do pet
+          const { data: petCheckPacote } = await supabase
+            .from("pets")
+            .select("whatsapp_ativo")
+            .eq("user_id", msg.user_id)
+            .eq("nome_pet", pacoteAtual.nome_pet)
+            .limit(1);
+          if (petCheckPacote && petCheckPacote.length > 0 && petCheckPacote[0].whatsapp_ativo === false) {
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "WhatsApp desativado para este pet" })
+              .eq("id", msg.id);
+            continue;
+          }
+
           const servicos = pacoteAtual.servicos as any[];
           const svAtual = servicos?.find((s: any) => s.numero === msg.servico_numero);
 
