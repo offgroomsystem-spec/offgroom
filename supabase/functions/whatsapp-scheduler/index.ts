@@ -428,9 +428,10 @@ async function autoCreateMissingMessages(
       (existingMessages || []).map((m: any) => `${m.agendamento_id}_${m.tipo_mensagem}`)
     );
 
-    // Get pet sexo for all clients
+    // Get whatsapp_ativo status for all clients
     const clienteIds = [...new Set(agendamentos.filter((a: any) => a.cliente_id).map((a: any) => a.cliente_id))];
-    let petsMap = new Map<string, string>(); // cliente_id -> sexo
+    let petsMap = new Map<string, string>();
+    const whatsappAtivoMap = new Map<string, boolean>();
 
     if (clienteIds.length > 0) {
       const { data: pets } = await supabase
@@ -440,8 +441,17 @@ async function autoCreateMissingMessages(
 
       if (pets) {
         for (const pet of pets) {
-          // Map by cliente_id + pet name for better matching
           petsMap.set(`${pet.cliente_id}_${pet.nome_pet}`, pet.sexo || "Macho");
+        }
+      }
+
+      const { data: clientesData } = await supabase
+        .from("clientes")
+        .select("id, whatsapp_ativo")
+        .in("id", clienteIds);
+      if (clientesData) {
+        for (const c of clientesData) {
+          whatsappAtivoMap.set(c.id, c.whatsapp_ativo !== false);
         }
       }
     }
