@@ -98,7 +98,7 @@ interface ServicoAgendamento {
   horarioInicio: string;
   tempoServico: string; // Agora em formato hh:mm
   horarioTermino: string;
-  servicosExtras?: {id: string;nome: string;valor: number;}[];
+  servicosExtras?: {id: string;nome: string;valor: number;nativo?: boolean;}[];
 }
 interface AgendamentoPacote {
   id: string;
