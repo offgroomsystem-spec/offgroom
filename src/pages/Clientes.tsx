@@ -145,7 +145,7 @@ export default function Clientes() {
     setWhatsapp("");
     setEndereco("");
     setObservacaoCliente("");
-    setPets([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+    setPets([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
     setEditingId(null);
     setRacaPopoverOpen({});
     setCpfCnpj("");
