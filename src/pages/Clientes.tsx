@@ -361,7 +361,19 @@ export default function Clientes() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Dados do Cliente */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">📝 Dados do Cliente</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">📝 Dados do Cliente</h3>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="whatsapp_ativo" className="text-sm font-medium cursor-pointer">
+                          WhatsApp Automático
+                        </Label>
+                        <Switch
+                          id="whatsapp_ativo"
+                          checked={whatsappAtivo}
+                          onCheckedChange={setWhatsappAtivo}
+                        />
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="nome_cliente">Nome do Cliente *</Label>

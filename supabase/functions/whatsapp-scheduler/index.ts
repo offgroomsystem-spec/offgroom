@@ -229,6 +229,30 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Verificar se cliente tem whatsapp_ativo
+          if (agAtual.cliente_id) {
+            const { data: clienteCheck } = await supabase
+              .from("clientes")
+              .select("whatsapp_ativo")
+              .eq("id", agAtual.cliente_id)
+              .single();
+            if (clienteCheck && clienteCheck.whatsapp_ativo === false) {
+              await supabase
+                .from("whatsapp_mensagens_agendadas")
+                .update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" })
+                .eq("id", msg.id);
+              continue;
+            }
+          }
+
+          if (false) { // placeholder to maintain else-if chain
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "Agendamento removido ou cancelado" })
+              .eq("id", msg.id);
+            continue;
+          }
+
           // Obter sexo do pet
           let sexoPet = "Macho";
           if (agAtual.cliente_id) {
