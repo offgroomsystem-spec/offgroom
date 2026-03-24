@@ -515,6 +515,7 @@ const Agendamentos = () => {
   }, [user, ownerId]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
+  const [calendarServicoIndex, setCalendarServicoIndex] = useState<number | null>(null);
   const [calendarNovoOpen, setCalendarNovoOpen] = useState(false);
   const [calendarEditGerOpen, setCalendarEditGerOpen] = useState(false);
   const [calendarEditCalOpen, setCalendarEditCalOpen] = useState(false);
@@ -3256,7 +3257,7 @@ const Agendamentos = () => {
                             </div>
 
                             <div className="w-28">
-                              <Popover>
+                              <Popover open={calendarServicoIndex === index} onOpenChange={(open) => setCalendarServicoIndex(open ? index : null)}>
                                 <PopoverTrigger asChild>
                                   <Button variant="outline" className={cn("h-7 w-full justify-start text-left font-normal text-[10px] px-1.5", !servico.data && "text-muted-foreground")}>
                                     {servico.data ? toDisplayDate(servico.data) : "Data"}
@@ -3270,6 +3271,7 @@ const Agendamentos = () => {
                                       if (date) {
                                         handleServicoAgendamentoChange(index, "data", format(date, "yyyy-MM-dd"));
                                       }
+                                      setCalendarServicoIndex(null);
                                     }}
                                     locale={ptBR}
                                     initialFocus
