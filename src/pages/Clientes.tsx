@@ -310,7 +310,7 @@ export default function Clientes() {
   };
 
   const addPet = () => {
-    setPets([...pets, { nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+    setPets([...pets, { nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: whatsappAtivo }]);
   };
 
   const removePet = (index: number) => {
