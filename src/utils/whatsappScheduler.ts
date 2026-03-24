@@ -193,16 +193,8 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams) {
     });
   }
 
-  // === MENSAGEM LEMBRETE IMEDIATA (agendamento >61min e <=24h + Taxi Dog = "Não") ===
-  if (diffMinutes > 61 && diffMinutes <= 24 * 60 && params.taxiDog === "Não") {
-    const reminderMsg = buildReminderMessage(params);
-    mensagensParaInserir.push({
-      ...baseRecord,
-      tipo_mensagem: "imediata",
-      mensagem: reminderMsg,
-      agendado_para: now.toISOString(),
-    });
-  }
+  // Bloco "imediata" removido — o lembrete "hoje" só faz sentido 30min antes,
+  // e já é coberto pelo bloco de 30min acima.
 
   // Inserir todas as mensagens agendadas
   if (mensagensParaInserir.length > 0) {

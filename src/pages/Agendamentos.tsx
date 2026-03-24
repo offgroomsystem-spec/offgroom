@@ -2480,6 +2480,9 @@ const Agendamentos = () => {
 
     try {
       if (agendamentoParaDeletar.tipo === "simples" && agendamentoParaDeletar.agendamentoOriginal) {
+        // Deletar mensagens pendentes antes de excluir o agendamento
+        await deletePendingMessages({ agendamentoId: agendamentoParaDeletar.agendamentoOriginal.id });
+
         const { error } = await supabase.
         from("agendamentos").
         delete().
