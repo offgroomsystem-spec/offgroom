@@ -462,6 +462,9 @@ async function autoCreateMissingMessages(
       const agDateTime = parseDateTimeBRT(ag.data, ag.horario);
       const diffMinutes = (agDateTime.getTime() - now.getTime()) / (1000 * 60);
 
+      // Skip if whatsapp_ativo is false for this client
+      if (ag.cliente_id && whatsappAtivoMap.get(ag.cliente_id) === false) continue;
+
       // Skip if appointment is in the past
       if (diffMinutes < -60) continue;
 
