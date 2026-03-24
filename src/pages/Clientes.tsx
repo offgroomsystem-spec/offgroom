@@ -161,6 +161,7 @@ export default function Clientes() {
     setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "" })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
     setCpfCnpj(cliente.cpf_cnpj || "");
     setEmailCliente(cliente.email || "");
+    setWhatsappAtivo(cliente.whatsapp_ativo !== false);
     setDialogOpen(true);
   };
 
