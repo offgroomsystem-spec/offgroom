@@ -72,6 +72,9 @@ interface LancamentoFinanceiro {
   valorDeducao: number;
   tipoDeducao: string;
   nomeFornecedor: string;
+  valorJuros: number;
+  tipoJuros: string;
+  modoAjuste: "deducao" | "juros";
 }
 
 interface Cliente {
