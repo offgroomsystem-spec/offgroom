@@ -2105,31 +2105,64 @@ const FluxoDeCaixa = () => {
                 ))}
 
                 <div className="pt-2 border-t">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="inline-flex rounded-md border border-input overflow-hidden">
+                      <button type="button" className={cn("px-3 py-1 text-[10px] font-medium transition-colors", formData.modoAjuste === "deducao" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted")} onClick={() => setFormData({ ...formData, modoAjuste: "deducao", valorJuros: 0, tipoJuros: "" })}>Dedução</button>
+                      <button type="button" className={cn("px-3 py-1 text-[10px] font-medium transition-colors", formData.modoAjuste === "juros" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted")} onClick={() => setFormData({ ...formData, modoAjuste: "juros", valorDeducao: 0, tipoDeducao: "" })}>Juros</button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-2 items-end">
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px]">Valor da Dedução</Label>
-                      <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorDeducao || ""} onChange={(e) => setFormData({ ...formData, valorDeducao: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px]">Tipo de Dedução</Label>
-                      <Select value={formData.tipoDeducao} onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Tarifa Bancária" className="text-xs">Tarifa Bancária</SelectItem>
-                          <SelectItem value="Desconto" className="text-xs">Desconto</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {formData.modoAjuste === "deducao" ? (
+                      <>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Valor da Dedução</Label>
+                          <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorDeducao || ""} onChange={(e) => setFormData({ ...formData, valorDeducao: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Tipo de Dedução</Label>
+                          <Select value={formData.tipoDeducao} onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Tarifa Bancária" className="text-xs">Tarifa Bancária</SelectItem>
+                              <SelectItem value="Desconto" className="text-xs">Desconto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Valor do Juros</Label>
+                          <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorJuros || ""} onChange={(e) => setFormData({ ...formData, valorJuros: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Motivo do Juros</Label>
+                          <Select value={formData.tipoJuros} onValueChange={(value) => setFormData({ ...formData, tipoJuros: value })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Juros de Mora" className="text-xs">Juros de Mora</SelectItem>
+                              <SelectItem value="Multa" className="text-xs">Multa</SelectItem>
+                              <SelectItem value="Correção Monetária" className="text-xs">Correção Monetária</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-center gap-2 h-7">
                       <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
                       <span className="text-base font-bold text-primary">
-                        {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0))}
+                        {formatCurrency(formData.modoAjuste === "juros" ? itensLancamento.reduce((acc, item) => acc + item.valor, 0) + (formData.valorJuros || 0) : itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0))}
                       </span>
                     </div>
                   </div>
-                  {formData.valorDeducao > 0 && (
+                  {formData.modoAjuste === "deducao" && formData.valorDeducao > 0 && (
                     <div className="text-[10px] text-muted-foreground mt-1">
                       Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} - Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                    </div>
+                  )}
+                  {formData.modoAjuste === "juros" && formData.valorJuros > 0 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor, 0))} + Juros ({formData.tipoJuros}): {formatCurrency(formData.valorJuros)}
                     </div>
                   )}
                 </div>
