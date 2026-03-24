@@ -499,6 +499,9 @@ async function autoCreateMissingMessages(
       // Skip if whatsapp_ativo is false for this client
       if (ag.cliente_id && whatsappAtivoMap.get(ag.cliente_id) === false) continue;
 
+      // Skip if whatsapp_ativo is false for this pet
+      if (ag.cliente_id && petWhatsappAtivoMap.get(`${ag.cliente_id}_${ag.pet}`) === false) continue;
+
       // Skip if appointment is in the past
       if (diffMinutes < -60) continue;
 
