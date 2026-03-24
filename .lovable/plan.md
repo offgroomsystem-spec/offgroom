@@ -1,51 +1,27 @@
 
 
-## Correções no Sistema de Mensagens WhatsApp
+## Plano: Filtrar Serviços Extras por Porte do Pacote + Busca com Lupa
 
-### Problema 1: Mensagens não sincronizam quando horário do agendamento é alterado (Moacir Melo)
+### Problema
+O código atual já contém a lógica de filtragem por porte na seção "+ Serviços" do agendamento de pacotes (linhas 3231-3256), mas o servidor perdeu a conexão durante o build anterior ("server connection lost"), então as alterações provavelmente não foram aplicadas na preview. O usuário continua vendo todos os serviços sem filtro.
 
-Quando o horário de um agendamento é editado, as mensagens pendentes em `whatsapp_mensagens_agendadas` ficam com o texto antigo (horário 13:30 em vez de 10:30). Nenhuma parte do código atualiza ou recria as mensagens ao editar um agendamento.
+### Solução
+Reescrever a seção do popover "+ Serviços" no agendamento de pacotes para garantir que:
 
-**Solução:** Na função `handleAtualizarAgendamento` (linha ~2241 do Agendamentos.tsx), após salvar a edição no banco:
-1. Deletar todas as mensagens pendentes (`status = 'pendente'`) do agendamento editado
-2. Rechamar `scheduleWhatsAppMessages` com os dados atualizados para recriar as mensagens com horários corretos
+1. **Filtragem por porte**: Ao abrir o popover de serviços extras, buscar o porte do pacote selecionado e filtrar os serviços para mostrar apenas:
+   - Serviços com o mesmo porte do pacote (ex: "Grande")
+   - Serviços cadastrados como "Todos" (para todos os portes)
 
-Isso vale tanto para agendamentos simples (deletar por `agendamento_id`) quanto pacotes (deletar por `agendamento_pacote_id` + `servico_numero`).
+2. **Campo de busca com lupa**: Usar o componente `Command` + `CommandInput` para incluir um campo de busca com ícone de lupa, permitindo localizar serviços rapidamente por nome.
 
-### Problema 2: Clique no ícone WhatsApp dispara mensagem 30min prematuramente (Gian)
+### Arquivo alterado
+- `src/pages/Agendamentos.tsx` — Seção do `PopoverContent` do botão "+ Serviços" (linhas ~3228-3256)
 
-O clique manual no ícone WhatsApp (`enviarWhatsAppDireto`) envia a mensagem de confirmação via Evolution API. Porém, o scheduler auto-create no backend detecta que esse agendamento não tem mensagens na tabela e cria uma mensagem `3h` (tipo confirmação) com `agendado_para = now()`, que é enviada imediatamente. Isso não deveria acontecer porque o envio manual já foi feito.
+### Detalhes técnicos
+- A lógica usa `normalizarPorte()` para comparação case-insensitive e sem acentos
+- `pacotes.find(p => p.nome === pacoteFormData.nomePacote)` busca o pacote atual para extrair o porte
+- `servicos.filter(s => normalizarPorte(s.porte) === normalizarPorte(portePacote) || normalizarPorte(s.porte) === "todos")` aplica o filtro
+- O componente `Command`/`CommandInput`/`CommandGroup` do shadcn/ui fornece a busca integrada com ícone de lupa
 
-**Solução:** Quando o usuário clica no ícone WhatsApp para enviar manualmente, inserir um registro na tabela `whatsapp_mensagens_agendadas` com `tipo_mensagem = '3h'` e `status = 'enviado'` (já marcado como enviado). Isso faz o scheduler backend ver que já existe uma mensagem `3h` e não criar duplicatas. As mensagens de 30min e 24h continuam agendadas normalmente.
-
-### Problema 3: Pet Pronto — enviar via API ao invés de abrir link
-
-Atualmente `handlePetProntoConfirm` abre `window.open(url, '_blank')` com link wa.me. Precisa enviar via Evolution API usando a mesma fila de 10 segundos.
-
-**Solução:** Substituir a chamada `window.open(url, '_blank')` por envio direto via `supabase.functions.invoke("evolution-api", ...)`, usando a mesma lógica de fila (`sendQueueRef` + `processarFilaEnvios`). Manter fallback wa.me se WhatsApp não estiver conectado.
-
-Texto "Pet Pronto" com Taxi Dog "Sim":
-```
-Oii [Nome]!
-Passando para avisar que [o/a] [Pet] já está [pronto/pronta]!
-Já já o Taxi Dog chega e [ele/ela] estará indo de volta pra casa!
-```
-
-Texto "Pet Pronto" com Taxi Dog "Não":
-```
-Oii [Nome]!
-Passando para avisar que [o/a] [Pet] já está [pronto/pronta] para ir para casa!
-[Ele/Ela] está [ansioso/ansiosa] te esperando para [buscá-lo/buscá-la]! 😌
-```
-
-Notar: sem espaçamento entre linhas (usar `\n` simples, não `\n\n`).
-
-### Arquivos afetados
-
-| Arquivo | Ação |
-|---|---|
-| `src/pages/Agendamentos.tsx` | 1. Sincronizar mensagens ao editar agendamento (deletar pendentes + recriar) |
-| `src/pages/Agendamentos.tsx` | 2. Marcar mensagem como "enviada" ao clicar WhatsApp manual |
-| `src/pages/Agendamentos.tsx` | 3. Pet Pronto: enviar via API com fila de 10s + textos corretos |
-| `src/utils/whatsappScheduler.ts` | Exportar função auxiliar para deletar mensagens pendentes |
+A implementação é essencialmente a mesma que já está no código, mas será reaplicada para garantir que compile e funcione corretamente.
 
