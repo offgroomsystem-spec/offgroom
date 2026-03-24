@@ -1855,6 +1855,15 @@ const Agendamentos = () => {
     let numero = whatsappRaw.replace(/\D/g, "");
     if (!numero.startsWith("55")) numero = "55" + numero;
 
+    // Determine IDs for marking as sent
+    const agendamentoId = agendamento.tipo === "simples" 
+      ? (agendamento.agendamentoOriginal?.id || agendamento.agendamento?.id) 
+      : null;
+    const agendamentoPacoteId = agendamento.tipo === "pacote"
+      ? (agendamento.pacoteOriginal?.id || agendamento.agendamentoPacote?.id)
+      : null;
+    const servicoNumero = agendamento.numeroPacote || null;
+
     const sendTask = async () => {
       try {
         const res = await supabase.functions.invoke("evolution-api", {
@@ -1862,6 +1871,22 @@ const Agendamentos = () => {
         });
         if (res.error) throw res.error;
         toast.success(`✅ Mensagem enviada para ${primeiroNome}!`);
+
+        // Mark as "enviado" so scheduler doesn't duplicate
+        await supabase
+          .from("whatsapp_mensagens_agendadas" as any)
+          .insert({
+            user_id: ownerId || user?.id,
+            agendamento_id: agendamentoId,
+            agendamento_pacote_id: agendamentoPacoteId,
+            servico_numero: servicoNumero,
+            numero_whatsapp: numero,
+            tipo_mensagem: "3h",
+            mensagem,
+            agendado_para: new Date().toISOString(),
+            status: "enviado",
+            enviado_em: new Date().toISOString(),
+          });
       } catch (err: any) {
         console.error("Erro ao enviar WhatsApp:", err);
         toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
