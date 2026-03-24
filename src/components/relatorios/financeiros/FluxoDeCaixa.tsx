@@ -86,6 +86,9 @@ interface LancamentoFluxo {
   valorDeducao: number;
   tipoDeducao: string;
   observacao: string;
+  valorJuros: number;
+  tipoJuros: string;
+  modoAjuste: "deducao" | "juros";
 }
 
 interface Pet {
