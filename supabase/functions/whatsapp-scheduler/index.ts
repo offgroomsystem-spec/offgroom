@@ -286,6 +286,21 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Verificar whatsapp_ativo pelo nome do cliente
+          const { data: clienteCheck2 } = await supabase
+            .from("clientes")
+            .select("whatsapp_ativo")
+            .eq("user_id", msg.user_id)
+            .eq("nome_cliente", pacoteAtual.nome_cliente)
+            .limit(1);
+          if (clienteCheck2 && clienteCheck2.length > 0 && clienteCheck2[0].whatsapp_ativo === false) {
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" })
+              .eq("id", msg.id);
+            continue;
+          }
+
           const servicos = pacoteAtual.servicos as any[];
           const svAtual = servicos?.find((s: any) => s.numero === msg.servico_numero);
 
