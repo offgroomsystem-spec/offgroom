@@ -145,6 +145,7 @@ interface ServicoAgendamentoSimples {
 interface Pacote {
   id: string;
   nome: string;
+  porte: string;
   servicos: ServicoSelecionado[];
   validade: string;
   descontoPercentual: number;
@@ -455,6 +456,7 @@ const Agendamentos = () => {
           pacotesData.map((p: any) => ({
             id: p.id,
             nome: p.nome,
+            porte: p.porte || "",
             servicos: p.servicos || [],
             validade: p.validade,
             descontoPercentual: Number(p.desconto_percentual),
@@ -3226,18 +3228,32 @@ const Agendamentos = () => {
                                 <PopoverContent className="w-[280px] p-2 z-50 bg-popover" align="start">
                                   <div className="space-y-2">
                                     <p className="text-xs font-medium">Adicionar serviço extra:</p>
-                                    <Select onValueChange={(value) => handleAddServicoExtraAgendamento(index, value)}>
-                                      <SelectTrigger className="h-7 text-xs">
-                                        <SelectValue placeholder="Selecione..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {servicos.map((s) => (
-                                          <SelectItem key={s.id} value={s.id} className="text-xs">
-                                            {s.nome} - R$ {s.valor?.toFixed(2)}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    {(() => {
+                                      const pacoteAtual = pacotes.find(p => p.nome === pacoteFormData.nomePacote);
+                                      const portePacote = pacoteAtual?.porte || "";
+                                      const servicosFiltrados = portePacote
+                                        ? servicos.filter(s => normalizarPorte(s.porte) === normalizarPorte(portePacote) || normalizarPorte(s.porte) === "todos")
+                                        : servicos;
+                                      return (
+                                        <Command className="rounded-md border">
+                                          <CommandInput placeholder="Buscar serviço..." className="h-7 text-xs" />
+                                          <CommandEmpty className="py-2 text-xs text-center">Nenhum serviço encontrado</CommandEmpty>
+                                          <CommandGroup className="max-h-[200px] overflow-y-auto">
+                                            {servicosFiltrados.map((s) => (
+                                              <CommandItem
+                                                key={s.id}
+                                                value={`${s.nome} - R$ ${s.valor?.toFixed(2)}`}
+                                                onSelect={() => handleAddServicoExtraAgendamento(index, s.id)}
+                                                className="text-xs cursor-pointer"
+                                              >
+                                                <Search className="mr-1.5 h-3 w-3 opacity-50" />
+                                                {s.nome} - R$ {s.valor?.toFixed(2)}
+                                              </CommandItem>
+                                            ))}
+                                          </CommandGroup>
+                                        </Command>
+                                      );
+                                    })()}
                                     {(servico.servicosExtras || []).length > 0 && (
                                       <div className="space-y-1">
                                         <p className="text-[10px] text-muted-foreground">Extras adicionados:</p>
