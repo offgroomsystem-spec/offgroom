@@ -615,9 +615,26 @@ async function autoCreatePacoteMessages(
       }
     }
 
+    // Get whatsapp_ativo by client name per user
+    const whatsappAtivoPacoteMap = new Map<string, boolean>();
+    for (const userId of activeUserIds) {
+      const { data: clientesData } = await supabase
+        .from("clientes")
+        .select("nome_cliente, whatsapp_ativo")
+        .eq("user_id", userId);
+      if (clientesData) {
+        for (const c of clientesData) {
+          whatsappAtivoPacoteMap.set(`${userId}_${c.nome_cliente}`, c.whatsapp_ativo !== false);
+        }
+      }
+    }
+
     const mensagensParaInserir: any[] = [];
 
     for (const pacote of pacotes) {
+      // Skip if whatsapp_ativo is false
+      if (whatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_cliente}`) === false) continue;
+
       const servicos = pacote.servicos as any[];
       if (!servicos || !Array.isArray(servicos)) continue;
 
