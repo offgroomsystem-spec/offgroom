@@ -229,6 +229,23 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Verificar se cliente tem whatsapp_ativo
+          if (agAtual.cliente_id) {
+            const { data: clienteCheck } = await supabase
+              .from("clientes")
+              .select("whatsapp_ativo")
+              .eq("id", agAtual.cliente_id)
+              .single();
+            if (clienteCheck && clienteCheck.whatsapp_ativo === false) {
+              await supabase
+                .from("whatsapp_mensagens_agendadas")
+                .update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" })
+                .eq("id", msg.id);
+              continue;
+            }
+          }
+
+
           // Obter sexo do pet
           let sexoPet = "Macho";
           if (agAtual.cliente_id) {
@@ -265,6 +282,21 @@ Deno.serve(async (req) => {
             await supabase
               .from("whatsapp_mensagens_agendadas")
               .update({ status: "cancelado", erro: "Pacote removido" })
+              .eq("id", msg.id);
+            continue;
+          }
+
+          // Verificar whatsapp_ativo pelo nome do cliente
+          const { data: clienteCheck2 } = await supabase
+            .from("clientes")
+            .select("whatsapp_ativo")
+            .eq("user_id", msg.user_id)
+            .eq("nome_cliente", pacoteAtual.nome_cliente)
+            .limit(1);
+          if (clienteCheck2 && clienteCheck2.length > 0 && clienteCheck2[0].whatsapp_ativo === false) {
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" })
               .eq("id", msg.id);
             continue;
           }
@@ -396,9 +428,10 @@ async function autoCreateMissingMessages(
       (existingMessages || []).map((m: any) => `${m.agendamento_id}_${m.tipo_mensagem}`)
     );
 
-    // Get pet sexo for all clients
+    // Get whatsapp_ativo status for all clients
     const clienteIds = [...new Set(agendamentos.filter((a: any) => a.cliente_id).map((a: any) => a.cliente_id))];
-    let petsMap = new Map<string, string>(); // cliente_id -> sexo
+    let petsMap = new Map<string, string>();
+    const whatsappAtivoMap = new Map<string, boolean>();
 
     if (clienteIds.length > 0) {
       const { data: pets } = await supabase
@@ -408,8 +441,17 @@ async function autoCreateMissingMessages(
 
       if (pets) {
         for (const pet of pets) {
-          // Map by cliente_id + pet name for better matching
           petsMap.set(`${pet.cliente_id}_${pet.nome_pet}`, pet.sexo || "Macho");
+        }
+      }
+
+      const { data: clientesData } = await supabase
+        .from("clientes")
+        .select("id, whatsapp_ativo")
+        .in("id", clienteIds);
+      if (clientesData) {
+        for (const c of clientesData) {
+          whatsappAtivoMap.set(c.id, c.whatsapp_ativo !== false);
         }
       }
     }
@@ -419,6 +461,9 @@ async function autoCreateMissingMessages(
     for (const ag of agendamentos) {
       const agDateTime = parseDateTimeBRT(ag.data, ag.horario);
       const diffMinutes = (agDateTime.getTime() - now.getTime()) / (1000 * 60);
+
+      // Skip if whatsapp_ativo is false for this client
+      if (ag.cliente_id && whatsappAtivoMap.get(ag.cliente_id) === false) continue;
 
       // Skip if appointment is in the past
       if (diffMinutes < -60) continue;
@@ -570,9 +615,26 @@ async function autoCreatePacoteMessages(
       }
     }
 
+    // Get whatsapp_ativo by client name per user
+    const whatsappAtivoPacoteMap = new Map<string, boolean>();
+    for (const userId of activeUserIds) {
+      const { data: clientesData } = await supabase
+        .from("clientes")
+        .select("nome_cliente, whatsapp_ativo")
+        .eq("user_id", userId);
+      if (clientesData) {
+        for (const c of clientesData) {
+          whatsappAtivoPacoteMap.set(`${userId}_${c.nome_cliente}`, c.whatsapp_ativo !== false);
+        }
+      }
+    }
+
     const mensagensParaInserir: any[] = [];
 
     for (const pacote of pacotes) {
+      // Skip if whatsapp_ativo is false
+      if (whatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_cliente}`) === false) continue;
+
       const servicos = pacote.servicos as any[];
       if (!servicos || !Array.isArray(servicos)) continue;
 

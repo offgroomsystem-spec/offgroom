@@ -97,8 +97,21 @@ export async function deletePendingMessages(opts: {
   }
 }
 
-export async function scheduleWhatsAppMessages(params: ScheduleParams) {
+export async function scheduleWhatsAppMessages(params: ScheduleParams & { clienteId?: string }) {
   const now = params.createdAt || new Date();
+
+  // Verificar se o cliente tem WhatsApp ativo
+  if (params.clienteId) {
+    const { data: clienteData } = await supabase
+      .from("clientes")
+      .select("whatsapp_ativo")
+      .eq("id", params.clienteId)
+      .single();
+    if (clienteData && (clienteData as any).whatsapp_ativo === false) {
+      return;
+    }
+  }
+
   const agendamentoDateTime = parseDateTime(params.dataAgendamento, params.horarioInicio);
   
   // Diferença em minutos entre agora e o agendamento

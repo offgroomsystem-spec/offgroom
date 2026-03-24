@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 interface Raca {
   id: string;
@@ -41,6 +42,7 @@ interface Cliente {
   // Campos fiscais
   cpf_cnpj?: string;
   email?: string;
+  whatsapp_ativo?: boolean;
 }
 
 export default function Clientes() {
@@ -61,6 +63,7 @@ export default function Clientes() {
   // Campos fiscais
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [emailCliente, setEmailCliente] = useState("");
+  const [whatsappAtivo, setWhatsappAtivo] = useState(true);
 
   // ✅ Formata nomes automaticamente, respeitando espaços durante a digitação
   const formatarNome = (texto: string) => {
@@ -146,6 +149,7 @@ export default function Clientes() {
     setRacaPopoverOpen({});
     setCpfCnpj("");
     setEmailCliente("");
+    setWhatsappAtivo(true);
   };
 
   const handleEdit = (cliente: Cliente) => {
@@ -157,6 +161,7 @@ export default function Clientes() {
     setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "" })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
     setCpfCnpj(cliente.cpf_cnpj || "");
     setEmailCliente(cliente.email || "");
+    setWhatsappAtivo(cliente.whatsapp_ativo !== false);
     setDialogOpen(true);
   };
 
@@ -210,7 +215,8 @@ export default function Clientes() {
             observacao: observacaoCliente,
             cpf_cnpj: cpfCnpj || null,
             email: emailCliente || null,
-          })
+            whatsapp_ativo: whatsappAtivo,
+          } as any)
           .eq("id", editingId);
 
         if (clienteError) throw clienteError;
@@ -268,7 +274,8 @@ export default function Clientes() {
             observacao: observacaoCliente,
             cpf_cnpj: cpfCnpj || null,
             email: emailCliente || null,
-          })
+            whatsapp_ativo: whatsappAtivo,
+          } as any)
           .select()
           .single();
 
@@ -354,7 +361,19 @@ export default function Clientes() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Dados do Cliente */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">📝 Dados do Cliente</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">📝 Dados do Cliente</h3>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="whatsapp_ativo" className="text-sm font-medium cursor-pointer">
+                          WhatsApp Automático
+                        </Label>
+                        <Switch
+                          id="whatsapp_ativo"
+                          checked={whatsappAtivo}
+                          onCheckedChange={setWhatsappAtivo}
+                        />
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="nome_cliente">Nome do Cliente *</Label>
