@@ -65,7 +65,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos } from "@/hooks/useCriarLancamentoAutomatico";
-import { scheduleWhatsAppMessages } from "@/utils/whatsappScheduler";
+import { scheduleWhatsAppMessages, deletePendingMessages } from "@/utils/whatsappScheduler";
 
 // Interfaces
 
@@ -1855,6 +1855,15 @@ const Agendamentos = () => {
     let numero = whatsappRaw.replace(/\D/g, "");
     if (!numero.startsWith("55")) numero = "55" + numero;
 
+    // Determine IDs for marking as sent
+    const agendamentoId = agendamento.tipo === "simples" 
+      ? (agendamento.agendamentoOriginal?.id || agendamento.agendamento?.id) 
+      : null;
+    const agendamentoPacoteId = agendamento.tipo === "pacote"
+      ? (agendamento.pacoteOriginal?.id || agendamento.agendamentoPacote?.id)
+      : null;
+    const servicoNumero = agendamento.numeroPacote || null;
+
     const sendTask = async () => {
       try {
         const res = await supabase.functions.invoke("evolution-api", {
@@ -1862,6 +1871,22 @@ const Agendamentos = () => {
         });
         if (res.error) throw res.error;
         toast.success(`✅ Mensagem enviada para ${primeiroNome}!`);
+
+        // Mark as "enviado" so scheduler doesn't duplicate
+        await supabase
+          .from("whatsapp_mensagens_agendadas" as any)
+          .insert({
+            user_id: ownerId || user?.id,
+            agendamento_id: agendamentoId,
+            agendamento_pacote_id: agendamentoPacoteId,
+            servico_numero: servicoNumero,
+            numero_whatsapp: numero,
+            tipo_mensagem: "3h",
+            mensagem,
+            agendado_para: new Date().toISOString(),
+            status: "enviado",
+            enviado_em: new Date().toISOString(),
+          });
       } catch (err: any) {
         console.error("Erro ao enviar WhatsApp:", err);
         toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
@@ -1931,31 +1956,14 @@ const Agendamentos = () => {
       }
     }
 
-    // Abrir WhatsApp independente da escolha
-    const url = gerarUrlWhatsAppPronto(petProntoAgendamento);
-    window.open(url, '_blank');
-    setPetProntoDialogOpen(false);
-  };
-
-  // Gerar URL do WhatsApp com mensagem de "Pronto" baseada no sexo do pet e taxi dog
-  const gerarUrlWhatsAppPronto = (agendamentoDia: any): string => {
+    // Enviar mensagem Pet Pronto via API (ou fallback wa.me)
+    const agendamentoDia = petProntoAgendamento;
     const nomeCliente = agendamentoDia.cliente || "";
     const primeiroNome = obterPrimeiroNome(nomeCliente);
     const nomePet = capitalizarPrimeiraLetra(agendamentoDia.pet || "");
     const taxiDog = agendamentoDia.taxiDog;
 
-    // Buscar sexo do pet nos clientes carregados
-    let sexoPet = "";
-    for (const cliente of clientes) {
-      const petEncontrado = cliente.pets.find(
-        (p) => p.nome.toLowerCase() === (agendamentoDia.pet || "").toLowerCase()
-      );
-      if (petEncontrado) {
-        sexoPet = petEncontrado.sexo;
-        break;
-      }
-    }
-    // Default: Macho se vazio
+    const sexoPet = obterSexoPet(agendamentoDia.pet, agendamentoDia.cliente);
     const isFemea = sexoPet === "Fêmea";
 
     const artigo = isFemea ? "a" : "o";
@@ -1969,19 +1977,51 @@ const Agendamentos = () => {
     if (taxiDog === "Sim") {
       mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
     } else {
-      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}!`;
+      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
     }
 
     // Obter número do WhatsApp
-    let numeroWhatsApp = "";
-    if (agendamentoDia.agendamentoOriginal) {
-      numeroWhatsApp = agendamentoDia.agendamentoOriginal.whatsapp || "";
-    } else if (agendamentoDia.agendamentoPacote) {
-      numeroWhatsApp = agendamentoDia.agendamentoPacote.whatsapp || "";
-    }
+    let numeroWhatsApp = agendamentoDia.whatsapp || 
+      agendamentoDia.agendamentoOriginal?.whatsapp || 
+      agendamentoDia.agendamentoPacote?.whatsapp || "";
     numeroWhatsApp = numeroWhatsApp.replace(/\D/g, "");
+    if (!numeroWhatsApp.startsWith("55")) numeroWhatsApp = "55" + numeroWhatsApp;
 
-    return `https://api.whatsapp.com/send/?phone=55${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`;
+    if (!whatsappConnected || !whatsappInstanceName) {
+      // Fallback wa.me
+      const url = `https://api.whatsapp.com/send/?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`;
+      window.open(url, '_blank');
+      setPetProntoDialogOpen(false);
+      return;
+    }
+
+    const sendTask = async () => {
+      try {
+        const res = await supabase.functions.invoke("evolution-api", {
+          body: { action: "send-message", instanceName: whatsappInstanceName, number: numeroWhatsApp, text: mensagem }
+        });
+        if (res.error) throw res.error;
+        toast.success(`✅ Mensagem "Pet Pronto" enviada para ${primeiroNome}!`);
+      } catch (err: any) {
+        console.error("Erro ao enviar Pet Pronto:", err);
+        toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
+      }
+    };
+
+    const now = Date.now();
+    const timeSinceLast = now - lastSendTimestampRef.current;
+    
+    if (timeSinceLast >= 10000 && sendQueueRef.current.length === 0) {
+      lastSendTimestampRef.current = Date.now();
+      sendTask();
+      toast.info(`📤 Enviando "Pet Pronto" para ${primeiroNome}...`);
+    } else {
+      sendQueueRef.current.push(sendTask);
+      toast.info(`⏳ Mensagem "Pet Pronto" para ${primeiroNome} na fila (${sendQueueRef.current.length} pendente${sendQueueRef.current.length > 1 ? 's' : ''})`);
+      processarFilaEnvios();
+    }
+
+    setPetProntoDialogOpen(false);
   };
 
 
@@ -2283,6 +2323,31 @@ const Agendamentos = () => {
 
         if (error) throw error;
 
+        // Sync WhatsApp messages: delete pending and recreate
+        const agId = editandoAgendamento.agendamentoOriginal.id;
+        await deletePendingMessages({ agendamentoId: agId });
+        
+        // Get pet sexo for message building
+        const sexoPet = obterSexoPet(editandoAgendamento.pet, editandoAgendamento.cliente);
+        const isPacote = false;
+        const servicoNome = servicoCompleto;
+        
+        await scheduleWhatsAppMessages({
+          userId: ownerId || user.id,
+          agendamentoId: agId,
+          nomeCliente: editandoAgendamento.cliente,
+          nomePet: editandoAgendamento.pet,
+          sexoPet: sexoPet,
+          raca: editandoAgendamento.raca,
+          whatsapp: editandoAgendamento.whatsapp,
+          dataAgendamento: editandoAgendamento.data,
+          horarioInicio: editandoAgendamento.horarioInicio,
+          servicos: servicoNome,
+          taxiDog: editandoAgendamento.taxiDog || "Não",
+          bordao: empresaConfig.bordao || "",
+          isPacote,
+        });
+
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentos();
       } else if (
@@ -2320,6 +2385,36 @@ const Agendamentos = () => {
         eq("id", editandoAgendamento.pacoteOriginal.id);
 
         if (error) throw error;
+
+        // Sync WhatsApp messages for pacote: delete pending and recreate
+        const pacoteId = editandoAgendamento.pacoteOriginal.id;
+        const servicoNum = editandoAgendamento.servicoOriginal.numero;
+        await deletePendingMessages({ agendamentoPacoteId: pacoteId, servicoNumero: servicoNum });
+
+        const sexoPet = obterSexoPet(editandoAgendamento.pet, editandoAgendamento.cliente);
+        const totalServicos = editandoAgendamento.pacoteOriginal.servicos.length;
+        const currentIdx = editandoAgendamento.pacoteOriginal.servicos.findIndex(
+          (s) => s.numero === servicoNum
+        );
+        const isUltimo = currentIdx === totalServicos - 1;
+
+        await scheduleWhatsAppMessages({
+          userId: ownerId || user.id,
+          agendamentoPacoteId: pacoteId,
+          servicoNumero: servicoNum,
+          nomeCliente: editandoAgendamento.cliente,
+          nomePet: editandoAgendamento.pet,
+          sexoPet: sexoPet,
+          raca: editandoAgendamento.raca,
+          whatsapp: editandoAgendamento.whatsapp,
+          dataAgendamento: editandoAgendamento.data,
+          horarioInicio: editandoAgendamento.horarioInicio,
+          servicos: servicoPrincipalEdicao,
+          taxiDog: editandoAgendamento.taxiDog || "Não",
+          bordao: empresaConfig.bordao || "",
+          isPacote: true,
+          isUltimoServicoPacote: isUltimo,
+        });
 
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentosPacotes();
