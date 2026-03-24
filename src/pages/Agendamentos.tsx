@@ -2023,11 +2023,6 @@ const Agendamentos = () => {
 
     setPetProntoDialogOpen(false);
   };
-    }
-    numeroWhatsApp = numeroWhatsApp.replace(/\D/g, "");
-
-    return `https://api.whatsapp.com/send/?phone=55${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`;
-  };
 
 
   const getHorariosGantt = () => {
