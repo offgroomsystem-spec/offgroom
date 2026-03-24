@@ -669,8 +669,11 @@ async function autoCreatePacoteMessages(
     const mensagensParaInserir: any[] = [];
 
     for (const pacote of pacotes) {
-      // Skip if whatsapp_ativo is false
+      // Skip if whatsapp_ativo is false for client
       if (whatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_cliente}`) === false) continue;
+
+      // Skip if whatsapp_ativo is false for pet
+      if (petWhatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_pet}`) === false) continue;
 
       const servicos = pacote.servicos as any[];
       if (!servicos || !Array.isArray(servicos)) continue;
