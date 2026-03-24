@@ -98,7 +98,7 @@ interface ServicoAgendamento {
   horarioInicio: string;
   tempoServico: string; // Agora em formato hh:mm
   horarioTermino: string;
-  servicosExtras?: {id: string;nome: string;valor: number;}[];
+  servicosExtras?: {id: string;nome: string;valor: number;nativo?: boolean;}[];
 }
 interface AgendamentoPacote {
   id: string;
@@ -1306,8 +1306,11 @@ const Agendamentos = () => {
       const servicosInit: ServicoAgendamento[] = pacoteSelecionado.servicos.map((servico, index) => {
         const total = pacoteSelecionado.servicos.length;
         const numero = `${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`;
-        // Preservar servicosExtras do pacote
-        const extras = (servico as any).servicosExtras || [];
+        // Preservar servicosExtras do pacote e marcá-los como nativos
+        const extras = ((servico as any).servicosExtras || []).map((e: any) => ({
+          ...e,
+          nativo: true,
+        }));
         return {
           numero,
           nomeServico: servico.nome,
@@ -1477,9 +1480,9 @@ const Agendamentos = () => {
       // Automação: criar lançamento financeiro automaticamente
       const primeiraDataServico = servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
 
-      // Coletar todos os serviços extras de todos os serviços do pacote
+      // Coletar apenas os serviços extras adicionados MANUALMENTE (não nativos do pacote)
       const todosExtras = servicosAgendamento.flatMap(s => 
-        (s.servicosExtras || []).map(e => ({ nome: e.nome, valor: e.valor }))
+        (s.servicosExtras || []).filter(e => !e.nativo).map(e => ({ nome: e.nome, valor: e.valor }))
       );
 
       criarLancamentoFinanceiroPacote({
