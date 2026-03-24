@@ -1499,8 +1499,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           data_pagamento: formData.dataPagamento,
           conta_id: conta.id,
           pago: formData.pago,
-          valor_deducao: formData.valorDeducao || 0,
-          tipo_deducao: formData.tipoDeducao || null,
+          valor_deducao: formData.modoAjuste === "deducao" ? (formData.valorDeducao || 0) : 0,
+          tipo_deducao: formData.modoAjuste === "deducao" ? (formData.tipoDeducao || null) : null,
+          valor_juros: formData.modoAjuste === "juros" ? (formData.valorJuros || 0) : 0,
+          tipo_juros: formData.modoAjuste === "juros" ? (formData.tipoJuros || null) : null,
+          modo_ajuste: formData.modoAjuste,
           fornecedor_id: formData.tipo === "Despesa" && formData.fornecedorId ? formData.fornecedorId : null,
         })
         .eq("id", lancamentoSelecionado.id);
