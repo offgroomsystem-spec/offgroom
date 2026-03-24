@@ -371,7 +371,16 @@ export default function Clientes() {
                         <Switch
                           id="whatsapp_ativo"
                           checked={whatsappAtivo}
-                          onCheckedChange={setWhatsappAtivo}
+                          onCheckedChange={(checked) => {
+                            setWhatsappAtivo(checked);
+                            if (!checked) {
+                              // Desativar todos os pets
+                              setPets(prev => prev.map(p => ({ ...p, whatsapp_ativo: false })));
+                            } else {
+                              // Ativar todos os pets
+                              setPets(prev => prev.map(p => ({ ...p, whatsapp_ativo: true })));
+                            }
+                          }}
                         />
                       </div>
                     </div>
