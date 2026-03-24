@@ -1,34 +1,39 @@
 
 
-## Plano: Corrigir Relatório "Clientes em Risco"
+## Plano: Toggle de WhatsApp por Cliente
 
-### Problemas Confirmados
+### O que sera feito
 
-**1. Limite de 1000 linhas (BUG CRITICO)**
-As queries buscam no maximo 1000 registros. Clientes antigos (os de maior risco) sao cortados. Precisa de paginacao.
-
-**2. Chave por nome ao inves de ID**
-A chave `${cliente}_${pet}` pode mesclar dados de clientes diferentes com nomes iguais. Usar `cliente_id` quando disponivel.
-
-### O que NAO muda (conforme sua observacao)
-
-- O status do agendamento NAO e considerado na logica — apenas a data. Isso esta correto e sera mantido.
-- O fallback para `data_venda` nos pacotes sera mantido como esta.
+Adicionar um campo `whatsapp_ativo` na tabela `clientes` e um toggle no formulario ao lado do titulo "Dados do Cliente" para ativar/desativar mensagens automaticas. A logica de envio no `whatsappScheduler` verificara esse campo antes de agendar mensagens.
 
 ### Alteracoes
 
-**Arquivo: `src/components/relatorios/clientes/ClientesEmRisco.tsx`**
+**1. Migracao SQL** — Adicionar coluna `whatsapp_ativo`
+- `ALTER TABLE clientes ADD COLUMN whatsapp_ativo boolean NOT NULL DEFAULT true;`
+- Todos os clientes existentes ja terao `true` pelo default.
 
-1. **Paginacao nas queries**: Buscar `agendamentos` e `agendamentos_pacotes` em blocos de 1000 ate esgotar os dados, garantindo que todos os registros sejam analisados.
+**2. `src/pages/Clientes.tsx`**
+- Adicionar state `whatsappAtivo` (default `true`)
+- No titulo "Dados do Cliente" (linha 357), adicionar um `Switch` ao lado com label "WhatsApp Ativo"
+- No `handleSubmit`, salvar `whatsapp_ativo` junto com os demais campos
+- No `handleEdit`, carregar o valor de `whatsapp_ativo` do cliente
+- Na interface `Cliente`, adicionar `whatsapp_ativo: boolean`
 
-2. **Chave com `cliente_id`**: Alterar a chave do mapa para `${a.cliente_id || a.cliente}_${a.pet}` nos agendamentos simples, evitando colisao entre clientes com nomes identicos.
+**3. `src/utils/whatsappScheduler.ts`**
+- Adicionar `clienteId?: string` ao `ScheduleParams`
+- No inicio de `scheduleWhatsAppMessages`, buscar `whatsapp_ativo` do cliente na tabela `clientes` usando o nome ou ID
+- Se `whatsapp_ativo === false`, retornar sem agendar nenhuma mensagem
+
+**4. `supabase/functions/whatsapp-scheduler/index.ts`**
+- Antes de enviar cada mensagem, verificar se o cliente tem `whatsapp_ativo = true` (consultar pelo nome do cliente no agendamento)
+- Se `false`, marcar mensagem como `cancelado` e pular
 
 ### Resumo
 
-| Item | Acao |
+| Arquivo | Mudanca |
 |---|---|
-| Limite 1000 linhas | Adicionar loop de paginacao |
-| Chave duplicada | Usar `cliente_id` quando disponivel |
-| Status "concluido" | Manter como esta (nao usado) |
-| Fallback `data_venda` | Manter como esta |
+| Migracao SQL | Coluna `whatsapp_ativo boolean default true` |
+| `Clientes.tsx` | Switch no formulario + persistencia |
+| `whatsappScheduler.ts` | Checar flag antes de agendar |
+| `whatsapp-scheduler/index.ts` | Checar flag antes de enviar |
 
