@@ -63,6 +63,7 @@ export default function Clientes() {
   // Campos fiscais
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [emailCliente, setEmailCliente] = useState("");
+  const [whatsappAtivo, setWhatsappAtivo] = useState(true);
 
   // ✅ Formata nomes automaticamente, respeitando espaços durante a digitação
   const formatarNome = (texto: string) => {
