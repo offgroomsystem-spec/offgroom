@@ -464,16 +464,18 @@ async function autoCreateMissingMessages(
     const clienteIds = [...new Set(agendamentos.filter((a: any) => a.cliente_id).map((a: any) => a.cliente_id))];
     let petsMap = new Map<string, string>();
     const whatsappAtivoMap = new Map<string, boolean>();
+    const petWhatsappAtivoMap = new Map<string, boolean>();
 
     if (clienteIds.length > 0) {
       const { data: pets } = await supabase
         .from("pets")
-        .select("cliente_id, nome_pet, sexo")
+        .select("cliente_id, nome_pet, sexo, whatsapp_ativo")
         .in("cliente_id", clienteIds);
 
       if (pets) {
         for (const pet of pets) {
           petsMap.set(`${pet.cliente_id}_${pet.nome_pet}`, pet.sexo || "Macho");
+          petWhatsappAtivoMap.set(`${pet.cliente_id}_${pet.nome_pet}`, pet.whatsapp_ativo !== false);
         }
       }
 
