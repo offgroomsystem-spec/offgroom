@@ -141,7 +141,7 @@ export const criarLancamentoFinanceiroAvulso = async (dados: DadosAgendamentoAvu
 
 export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPacote) => {
   try {
-    const { nomeCliente, nomePet, nomePacote, dataVenda, primeiraDataServico, ownerId } = dados;
+    const { nomeCliente, nomePet, nomePacote, dataVenda, primeiraDataServico, ownerId, servicosExtras } = dados;
 
     console.log(`Iniciando lançamento financeiro de pacote - Cliente: ${nomeCliente}, Pet: ${nomePet}, Pacote: ${nomePacote}`);
 
@@ -170,18 +170,14 @@ export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPac
       if (petDoCliente) {
         petId = petDoCliente.id;
         clienteId = petDoCliente.cliente_id;
-        console.log(`Encontrado par cliente/pet correto - ClienteId: ${clienteId}, PetId: ${petId}`);
       }
     }
 
-    // Fallback: se não encontrou combinação, usar o primeiro de cada
     if (!clienteId && clientesData && clientesData.length > 0) {
       clienteId = clientesData[0].id;
-      console.log(`Fallback: usando primeiro cliente - ClienteId: ${clienteId}`);
     }
     if (!petId && petsData && petsData.length > 0) {
       petId = petsData[0].id;
-      console.log(`Fallback: usando primeiro pet - PetId: ${petId}`);
     }
 
     // 3. Buscar valor_final do pacote
@@ -193,6 +189,10 @@ export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPac
       .limit(1);
 
     const valorPacote = pacotesData?.[0]?.valor_final ? Number(pacotesData[0].valor_final) : 0;
+
+    // Calcular valor total dos extras
+    const valorExtras = (servicosExtras || []).reduce((acc, s) => acc + s.valor, 0);
+    const valorTotal = valorPacote + valorExtras;
 
     // 4. Buscar primeira conta bancária
     const { data: contasData } = await supabase
@@ -219,7 +219,7 @@ export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPac
           descricao1: "Receita Operacional",
           cliente_id: clienteId,
           pet_ids: petId ? [petId] : [],
-          valor_total: valorPacote,
+          valor_total: valorTotal,
           data_pagamento: dataVenda,
           conta_id: contaId,
           pago: false,
@@ -233,21 +233,42 @@ export const criarLancamentoFinanceiroPacote = async (dados: DadosAgendamentoPac
       return;
     }
 
-    // 7. Criar item do lançamento
-    const { error: itemError } = await supabase
-      .from("lancamentos_financeiros_itens")
-      .insert([
-        {
+    // 7. Criar itens do lançamento - pacote principal + extras individuais
+    const itens: Array<{
+      lancamento_id: string;
+      descricao2: string;
+      produto_servico: string;
+      valor: number;
+      quantidade: number;
+    }> = [
+      {
+        lancamento_id: lancamentoData.id,
+        descricao2: "Serviços",
+        produto_servico: nomePacote,
+        valor: valorPacote,
+        quantidade: 1,
+      },
+    ];
+
+    // Adicionar cada serviço extra como linha individual
+    if (servicosExtras && servicosExtras.length > 0) {
+      for (const extra of servicosExtras) {
+        itens.push({
           lancamento_id: lancamentoData.id,
           descricao2: "Serviços",
-          produto_servico: nomePacote,
-          valor: valorPacote,
+          produto_servico: extra.nome,
+          valor: extra.valor,
           quantidade: 1,
-        },
-      ]);
+        });
+      }
+    }
+
+    const { error: itemError } = await supabase
+      .from("lancamentos_financeiros_itens")
+      .insert(itens);
 
     if (itemError) {
-      console.error("Erro ao criar item do lançamento:", itemError);
+      console.error("Erro ao criar itens do lançamento:", itemError);
     }
 
     console.log("Lançamento financeiro criado automaticamente para agendamento de pacote");
