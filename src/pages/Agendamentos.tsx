@@ -3227,7 +3227,7 @@ const Agendamentos = () => {
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[280px] p-2 z-50 bg-popover" align="start">
                                   <div className="space-y-2">
-                                    <p className="text-xs font-medium">Adicionar serviço extra:</p>
+                                    <p className="text-xs font-medium">Adicionar serviço extra</p>
                                     {(() => {
                                       const pacoteAtual = pacotes.find(p => p.nome === pacoteFormData.nomePacote);
                                       const portePacote = pacoteAtual?.porte || "";
