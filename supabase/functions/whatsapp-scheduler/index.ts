@@ -243,7 +243,24 @@ Deno.serve(async (req) => {
                 .eq("id", msg.id);
               continue;
             }
-          }
+            }
+
+            // Verificar se o pet tem whatsapp_ativo
+            if (agAtual.cliente_id) {
+              const { data: petCheck } = await supabase
+                .from("pets")
+                .select("whatsapp_ativo")
+                .eq("cliente_id", agAtual.cliente_id)
+                .eq("nome_pet", agAtual.pet)
+                .limit(1);
+              if (petCheck && petCheck.length > 0 && petCheck[0].whatsapp_ativo === false) {
+                await supabase
+                  .from("whatsapp_mensagens_agendadas")
+                  .update({ status: "cancelado", erro: "WhatsApp desativado para este pet" })
+                  .eq("id", msg.id);
+                continue;
+              }
+            }
 
 
           // Obter sexo do pet
