@@ -1184,6 +1184,9 @@ const FluxoDeCaixa = () => {
       valorDeducao: 0,
       tipoDeducao: "",
       fornecedorId: "",
+      valorJuros: 0,
+      tipoJuros: "",
+      modoAjuste: "deducao",
     });
     setItensLancamento([{ id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0 }]);
     setIsCreateDialogOpen(false);
