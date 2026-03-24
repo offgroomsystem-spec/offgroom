@@ -215,7 +215,8 @@ export default function Clientes() {
             observacao: observacaoCliente,
             cpf_cnpj: cpfCnpj || null,
             email: emailCliente || null,
-          })
+            whatsapp_ativo: whatsappAtivo,
+          } as any)
           .eq("id", editingId);
 
         if (clienteError) throw clienteError;
