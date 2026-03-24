@@ -636,18 +636,18 @@ async function autoCreatePacoteMessages(
       (existingPacoteMsgs || []).map((m: any) => `${m.agendamento_pacote_id}_${m.servico_numero}_${m.tipo_mensagem}`)
     );
 
-    // Get pet sexo
-    const clienteNames = [...new Set(pacotes.map((p: any) => p.nome_pet))];
-    // We'll try to find pets by name for each user
+    // Get pet sexo and whatsapp_ativo
     const petSexoMap = new Map<string, string>();
+    const petWhatsappAtivoPacoteMap = new Map<string, boolean>();
     for (const userId of activeUserIds) {
       const { data: pets } = await supabase
         .from("pets")
-        .select("nome_pet, sexo")
+        .select("nome_pet, sexo, whatsapp_ativo")
         .eq("user_id", userId);
       if (pets) {
         for (const pet of pets) {
           petSexoMap.set(`${userId}_${pet.nome_pet}`, pet.sexo || "Macho");
+          petWhatsappAtivoPacoteMap.set(`${userId}_${pet.nome_pet}`, pet.whatsapp_ativo !== false);
         }
       }
     }
