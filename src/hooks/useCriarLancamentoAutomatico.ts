@@ -16,6 +16,7 @@ interface DadosAgendamentoPacote {
   dataVenda: string; // formato YYYY-MM-DD
   primeiraDataServico: string; // formato YYYY-MM-DD (para determinar mês/ano)
   ownerId: string;
+  servicosExtras?: Array<{ nome: string; valor: number }>;
 }
 
 interface DadosAgendamentoMultiplosServicos {
