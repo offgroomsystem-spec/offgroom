@@ -515,6 +515,7 @@ const Agendamentos = () => {
   }, [user, ownerId]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPacoteDialogOpen, setIsPacoteDialogOpen] = useState(false);
+  const [calendarServicoIndex, setCalendarServicoIndex] = useState<number | null>(null);
   const [calendarNovoOpen, setCalendarNovoOpen] = useState(false);
   const [calendarEditGerOpen, setCalendarEditGerOpen] = useState(false);
   const [calendarEditCalOpen, setCalendarEditCalOpen] = useState(false);
