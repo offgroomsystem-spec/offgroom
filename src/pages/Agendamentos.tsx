@@ -456,6 +456,7 @@ const Agendamentos = () => {
           pacotesData.map((p: any) => ({
             id: p.id,
             nome: p.nome,
+            porte: p.porte || "",
             servicos: p.servicos || [],
             validade: p.validade,
             descontoPercentual: Number(p.desconto_percentual),
