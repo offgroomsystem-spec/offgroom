@@ -152,20 +152,38 @@ export const ClientesEmRisco = () => {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
-      const { data: agendamentos, error: errorAg } = await supabase
-        .from("agendamentos")
-        .select("cliente_id, cliente, data, pet, whatsapp")
-        .eq("user_id", ownerId)
-        .order("data", { ascending: false });
+      // Paginação para buscar TODOS os agendamentos (sem limite de 1000)
+      const allAgendamentos: any[] = [];
+      let page = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("agendamentos")
+          .select("cliente_id, cliente, data, pet, whatsapp")
+          .eq("user_id", ownerId)
+          .order("data", { ascending: false })
+          .range(page * 1000, (page + 1) * 1000 - 1);
+        if (error) throw error;
+        if (data) allAgendamentos.push(...data);
+        if (!data || data.length < 1000) break;
+        page++;
+      }
+      const agendamentos = allAgendamentos;
 
-      if (errorAg) throw errorAg;
-
-      const { data: pacotes, error: errorPac } = await supabase
-        .from("agendamentos_pacotes")
-        .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
-        .eq("user_id", ownerId);
-
-      if (errorPac) throw errorPac;
+      // Paginação para buscar TODOS os pacotes
+      const allPacotes: any[] = [];
+      page = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("agendamentos_pacotes")
+          .select("id, nome_cliente, data_venda, nome_pet, whatsapp, servicos")
+          .eq("user_id", ownerId)
+          .range(page * 1000, (page + 1) * 1000 - 1);
+        if (error) throw error;
+        if (data) allPacotes.push(...data);
+        if (!data || data.length < 1000) break;
+        page++;
+      }
+      const pacotes = allPacotes;
 
       const mapa = new Map<string, ClienteRisco>();
 
@@ -200,7 +218,7 @@ export const ClientesEmRisco = () => {
       };
 
       agendamentos?.forEach((a) => {
-        const chave = `${a.cliente}_${a.pet}`;
+        const chave = `${a.cliente_id || a.cliente}_${a.pet}`;
         adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
       });
 
@@ -228,10 +246,10 @@ export const ClientesEmRisco = () => {
         const dias = differenceInDays(hoje, cli.ultimoAgendamento);
         const temAgendamentoFuturo =
           agendamentos?.some(
-            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && new Date(a.data + "T00:00:00") >= hoje,
+            (a) => `${a.cliente_id || a.cliente}_${a.pet}` === cli.id && new Date(a.data + "T00:00:00") >= hoje,
           ) ||
           pacotes?.some((p) => {
-            if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
+            if (`${p.nome_cliente}_${p.nome_pet}` !== cli.id) return false;
             try {
               const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
               if (Array.isArray(servicos)) {
