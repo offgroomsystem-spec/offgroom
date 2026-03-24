@@ -554,6 +554,9 @@ const FluxoDeCaixa = () => {
         valorDeducao: Number(l.valor_deducao) || 0,
         tipoDeducao: l.tipo_deducao || "",
         observacao: l.observacao || "",
+        valorJuros: Number((l as any).valor_juros) || 0,
+        tipoJuros: (l as any).tipo_juros || "",
+        modoAjuste: ((l as any).modo_ajuste || "deducao") as "deducao" | "juros",
       }));
 
       // Map cliente_id and conta_id to names
