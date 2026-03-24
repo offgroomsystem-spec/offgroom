@@ -1021,6 +1021,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       valorDeducao: lancamento.valorDeducao || 0,
       tipoDeducao: lancamento.tipoDeducao || "",
       fornecedorId: (lancamento as any).fornecedorId || "",
+      valorJuros: lancamento.valorJuros || 0,
+      tipoJuros: lancamento.tipoJuros || "",
+      modoAjuste: lancamento.modoAjuste || "deducao",
     });
     setItensLancamento(lancamento.itens);
     setIsEditDialogOpen(true);
