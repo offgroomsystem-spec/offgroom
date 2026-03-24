@@ -2293,7 +2293,7 @@ const Agendamentos = () => {
         const servicoNome = servicoCompleto;
         
         await scheduleWhatsAppMessages({
-          userId: effectiveUserId || user.id,
+          userId: ownerId || user.id,
           agendamentoId: agId,
           nomeCliente: editandoAgendamento.cliente,
           nomePet: editandoAgendamento.pet,
