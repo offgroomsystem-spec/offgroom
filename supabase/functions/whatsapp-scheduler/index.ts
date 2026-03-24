@@ -245,13 +245,6 @@ Deno.serve(async (req) => {
             }
           }
 
-          if (false) { // placeholder to maintain else-if chain
-            await supabase
-              .from("whatsapp_mensagens_agendadas")
-              .update({ status: "cancelado", erro: "Agendamento removido ou cancelado" })
-              .eq("id", msg.id);
-            continue;
-          }
 
           // Obter sexo do pet
           let sexoPet = "Macho";
