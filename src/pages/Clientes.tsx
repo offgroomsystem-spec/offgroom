@@ -465,11 +465,40 @@ export default function Clientes() {
                               <PawPrint className="h-4 w-4" />
                               Pet #{index + 1}
                             </h4>
-                            {pets.length > 1 && (
-                              <Button type="button" onClick={() => removePet(index)} variant="ghost" size="sm">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor={`pet_whatsapp_${index}`} className="text-xs font-medium cursor-pointer">
+                                WhatsApp
+                              </Label>
+                              <Switch
+                                id={`pet_whatsapp_${index}`}
+                                checked={pet.whatsapp_ativo !== false}
+                                onCheckedChange={(checked) => {
+                                  const newPets = [...pets];
+                                  newPets[index] = { ...newPets[index], whatsapp_ativo: checked };
+                                  setPets(newPets);
+                                  
+                                  if (!checked) {
+                                    // Se todos os pets ficarem desativados, desativar cliente
+                                    const allDisabled = newPets.every(p => p.whatsapp_ativo === false);
+                                    if (allDisabled) {
+                                      setWhatsappAtivo(false);
+                                    }
+                                    // Se tem apenas 1 pet e desativou, desativar cliente
+                                    if (newPets.length === 1) {
+                                      setWhatsappAtivo(false);
+                                    }
+                                  } else {
+                                    // Se pelo menos 1 pet ativo, ativar cliente
+                                    setWhatsappAtivo(true);
+                                  }
+                                }}
+                              />
+                              {pets.length > 1 && (
+                                <Button type="button" onClick={() => removePet(index)} variant="ghost" size="sm">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-4">
