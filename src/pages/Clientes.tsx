@@ -246,7 +246,8 @@ export default function Clientes() {
                 raca: pet.raca,
                 sexo: pet.sexo || null,
                 observacao: pet.observacao || "",
-              })
+                whatsapp_ativo: pet.whatsapp_ativo !== false,
+              } as any)
               .eq("id", pet.id);
           } else {
             // INSERT novo pet
