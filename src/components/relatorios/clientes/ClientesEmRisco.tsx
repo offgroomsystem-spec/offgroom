@@ -246,7 +246,7 @@ export const ClientesEmRisco = () => {
         const dias = differenceInDays(hoje, cli.ultimoAgendamento);
         const temAgendamentoFuturo =
           agendamentos?.some(
-            (a) => a.cliente === cli.nomeCliente && a.pet === cli.nomePet && new Date(a.data + "T00:00:00") >= hoje,
+            (a) => `${a.cliente_id || a.cliente}_${a.pet}` === cli.id && new Date(a.data + "T00:00:00") >= hoje,
           ) ||
           pacotes?.some((p) => {
             if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
