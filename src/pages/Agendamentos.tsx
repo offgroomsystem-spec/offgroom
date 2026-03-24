@@ -1477,13 +1477,19 @@ const Agendamentos = () => {
       // Automação: criar lançamento financeiro automaticamente
       const primeiraDataServico = servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
 
+      // Coletar todos os serviços extras de todos os serviços do pacote
+      const todosExtras = servicosAgendamento.flatMap(s => 
+        (s.servicosExtras || []).map(e => ({ nome: e.nome, valor: e.valor }))
+      );
+
       criarLancamentoFinanceiroPacote({
         nomeCliente: pacoteFormData.nomeCliente,
         nomePet: pacoteFormData.nomePet,
         nomePacote: pacoteFormData.nomePacote,
         dataVenda: pacoteFormData.dataVenda,
         primeiraDataServico: primeiraDataServico,
-        ownerId: ownerId || ""
+        ownerId: ownerId || "",
+        servicosExtras: todosExtras.length > 0 ? todosExtras : undefined,
       });
 
       // Agendar mensagens WhatsApp para cada serviço do pacote
