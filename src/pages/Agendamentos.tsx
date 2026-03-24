@@ -4045,6 +4045,7 @@ const Agendamentos = () => {
                   <span className="text-xs font-medium hidden sm:inline">WhatsApp Desconectado</span>
                 </div>
               )}
+              <GerenciadorMensagensWhatsApp ownerId={ownerId || ""} />
             </div>
           </div>
         </CardHeader>
