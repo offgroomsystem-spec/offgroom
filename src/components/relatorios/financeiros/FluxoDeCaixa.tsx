@@ -1220,7 +1220,17 @@ const FluxoDeCaixa = () => {
 
     if (!formData.nomeBanco) { toast.error("Favor selecionar o Banco!"); return; }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0) - (formData.valorDeducao || 0);
+    if (formData.modoAjuste === "deducao" && (formData.valorDeducao || 0) >= 0.01 && !formData.tipoDeducao) {
+      toast.error("Favor selecionar o Tipo de Dedução!"); return;
+    }
+    if (formData.modoAjuste === "juros" && (formData.valorJuros || 0) >= 0.01 && !formData.tipoJuros) {
+      toast.error("Favor selecionar o Motivo do Juros!"); return;
+    }
+
+    const subtotal = itensLancamento.reduce((acc, item) => acc + item.valor, 0);
+    const valorTotal = formData.modoAjuste === "juros"
+      ? subtotal + (formData.valorJuros || 0)
+      : subtotal - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
