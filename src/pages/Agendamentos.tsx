@@ -3256,7 +3256,27 @@ const Agendamentos = () => {
                             </div>
 
                             <div className="w-28">
-                              <Input type="date" value={servico.data} onChange={(e) => handleServicoAgendamentoChange(index, "data", e.target.value)} className="h-7 text-[10px] px-1.5" />
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" className={cn("h-7 w-full justify-start text-left font-normal text-[10px] px-1.5", !servico.data && "text-muted-foreground")}>
+                                    {servico.data ? toDisplayDate(servico.data) : "Data"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={servico.data ? parse(servico.data, "yyyy-MM-dd", new Date()) : undefined}
+                                    onSelect={(date) => {
+                                      if (date) {
+                                        handleServicoAgendamentoChange(index, "data", format(date, "yyyy-MM-dd"));
+                                      }
+                                    }}
+                                    locale={ptBR}
+                                    initialFocus
+                                    className="p-3 pointer-events-auto"
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
 
                             <div className="w-[72px]">
