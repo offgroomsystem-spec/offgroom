@@ -59,7 +59,7 @@ export default function Clientes() {
   const [whatsapp, setWhatsapp] = useState("");
   const [endereco, setEndereco] = useState("");
   const [observacaoCliente, setObservacaoCliente] = useState("");
-  const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "" }]);
+  const [pets, setPets] = useState<Pet[]>([{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
   const [racaPopoverOpen, setRacaPopoverOpen] = useState<{ [key: number]: boolean }>({});
   // Campos fiscais
   const [cpfCnpj, setCpfCnpj] = useState("");
