@@ -293,6 +293,7 @@ export default function Clientes() {
           raca: pet.raca,
           sexo: pet.sexo || null,
           observacao: pet.observacao || "",
+          whatsapp_ativo: pet.whatsapp_ativo !== false,
         }));
 
         const { error: petsError } = await supabase.from("pets").insert(petsParaInserir);
