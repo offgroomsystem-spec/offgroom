@@ -66,7 +66,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos } from "@/hooks/useCriarLancamentoAutomatico";
 import { scheduleWhatsAppMessages, deletePendingMessages } from "@/utils/whatsappScheduler";
-import { GerenciadorMensagensWhatsApp } from "@/components/whatsapp/GerenciadorMensagensWhatsApp";
+
 
 // Interfaces
 
@@ -4045,7 +4045,7 @@ const Agendamentos = () => {
                   <span className="text-xs font-medium hidden sm:inline">WhatsApp Desconectado</span>
                 </div>
               )}
-              <GerenciadorMensagensWhatsApp ownerId={ownerId || ""} />
+              
             </div>
           </div>
         </CardHeader>
