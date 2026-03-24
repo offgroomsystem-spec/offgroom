@@ -72,6 +72,9 @@ interface LancamentoFinanceiro {
   valorDeducao: number;
   tipoDeducao: string;
   nomeFornecedor: string;
+  valorJuros: number;
+  tipoJuros: string;
+  modoAjuste: "deducao" | "juros";
 }
 
 interface Cliente {
@@ -446,6 +449,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
         tipoDeducao: l.tipo_deducao || "",
         fornecedorId: l.fornecedor_id || "",
         nomeFornecedor: "",
+        valorJuros: Number((l as any).valor_juros) || 0,
+        tipoJuros: (l as any).tipo_juros || "",
+        modoAjuste: ((l as any).modo_ajuste || "deducao") as "deducao" | "juros",
       }));
 
       // Map cliente_id and conta_id to names
@@ -628,6 +634,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     valorDeducao: 0,
     tipoDeducao: "",
     fornecedorId: "",
+    valorJuros: 0,
+    tipoJuros: "",
+    modoAjuste: "deducao" as "deducao" | "juros",
   });
 
   const [itensLancamento, setItensLancamento] = useState<ItemLancamento[]>([
@@ -828,7 +837,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       return;
     }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0);
+    // Validação obrigatória de tipo/motivo quando valor >= 0.01
+    if (formData.modoAjuste === "deducao" && (formData.valorDeducao || 0) >= 0.01 && !formData.tipoDeducao) {
+      toast.error("Favor selecionar o Tipo de Dedução!"); return;
+    }
+    if (formData.modoAjuste === "juros" && (formData.valorJuros || 0) >= 0.01 && !formData.tipoJuros) {
+      toast.error("Favor selecionar o Motivo do Juros!"); return;
+    }
+
+    const subtotal = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0);
+    const valorTotal = formData.modoAjuste === "juros"
+      ? subtotal + (formData.valorJuros || 0)
+      : subtotal - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
@@ -909,8 +929,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
             conta_id: conta.id,
             pago: formData.pago,
             observacao: null,
-            valor_deducao: formData.valorDeducao || 0,
-            tipo_deducao: formData.tipoDeducao || null,
+            valor_deducao: formData.modoAjuste === "deducao" ? (formData.valorDeducao || 0) : 0,
+            tipo_deducao: formData.modoAjuste === "deducao" ? (formData.tipoDeducao || null) : null,
+            valor_juros: formData.modoAjuste === "juros" ? (formData.valorJuros || 0) : 0,
+            tipo_juros: formData.modoAjuste === "juros" ? (formData.tipoJuros || null) : null,
+            modo_ajuste: formData.modoAjuste,
             fornecedor_id: formData.tipo === "Despesa" && formData.fornecedorId ? formData.fornecedorId : null,
           },
         ])
@@ -956,6 +979,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       valorDeducao: 0,
       tipoDeducao: "",
       fornecedorId: "",
+      valorJuros: 0,
+      tipoJuros: "",
+      modoAjuste: "deducao",
     });
     setItensLancamento([{ id: Date.now().toString(), descricao2: "", produtoServico: "", valor: 0, quantidade: 1 }]);
     setIsDialogOpen(false);
@@ -995,6 +1021,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       valorDeducao: lancamento.valorDeducao || 0,
       tipoDeducao: lancamento.tipoDeducao || "",
       fornecedorId: (lancamento as any).fornecedorId || "",
+      valorJuros: lancamento.valorJuros || 0,
+      tipoJuros: lancamento.tipoJuros || "",
+      modoAjuste: lancamento.modoAjuste || "deducao",
     });
     setItensLancamento(lancamento.itens);
     setIsEditDialogOpen(true);
@@ -1382,7 +1411,18 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       }
     }
 
-    const valorTotal = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0);
+    // Validação obrigatória de tipo/motivo quando valor >= 0.01
+    if (formData.modoAjuste === "deducao" && (formData.valorDeducao || 0) >= 0.01 && !formData.tipoDeducao) {
+      toast.error("Favor selecionar o Tipo de Dedução!"); return;
+    }
+    if (formData.modoAjuste === "juros" && (formData.valorJuros || 0) >= 0.01 && !formData.tipoJuros) {
+      toast.error("Favor selecionar o Motivo do Juros!"); return;
+    }
+
+    const subtotalEdit = itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0);
+    const valorTotal = formData.modoAjuste === "juros"
+      ? subtotalEdit + (formData.valorJuros || 0)
+      : subtotalEdit - (formData.valorDeducao || 0);
 
     try {
       let clienteId = null;
@@ -1459,8 +1499,11 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
           data_pagamento: formData.dataPagamento,
           conta_id: conta.id,
           pago: formData.pago,
-          valor_deducao: formData.valorDeducao || 0,
-          tipo_deducao: formData.tipoDeducao || null,
+          valor_deducao: formData.modoAjuste === "deducao" ? (formData.valorDeducao || 0) : 0,
+          tipo_deducao: formData.modoAjuste === "deducao" ? (formData.tipoDeducao || null) : null,
+          valor_juros: formData.modoAjuste === "juros" ? (formData.valorJuros || 0) : 0,
+          tipo_juros: formData.modoAjuste === "juros" ? (formData.tipoJuros || null) : null,
+          modo_ajuste: formData.modoAjuste,
           fornecedor_id: formData.tipo === "Despesa" && formData.fornecedorId ? formData.fornecedorId : null,
         })
         .eq("id", lancamentoSelecionado.id);
@@ -2084,65 +2127,87 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                   />
                 ))}
 
-                {/* Deduções e Valor Total - Tudo em uma linha */}
+                {/* Toggle Dedução/Juros + Valor Total */}
                 <div className="pt-2 border-t">
-                  <div className="grid grid-cols-3 gap-2 items-end">
-                    {/* Valor da Dedução */}
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px]">Valor da Dedução</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="R$ 0,00"
-                        value={formData.valorDeducao || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            valorDeducao: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        className="h-7 text-xs"
-                      />
-                    </div>
-
-                    {/* Tipo de Dedução */}
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px]">Tipo de Dedução</Label>
-                      <Select
-                        value={formData.tipoDeducao}
-                        onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}
+                  {/* Toggle */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="inline-flex rounded-md border border-input overflow-hidden">
+                      <button
+                        type="button"
+                        className={cn("px-3 py-1 text-[10px] font-medium transition-colors", formData.modoAjuste === "deducao" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted")}
+                        onClick={() => setFormData({ ...formData, modoAjuste: "deducao", valorJuros: 0, tipoJuros: "" })}
                       >
-                        <SelectTrigger className="h-7 text-xs">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Tarifa Bancária" className="text-xs">
-                            Tarifa Bancária
-                          </SelectItem>
-                          <SelectItem value="Desconto" className="text-xs">
-                            Desconto
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                        Dedução
+                      </button>
+                      <button
+                        type="button"
+                        className={cn("px-3 py-1 text-[10px] font-medium transition-colors", formData.modoAjuste === "juros" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted")}
+                        onClick={() => setFormData({ ...formData, modoAjuste: "juros", valorDeducao: 0, tipoDeducao: "" })}
+                      >
+                        Juros
+                      </button>
                     </div>
+                  </div>
 
-                    {/* Valor Total */}
+                  <div className="grid grid-cols-3 gap-2 items-end">
+                    {formData.modoAjuste === "deducao" ? (
+                      <>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Valor da Dedução</Label>
+                          <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorDeducao || ""} onChange={(e) => setFormData({ ...formData, valorDeducao: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Tipo de Dedução</Label>
+                          <Select value={formData.tipoDeducao} onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Tarifa Bancária" className="text-xs">Tarifa Bancária</SelectItem>
+                              <SelectItem value="Desconto" className="text-xs">Desconto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Valor do Juros</Label>
+                          <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorJuros || ""} onChange={(e) => setFormData({ ...formData, valorJuros: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px]">Motivo do Juros</Label>
+                          <Select value={formData.tipoJuros} onValueChange={(value) => setFormData({ ...formData, tipoJuros: value })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Juros de Mora" className="text-xs">Juros de Mora</SelectItem>
+                              <SelectItem value="Multa" className="text-xs">Multa</SelectItem>
+                              <SelectItem value="Correção Monetária" className="text-xs">Correção Monetária</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+
                     <div className="flex items-center gap-2 h-7">
                       <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
                       <span className="text-base font-bold text-primary">
                         {formatCurrency(
-                          itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0),
+                          formData.modoAjuste === "juros"
+                            ? itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) + (formData.valorJuros || 0)
+                            : itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0),
                         )}
                       </span>
                     </div>
                   </div>
 
-                  {/* Detalhamento quando houver dedução */}
-                  {formData.valorDeducao > 0 && (
+                  {/* Detalhamento */}
+                  {formData.modoAjuste === "deducao" && formData.valorDeducao > 0 && (
                     <div className="text-[10px] text-muted-foreground mt-1">
-                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} - Dedução (
-                      {formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} - Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                    </div>
+                  )}
+                  {formData.modoAjuste === "juros" && formData.valorJuros > 0 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} + Juros ({formData.tipoJuros}): {formatCurrency(formData.valorJuros)}
                     </div>
                   )}
                 </div>
@@ -3141,65 +3206,85 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
                 />
               ))}
 
-              {/* Deduções e Valor Total - Tudo em uma linha */}
+              {/* Toggle Dedução/Juros + Valor Total */}
               <div className="pt-2 border-t">
-                <div className="grid grid-cols-3 gap-2 items-end">
-                  {/* Valor da Dedução */}
-                  <div className="space-y-0.5">
-                    <Label className="text-[10px]">Valor da Dedução</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="R$ 0,00"
-                      value={formData.valorDeducao || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          valorDeducao: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                      className="h-7 text-xs"
-                    />
-                  </div>
-
-                  {/* Tipo de Dedução */}
-                  <div className="space-y-0.5">
-                    <Label className="text-[10px]">Tipo de Dedução</Label>
-                    <Select
-                      value={formData.tipoDeducao}
-                      onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="inline-flex rounded-md border border-input overflow-hidden">
+                    <button
+                      type="button"
+                      className={cn("px-3 py-1 text-[10px] font-medium transition-colors", formData.modoAjuste === "deducao" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted")}
+                      onClick={() => setFormData({ ...formData, modoAjuste: "deducao", valorJuros: 0, tipoJuros: "" })}
                     >
-                      <SelectTrigger className="h-7 text-xs">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Tarifa Bancária" className="text-xs">
-                          Tarifa Bancária
-                        </SelectItem>
-                        <SelectItem value="Desconto" className="text-xs">
-                          Desconto
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      Dedução
+                    </button>
+                    <button
+                      type="button"
+                      className={cn("px-3 py-1 text-[10px] font-medium transition-colors", formData.modoAjuste === "juros" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted")}
+                      onClick={() => setFormData({ ...formData, modoAjuste: "juros", valorDeducao: 0, tipoDeducao: "" })}
+                    >
+                      Juros
+                    </button>
                   </div>
+                </div>
 
-                  {/* Valor Total */}
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  {formData.modoAjuste === "deducao" ? (
+                    <>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px]">Valor da Dedução</Label>
+                        <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorDeducao || ""} onChange={(e) => setFormData({ ...formData, valorDeducao: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px]">Tipo de Dedução</Label>
+                        <Select value={formData.tipoDeducao} onValueChange={(value) => setFormData({ ...formData, tipoDeducao: value })}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Tarifa Bancária" className="text-xs">Tarifa Bancária</SelectItem>
+                            <SelectItem value="Desconto" className="text-xs">Desconto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px]">Valor do Juros</Label>
+                        <Input type="number" step="0.01" min="0" placeholder="R$ 0,00" value={formData.valorJuros || ""} onChange={(e) => setFormData({ ...formData, valorJuros: parseFloat(e.target.value) || 0 })} className="h-7 text-xs" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px]">Motivo do Juros</Label>
+                        <Select value={formData.tipoJuros} onValueChange={(value) => setFormData({ ...formData, tipoJuros: value })}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Juros de Mora" className="text-xs">Juros de Mora</SelectItem>
+                            <SelectItem value="Multa" className="text-xs">Multa</SelectItem>
+                            <SelectItem value="Correção Monetária" className="text-xs">Correção Monetária</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex items-center gap-2 h-7">
                     <Label className="text-xs font-semibold whitespace-nowrap">Valor Total:</Label>
                     <span className="text-base font-bold text-primary">
                       {formatCurrency(
-                        itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0),
+                        formData.modoAjuste === "juros"
+                          ? itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) + (formData.valorJuros || 0)
+                          : itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0) - (formData.valorDeducao || 0),
                       )}
                     </span>
                   </div>
                 </div>
 
-                {/* Detalhamento quando houver dedução */}
-                {formData.valorDeducao > 0 && (
+                {formData.modoAjuste === "deducao" && formData.valorDeducao > 0 && (
                   <div className="text-[10px] text-muted-foreground mt-1">
-                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} - Dedução (
-                    {formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} - Dedução ({formData.tipoDeducao}): {formatCurrency(formData.valorDeducao)}
+                  </div>
+                )}
+                {formData.modoAjuste === "juros" && formData.valorJuros > 0 && (
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    Subtotal: {formatCurrency(itensLancamento.reduce((acc, item) => acc + item.valor * (item.quantidade || 1), 0))} + Juros ({formData.tipoJuros}): {formatCurrency(formData.valorJuros)}
                   </div>
                 )}
               </div>
