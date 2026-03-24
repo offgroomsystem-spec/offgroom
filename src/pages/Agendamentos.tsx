@@ -2283,6 +2283,31 @@ const Agendamentos = () => {
 
         if (error) throw error;
 
+        // Sync WhatsApp messages: delete pending and recreate
+        const agId = editandoAgendamento.agendamentoOriginal.id;
+        await deletePendingMessages({ agendamentoId: agId });
+        
+        // Get pet sexo for message building
+        const sexoPet = obterSexoPet(editandoAgendamento.pet, editandoAgendamento.cliente);
+        const isPacote = false;
+        const servicoNome = servicoCompleto;
+        
+        await scheduleWhatsAppMessages({
+          userId: effectiveUserId || user.id,
+          agendamentoId: agId,
+          nomeCliente: editandoAgendamento.cliente,
+          nomePet: editandoAgendamento.pet,
+          sexoPet: sexoPet,
+          raca: editandoAgendamento.raca,
+          whatsapp: editandoAgendamento.whatsapp,
+          dataAgendamento: editandoAgendamento.data,
+          horarioInicio: editandoAgendamento.horarioInicio,
+          servicos: servicoNome,
+          taxiDog: editandoAgendamento.taxiDog || "Não",
+          bordao: empresaConfig.bordao || "",
+          isPacote,
+        });
+
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentos();
       } else if (
