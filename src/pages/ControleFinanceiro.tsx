@@ -631,6 +631,9 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     valorDeducao: 0,
     tipoDeducao: "",
     fornecedorId: "",
+    valorJuros: 0,
+    tipoJuros: "",
+    modoAjuste: "deducao" as "deducao" | "juros",
   });
 
   const [itensLancamento, setItensLancamento] = useState<ItemLancamento[]>([
