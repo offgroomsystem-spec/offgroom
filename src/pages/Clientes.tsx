@@ -321,7 +321,7 @@ export default function Clientes() {
     setPets(pets.filter((_, i) => i !== index));
   };
 
-  const updatePet = (index: number, field: keyof Pet, value: string) => {
+  const updatePet = (index: number, field: keyof Pet, value: string | boolean) => {
     const newPets = [...pets];
     newPets[index] = { ...newPets[index], [field]: value };
     setPets(newPets);
