@@ -249,7 +249,7 @@ export const ClientesEmRisco = () => {
             (a) => `${a.cliente_id || a.cliente}_${a.pet}` === cli.id && new Date(a.data + "T00:00:00") >= hoje,
           ) ||
           pacotes?.some((p) => {
-            if (p.nome_cliente !== cli.nomeCliente || p.nome_pet !== cli.nomePet) return false;
+            if (`${p.nome_cliente}_${p.nome_pet}` !== cli.id) return false;
             try {
               const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
               if (Array.isArray(servicos)) {
