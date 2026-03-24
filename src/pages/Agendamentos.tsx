@@ -2480,6 +2480,9 @@ const Agendamentos = () => {
 
     try {
       if (agendamentoParaDeletar.tipo === "simples" && agendamentoParaDeletar.agendamentoOriginal) {
+        // Deletar mensagens pendentes antes de excluir o agendamento
+        await deletePendingMessages({ agendamentoId: agendamentoParaDeletar.agendamentoOriginal.id });
+
         const { error } = await supabase.
         from("agendamentos").
         delete().
@@ -2494,6 +2497,12 @@ const Agendamentos = () => {
       agendamentoParaDeletar.pacoteOriginal &&
       agendamentoParaDeletar.servicoOriginal)
       {
+        // Deletar mensagens pendentes do serviço do pacote
+        await deletePendingMessages({
+          agendamentoPacoteId: agendamentoParaDeletar.pacoteOriginal.id,
+          servicoNumero: agendamentoParaDeletar.servicoOriginal.numero
+        });
+
         // Remove specific service from package or delete entire package if it's the last service
         const servicosAtualizados = agendamentoParaDeletar.pacoteOriginal.servicos.filter(
           (s) => s.numero !== agendamentoParaDeletar.servicoOriginal!.numero

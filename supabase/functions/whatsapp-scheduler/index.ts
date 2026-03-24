@@ -199,21 +199,130 @@ Deno.serve(async (req) => {
 
     for (const msg of mensagens as MensagemAgendada[]) {
       const instanceName = instanceMap.get(msg.user_id);
-      if (!instanceName || !msg.mensagem) {
+      if (!instanceName) {
         await supabase
           .from("whatsapp_mensagens_agendadas")
-          .update({ status: "falha", erro: "Instância não encontrada ou mensagem vazia" })
+          .update({ status: "falha", erro: "Instância não encontrada" })
+          .eq("id", msg.id);
+        falhas++;
+        continue;
+      }
+
+      // === REGENERAR MENSAGEM COM DADOS ATUAIS ===
+      let mensagemAtualizada = msg.mensagem;
+      const bordao = bordaoMap.get(msg.user_id) || "";
+
+      try {
+        if (msg.agendamento_id) {
+          // Buscar dados atuais do agendamento avulso
+          const { data: agAtual } = await supabase
+            .from("agendamentos")
+            .select("cliente, pet, raca, whatsapp, data, horario, servico, taxi_dog, numero_servico_pacote, status, cliente_id")
+            .eq("id", msg.agendamento_id)
+            .single();
+
+          if (!agAtual || agAtual.status === "Cancelado") {
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "Agendamento removido ou cancelado" })
+              .eq("id", msg.id);
+            continue;
+          }
+
+          // Obter sexo do pet
+          let sexoPet = "Macho";
+          if (agAtual.cliente_id) {
+            const { data: petData } = await supabase
+              .from("pets")
+              .select("sexo")
+              .eq("cliente_id", agAtual.cliente_id)
+              .eq("nome_pet", agAtual.pet)
+              .limit(1);
+            if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
+          }
+
+          const isPacote = !!agAtual.numero_servico_pacote;
+          const isUltimo = isPacote && isUltimoServicoPacote(agAtual.numero_servico_pacote);
+
+          if (msg.tipo_mensagem === "30min") {
+            mensagemAtualizada = buildReminderMessage(agAtual.cliente, agAtual.pet, sexoPet, agAtual.horario);
+          } else {
+            mensagemAtualizada = buildConfirmationMessage(
+              agAtual.cliente, agAtual.pet, sexoPet, agAtual.data, agAtual.horario,
+              agAtual.servico, agAtual.taxi_dog, bordao, isPacote,
+              agAtual.numero_servico_pacote, isUltimo
+            );
+          }
+        } else if (msg.agendamento_pacote_id) {
+          // Buscar dados atuais do pacote
+          const { data: pacoteAtual } = await supabase
+            .from("agendamentos_pacotes")
+            .select("nome_cliente, nome_pet, raca, whatsapp, servicos, taxi_dog")
+            .eq("id", msg.agendamento_pacote_id)
+            .single();
+
+          if (!pacoteAtual) {
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "Pacote removido" })
+              .eq("id", msg.id);
+            continue;
+          }
+
+          const servicos = pacoteAtual.servicos as any[];
+          const svAtual = servicos?.find((s: any) => s.numero === msg.servico_numero);
+
+          if (!svAtual || svAtual.status === "Cancelado") {
+            await supabase
+              .from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: "Serviço do pacote removido ou cancelado" })
+              .eq("id", msg.id);
+            continue;
+          }
+
+          // Obter sexo do pet
+          let sexoPet = "Macho";
+          const { data: petData } = await supabase
+            .from("pets")
+            .select("sexo")
+            .eq("user_id", msg.user_id)
+            .eq("nome_pet", pacoteAtual.nome_pet)
+            .limit(1);
+          if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
+
+          const servicoNumero = svAtual.numero || msg.servico_numero;
+          const isUltimo = isUltimoServicoPacote(servicoNumero || "");
+          const servicoNome = svAtual.nomeServico || svAtual.servico || svAtual.nome || "Banho";
+
+          if (msg.tipo_mensagem === "30min") {
+            mensagemAtualizada = buildReminderMessage(pacoteAtual.nome_cliente, pacoteAtual.nome_pet, sexoPet, svAtual.horarioInicio);
+          } else {
+            mensagemAtualizada = buildConfirmationMessage(
+              pacoteAtual.nome_cliente, pacoteAtual.nome_pet, sexoPet, svAtual.data, svAtual.horarioInicio,
+              servicoNome, pacoteAtual.taxi_dog, bordao, true, servicoNumero, isUltimo
+            );
+          }
+        }
+      } catch (regenErr) {
+        console.error(`Error regenerating message ${msg.id}:`, regenErr);
+        // Fall back to stored message
+      }
+
+      if (!mensagemAtualizada) {
+        await supabase
+          .from("whatsapp_mensagens_agendadas")
+          .update({ status: "falha", erro: "Mensagem vazia após regeneração" })
           .eq("id", msg.id);
         falhas++;
         continue;
       }
 
       try {
-        await enviarMensagemEvolution(instanceName, msg.numero_whatsapp, msg.mensagem);
+        await enviarMensagemEvolution(instanceName, msg.numero_whatsapp, mensagemAtualizada);
         
         await supabase
           .from("whatsapp_mensagens_agendadas")
-          .update({ status: "enviado", enviado_em: new Date().toISOString() })
+          .update({ status: "enviado", enviado_em: new Date().toISOString(), mensagem: mensagemAtualizada })
           .eq("id", msg.id);
         
         enviados++;
