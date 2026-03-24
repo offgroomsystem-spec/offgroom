@@ -2346,6 +2346,36 @@ const Agendamentos = () => {
 
         if (error) throw error;
 
+        // Sync WhatsApp messages for pacote: delete pending and recreate
+        const pacoteId = editandoAgendamento.pacoteOriginal.id;
+        const servicoNum = editandoAgendamento.servicoOriginal.numero;
+        await deletePendingMessages({ agendamentoPacoteId: pacoteId, servicoNumero: servicoNum });
+
+        const sexoPet = obterSexoPet(editandoAgendamento.pet, editandoAgendamento.cliente);
+        const totalServicos = editandoAgendamento.pacoteOriginal.servicos.length;
+        const currentIdx = editandoAgendamento.pacoteOriginal.servicos.findIndex(
+          (s) => s.numero === servicoNum
+        );
+        const isUltimo = currentIdx === totalServicos - 1;
+
+        await scheduleWhatsAppMessages({
+          userId: effectiveUserId || user.id,
+          agendamentoPacoteId: pacoteId,
+          servicoNumero: servicoNum,
+          nomeCliente: editandoAgendamento.cliente,
+          nomePet: editandoAgendamento.pet,
+          sexoPet: sexoPet,
+          raca: editandoAgendamento.raca,
+          whatsapp: editandoAgendamento.whatsapp,
+          dataAgendamento: editandoAgendamento.data,
+          horarioInicio: editandoAgendamento.horarioInicio,
+          servicos: servicoPrincipalEdicao,
+          taxiDog: editandoAgendamento.taxiDog || "Não",
+          bordao: empresaConfig.bordao || "",
+          isPacote: true,
+          isUltimoServicoPacote: isUltimo,
+        });
+
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentosPacotes();
       }
