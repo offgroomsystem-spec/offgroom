@@ -71,6 +71,32 @@ function parseDateTime(date: string, time: string): Date {
   return new Date(Date.UTC(year, month - 1, day, hours + 3, minutes, 0, 0));
 }
 
+export async function deletePendingMessages(opts: {
+  agendamentoId?: string;
+  agendamentoPacoteId?: string;
+  servicoNumero?: string;
+}) {
+  let query = supabase
+    .from("whatsapp_mensagens_agendadas" as any)
+    .delete()
+    .eq("status", "pendente");
+
+  if (opts.agendamentoId) {
+    query = query.eq("agendamento_id", opts.agendamentoId);
+  }
+  if (opts.agendamentoPacoteId) {
+    query = query.eq("agendamento_pacote_id", opts.agendamentoPacoteId);
+  }
+  if (opts.servicoNumero) {
+    query = query.eq("servico_numero", opts.servicoNumero);
+  }
+
+  const { error } = await query;
+  if (error) {
+    console.error("Erro ao deletar mensagens pendentes:", error);
+  }
+}
+
 export async function scheduleWhatsAppMessages(params: ScheduleParams) {
   const now = params.createdAt || new Date();
   const agendamentoDateTime = parseDateTime(params.dataAgendamento, params.horarioInicio);
