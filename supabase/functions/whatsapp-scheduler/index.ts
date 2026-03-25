@@ -715,9 +715,9 @@ async function autoCreatePacoteMessages(
 
         const key = `${pacote.id}_${servicoNumero}`;
 
-        // === 24h ===
-        if (diffMinutes > 24 * 60 && !existingPacoteSet.has(`${key}_24h`)) {
-          const ag24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
+        // === 15h ===
+        if (diffMinutes > 15 * 60 && !existingPacoteSet.has(`${key}_15h`)) {
+          const ag24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
           const brtH = (ag24h.getUTCHours() - 3 + 24) % 24;
           if (brtH < 7) ag24h.setUTCHours(10, 0, 0, 0);
           if (ag24h.getTime() > now.getTime()) {
