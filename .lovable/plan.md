@@ -1,32 +1,53 @@
 
 
-## Plano: Unificar mensagens "Pet Pronto" para multiplos pets do mesmo cliente
+## Plano: Unificar mensagens de lembrete 30min para multiplos pets do mesmo cliente
 
-### Problema
-A funcao `handlePetProntoConfirm` (linha 1964) monta e envia a mensagem apenas para o pet clicado, sem buscar outros pets do mesmo cliente agendados para o mesmo dia.
+### Problema atual
 
-### Alteracao
+A chave de agrupamento no edge function inclui `servicoNumero` na composicao. Isso impede a unificacao quando um pet eh avulso (`null`) e outro eh pacote (`"1/4"`), pois geram chaves diferentes. O `buildUnifiedReminderMessage` ja existe e ja gera o texto correto com plural, mas a separacao por `servicoNumero` impede que os pets sejam agrupados.
 
-**Arquivo: `src/pages/Agendamentos.tsx` (linhas 1999-2021)**
+### Alteracoes
 
-Substituir a logica de montagem da mensagem "Pet Pronto" por:
+**Arquivo: `supabase/functions/whatsapp-scheduler/index.ts`**
 
-1. **Buscar todos os pets do mesmo cliente no dia**: Filtrar `agendamentosDia` pelo mesmo `cliente` (nome do cliente) e mesmo `whatsapp`, coletando `{nome, sexo}` de cada pet encontrado.
+1. **Ajustar chave de agrupamento (linha 404)**: Para mensagens do tipo `30min`, excluir `servicoNumero` e `taxiDog` da chave, agrupando apenas por `userId|numeroWhatsapp|tipoMensagem|data`. Isso garante que todos os pets do mesmo cliente no mesmo dia sejam unificados no lembrete.
 
-2. **Nova funcao `buildPetProntoMessage`** que recebe `primeiroNome`, `pets: Array<{nome: string, sexo: string}>`, `taxiDog: string`:
-   - **Concatenacao dos nomes**: 1 pet = "Rex"; 2 pets = "Rex e Luna"; 3+ = "Rex, Luna e Mel"
-   - **Genero**: se todos femea → feminino plural; se misto ou todos macho → masculino plural; se 1 pet → singular conforme sexo
-   - **Singular (1 pet):**
-     - Taxi Sim: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet] já está [pronto/pronta]!\nJá já o Taxi Dog chega e [ele/ela] estará indo de volta pra casa!`
-     - Taxi Nao: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet] já está [pronto/pronta] para ir para casa!\n[Ele/Ela] está [ansioso/ansiosa] te esperando para [buscá-lo/buscá-la]! 😌`
-   - **Plural (2+ pets):**
-     - Taxi Sim: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet1 e Pet2] estão [prontos/prontas]!\nJá já o Taxi Dog chega e [eles/elas] estarão indo de volta pra casa!`
-     - Taxi Nao: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet1 e Pet2] estão [prontos/prontas] para ir para casa!\n[Eles/Elas] estão [ansiosos/ansiosas] te esperando para [buscá-los/buscá-las]! 😌`
+```text
+// Antes (todas as mensagens):
+key = userId|numeroWhatsapp|tipoMensagem|data|servicoNumero|taxiDog
 
-3. O artigo antes dos nomes segue a regra: "o" se primeiro pet macho ou misto, "a" se primeiro pet femea (e todos femea).
+// Depois (30min):
+key = userId|numeroWhatsapp|30min|data
 
-4. **Sem alteracao** na logica de atualizacao de horario — continua atualizando apenas o agendamento clicado.
+// Depois (demais tipos):
+key = userId|numeroWhatsapp|tipoMensagem|data|servicoNumero|taxiDog
+```
+
+**Arquivo: `src/utils/whatsappScheduler.ts`**
+
+2. **Atualizar `buildReminderMessage` para aceitar multiplos pets**: Mesma logica de concatenacao de nomes e genero plural que ja existe no edge function, para consistencia caso a mensagem seja pre-visualizada no frontend.
+
+### Formato da mensagem (ja implementado no `buildUnifiedReminderMessage`, sem alteracao)
+
+**1 pet:**
+```text
+Oi Rodrygo! 😄
+
+Não esqueça de trazer o Rex hoje às 08:00.
+
+Esse horário estamos por aqui prontos para receber ele! 🐾💙
+```
+
+**2+ pets:**
+```text
+Oi Rodrygo! 😄
+
+Não esqueça de trazer o Rex e Luna hoje às 08:00.
+
+Esse horário estamos por aqui prontos para receber eles! 🐾💙
+```
 
 ### Resultado
-Ao clicar "Pet Pronto" para qualquer pet da Geane (por exemplo), o sistema encontra todos os pets dela no dia e envia uma unica mensagem unificada.
+
+Ao ter dois ou mais pets do mesmo cliente agendados para o mesmo dia com Taxi Dog "Nao", o lembrete de 30min sera enviado como uma unica mensagem unificada listando todos os nomes dos pets.
 
