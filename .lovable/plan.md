@@ -1,58 +1,32 @@
 
 
-## Plano: Unificar mensagens com servicos diferentes listando servico por pet
+## Plano: Unificar mensagens "Pet Pronto" para multiplos pets do mesmo cliente
 
-### Resumo
+### Problema
+A funcao `handlePetProntoConfirm` (linha 1964) monta e envia a mensagem apenas para o pet clicado, sem buscar outros pets do mesmo cliente agendados para o mesmo dia.
 
-Alterar a logica de agrupamento para agrupar por `userId + numeroWhatsapp + tipoMensagem + data + servicoNumero + taxiDog` (removendo `servico` da chave). Quando os servicos forem diferentes, listar cada servico por pet. Quando iguais, manter linha unica.
+### Alteracao
 
-### Alteracoes
+**Arquivo: `src/pages/Agendamentos.tsx` (linhas 1999-2021)**
 
-**Arquivo: `supabase/functions/whatsapp-scheduler/index.ts`**
+Substituir a logica de montagem da mensagem "Pet Pronto" por:
 
-1. **Mudar chave de agrupamento** (linha 395): remover `servico` da chave composta, agrupando apenas por `userId|numeroWhatsapp|tipoMensagem|data|servicoNumero|taxiDog`
+1. **Buscar todos os pets do mesmo cliente no dia**: Filtrar `agendamentosDia` pelo mesmo `cliente` (nome do cliente) e mesmo `whatsapp`, coletando `{nome, sexo}` de cada pet encontrado.
 
-2. **Atualizar `buildUnifiedConfirmationMessage`** para receber `petInfos` com servico por pet:
-   - Novo tipo: `Array<{nome: string, sexo: string, servico: string}>`
-   - Se todos os servicos iguais → linha unica `*Serviço:* BANHO...`
-   - Se servicos diferentes → uma linha por pet: `*Serviço Cachorro grande 2:* Taxi dog\n*Serviço Teste Grande:* BANHO...`
+2. **Nova funcao `buildPetProntoMessage`** que recebe `primeiroNome`, `pets: Array<{nome: string, sexo: string}>`, `taxiDog: string`:
+   - **Concatenacao dos nomes**: 1 pet = "Rex"; 2 pets = "Rex e Luna"; 3+ = "Rex, Luna e Mel"
+   - **Genero**: se todos femea → feminino plural; se misto ou todos macho → masculino plural; se 1 pet → singular conforme sexo
+   - **Singular (1 pet):**
+     - Taxi Sim: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet] já está [pronto/pronta]!\nJá já o Taxi Dog chega e [ele/ela] estará indo de volta pra casa!`
+     - Taxi Nao: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet] já está [pronto/pronta] para ir para casa!\n[Ele/Ela] está [ansioso/ansiosa] te esperando para [buscá-lo/buscá-la]! 😌`
+   - **Plural (2+ pets):**
+     - Taxi Sim: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet1 e Pet2] estão [prontos/prontas]!\nJá já o Taxi Dog chega e [eles/elas] estarão indo de volta pra casa!`
+     - Taxi Nao: `Oii [Nome]!\nPassando para avisar que [o/a] [Pet1 e Pet2] estão [prontos/prontas] para ir para casa!\n[Eles/Elas] estão [ansiosos/ansiosas] te esperando para [buscá-los/buscá-las]! 😌`
 
-3. **Atualizar `buildUnifiedReminderMessage`** — sem mudanca no formato (nao menciona servico)
+3. O artigo antes dos nomes segue a regra: "o" se primeiro pet macho ou misto, "a" se primeiro pet femea (e todos femea).
 
-4. **Ajustar chamada no loop de grupos** (linhas 416-441): passar servico de cada pet no `petInfos` array, e adaptar a chamada da funcao
+4. **Sem alteracao** na logica de atualizacao de horario — continua atualizando apenas o agendamento clicado.
 
-### Formato da mensagem
-
-**Servicos diferentes (avulso):**
-```text
-Oi, Rodrygo! Passando apenas para confirmar o agendamento do Cachorro grande 2 e Teste Grande com a gente.
-
-*Dia:* 25/03/2026
-*Horario:* 08:00
-*Serviço Cachorro grande 2:* Taxi dog
-*Serviço Teste Grande:* BANHO PORTE GRANDE BULDOG
-*Pacote de serviços:* Sem Pacote 😕
-*Taxi Dog:* Não
-
-*Seu Pet é mais feliz com Denguinho*
-```
-
-**Servicos iguais (avulso):**
-```text
-Oi, Rodrygo! ...
-
-*Dia:* 25/03/2026
-*Horario:* 08:00
-*Serviço:* BANHO PORTE GRANDE BULDOG
-*Pacote de serviços:* Sem Pacote 😕
-*Taxi Dog:* Não
-
-*Seu Pet é mais feliz com Denguinho*
-```
-
-Mesma logica para pacotes (com `*N° do Pacote:*` em vez de `*Pacote de serviços:*`).
-
-### Tambem atualizar `whatsappScheduler.ts` (frontend)
-
-Aplicar a mesma logica nas funcoes `buildConfirmationMessage` e `buildUnifiedConfirmationMessage` do frontend para manter consistencia caso mensagens sejam pre-visualizadas.
+### Resultado
+Ao clicar "Pet Pronto" para qualquer pet da Geane (por exemplo), o sistema encontra todos os pets dela no dia e envia uma unica mensagem unificada.
 
