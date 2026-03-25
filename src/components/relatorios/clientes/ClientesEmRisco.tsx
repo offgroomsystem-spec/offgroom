@@ -243,21 +243,26 @@ export const ClientesEmRisco = () => {
       });
 
       pacotes?.forEach((p) => {
+        // Tentar encontrar o cliente_id pelo nome
+        const clienteMatch = (petsData || []).find((pd: any) => {
+          // fallback: match by nome_cliente from clientes query would be better
+          return false;
+        });
         const chave = `${p.nome_cliente}_${p.nome_pet}`;
         let ultimaDataServico: Date | null = null;
 
         try {
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
           if (Array.isArray(servicos)) {
-            const datasValidas = servicos.map((s) => new Date(s.data + "T00:00:00")).filter((d) => isValid(d));
+            const datasValidas = servicos.map((s: any) => new Date(s.data + "T00:00:00")).filter((d: Date) => isValid(d));
             if (datasValidas.length > 0) {
-              ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
+              ultimaDataServico = new Date(Math.max(...datasValidas.map((d: Date) => d.getTime())));
             }
           }
         } catch {}
 
         const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
-        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
+        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal, p.nome_cliente);
       });
 
       const listaRisco: ClienteRisco[] = [];
