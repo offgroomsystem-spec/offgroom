@@ -1,53 +1,24 @@
 
 
-## Plano: Toggle WhatsApp por Pet
 
-### O que sera feito
+## Plano: Mensagens Automaticas de Clientes em Risco via WhatsApp
 
-Adicionar coluna `whatsapp_ativo` na tabela `pets` e um toggle ao lado de cada "Pet #N" no formulario. Implementar logica de cascata entre o toggle do cliente e dos pets.
+### Status: Estrutura base implementada ✅
 
-### Regras de cascata
+### O que foi feito
 
-- Cliente desativado → todos os pets desativados automaticamente
-- Cliente com 1 pet e pet desativado → cliente tambem desativado
-- Cliente com 2+ pets e apenas 1 pet desativado → somente aquele pet suspendido, cliente permanece ativo
+1. **Tabela `whatsapp_mensagens_risco`** criada com RLS policies
+2. **Edge Function `whatsapp-risco-scheduler`** implementada e deployada
+   - Agrupa pets por `cliente_id` em uma unica mensagem
+   - Verifica `whatsapp_ativo` do cliente e de cada pet
+   - Usa concordancia de genero (o/a) baseada no sexo do pet
+   - Envia via Evolution API com intervalo de 10s entre mensagens
+   - Controla duplicidade (nao reenvia no mesmo dia)
+3. **`ClientesEmRisco.tsx`** atualizado
+   - Envio manual via WhatsApp agora agrupa todos os pets do mesmo cliente
+   - Mensagens com artigos de genero corretos
+4. **`pg_cron`** configurado para rodar diariamente as 10:00 UTC (07:00 BRT)
 
-### Alteracoes
+### Proximo passo
 
-**1. Migracao SQL**
-- `ALTER TABLE public.pets ADD COLUMN whatsapp_ativo boolean NOT NULL DEFAULT true;`
-
-**2. `src/pages/Clientes.tsx`**
-
-- Adicionar `whatsapp_ativo` na interface `Pet`
-- Adicionar toggle `Switch` ao lado do titulo "Pet #N" (linha 454)
-- Implementar logica no `onCheckedChange` do toggle do cliente: quando desativado, desativar todos os pets; quando ativado, ativar todos os pets
-- Implementar logica no `onCheckedChange` do toggle do pet: se cliente tem 1 pet e pet e desativado, desativar cliente tambem
-- No `handleSubmit`, salvar `whatsapp_ativo` de cada pet (insert e update)
-- No `handleEdit`, carregar `whatsapp_ativo` dos pets
-- No `resetForm`, incluir `whatsapp_ativo: true` no pet padrao
-- No `addPet`, incluir `whatsapp_ativo: true` no novo pet
-- Atualizar `updatePet` para aceitar campo boolean
-
-**3. `src/utils/whatsappScheduler.ts`**
-
-- Adicionar `petNome?: string` ao `ScheduleParams` (ou reusar campo existente `nomePet`)
-- Apos verificar `whatsapp_ativo` do cliente, buscar o pet pelo `cliente_id` + `nome_pet` e verificar `whatsapp_ativo` do pet
-- Se pet `whatsapp_ativo === false`, retornar sem agendar
-
-**4. `supabase/functions/whatsapp-scheduler/index.ts`**
-
-- Nos 3 pontos onde ja verifica `whatsapp_ativo` do cliente, adicionar verificacao do pet:
-  - Para agendamentos avulsos: buscar pet pelo `cliente_id` + nome do pet (campo `pet` do agendamento)
-  - Para pacotes: buscar pet pelo nome do cliente + nome do pet
-- Se pet `whatsapp_ativo === false`, cancelar/pular mensagem
-
-### Resumo
-
-| Arquivo | Mudanca |
-|---|---|
-| Migracao SQL | Coluna `whatsapp_ativo boolean default true` em `pets` |
-| `Clientes.tsx` | Switch por pet + logica de cascata |
-| `whatsappScheduler.ts` | Checar flag do pet antes de agendar |
-| `whatsapp-scheduler/index.ts` | Checar flag do pet antes de enviar |
-
+Aguardando os templates de mensagem por faixa de periodo (7-10, 11-15, 16-20, 21-30, 31-45, 46-90, +90 dias) para substituir os templates provisorios.
