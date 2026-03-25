@@ -210,17 +210,19 @@ export const ClientesEmRisco = () => {
         nomePet: string,
         whatsapp: any,
         dataStr: string,
+        clienteId: string,
       ) => {
         if (!dataStr) return;
-        // Interpreta data como local timezone ao invés de UTC
         const data = new Date(dataStr + "T00:00:00");
         if (!isValid(data)) return;
 
         if (!mapa.has(chave)) {
           mapa.set(chave, {
             id: chave,
+            clienteId,
             nomeCliente,
             nomePet,
+            sexoPet: petSexoMap.get(`${clienteId}_${nomePet}`) || null,
             whatsapp: whatsapp ? whatsapp.toString() : "",
             ultimoAgendamento: data,
             diasSemAgendar: 0,
