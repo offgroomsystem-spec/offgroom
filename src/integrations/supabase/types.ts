@@ -1559,6 +1559,56 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_mensagens_risco: {
+        Row: {
+          agendado_para: string
+          cliente_id: string
+          created_at: string | null
+          enviado_em: string | null
+          erro: string | null
+          id: string
+          mensagem: string | null
+          numero_whatsapp: string
+          pets_incluidos: Json
+          status: string
+          user_id: string
+        }
+        Insert: {
+          agendado_para?: string
+          cliente_id: string
+          created_at?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          numero_whatsapp: string
+          pets_incluidos?: Json
+          status?: string
+          user_id: string
+        }
+        Update: {
+          agendado_para?: string
+          cliente_id?: string
+          created_at?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          numero_whatsapp?: string
+          pets_incluidos?: Json
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensagens_risco_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
