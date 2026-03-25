@@ -151,9 +151,9 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     status: "pendente",
   };
 
-  // === MENSAGEM 24H ANTES ===
-  if (diffMinutes > 24 * 60) {
-    const agendadoPara24h = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000);
+  // === MENSAGEM 15H ANTES ===
+  if (diffMinutes > 15 * 60) {
+    const agendadoPara24h = new Date(agendamentoDateTime.getTime() - 15 * 60 * 60 * 1000);
     // Se a hora em Brasília (UTC-3) for antes das 7h, agendar para 7h Brasília (10h UTC)
     if (agendadoPara24h.getUTCHours() < 10 || (agendadoPara24h.getUTCHours() === 10 && agendadoPara24h.getUTCMinutes() === 0)) {
       // Check if actually before 7h BRT
