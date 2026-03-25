@@ -338,6 +338,19 @@ export default function Clientes() {
       cliente.pets.some((pet) => pet.nome_pet.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
+  const [ordenarCpf, setOrdenarCpf] = useState(false);
+
+  const sortedClientes = ordenarCpf
+    ? [...filteredClientes].sort((a, b) => {
+        const numA = a.cpf_cnpj ? a.cpf_cnpj.replace(/\D/g, '') : '';
+        const numB = b.cpf_cnpj ? b.cpf_cnpj.replace(/\D/g, '') : '';
+        if (!numA && !numB) return 0;
+        if (!numA) return 1;
+        if (!numB) return -1;
+        return numA.localeCompare(numB, undefined, { numeric: true });
+      })
+    : filteredClientes;
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <Card>
