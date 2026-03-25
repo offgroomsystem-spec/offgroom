@@ -164,7 +164,7 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     }
     mensagensParaInserir.push({
       ...baseRecord,
-      tipo_mensagem: "24h",
+      tipo_mensagem: "15h",
       mensagem: confirmationMsg,
       agendado_para: agendadoPara24h.toISOString(),
     });

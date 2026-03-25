@@ -721,7 +721,7 @@ async function autoCreatePacoteMessages(
           const brtH = (ag24h.getUTCHours() - 3 + 24) % 24;
           if (brtH < 7) ag24h.setUTCHours(10, 0, 0, 0);
           if (ag24h.getTime() > now.getTime()) {
-            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "24h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "15h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
           }
         }
 
