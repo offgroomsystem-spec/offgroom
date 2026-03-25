@@ -11,6 +11,7 @@ import { Search, Plus, Trash2, Edit, PawPrint, X, Check, ChevronsUpDown } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { formatCPFCNPJ } from "@/utils/fiscalUtils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -639,6 +640,7 @@ export default function Clientes() {
                       <th className="text-left p-3 font-medium">Pets</th>
                       <th className="text-left p-3 font-medium">WhatsApp</th>
                       <th className="text-left p-3 font-medium">Endereço</th>
+                      <th className="text-left p-3 font-medium">CPF/CNPJ</th>
                       <th className="text-right p-3 font-medium">Ações</th>
                     </tr>
                   </thead>
@@ -664,6 +666,9 @@ export default function Clientes() {
                         </td>
                         <td className="p-3">{cliente.whatsapp}</td>
                         <td className="p-3 text-sm text-muted-foreground">{cliente.endereco || "-"}</td>
+                        <td className="p-3 text-sm text-muted-foreground">
+                          {cliente.cpf_cnpj ? formatCPFCNPJ(cliente.cpf_cnpj) : "-"}
+                        </td>
                         <td className="p-3">
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="sm" onClick={() => handleEdit(cliente)}>
