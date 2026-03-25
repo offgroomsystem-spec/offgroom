@@ -401,7 +401,11 @@ Deno.serve(async (req) => {
         ungroupable.push(rd);
         continue;
       }
-      const key = `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
+      // Para mensagens de 30min, agrupar apenas por userId|numero|tipo|data (sem servicoNumero/taxiDog)
+      // para unificar pets avulsos e de pacote do mesmo cliente
+      const key = rd.tipoMensagem === "30min"
+        ? `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}`
+        : `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
       const group = groupMap.get(key) || [];
       group.push(rd);
       groupMap.set(key, group);

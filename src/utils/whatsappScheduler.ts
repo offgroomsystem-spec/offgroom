@@ -57,11 +57,31 @@ function buildConfirmationMessage(params: ScheduleParams): string {
   return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*N° do Pacote:* ${params.servicoNumero}\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
 }
 
-function buildReminderMessage(params: ScheduleParams): string {
+function buildReminderMessage(params: ScheduleParams, allPets?: Array<{nome: string, sexo: string}>): string {
   const primeiroNome = getPrimeiroNome(params.nomeCliente);
-  const oA = getSexoPrefix(params.sexoPet, "o");
-  const eleEla = getSexoPrefix(params.sexoPet, "ele");
-  return `Oi ${primeiroNome}! 😄\n\nNão esqueça de trazer ${oA} ${params.nomePet} hoje às ${params.horarioInicio}.\n\nEsse horário estamos por aqui prontos para receber ${eleEla}! 🐾💙`;
+  const pets = allPets && allPets.length > 0
+    ? allPets
+    : [{ nome: params.nomePet, sexo: params.sexoPet }];
+
+  const allFemale = pets.every(p => p.sexo?.toLowerCase() === "fêmea" || p.sexo?.toLowerCase() === "femea");
+  const isSingular = pets.length === 1;
+
+  // Concatenar nomes: 1="Rex", 2="Rex e Luna", 3+="Rex, Luna e Mel"
+  let nomesConcat: string;
+  if (pets.length === 1) {
+    nomesConcat = pets[0].nome;
+  } else if (pets.length === 2) {
+    nomesConcat = `${pets[0].nome} e ${pets[1].nome}`;
+  } else {
+    nomesConcat = pets.slice(0, -1).map(p => p.nome).join(", ") + " e " + pets[pets.length - 1].nome;
+  }
+
+  const artigo = allFemale ? "a" : "o";
+  const pronome = isSingular
+    ? (allFemale ? "ela" : "ele")
+    : (allFemale ? "elas" : "eles");
+
+  return `Oi ${primeiroNome}! 😄\n\nNão esqueça de trazer ${artigo} ${nomesConcat} hoje às ${params.horarioInicio}.\n\nEsse horário estamos por aqui prontos para receber ${pronome}! 🐾💙`;
 }
 
 function parseDateTime(date: string, time: string): Date {
