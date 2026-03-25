@@ -422,13 +422,13 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Deduplicate pets
+      // Deduplicate pets (keeping servico per pet)
       const seenPets = new Set<string>();
-      const petInfos: Array<{nome: string, sexo: string}> = [];
+      const petInfos: Array<{nome: string, sexo: string, servico: string}> = [];
       for (const rd of group) {
         if (!seenPets.has(rd.nomePet)) {
           seenPets.add(rd.nomePet);
-          petInfos.push({ nome: rd.nomePet, sexo: rd.sexoPet });
+          petInfos.push({ nome: rd.nomePet, sexo: rd.sexoPet, servico: rd.servico });
         }
       }
 
@@ -445,7 +445,7 @@ Deno.serve(async (req) => {
       } else {
         mensagemFinal = buildUnifiedConfirmationMessage(
           first.nomeCliente, petInfos, first.data, horario,
-          first.servico, first.taxiDog, first.bordao,
+          first.taxiDog, first.bordao,
           first.isPacote, first.servicoNumero, isUltimo
         );
       }
