@@ -94,6 +94,59 @@ function buildReminderMessage(nomeCliente: string, nomePet: string, sexoPet: str
   return `Oi ${primeiroNome}! 😄\n\nNão esqueça de trazer ${oA} ${nomePet} hoje às ${horario}.\n\nEsse horário estamos por aqui prontos para receber ${eleEla}! 🐾💙`;
 }
 
+function buildUnifiedPetNames(petInfos: Array<{nome: string, sexo: string}>): { namesStr: string, doDa: string } {
+  const names = petInfos.map(p => p.nome);
+  let namesStr: string;
+  if (names.length === 1) {
+    namesStr = names[0];
+  } else if (names.length === 2) {
+    namesStr = `${names[0]} e ${names[1]}`;
+  } else {
+    namesStr = names.slice(0, -1).join(", ") + " e " + names[names.length - 1];
+  }
+  const allFemale = petInfos.every(p => {
+    const s = p.sexo?.toLowerCase();
+    return s === "fêmea" || s === "femea";
+  });
+  const doDa = allFemale ? "da" : "do";
+  return { namesStr, doDa };
+}
+
+function buildUnifiedConfirmationMessage(
+  nomeCliente: string, petInfos: Array<{nome: string, sexo: string}>,
+  data: string, horario: string, servicos: string, taxiDog: string, bordao: string,
+  isPacote: boolean, servicoNumero: string | null, isUltimo: boolean
+): string {
+  const primeiroNome = getPrimeiroNome(nomeCliente);
+  const { namesStr, doDa } = buildUnifiedPetNames(petInfos);
+  const dataBR = formatDataBR(data);
+  const bordaoLine = bordao ? `\n\n*${bordao}*` : "";
+
+  if (!isPacote) {
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+  }
+
+  if (isUltimo) {
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${namesStr}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+  }
+
+  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+}
+
+function buildUnifiedReminderMessage(
+  nomeCliente: string, petInfos: Array<{nome: string, sexo: string}>, horario: string
+): string {
+  const primeiroNome = getPrimeiroNome(nomeCliente);
+  const { namesStr } = buildUnifiedPetNames(petInfos);
+  const allFemale = petInfos.every(p => {
+    const s = p.sexo?.toLowerCase();
+    return s === "fêmea" || s === "femea";
+  });
+  const oA = allFemale ? "a" : "o";
+  const eleEla = petInfos.length === 1 ? (allFemale ? "ela" : "ele") : (allFemale ? "elas" : "eles");
+  return `Oi ${primeiroNome}! 😄\n\nNão esqueça de trazer ${oA} ${namesStr} hoje às ${horario}.\n\nEsse horário estamos por aqui prontos para receber ${eleEla}! 🐾💙`;
+}
+
 function formatNumero(whatsapp: string): string {
   let numero = whatsapp.replace(/\D/g, "");
   if (!numero.startsWith("55")) {
@@ -194,27 +247,34 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ message: "No pending messages, auto-create done" }), { headers: corsHeaders });
     }
 
-    let enviados = 0;
-    let falhas = 0;
+    // === COLLECT REGEN DATA FOR ALL MESSAGES ===
+    interface RegenData {
+      msgId: string;
+      userId: string;
+      nomeCliente: string;
+      nomePet: string;
+      sexoPet: string;
+      data: string;
+      horario: string;
+      servico: string;
+      taxiDog: string;
+      isPacote: boolean;
+      servicoNumero: string | null;
+      isUltimo: boolean;
+      tipoMensagem: string;
+      numeroWhatsapp: string;
+      bordao: string;
+      hasFallback: boolean;
+    }
+
+    const regenList: RegenData[] = [];
 
     for (const msg of mensagens as MensagemAgendada[]) {
-      const instanceName = instanceMap.get(msg.user_id);
-      if (!instanceName) {
-        await supabase
-          .from("whatsapp_mensagens_agendadas")
-          .update({ status: "falha", erro: "Instância não encontrada" })
-          .eq("id", msg.id);
-        falhas++;
-        continue;
-      }
-
-      // === REGENERAR MENSAGEM COM DADOS ATUAIS ===
-      let mensagemAtualizada = msg.mensagem;
       const bordao = bordaoMap.get(msg.user_id) || "";
+      let extracted: RegenData | null = null;
 
       try {
         if (msg.agendamento_id) {
-          // Buscar dados atuais do agendamento avulso
           const { data: agAtual } = await supabase
             .from("agendamentos")
             .select("cliente, pet, raca, whatsapp, data, horario, servico, taxi_dog, numero_servico_pacote, status, cliente_id")
@@ -222,73 +282,40 @@ Deno.serve(async (req) => {
             .single();
 
           if (!agAtual || agAtual.status === "Cancelado") {
-            await supabase
-              .from("whatsapp_mensagens_agendadas")
-              .update({ status: "cancelado", erro: "Agendamento removido ou cancelado" })
-              .eq("id", msg.id);
+            await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "Agendamento removido ou cancelado" }).eq("id", msg.id);
             continue;
           }
 
-          // Verificar se cliente tem whatsapp_ativo
           if (agAtual.cliente_id) {
-            const { data: clienteCheck } = await supabase
-              .from("clientes")
-              .select("whatsapp_ativo")
-              .eq("id", agAtual.cliente_id)
-              .single();
+            const { data: clienteCheck } = await supabase.from("clientes").select("whatsapp_ativo").eq("id", agAtual.cliente_id).single();
             if (clienteCheck && clienteCheck.whatsapp_ativo === false) {
-              await supabase
-                .from("whatsapp_mensagens_agendadas")
-                .update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" })
-                .eq("id", msg.id);
+              await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" }).eq("id", msg.id);
               continue;
             }
+            const { data: petCheck } = await supabase.from("pets").select("whatsapp_ativo").eq("cliente_id", agAtual.cliente_id).eq("nome_pet", agAtual.pet).limit(1);
+            if (petCheck && petCheck.length > 0 && petCheck[0].whatsapp_ativo === false) {
+              await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "WhatsApp desativado para este pet" }).eq("id", msg.id);
+              continue;
             }
+          }
 
-            // Verificar se o pet tem whatsapp_ativo
-            if (agAtual.cliente_id) {
-              const { data: petCheck } = await supabase
-                .from("pets")
-                .select("whatsapp_ativo")
-                .eq("cliente_id", agAtual.cliente_id)
-                .eq("nome_pet", agAtual.pet)
-                .limit(1);
-              if (petCheck && petCheck.length > 0 && petCheck[0].whatsapp_ativo === false) {
-                await supabase
-                  .from("whatsapp_mensagens_agendadas")
-                  .update({ status: "cancelado", erro: "WhatsApp desativado para este pet" })
-                  .eq("id", msg.id);
-                continue;
-              }
-            }
-
-
-          // Obter sexo do pet
           let sexoPet = "Macho";
           if (agAtual.cliente_id) {
-            const { data: petData } = await supabase
-              .from("pets")
-              .select("sexo")
-              .eq("cliente_id", agAtual.cliente_id)
-              .eq("nome_pet", agAtual.pet)
-              .limit(1);
+            const { data: petData } = await supabase.from("pets").select("sexo").eq("cliente_id", agAtual.cliente_id).eq("nome_pet", agAtual.pet).limit(1);
             if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
           }
 
-          const isPacote = !!agAtual.numero_servico_pacote;
-          const isUltimo = isPacote && isUltimoServicoPacote(agAtual.numero_servico_pacote);
-
-          if (msg.tipo_mensagem === "30min") {
-            mensagemAtualizada = buildReminderMessage(agAtual.cliente, agAtual.pet, sexoPet, agAtual.horario);
-          } else {
-            mensagemAtualizada = buildConfirmationMessage(
-              agAtual.cliente, agAtual.pet, sexoPet, agAtual.data, agAtual.horario,
-              agAtual.servico, agAtual.taxi_dog, bordao, isPacote,
-              agAtual.numero_servico_pacote, isUltimo
-            );
-          }
+          extracted = {
+            msgId: msg.id, userId: msg.user_id,
+            nomeCliente: agAtual.cliente, nomePet: agAtual.pet, sexoPet,
+            data: agAtual.data, horario: agAtual.horario, servico: agAtual.servico,
+            taxiDog: agAtual.taxi_dog, isPacote: !!agAtual.numero_servico_pacote,
+            servicoNumero: agAtual.numero_servico_pacote,
+            isUltimo: !!agAtual.numero_servico_pacote && isUltimoServicoPacote(agAtual.numero_servico_pacote),
+            tipoMensagem: msg.tipo_mensagem, numeroWhatsapp: msg.numero_whatsapp,
+            bordao, hasFallback: false,
+          };
         } else if (msg.agendamento_pacote_id) {
-          // Buscar dados atuais do pacote
           const { data: pacoteAtual } = await supabase
             .from("agendamentos_pacotes")
             .select("nome_cliente, nome_pet, raca, whatsapp, servicos, taxi_dog")
@@ -296,40 +323,19 @@ Deno.serve(async (req) => {
             .single();
 
           if (!pacoteAtual) {
-            await supabase
-              .from("whatsapp_mensagens_agendadas")
-              .update({ status: "cancelado", erro: "Pacote removido" })
-              .eq("id", msg.id);
+            await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "Pacote removido" }).eq("id", msg.id);
             continue;
           }
 
-          // Verificar whatsapp_ativo pelo nome do cliente
-          const { data: clienteCheck2 } = await supabase
-            .from("clientes")
-            .select("whatsapp_ativo")
-            .eq("user_id", msg.user_id)
-            .eq("nome_cliente", pacoteAtual.nome_cliente)
-            .limit(1);
+          const { data: clienteCheck2 } = await supabase.from("clientes").select("whatsapp_ativo").eq("user_id", msg.user_id).eq("nome_cliente", pacoteAtual.nome_cliente).limit(1);
           if (clienteCheck2 && clienteCheck2.length > 0 && clienteCheck2[0].whatsapp_ativo === false) {
-            await supabase
-              .from("whatsapp_mensagens_agendadas")
-              .update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" })
-              .eq("id", msg.id);
+            await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "WhatsApp desativado para este cliente" }).eq("id", msg.id);
             continue;
           }
 
-          // Verificar whatsapp_ativo do pet
-          const { data: petCheckPacote } = await supabase
-            .from("pets")
-            .select("whatsapp_ativo")
-            .eq("user_id", msg.user_id)
-            .eq("nome_pet", pacoteAtual.nome_pet)
-            .limit(1);
+          const { data: petCheckPacote } = await supabase.from("pets").select("whatsapp_ativo").eq("user_id", msg.user_id).eq("nome_pet", pacoteAtual.nome_pet).limit(1);
           if (petCheckPacote && petCheckPacote.length > 0 && petCheckPacote[0].whatsapp_ativo === false) {
-            await supabase
-              .from("whatsapp_mensagens_agendadas")
-              .update({ status: "cancelado", erro: "WhatsApp desativado para este pet" })
-              .eq("id", msg.id);
+            await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "WhatsApp desativado para este pet" }).eq("id", msg.id);
             continue;
           }
 
@@ -337,72 +343,146 @@ Deno.serve(async (req) => {
           const svAtual = servicos?.find((s: any) => s.numero === msg.servico_numero);
 
           if (!svAtual || svAtual.status === "Cancelado") {
-            await supabase
-              .from("whatsapp_mensagens_agendadas")
-              .update({ status: "cancelado", erro: "Serviço do pacote removido ou cancelado" })
-              .eq("id", msg.id);
+            await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "Serviço do pacote removido ou cancelado" }).eq("id", msg.id);
             continue;
           }
 
-          // Obter sexo do pet
           let sexoPet = "Macho";
-          const { data: petData } = await supabase
-            .from("pets")
-            .select("sexo")
-            .eq("user_id", msg.user_id)
-            .eq("nome_pet", pacoteAtual.nome_pet)
-            .limit(1);
+          const { data: petData } = await supabase.from("pets").select("sexo").eq("user_id", msg.user_id).eq("nome_pet", pacoteAtual.nome_pet).limit(1);
           if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
 
           const servicoNumero = svAtual.numero || msg.servico_numero;
-          const isUltimo = isUltimoServicoPacote(servicoNumero || "");
           const servicoNome = svAtual.nomeServico || svAtual.servico || svAtual.nome || "Banho";
 
-          if (msg.tipo_mensagem === "30min") {
-            mensagemAtualizada = buildReminderMessage(pacoteAtual.nome_cliente, pacoteAtual.nome_pet, sexoPet, svAtual.horarioInicio);
-          } else {
-            mensagemAtualizada = buildConfirmationMessage(
-              pacoteAtual.nome_cliente, pacoteAtual.nome_pet, sexoPet, svAtual.data, svAtual.horarioInicio,
-              servicoNome, pacoteAtual.taxi_dog, bordao, true, servicoNumero, isUltimo
-            );
-          }
+          extracted = {
+            msgId: msg.id, userId: msg.user_id,
+            nomeCliente: pacoteAtual.nome_cliente, nomePet: pacoteAtual.nome_pet, sexoPet,
+            data: svAtual.data, horario: svAtual.horarioInicio, servico: servicoNome,
+            taxiDog: pacoteAtual.taxi_dog, isPacote: true,
+            servicoNumero, isUltimo: isUltimoServicoPacote(servicoNumero || ""),
+            tipoMensagem: msg.tipo_mensagem, numeroWhatsapp: msg.numero_whatsapp,
+            bordao, hasFallback: false,
+          };
         }
       } catch (regenErr) {
-        console.error(`Error regenerating message ${msg.id}:`, regenErr);
-        // Fall back to stored message
+        console.error(`Error extracting data for message ${msg.id}:`, regenErr);
       }
 
-      if (!mensagemAtualizada) {
-        await supabase
-          .from("whatsapp_mensagens_agendadas")
-          .update({ status: "falha", erro: "Mensagem vazia após regeneração" })
-          .eq("id", msg.id);
-        falhas++;
+      if (extracted) {
+        regenList.push(extracted);
+      } else {
+        // Fallback: mark as ungroupable, will send with stored message
+        regenList.push({
+          msgId: msg.id, userId: msg.user_id,
+          nomeCliente: "", nomePet: "", sexoPet: "Macho",
+          data: "", horario: "", servico: "", taxiDog: "",
+          isPacote: false, servicoNumero: null, isUltimo: false,
+          tipoMensagem: msg.tipo_mensagem, numeroWhatsapp: msg.numero_whatsapp,
+          bordao: "", hasFallback: true,
+        });
+      }
+    }
+
+    // === GROUP MESSAGES BY KEY ===
+    const groupMap = new Map<string, RegenData[]>();
+    const ungroupable: RegenData[] = [];
+
+    for (const rd of regenList) {
+      if (rd.hasFallback || !rd.nomeCliente) {
+        ungroupable.push(rd);
+        continue;
+      }
+      const key = `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servico}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
+      const group = groupMap.get(key) || [];
+      group.push(rd);
+      groupMap.set(key, group);
+    }
+
+    let enviados = 0;
+    let falhas = 0;
+
+    // Process grouped messages
+    for (const [, group] of groupMap) {
+      const first = group[0];
+      const instanceName = instanceMap.get(first.userId);
+      if (!instanceName) {
+        for (const rd of group) {
+          await supabase.from("whatsapp_mensagens_agendadas").update({ status: "falha", erro: "Instância não encontrada" }).eq("id", rd.msgId);
+        }
+        falhas += group.length;
         continue;
       }
 
-      try {
-        await enviarMensagemEvolution(instanceName, msg.numero_whatsapp, mensagemAtualizada);
-        
-        await supabase
-          .from("whatsapp_mensagens_agendadas")
-          .update({ status: "enviado", enviado_em: new Date().toISOString(), mensagem: mensagemAtualizada })
-          .eq("id", msg.id);
-        
-        enviados++;
-        
-        if (enviados < mensagens.length) {
-          await sleep(10000);
+      // Deduplicate pets
+      const seenPets = new Set<string>();
+      const petInfos: Array<{nome: string, sexo: string}> = [];
+      for (const rd of group) {
+        if (!seenPets.has(rd.nomePet)) {
+          seenPets.add(rd.nomePet);
+          petInfos.push({ nome: rd.nomePet, sexo: rd.sexoPet });
         }
+      }
+
+      // Use earliest horario
+      const horarios = group.map(rd => rd.horario).filter(Boolean).sort();
+      const horario = horarios[0] || first.horario;
+
+      // If any in group is ultimo, consider ultimo
+      const isUltimo = group.some(rd => rd.isUltimo);
+
+      let mensagemFinal: string;
+      if (first.tipoMensagem === "30min") {
+        mensagemFinal = buildUnifiedReminderMessage(first.nomeCliente, petInfos, horario);
+      } else {
+        mensagemFinal = buildUnifiedConfirmationMessage(
+          first.nomeCliente, petInfos, first.data, horario,
+          first.servico, first.taxiDog, first.bordao,
+          first.isPacote, first.servicoNumero, isUltimo
+        );
+      }
+
+      try {
+        await enviarMensagemEvolution(instanceName, first.numeroWhatsapp, mensagemFinal);
+        for (const rd of group) {
+          await supabase.from("whatsapp_mensagens_agendadas")
+            .update({ status: "enviado", enviado_em: new Date().toISOString(), mensagem: mensagemFinal })
+            .eq("id", rd.msgId);
+        }
+        enviados++;
+        await sleep(10000);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
-        console.error(`Failed to send message ${msg.id}:`, errorMsg);
-        
-        await supabase
-          .from("whatsapp_mensagens_agendadas")
+        console.error(`Failed to send grouped message:`, errorMsg);
+        for (const rd of group) {
+          await supabase.from("whatsapp_mensagens_agendadas")
+            .update({ status: "falha", erro: errorMsg })
+            .eq("id", rd.msgId);
+        }
+        falhas++;
+      }
+    }
+
+    // Process ungroupable (fallback with stored message)
+    for (const rd of ungroupable) {
+      const instanceName = instanceMap.get(rd.userId);
+      const originalMsg = (mensagens as MensagemAgendada[]).find(m => m.id === rd.msgId);
+      if (!instanceName || !originalMsg?.mensagem) {
+        await supabase.from("whatsapp_mensagens_agendadas").update({ status: "falha", erro: "Instância não encontrada ou mensagem vazia" }).eq("id", rd.msgId);
+        falhas++;
+        continue;
+      }
+      try {
+        await enviarMensagemEvolution(instanceName, rd.numeroWhatsapp, originalMsg.mensagem);
+        await supabase.from("whatsapp_mensagens_agendadas")
+          .update({ status: "enviado", enviado_em: new Date().toISOString() })
+          .eq("id", rd.msgId);
+        enviados++;
+        await sleep(10000);
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
+        await supabase.from("whatsapp_mensagens_agendadas")
           .update({ status: "falha", erro: errorMsg })
-          .eq("id", msg.id);
-        
+          .eq("id", rd.msgId);
         falhas++;
       }
     }
