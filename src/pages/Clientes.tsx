@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Plus, Trash2, Edit, PawPrint, X, Check, ChevronsUpDown } from "lucide-react";
+import { Search, Plus, Trash2, Edit, PawPrint, X, Check, ChevronsUpDown, ArrowUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -338,6 +338,19 @@ export default function Clientes() {
       cliente.pets.some((pet) => pet.nome_pet.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
+  const [ordenarCpf, setOrdenarCpf] = useState(false);
+
+  const sortedClientes = ordenarCpf
+    ? [...filteredClientes].sort((a, b) => {
+        const numA = a.cpf_cnpj ? a.cpf_cnpj.replace(/\D/g, '') : '';
+        const numB = b.cpf_cnpj ? b.cpf_cnpj.replace(/\D/g, '') : '';
+        if (!numA && !numB) return 0;
+        if (!numA) return 1;
+        if (!numB) return -1;
+        return numA.localeCompare(numB, undefined, { numeric: true });
+      })
+    : filteredClientes;
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <Card>
@@ -640,12 +653,20 @@ export default function Clientes() {
                       <th className="text-left p-3 font-medium">Pets</th>
                       <th className="text-left p-3 font-medium">WhatsApp</th>
                       <th className="text-left p-3 font-medium">Endereço</th>
-                      <th className="text-left p-3 font-medium">CPF/CNPJ</th>
+                      <th className="text-left p-3 font-medium">
+                        <button
+                          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                          onClick={() => setOrdenarCpf(prev => !prev)}
+                        >
+                          CPF/CNPJ
+                          <ArrowUpDown className={cn("h-3.5 w-3.5", ordenarCpf ? "text-primary" : "text-muted-foreground")} />
+                        </button>
+                      </th>
                       <th className="text-right p-3 font-medium">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredClientes.map((cliente) => (
+                    {sortedClientes.map((cliente) => (
                       <tr key={cliente.id} className="border-b hover:bg-muted/30 transition-colors">
                         <td className="p-3 font-medium">{cliente.nome_cliente}</td>
                         <td className="p-3">
@@ -683,7 +704,7 @@ export default function Clientes() {
                     ))}
                     {filteredClientes.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                        <td colSpan={6} className="text-center py-8 text-muted-foreground">
                           Nenhum cliente encontrado
                         </td>
                       </tr>
