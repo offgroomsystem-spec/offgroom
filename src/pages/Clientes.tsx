@@ -640,6 +640,7 @@ export default function Clientes() {
                       <th className="text-left p-3 font-medium">Pets</th>
                       <th className="text-left p-3 font-medium">WhatsApp</th>
                       <th className="text-left p-3 font-medium">Endereço</th>
+                      <th className="text-left p-3 font-medium">CPF/CNPJ</th>
                       <th className="text-right p-3 font-medium">Ações</th>
                     </tr>
                   </thead>
