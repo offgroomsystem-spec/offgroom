@@ -401,7 +401,7 @@ Deno.serve(async (req) => {
         ungroupable.push(rd);
         continue;
       }
-      const key = `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servico}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
+      const key = `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
       const group = groupMap.get(key) || [];
       group.push(rd);
       groupMap.set(key, group);
