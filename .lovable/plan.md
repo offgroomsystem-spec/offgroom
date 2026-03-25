@@ -1,34 +1,41 @@
 
 
-## Plano: Corrigir e ativar o envio automatico de mensagens de risco
-
-### Problemas encontrados
-
-1. **Cron no horario errado**: O pg_cron esta configurado para `0 10 * * *` (10:00 UTC = **07:00 BRT**), mas a Edge Function rejeita chamadas antes das **08:00 BRT**. Resultado: todo dia a funcao e chamada e retorna "Fora do horario comercial" sem enviar nada.
-
-2. **Falta entrada no config.toml**: A funcao `whatsapp-risco-scheduler` nao esta listada no `supabase/config.toml` com `verify_jwt = false`. Sem isso, a funcao pode exigir JWT valido e rejeitar a chamada do cron.
-
-3. **Funcao possivelmente nao deployada**: Nao ha nenhum log da funcao, o que indica que ela pode nunca ter sido executada com sucesso.
-
-### Correcoes
-
-**1. Atualizar o pg_cron** — Mudar de `0 10 * * *` para `0 11 * * *` (11:00 UTC = 08:00 BRT)
-- Isso garante que a funcao sera chamada exatamente quando o horario comercial comeca
-- Usar SQL direto (unschedule + schedule) pois contem dados especificos do projeto
-
-**2. Adicionar entrada no config.toml**
-```toml
-[functions.whatsapp-risco-scheduler]
-verify_jwt = false
-```
-
-**3. Fazer deploy da funcao** — O deploy e automatico ao salvar o config.toml, forcando redeployment
+## Plano: Enviar mensagem WhatsApp diretamente via Evolution API ao clicar no botao
 
 ### Resumo
 
-| Problema | Correcao |
-|---|---|
-| Cron 10:00 UTC (07h BRT) vs funcao exige 08h+ | Mudar cron para 11:00 UTC (08h BRT) |
-| Falta config.toml entry | Adicionar `verify_jwt = false` |
-| Funcao sem logs/deploy | Redeploy automatico com alteracao |
+Alterar o botao de WhatsApp na tabela de Clientes em Risco para enviar a mensagem automaticamente via Evolution API (em vez de abrir link wa.me). Seguir o mesmo padrao ja usado em `Agendamentos.tsx`.
+
+### Alteracoes
+
+**Arquivo: `src/components/relatorios/clientes/ClientesEmRisco.tsx`**
+
+1. Adicionar estados para controlar a instancia WhatsApp:
+   - `whatsappInstanceName` e `whatsappConnected` (carregados no `useEffect` inicial)
+   - `enviandoWhatsApp` (string | null) para indicar qual cliente esta enviando
+
+2. No `useEffect` de carregamento, buscar a instancia WhatsApp do usuario:
+   - Query `whatsapp_instances` pelo `ownerId`
+   - Verificar status via `supabase.functions.invoke("evolution-api", { action: "check-status" })`
+
+3. Substituir `abrirWhatsAppAgrupado` por `enviarWhatsAppDireto`:
+   - Se instancia conectada: chamar `supabase.functions.invoke("evolution-api", { action: "send-message", instanceName, number, text })`
+   - Se nao conectada: fallback para link wa.me (comportamento atual)
+   - Mostrar toast de sucesso/erro
+   - Setar estado `enviandoWhatsApp` com o id do cliente durante o envio (spinner no botao)
+
+4. Atualizar o botao na tabela:
+   - Mostrar `Loader2` spinner enquanto envia
+   - Desabilitar botao durante envio
+
+### Detalhes tecnicos
+
+Padrao de envio (mesmo de Agendamentos.tsx):
+```typescript
+const res = await supabase.functions.invoke("evolution-api", {
+  body: { action: "send-message", instanceName, number: numeroCompleto, text: mensagem }
+});
+```
+
+Numero formatado: remover nao-digitos, prefixar "55" se necessario.
 
