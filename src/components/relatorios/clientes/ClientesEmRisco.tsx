@@ -1,15 +1,15 @@
 // src/components/relatorios/clientes/ClientesEmRisco.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Loader2, LinkIcon, Filter, ChevronDown, ChevronUp } from "lucide-react";
-import { format, differenceInDays, parseISO, isValid } from "date-fns";
+import { Eye, Loader2, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { format, differenceInDays, isValid } from "date-fns";
 import { toast } from "sonner";
-import { FiltrosClientesRisco } from "./FiltrosClientesRisco"; // <-- IMPORT CORRIGIDO
+import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
 import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
 
 interface ClienteRisco {
