@@ -154,25 +154,6 @@ const gerarMensagemAgrupada = (
   return `Oi, ${primeiroNome}!\nEstamos abrindo alguns horários especiais pra clientes que queremos muito receber de volta… e ${listaPets} está nessa lista 🐶✨\nQue tal aproveitar e agendar um banho pra deixar ${eles} ${cheirosos} novamente? 🛁😊`;
 };
 
-// Abrir link do WhatsApp agrupando todos os pets do mesmo cliente
-const abrirWhatsAppAgrupado = (clienteClicado: ClienteRisco, todosClientes: ClienteRisco[]) => {
-  if (!clienteClicado.whatsapp) return toast.error("Número de WhatsApp não informado");
-
-  // Agrupar todos os pets do mesmo clienteId
-  const petsDoCliente = todosClientes
-    .filter((c) => c.clienteId === clienteClicado.clienteId)
-    .map((c) => ({ nomePet: c.nomePet, sexoPet: c.sexoPet, diasSemAgendar: c.diasSemAgendar }));
-
-  const primeiroNome = clienteClicado.nomeCliente.split(" ")[0];
-  const mensagem = gerarMensagemAgrupada(primeiroNome, petsDoCliente);
-
-  const numeroLimpo = clienteClicado.whatsapp.toString().replace(/\D/g, "");
-  const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
-
-  const link = `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(mensagem)}`;
-  window.open(link, "_blank");
-};
-
 export const ClientesEmRisco = () => {
   const { user, ownerId } = useAuth();
   const [clientes, setClientes] = useState<ClienteRisco[]>([]);
@@ -187,6 +168,87 @@ export const ClientesEmRisco = () => {
   const [modalAberto, setModalAberto] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<ClienteRisco | null>(null);
   const [filtrosVisiveis, setFiltrosVisiveis] = useState(false);
+  const [enviandoWhatsApp, setEnviandoWhatsApp] = useState<string | null>(null);
+  const whatsappInstanceRef = useRef<{ name: string; connected: boolean }>({ name: "", connected: false });
+
+  // Carregar instância WhatsApp
+  useEffect(() => {
+    const loadInstance = async () => {
+      if (!ownerId) return;
+      try {
+        const { data: instances } = await supabase
+          .from("whatsapp_instances")
+          .select("instance_name, status")
+          .eq("user_id", ownerId)
+          .limit(1);
+
+        if (instances && instances.length > 0) {
+          const inst = instances[0];
+          whatsappInstanceRef.current.name = inst.instance_name;
+
+          if (inst.status === "connected") {
+            try {
+              const { data } = await supabase.functions.invoke("evolution-api", {
+                body: { action: "check-status", instanceName: inst.instance_name },
+              });
+              whatsappInstanceRef.current.connected = data?.instance?.state === "open";
+            } catch {
+              whatsappInstanceRef.current.connected = false;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar instância WhatsApp:", err);
+      }
+    };
+    loadInstance();
+  }, [ownerId]);
+
+  // Enviar WhatsApp diretamente via Evolution API
+  const enviarWhatsAppDireto = async (clienteClicado: ClienteRisco, todosClientes: ClienteRisco[]) => {
+    if (!clienteClicado.whatsapp) return toast.error("Número de WhatsApp não informado");
+
+    const petsDoCliente = todosClientes
+      .filter((c) => c.clienteId === clienteClicado.clienteId)
+      .map((c) => ({ nomePet: c.nomePet, sexoPet: c.sexoPet, diasSemAgendar: c.diasSemAgendar }));
+
+    const primeiroNome = clienteClicado.nomeCliente.split(" ")[0];
+    const mensagem = gerarMensagemAgrupada(primeiroNome, petsDoCliente);
+
+    const numeroLimpo = clienteClicado.whatsapp.toString().replace(/\D/g, "");
+    const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
+
+    const { name: instanceName, connected } = whatsappInstanceRef.current;
+
+    if (!connected || !instanceName) {
+      const link = `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(mensagem)}`;
+      window.open(link, "_blank");
+      return;
+    }
+
+    setEnviandoWhatsApp(clienteClicado.clienteId);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("evolution-api", {
+        body: {
+          action: "send-message",
+          instanceName,
+          number: numeroCompleto,
+          text: mensagem,
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Mensagem enviada para ${clienteClicado.nomeCliente}!`);
+    } catch (err) {
+      console.error("Erro ao enviar WhatsApp:", err);
+      toast.error("Erro ao enviar mensagem. Abrindo link manual...");
+      const link = `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(mensagem)}`;
+      window.open(link, "_blank");
+    } finally {
+      setEnviandoWhatsApp(null);
+    }
+  };
 
   // carregar clientes (mantive sua lógica que já funcionava)
   const carregarClientesEmRisco = async () => {
