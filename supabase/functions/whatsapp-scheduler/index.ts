@@ -529,9 +529,9 @@ async function autoCreateMissingMessages(
         status: "pendente",
       };
 
-      // === 24h message ===
-      if (diffMinutes > 24 * 60 && !existingSet.has(`${ag.id}_24h`)) {
-        const agendadoPara24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
+      // === 15h message ===
+      if (diffMinutes > 15 * 60 && !existingSet.has(`${ag.id}_15h`)) {
+        const agendadoPara24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
         const brtHour24 = (agendadoPara24h.getUTCHours() - 3 + 24) % 24;
         if (brtHour24 < 7) {
           agendadoPara24h.setUTCHours(10, 0, 0, 0); // 7h BRT
@@ -539,7 +539,7 @@ async function autoCreateMissingMessages(
         if (agendadoPara24h.getTime() > now.getTime()) {
           mensagensParaInserir.push({
             ...baseRecord,
-            tipo_mensagem: "24h",
+            tipo_mensagem: "15h",
             mensagem: confirmMsg,
             agendado_para: agendadoPara24h.toISOString(),
           });
@@ -715,13 +715,13 @@ async function autoCreatePacoteMessages(
 
         const key = `${pacote.id}_${servicoNumero}`;
 
-        // === 24h ===
-        if (diffMinutes > 24 * 60 && !existingPacoteSet.has(`${key}_24h`)) {
-          const ag24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
+        // === 15h ===
+        if (diffMinutes > 15 * 60 && !existingPacoteSet.has(`${key}_15h`)) {
+          const ag24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
           const brtH = (ag24h.getUTCHours() - 3 + 24) % 24;
           if (brtH < 7) ag24h.setUTCHours(10, 0, 0, 0);
           if (ag24h.getTime() > now.getTime()) {
-            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "24h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "15h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
           }
         }
 
