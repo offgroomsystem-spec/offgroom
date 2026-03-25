@@ -653,7 +653,7 @@ export default function Clientes() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredClientes.map((cliente) => (
+                    {sortedClientes.map((cliente) => (
                       <tr key={cliente.id} className="border-b hover:bg-muted/30 transition-colors">
                         <td className="p-3 font-medium">{cliente.nome_cliente}</td>
                         <td className="p-3">
