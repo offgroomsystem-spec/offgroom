@@ -14,8 +14,10 @@ import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
 
 interface ClienteRisco {
   id: string;
+  clienteId: string;
   nomeCliente: string;
   nomePet: string;
+  sexoPet: string | null;
   whatsapp: string;
   ultimoAgendamento: Date;
   diasSemAgendar: number;
@@ -73,59 +75,63 @@ const obterCorCard = (faixa: string) => {
   }
 };
 
-// Mensagens (mantive as que você pediu)
-const gerarMensagemWhatsApp = (cliente: ClienteRisco): string => {
-  const { nomeCliente, nomePet, diasSemAgendar } = cliente;
-  const primeiroNome = nomeCliente.split(" ")[0];
-
-  if (diasSemAgendar >= 7 && diasSemAgendar <= 10)
-    return `Olá, ${primeiroNome}!  
-Como vc está?
-
-Notamos que faz ${diasSemAgendar} dias do último banho de ${nomePet}. Está quase na hora do próximo banho. Vamos marcar o próximo para manter os cuidados em dia?`;
-
-  if (diasSemAgendar >= 11 && diasSemAgendar <= 15)
-    return `Oii, ${primeiroNome}.  
-Como vc está?
-
-Já faz um tempinho desde o último banho de ${nomePet}. Vamos marcar o próximo para ele continuar sempre bem cuidado?`;
-
-  if (diasSemAgendar >= 16 && diasSemAgendar <= 20)
-    return `Olá, ${primeiroNome}.  
-Como vc está?
-
-Já faz um bom tempo que o ${nomePet} não vem nos visitar. Vamos agendar o próximo banho e colocar os cuidados em dia?`;
-
-  if (diasSemAgendar >= 21 && diasSemAgendar <= 30)
-    return `Olá, ${primeiroNome}.  
-Como vc está?
-
-Já faz quase um mês desde o último banho de ${nomePet}. Que tal agendar um novo e deixar ele limpo e confortável?`;
-
-  if (diasSemAgendar >= 31 && diasSemAgendar <= 45)
-    return `Oii, ${primeiroNome}!  
-Como vc está?
-
-O ${nomePet} está há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana. Vamos marcar?`;
-
-  if (diasSemAgendar >= 46 && diasSemAgendar <= 90)
-    return `Olá, ${primeiroNome}.  
-Já faz bastante tempo que ${nomePet} não vem ao nosso espaço. Sentimos falta dele. Que tal agendar um novo banho e colocá-lo em dia com um cuidado especial?`;
-
-  return `Olá, ${primeiroNome}! Tudo bem?`;
+// Monta a lista de pets com artigo de gênero: "o Theo, a Amora, a Meg"
+const montarListaPets = (pets: { nomePet: string; sexoPet: string | null }[]): string => {
+  return pets
+    .map((p) => {
+      const artigo = p.sexoPet?.toLowerCase() === "fêmea" || p.sexoPet?.toLowerCase() === "femea" ? "a" : "o";
+      return `${artigo} ${p.nomePet}`;
+    })
+    .join(", ");
 };
 
-// Abrir link do WhatsApp em nova aba
-const abrirWhatsApp = (cliente: ClienteRisco) => {
-  if (!cliente.whatsapp) return toast.error("Número de WhatsApp não informado");
+// Gera mensagem agrupada para todos os pets do mesmo cliente
+const gerarMensagemAgrupada = (
+  primeiroNome: string,
+  pets: { nomePet: string; sexoPet: string | null; diasSemAgendar: number }[]
+): string => {
+  const listaPets = montarListaPets(pets);
+  const maxDias = Math.max(...pets.map((p) => p.diasSemAgendar));
+  const plural = pets.length > 1;
 
-  const numeroLimpo = cliente.whatsapp.toString().replace(/\D/g, "");
+  if (maxDias >= 7 && maxDias <= 10)
+    return `Oi, ${primeiroNome}!\n\nSeparei alguns horários especiais essa semana e lembrei de vocês 😊\n\n${listaPets} já ${plural ? "estão" : "está"} na hora daquele banho caprichado 🛁✨ Quer que eu garanta um horário pra você?`;
+
+  if (maxDias >= 11 && maxDias <= 15)
+    return `Oii, ${primeiroNome}!\n\nJá faz um tempinho desde o último banho. ${listaPets} ${plural ? "estão" : "está"} precisando de um cuidado especial 🐾\n\nVamos marcar pra essa semana?`;
+
+  if (maxDias >= 16 && maxDias <= 20)
+    return `Olá, ${primeiroNome}!\n\nJá faz um bom tempo que ${listaPets} não ${plural ? "vêm" : "vem"} nos visitar 🐶\n\nVamos agendar o próximo banho e colocar os cuidados em dia?`;
+
+  if (maxDias >= 21 && maxDias <= 30)
+    return `Olá, ${primeiroNome}!\n\nJá faz quase um mês! ${listaPets} ${plural ? "merecem" : "merece"} aquele banho caprichado 🛁✨\n\nQue tal agendar um novo horário?`;
+
+  if (maxDias >= 31 && maxDias <= 45)
+    return `Oii, ${primeiroNome}!\n\n${listaPets} ${plural ? "estão" : "está"} há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana 📅\n\nVamos marcar?`;
+
+  if (maxDias >= 46 && maxDias <= 90)
+    return `Olá, ${primeiroNome}!\n\nJá faz bastante tempo que ${listaPets} não ${plural ? "vêm" : "vem"} ao nosso espaço. Sentimos falta! 💛\n\nQue tal agendar um banho especial?`;
+
+  return `Olá, ${primeiroNome}! Tudo bem?\n\nFaz muito tempo que ${listaPets} não nos visita. Adoraríamos recebê-${plural ? "los" : "lo"} novamente! 🐾\n\nPosso reservar um horário especial?`;
+};
+
+// Abrir link do WhatsApp agrupando todos os pets do mesmo cliente
+const abrirWhatsAppAgrupado = (clienteClicado: ClienteRisco, todosClientes: ClienteRisco[]) => {
+  if (!clienteClicado.whatsapp) return toast.error("Número de WhatsApp não informado");
+
+  // Agrupar todos os pets do mesmo clienteId
+  const petsDoCliente = todosClientes
+    .filter((c) => c.clienteId === clienteClicado.clienteId)
+    .map((c) => ({ nomePet: c.nomePet, sexoPet: c.sexoPet, diasSemAgendar: c.diasSemAgendar }));
+
+  const primeiroNome = clienteClicado.nomeCliente.split(" ")[0];
+  const mensagem = gerarMensagemAgrupada(primeiroNome, petsDoCliente);
+
+  const numeroLimpo = clienteClicado.whatsapp.toString().replace(/\D/g, "");
   const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
 
-  const mensagem = encodeURIComponent(gerarMensagemWhatsApp(cliente));
-  const link = `https://wa.me/${numeroCompleto}?text=${mensagem}`;
-
-  window.open(link, '_blank');
+  const link = `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(mensagem)}`;
+  window.open(link, "_blank");
 };
 
 export const ClientesEmRisco = () => {
@@ -167,6 +173,17 @@ export const ClientesEmRisco = () => {
         if (!data || data.length < 1000) break;
         page++;
       }
+
+      // Buscar sexo dos pets
+      const { data: petsData } = await supabase
+        .from("pets")
+        .select("cliente_id, nome_pet, sexo")
+        .eq("user_id", ownerId);
+
+      const petSexoMap = new Map<string, string | null>();
+      (petsData || []).forEach((p: any) => {
+        petSexoMap.set(`${p.cliente_id}_${p.nome_pet}`, p.sexo);
+      });
       const agendamentos = allAgendamentos;
 
       // Paginação para buscar TODOS os pacotes
@@ -193,17 +210,19 @@ export const ClientesEmRisco = () => {
         nomePet: string,
         whatsapp: any,
         dataStr: string,
+        clienteId: string,
       ) => {
         if (!dataStr) return;
-        // Interpreta data como local timezone ao invés de UTC
         const data = new Date(dataStr + "T00:00:00");
         if (!isValid(data)) return;
 
         if (!mapa.has(chave)) {
           mapa.set(chave, {
             id: chave,
+            clienteId,
             nomeCliente,
             nomePet,
+            sexoPet: petSexoMap.get(`${clienteId}_${nomePet}`) || null,
             whatsapp: whatsapp ? whatsapp.toString() : "",
             ultimoAgendamento: data,
             diasSemAgendar: 0,
@@ -218,26 +237,32 @@ export const ClientesEmRisco = () => {
       };
 
       agendamentos?.forEach((a) => {
-        const chave = `${a.cliente_id || a.cliente}_${a.pet}`;
-        adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
+        const clienteId = a.cliente_id || a.cliente;
+        const chave = `${clienteId}_${a.pet}`;
+        adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data, clienteId);
       });
 
       pacotes?.forEach((p) => {
+        // Tentar encontrar o cliente_id pelo nome
+        const clienteMatch = (petsData || []).find((pd: any) => {
+          // fallback: match by nome_cliente from clientes query would be better
+          return false;
+        });
         const chave = `${p.nome_cliente}_${p.nome_pet}`;
         let ultimaDataServico: Date | null = null;
 
         try {
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
           if (Array.isArray(servicos)) {
-            const datasValidas = servicos.map((s) => new Date(s.data + "T00:00:00")).filter((d) => isValid(d));
+            const datasValidas = servicos.map((s: any) => new Date(s.data + "T00:00:00")).filter((d: Date) => isValid(d));
             if (datasValidas.length > 0) {
-              ultimaDataServico = new Date(Math.max(...datasValidas.map((d) => d.getTime())));
+              ultimaDataServico = new Date(Math.max(...datasValidas.map((d: Date) => d.getTime())));
             }
           }
         } catch {}
 
         const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
-        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal);
+        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal, p.nome_cliente);
       });
 
       const listaRisco: ClienteRisco[] = [];
@@ -429,7 +454,7 @@ export const ClientesEmRisco = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => abrirWhatsApp(c)}
+                            onClick={() => abrirWhatsAppAgrupado(c, clientesFiltrados)}
                             title="Abrir WhatsApp"
                           >
                             <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '16px' }}></i>
