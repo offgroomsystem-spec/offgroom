@@ -539,7 +539,7 @@ async function autoCreateMissingMessages(
         if (agendadoPara24h.getTime() > now.getTime()) {
           mensagensParaInserir.push({
             ...baseRecord,
-            tipo_mensagem: "24h",
+            tipo_mensagem: "15h",
             mensagem: confirmMsg,
             agendado_para: agendadoPara24h.toISOString(),
           });
