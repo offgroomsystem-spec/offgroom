@@ -1960,6 +1960,54 @@ const Agendamentos = () => {
     setPetProntoDialogOpen(true);
   };
 
+  // Construir mensagem "Pet Pronto" unificada
+  const buildPetProntoMessage = (primeiroNome: string, pets: Array<{nome: string, sexo: string}>, taxiDog: string): string => {
+    const isSingular = pets.length === 1;
+    const todasFemea = pets.every(p => p.sexo?.toLowerCase() === "fêmea" || p.sexo?.toLowerCase() === "femea");
+
+    // Concatenar nomes: "Rex", "Rex e Luna", "Rex, Luna e Mel"
+    let nomesConcat = "";
+    if (pets.length === 1) {
+      nomesConcat = pets[0].nome;
+    } else if (pets.length === 2) {
+      nomesConcat = `${pets[0].nome} e ${pets[1].nome}`;
+    } else {
+      const ultimos = pets[pets.length - 1].nome;
+      const anteriores = pets.slice(0, -1).map(p => p.nome).join(", ");
+      nomesConcat = `${anteriores} e ${ultimos}`;
+    }
+
+    const artigo = todasFemea ? "a" : "o";
+
+    if (isSingular) {
+      const isFemea = todasFemea;
+      const prontoAdj = isFemea ? "pronta" : "pronto";
+      const pronome = isFemea ? "ela" : "ele";
+      const pronomeMaiusculo = isFemea ? "Ela" : "Ele";
+      const ansiosoAdj = isFemea ? "ansiosa" : "ansioso";
+      const buscarPronome = isFemea ? "buscá-la" : "buscá-lo";
+
+      if (taxiDog === "Sim") {
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
+      } else {
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
+      }
+    } else {
+      // Plural
+      const prontoAdj = todasFemea ? "prontas" : "prontos";
+      const pronome = todasFemea ? "elas" : "eles";
+      const pronomeMaiusculo = todasFemea ? "Elas" : "Eles";
+      const ansiosoAdj = todasFemea ? "ansiosas" : "ansiosos";
+      const buscarPronome = todasFemea ? "buscá-las" : "buscá-los";
+
+      if (taxiDog === "Sim") {
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} estão ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estarão indo de volta pra casa!`;
+      } else {
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} estão ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} estão ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
+      }
+    }
+  };
+
   // Pet Pronto: confirmar (atualizar horário ou não) e abrir WhatsApp
   const handlePetProntoConfirm = async (atualizarHorario: boolean) => {
     if (!petProntoAgendamento) return;
@@ -2000,25 +2048,28 @@ const Agendamentos = () => {
     const agendamentoDia = petProntoAgendamento;
     const nomeCliente = agendamentoDia.cliente || "";
     const primeiroNome = obterPrimeiroNome(nomeCliente);
-    const nomePet = capitalizarPrimeiraLetra(agendamentoDia.pet || "");
     const taxiDog = agendamentoDia.taxiDog;
 
-    const sexoPet = obterSexoPet(agendamentoDia.pet, agendamentoDia.cliente);
-    const isFemea = sexoPet === "Fêmea";
+    // Buscar todos os pets do mesmo cliente agendados para o mesmo dia
+    const clienteNomeLower = nomeCliente.toLowerCase().trim();
+    const petsDoCliente = agendamentosDia
+      .filter(a => a.cliente.toLowerCase().trim() === clienteNomeLower)
+      .map(a => ({
+        nome: capitalizarPrimeiraLetra(a.pet || ""),
+        sexo: obterSexoPet(a.pet, a.cliente)
+      }));
 
-    const artigo = isFemea ? "a" : "o";
-    const prontoAdj = isFemea ? "pronta" : "pronto";
-    const pronome = isFemea ? "ela" : "ele";
-    const pronomeMaiusculo = isFemea ? "Ela" : "Ele";
-    const ansiosoAdj = isFemea ? "ansiosa" : "ansioso";
-    const buscarPronome = isFemea ? "buscá-la" : "buscá-lo";
+    // Remover duplicatas (mesmo pet pode aparecer se houver bug)
+    const petsUnicos = petsDoCliente.filter((p, i, arr) => 
+      arr.findIndex(x => x.nome === p.nome) === i
+    );
 
-    let mensagem = "";
-    if (taxiDog === "Sim") {
-      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
-    } else {
-      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
-    }
+    const pets = petsUnicos.length > 0 ? petsUnicos : [{ 
+      nome: capitalizarPrimeiraLetra(agendamentoDia.pet || ""), 
+      sexo: obterSexoPet(agendamentoDia.pet, agendamentoDia.cliente) 
+    }];
+
+    const mensagem = buildPetProntoMessage(primeiroNome, pets, taxiDog);
 
     // Obter número do WhatsApp
     let numeroWhatsApp = agendamentoDia.whatsapp || 
