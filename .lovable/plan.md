@@ -1,24 +1,28 @@
 
 
+## Plano: Alterar mensagem de 24h para 15h antes
 
-## Plano: Mensagens Automaticas de Clientes em Risco via WhatsApp
+Ajuste simples em 3 pontos: trocar a janela de 24 horas para 15 horas antes do agendamento, tanto para servicos avulsos quanto pacotes.
 
-### Status: Estrutura base implementada ✅
+### Alteracoes
 
-### O que foi feito
+**1. `src/utils/whatsappScheduler.ts`** (frontend scheduling)
+- Linha 154-171: Trocar `24 * 60` por `15 * 60` na condicao e no calculo do horario (`- 15 * 60 * 60 * 1000` em vez de `- 24 * 60 * 60 * 1000`)
+- Manter tipo_mensagem como `"24h"` internamente (ou renomear para `"15h"`) para nao quebrar queries existentes — recomendo renomear para `"15h"`
 
-1. **Tabela `whatsapp_mensagens_risco`** criada com RLS policies
-2. **Edge Function `whatsapp-risco-scheduler`** implementada e deployada
-   - Agrupa pets por `cliente_id` em uma unica mensagem
-   - Verifica `whatsapp_ativo` do cliente e de cada pet
-   - Usa concordancia de genero (o/a) baseada no sexo do pet
-   - Envia via Evolution API com intervalo de 10s entre mensagens
-   - Controla duplicidade (nao reenvia no mesmo dia)
-3. **`ClientesEmRisco.tsx`** atualizado
-   - Envio manual via WhatsApp agora agrupa todos os pets do mesmo cliente
-   - Mensagens com artigos de genero corretos
-4. **`pg_cron`** configurado para rodar diariamente as 10:00 UTC (07:00 BRT)
+**2. `supabase/functions/whatsapp-scheduler/index.ts`** — Agendamentos avulsos
+- Linha 533-546: Trocar `24 * 60` por `15 * 60` e `24 * 60 * 60 * 1000` por `15 * 60 * 60 * 1000`
 
-### Proximo passo
+**3. `supabase/functions/whatsapp-scheduler/index.ts`** — Pacotes
+- Linha 719-725: Mesma troca de 24 para 15
 
-Aguardando os templates de mensagem por faixa de periodo (7-10, 11-15, 16-20, 21-30, 31-45, 46-90, +90 dias) para substituir os templates provisorios.
+A logica de ajuste para 7h BRT permanece igual (se o horario calculado cair antes das 7h, agendar para 7h).
+
+### Resumo
+
+| Arquivo | Mudanca |
+|---|---|
+| `whatsappScheduler.ts` | 24h → 15h (linhas 154-171) |
+| `whatsapp-scheduler/index.ts` | 24h → 15h avulsos (linhas 533-546) |
+| `whatsapp-scheduler/index.ts` | 24h → 15h pacotes (linhas 719-725) |
+
