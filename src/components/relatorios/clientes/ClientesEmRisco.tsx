@@ -555,10 +555,15 @@ export const ClientesEmRisco = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => abrirWhatsAppAgrupado(c, clientesFiltrados)}
-                            title="Abrir WhatsApp"
+                            onClick={() => enviarWhatsAppDireto(c, clientesFiltrados)}
+                            title="Enviar WhatsApp"
+                            disabled={enviandoWhatsApp === c.clienteId}
                           >
-                            <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '16px' }}></i>
+                            {enviandoWhatsApp === c.clienteId ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '16px' }}></i>
+                            )}
                           </Button>
                         </div>
                       </TableCell>
