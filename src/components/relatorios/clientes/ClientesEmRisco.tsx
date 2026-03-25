@@ -237,8 +237,9 @@ export const ClientesEmRisco = () => {
       };
 
       agendamentos?.forEach((a) => {
-        const chave = `${a.cliente_id || a.cliente}_${a.pet}`;
-        adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data);
+        const clienteId = a.cliente_id || a.cliente;
+        const chave = `${clienteId}_${a.pet}`;
+        adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data, clienteId);
       });
 
       pacotes?.forEach((p) => {
