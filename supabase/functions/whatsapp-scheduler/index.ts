@@ -94,6 +94,59 @@ function buildReminderMessage(nomeCliente: string, nomePet: string, sexoPet: str
   return `Oi ${primeiroNome}! 😄\n\nNão esqueça de trazer ${oA} ${nomePet} hoje às ${horario}.\n\nEsse horário estamos por aqui prontos para receber ${eleEla}! 🐾💙`;
 }
 
+function buildUnifiedPetNames(petInfos: Array<{nome: string, sexo: string}>): { namesStr: string, doDa: string } {
+  const names = petInfos.map(p => p.nome);
+  let namesStr: string;
+  if (names.length === 1) {
+    namesStr = names[0];
+  } else if (names.length === 2) {
+    namesStr = `${names[0]} e ${names[1]}`;
+  } else {
+    namesStr = names.slice(0, -1).join(", ") + " e " + names[names.length - 1];
+  }
+  const allFemale = petInfos.every(p => {
+    const s = p.sexo?.toLowerCase();
+    return s === "fêmea" || s === "femea";
+  });
+  const doDa = allFemale ? "da" : "do";
+  return { namesStr, doDa };
+}
+
+function buildUnifiedConfirmationMessage(
+  nomeCliente: string, petInfos: Array<{nome: string, sexo: string}>,
+  data: string, horario: string, servicos: string, taxiDog: string, bordao: string,
+  isPacote: boolean, servicoNumero: string | null, isUltimo: boolean
+): string {
+  const primeiroNome = getPrimeiroNome(nomeCliente);
+  const { namesStr, doDa } = buildUnifiedPetNames(petInfos);
+  const dataBR = formatDataBR(data);
+  const bordaoLine = bordao ? `\n\n*${bordao}*` : "";
+
+  if (!isPacote) {
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+  }
+
+  if (isUltimo) {
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${namesStr}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+  }
+
+  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+}
+
+function buildUnifiedReminderMessage(
+  nomeCliente: string, petInfos: Array<{nome: string, sexo: string}>, horario: string
+): string {
+  const primeiroNome = getPrimeiroNome(nomeCliente);
+  const { namesStr } = buildUnifiedPetNames(petInfos);
+  const allFemale = petInfos.every(p => {
+    const s = p.sexo?.toLowerCase();
+    return s === "fêmea" || s === "femea";
+  });
+  const oA = allFemale ? "a" : "o";
+  const eleEla = petInfos.length === 1 ? (allFemale ? "ela" : "ele") : (allFemale ? "elas" : "eles");
+  return `Oi ${primeiroNome}! 😄\n\nNão esqueça de trazer ${oA} ${namesStr} hoje às ${horario}.\n\nEsse horário estamos por aqui prontos para receber ${eleEla}! 🐾💙`;
+}
+
 function formatNumero(whatsapp: string): string {
   let numero = whatsapp.replace(/\D/g, "");
   if (!numero.startsWith("55")) {
