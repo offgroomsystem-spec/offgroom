@@ -448,7 +448,7 @@ export const ClientesEmRisco = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => abrirWhatsApp(c)}
+                            onClick={() => abrirWhatsAppAgrupado(c, clientesFiltrados)}
                             title="Abrir WhatsApp"
                           >
                             <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '16px' }}></i>
