@@ -14,8 +14,10 @@ import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
 
 interface ClienteRisco {
   id: string;
+  clienteId: string;
   nomeCliente: string;
   nomePet: string;
+  sexoPet: string | null;
   whatsapp: string;
   ultimoAgendamento: Date;
   diasSemAgendar: number;
