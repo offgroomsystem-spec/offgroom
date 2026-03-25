@@ -113,8 +113,8 @@ function buildUnifiedPetNames(petInfos: Array<{nome: string, sexo: string}>): { 
 }
 
 function buildUnifiedConfirmationMessage(
-  nomeCliente: string, petInfos: Array<{nome: string, sexo: string}>,
-  data: string, horario: string, servicos: string, taxiDog: string, bordao: string,
+  nomeCliente: string, petInfos: Array<{nome: string, sexo: string, servico: string}>,
+  data: string, horario: string, taxiDog: string, bordao: string,
   isPacote: boolean, servicoNumero: string | null, isUltimo: boolean
 ): string {
   const primeiroNome = getPrimeiroNome(nomeCliente);
@@ -122,15 +122,24 @@ function buildUnifiedConfirmationMessage(
   const dataBR = formatDataBR(data);
   const bordaoLine = bordao ? `\n\n*${bordao}*` : "";
 
+  // Build service line(s)
+  const allSameService = petInfos.every(p => p.servico === petInfos[0].servico);
+  let servicoLines: string;
+  if (allSameService) {
+    servicoLines = `*Serviço:* ${petInfos[0].servico}`;
+  } else {
+    servicoLines = petInfos.map(p => `*Serviço ${p.nome}:* ${p.servico}`).join("\n");
+  }
+
   if (!isPacote) {
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n${servicoLines}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
   }
 
   if (isUltimo) {
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${namesStr}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n${servicoLines}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${namesStr}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
   }
 
-  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
+  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n${servicoLines}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
 }
 
 function buildUnifiedReminderMessage(
@@ -392,7 +401,7 @@ Deno.serve(async (req) => {
         ungroupable.push(rd);
         continue;
       }
-      const key = `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servico}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
+      const key = `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
       const group = groupMap.get(key) || [];
       group.push(rd);
       groupMap.set(key, group);
@@ -413,13 +422,13 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Deduplicate pets
+      // Deduplicate pets (keeping servico per pet)
       const seenPets = new Set<string>();
-      const petInfos: Array<{nome: string, sexo: string}> = [];
+      const petInfos: Array<{nome: string, sexo: string, servico: string}> = [];
       for (const rd of group) {
         if (!seenPets.has(rd.nomePet)) {
           seenPets.add(rd.nomePet);
-          petInfos.push({ nome: rd.nomePet, sexo: rd.sexoPet });
+          petInfos.push({ nome: rd.nomePet, sexo: rd.sexoPet, servico: rd.servico });
         }
       }
 
@@ -436,7 +445,7 @@ Deno.serve(async (req) => {
       } else {
         mensagemFinal = buildUnifiedConfirmationMessage(
           first.nomeCliente, petInfos, first.data, horario,
-          first.servico, first.taxiDog, first.bordao,
+          first.taxiDog, first.bordao,
           first.isPacote, first.servicoNumero, isUltimo
         );
       }
