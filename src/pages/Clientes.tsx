@@ -691,7 +691,7 @@ export default function Clientes() {
                     ))}
                     {filteredClientes.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                        <td colSpan={6} className="text-center py-8 text-muted-foreground">
                           Nenhum cliente encontrado
                         </td>
                       </tr>
