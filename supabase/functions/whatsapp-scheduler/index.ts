@@ -529,9 +529,9 @@ async function autoCreateMissingMessages(
         status: "pendente",
       };
 
-      // === 24h message ===
-      if (diffMinutes > 24 * 60 && !existingSet.has(`${ag.id}_24h`)) {
-        const agendadoPara24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
+      // === 15h message ===
+      if (diffMinutes > 15 * 60 && !existingSet.has(`${ag.id}_15h`)) {
+        const agendadoPara24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
         const brtHour24 = (agendadoPara24h.getUTCHours() - 3 + 24) % 24;
         if (brtHour24 < 7) {
           agendadoPara24h.setUTCHours(10, 0, 0, 0); // 7h BRT
