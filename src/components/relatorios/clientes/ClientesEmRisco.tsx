@@ -173,6 +173,17 @@ export const ClientesEmRisco = () => {
         if (!data || data.length < 1000) break;
         page++;
       }
+
+      // Buscar sexo dos pets
+      const { data: petsData } = await supabase
+        .from("pets")
+        .select("cliente_id, nome_pet, sexo")
+        .eq("user_id", ownerId);
+
+      const petSexoMap = new Map<string, string | null>();
+      (petsData || []).forEach((p: any) => {
+        petSexoMap.set(`${p.cliente_id}_${p.nome_pet}`, p.sexo);
+      });
       const agendamentos = allAgendamentos;
 
       // Paginação para buscar TODOS os pacotes
