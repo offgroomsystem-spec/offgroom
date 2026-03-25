@@ -1,16 +1,34 @@
 
 
-## Plano: Sistema de mensagens de risco com 7 tentativas (CONCLUÍDO)
+## Plano: Corrigir e ativar o envio automatico de mensagens de risco
 
-### Implementado
+### Problemas encontrados
 
-1. **Migração SQL** — Coluna `tentativa` adicionada à tabela `whatsapp_mensagens_risco`
-2. **Edge Function `whatsapp-risco-scheduler`** — Reescrita completa com:
-   - Envio apenas seg-sex, 08h-18h BRT
-   - 7 tentativas com intervalos [0, 10, 12, 14, 16, 18, 20] dias
-   - Faixa: 9 a 110 dias sem agendamento
-   - Ordem: mais recentes primeiro
-   - Intervalo de 5 minutos entre envios
-   - 14 templates (7 singular + 7 plural) com concordância de gênero
-   - Datas em fim de semana → próximo dia útil
-3. **Frontend `ClientesEmRisco.tsx`** — Templates atualizados para os novos 14 textos
+1. **Cron no horario errado**: O pg_cron esta configurado para `0 10 * * *` (10:00 UTC = **07:00 BRT**), mas a Edge Function rejeita chamadas antes das **08:00 BRT**. Resultado: todo dia a funcao e chamada e retorna "Fora do horario comercial" sem enviar nada.
+
+2. **Falta entrada no config.toml**: A funcao `whatsapp-risco-scheduler` nao esta listada no `supabase/config.toml` com `verify_jwt = false`. Sem isso, a funcao pode exigir JWT valido e rejeitar a chamada do cron.
+
+3. **Funcao possivelmente nao deployada**: Nao ha nenhum log da funcao, o que indica que ela pode nunca ter sido executada com sucesso.
+
+### Correcoes
+
+**1. Atualizar o pg_cron** — Mudar de `0 10 * * *` para `0 11 * * *` (11:00 UTC = 08:00 BRT)
+- Isso garante que a funcao sera chamada exatamente quando o horario comercial comeca
+- Usar SQL direto (unschedule + schedule) pois contem dados especificos do projeto
+
+**2. Adicionar entrada no config.toml**
+```toml
+[functions.whatsapp-risco-scheduler]
+verify_jwt = false
+```
+
+**3. Fazer deploy da funcao** — O deploy e automatico ao salvar o config.toml, forcando redeployment
+
+### Resumo
+
+| Problema | Correcao |
+|---|---|
+| Cron 10:00 UTC (07h BRT) vs funcao exige 08h+ | Mudar cron para 11:00 UTC (08h BRT) |
+| Falta config.toml entry | Adicionar `verify_jwt = false` |
+| Funcao sem logs/deploy | Redeploy automatico com alteracao |
+
