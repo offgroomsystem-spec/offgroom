@@ -666,6 +666,9 @@ export default function Clientes() {
                         </td>
                         <td className="p-3">{cliente.whatsapp}</td>
                         <td className="p-3 text-sm text-muted-foreground">{cliente.endereco || "-"}</td>
+                        <td className="p-3 text-sm text-muted-foreground">
+                          {cliente.cpf_cnpj ? formatCPFCNPJ(cliente.cpf_cnpj) : "-"}
+                        </td>
                         <td className="p-3">
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="sm" onClick={() => handleEdit(cliente)}>
