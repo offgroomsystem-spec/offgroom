@@ -2000,25 +2000,28 @@ const Agendamentos = () => {
     const agendamentoDia = petProntoAgendamento;
     const nomeCliente = agendamentoDia.cliente || "";
     const primeiroNome = obterPrimeiroNome(nomeCliente);
-    const nomePet = capitalizarPrimeiraLetra(agendamentoDia.pet || "");
     const taxiDog = agendamentoDia.taxiDog;
 
-    const sexoPet = obterSexoPet(agendamentoDia.pet, agendamentoDia.cliente);
-    const isFemea = sexoPet === "Fêmea";
+    // Buscar todos os pets do mesmo cliente agendados para o mesmo dia
+    const clienteNomeLower = nomeCliente.toLowerCase().trim();
+    const petsDoCliente = agendamentosDia
+      .filter(a => a.cliente.toLowerCase().trim() === clienteNomeLower)
+      .map(a => ({
+        nome: capitalizarPrimeiraLetra(a.pet || ""),
+        sexo: obterSexoPet(a.pet, a.cliente)
+      }));
 
-    const artigo = isFemea ? "a" : "o";
-    const prontoAdj = isFemea ? "pronta" : "pronto";
-    const pronome = isFemea ? "ela" : "ele";
-    const pronomeMaiusculo = isFemea ? "Ela" : "Ele";
-    const ansiosoAdj = isFemea ? "ansiosa" : "ansioso";
-    const buscarPronome = isFemea ? "buscá-la" : "buscá-lo";
+    // Remover duplicatas (mesmo pet pode aparecer se houver bug)
+    const petsUnicos = petsDoCliente.filter((p, i, arr) => 
+      arr.findIndex(x => x.nome === p.nome) === i
+    );
 
-    let mensagem = "";
-    if (taxiDog === "Sim") {
-      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
-    } else {
-      mensagem = `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomePet} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
-    }
+    const pets = petsUnicos.length > 0 ? petsUnicos : [{ 
+      nome: capitalizarPrimeiraLetra(agendamentoDia.pet || ""), 
+      sexo: obterSexoPet(agendamentoDia.pet, agendamentoDia.cliente) 
+    }];
+
+    const mensagem = buildPetProntoMessage(primeiroNome, pets, taxiDog);
 
     // Obter número do WhatsApp
     let numeroWhatsApp = agendamentoDia.whatsapp || 
