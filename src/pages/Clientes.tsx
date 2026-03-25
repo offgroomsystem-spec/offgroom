@@ -640,7 +640,15 @@ export default function Clientes() {
                       <th className="text-left p-3 font-medium">Pets</th>
                       <th className="text-left p-3 font-medium">WhatsApp</th>
                       <th className="text-left p-3 font-medium">Endereço</th>
-                      <th className="text-left p-3 font-medium">CPF/CNPJ</th>
+                      <th className="text-left p-3 font-medium">
+                        <button
+                          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                          onClick={() => setOrdenarCpf(prev => !prev)}
+                        >
+                          CPF/CNPJ
+                          <ArrowUpDown className={cn("h-3.5 w-3.5", ordenarCpf ? "text-primary" : "text-muted-foreground")} />
+                        </button>
+                      </th>
                       <th className="text-right p-3 font-medium">Ações</th>
                     </tr>
                   </thead>
