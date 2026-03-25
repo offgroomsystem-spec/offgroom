@@ -1571,6 +1571,7 @@ export type Database = {
           numero_whatsapp: string
           pets_incluidos: Json
           status: string
+          tentativa: number
           user_id: string
         }
         Insert: {
@@ -1584,6 +1585,7 @@ export type Database = {
           numero_whatsapp: string
           pets_incluidos?: Json
           status?: string
+          tentativa?: number
           user_id: string
         }
         Update: {
@@ -1597,6 +1599,7 @@ export type Database = {
           numero_whatsapp?: string
           pets_incluidos?: Json
           status?: string
+          tentativa?: number
           user_id?: string
         }
         Relationships: [

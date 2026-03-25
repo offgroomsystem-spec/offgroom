@@ -85,6 +85,20 @@ const montarListaPets = (pets: { nomePet: string; sexoPet: string | null }[]): s
     .join(", ");
 };
 
+const isFemeaFe = (sexo: string | null): boolean => {
+  const s = sexo?.toLowerCase();
+  return s === "fêmea" || s === "femea";
+};
+
+const todosFemeaFe = (pets: { sexoPet: string | null }[]): boolean => {
+  return pets.every((p) => isFemeaFe(p.sexoPet));
+};
+
+const gFe = (pets: { sexoPet: string | null }[], ms: string, fs: string, mp: string, fp: string): string => {
+  if (pets.length === 1) return isFemeaFe(pets[0].sexoPet) ? fs : ms;
+  return todosFemeaFe(pets) ? fp : mp;
+};
+
 // Gera mensagem agrupada para todos os pets do mesmo cliente
 const gerarMensagemAgrupada = (
   primeiroNome: string,
@@ -92,27 +106,52 @@ const gerarMensagemAgrupada = (
 ): string => {
   const listaPets = montarListaPets(pets);
   const maxDias = Math.max(...pets.map((p) => p.diasSemAgendar));
-  const plural = pets.length > 1;
+  const singular = pets.length === 1;
+
+  if (singular) {
+    const p = pets[0];
+    const art = isFemeaFe(p.sexoPet) ? "A" : "O";
+    const art_l = isFemeaFe(p.sexoPet) ? "a" : "o";
+    const ele = isFemeaFe(p.sexoPet) ? "ela" : "ele";
+    const dele = isFemeaFe(p.sexoPet) ? "dela" : "dele";
+    const cheiroso = isFemeaFe(p.sexoPet) ? "cheirosa" : "cheiroso";
+    const limpinho = isFemeaFe(p.sexoPet) ? "limpinha" : "limpinho";
+    const do_ = isFemeaFe(p.sexoPet) ? "da" : "do";
+
+    if (maxDias >= 7 && maxDias <= 10)
+      return `Oi, ${primeiroNome}!\nSeparei alguns horários especiais essa semana e lembrei de vocês 😊\n${art} ${p.nomePet} já está na hora daquele banho caprichado 🛁✨ Quer que eu garanta um horário pra você?`;
+    if (maxDias >= 11 && maxDias <= 15)
+      return `🚨 Alerta banho atrasado! 😂🐶\nOi, ${primeiroNome}! ${art} ${p.nomePet} já passou da fase do 'só mais uns dias' 😅\nQue tal garantir aquele banho caprichado e deixar ${ele} ${cheiroso} e confortável de novo? 🛁💚\nMe chama que te passo os horários disponíveis !`;
+    if (maxDias >= 16 && maxDias <= 20)
+      return `Oi, ${primeiroNome}!\n${art} ${p.nomePet} já está há alguns dias além do ideal sem banho 😬\nNessa fase, pode começar a gerar desconfortos e até afetar a pele ${dele} 😕\nQue tal já agendarmos pra deixar ${ele} ${limpinho} e ${cheiroso} novamente? 🥰✨`;
+    if (maxDias >= 21 && maxDias <= 30)
+      return `Oi, ${primeiroNome}!\nJá faz um bom tempinho desde o último banho ${do_} ${p.nomePet} 🐾\nCom ${maxDias} dias, é bem importante retomar os cuidados pra evitar desconfortos e manter a saúde ${dele} 🛁\nVamos agendar pra deixar ${ele} ${limpinho} e ${cheiroso} novamente? ✨\nTemos alguns horários disponiveis, vamos agendar ?`;
+    if (maxDias >= 31 && maxDias <= 45)
+      return `🚨 Atenção: nível máximo de 'precisando de banho' atingido! 😂🐶\nOi, ${primeiroNome}! ${art} ${p.nomePet} já está pedindo socorro por um banho caprichado 🛁✨\nBora resolver isso e deixar ${ele} ${cheiroso} novamente?\nSe quiser, posso te sugerir os melhores horários disponíveis! 💚`;
+    if (maxDias >= 46 && maxDias <= 90)
+      return `Oi, ${primeiroNome}!\nPercebemos que ${art_l} ${p.nomePet} não vem há um tempinho… sentimos falta ${dele} por aqui 😕\nQueremos muito continuar cuidando ${dele} como sempre fizemos 😔\nVamos agendar um horário pra retomar esse cuidado?`;
+    return `Oi, ${primeiroNome}!\nEstamos abrindo alguns horários especiais pra clientes que queremos muito receber de volta… e ${art_l} ${p.nomePet} está nessa lista 🐶✨\nQue tal aproveitar e agendar um banho pra deixar ${ele} ${cheiroso} novamente? 🛁😊`;
+  }
+
+  // PLURAL (2+ pets)
+  const eles = gFe(pets, "ele", "ela", "eles", "elas");
+  const deles = gFe(pets, "dele", "dela", "deles", "delas");
+  const cheirosos = gFe(pets, "cheiroso", "cheirosa", "cheirosos", "cheirosas");
+  const limpinho = gFe(pets, "limpinho", "limpinha", "limpinho", "limpinha");
 
   if (maxDias >= 7 && maxDias <= 10)
-    return `Oi, ${primeiroNome}!\n\nSeparei alguns horários especiais essa semana e lembrei de vocês 😊\n\n${listaPets} já ${plural ? "estão" : "está"} na hora daquele banho caprichado 🛁✨ Quer que eu garanta um horário pra você?`;
-
+    return `Oi, ${primeiroNome}!\nSeparei alguns horários especiais essa semana e lembrei de vocês 😊\n${listaPets} já estão na hora daquele banho caprichado 🛁✨ Quer que eu garanta um horário pra você?`;
   if (maxDias >= 11 && maxDias <= 15)
-    return `Oii, ${primeiroNome}!\n\nJá faz um tempinho desde o último banho. ${listaPets} ${plural ? "estão" : "está"} precisando de um cuidado especial 🐾\n\nVamos marcar pra essa semana?`;
-
+    return `🚨 Alerta banho atrasado! 😂🐶\nOi, ${primeiroNome}! ${listaPets} já passou da fase do 'só mais uns dias' 😅\nQue tal garantir aquele banho caprichado e deixar ${eles} ${cheirosos} e confortável de novo? 🛁💚\nMe chama que te passo os horários disponíveis !`;
   if (maxDias >= 16 && maxDias <= 20)
-    return `Olá, ${primeiroNome}!\n\nJá faz um bom tempo que ${listaPets} não ${plural ? "vêm" : "vem"} nos visitar 🐶\n\nVamos agendar o próximo banho e colocar os cuidados em dia?`;
-
+    return `Oi, ${primeiroNome}!\n${listaPets} já estão há alguns dias além do ideal sem banho 😬\nNessa fase, pode começar a gerar desconfortos e até afetar a pele ${deles} 😕\nQue tal já agendarmos pra deixar ${eles} ${limpinho} e ${cheirosos} novamente? 🥰✨`;
   if (maxDias >= 21 && maxDias <= 30)
-    return `Olá, ${primeiroNome}!\n\nJá faz quase um mês! ${listaPets} ${plural ? "merecem" : "merece"} aquele banho caprichado 🛁✨\n\nQue tal agendar um novo horário?`;
-
+    return `Oi, ${primeiroNome}!\nJá faz um bom tempinho desde o último banho ${gFe(pets, "do", "da", "do", "da")} ${listaPets} 🐾\nCom ${maxDias} dias, é bem importante retomar os cuidados pra evitar desconfortos e manter a saúde ${deles} 🛁\nVamos agendar pra deixar ${eles} ${limpinho} e ${cheirosos} novamente? ✨\nTemos alguns horários disponiveis, vamos agendar ?`;
   if (maxDias >= 31 && maxDias <= 45)
-    return `Oii, ${primeiroNome}!\n\n${listaPets} ${plural ? "estão" : "está"} há bastante tempo sem vir nos visitar. Temos horários disponíveis nesta semana 📅\n\nVamos marcar?`;
-
+    return `🚨 Atenção: nível máximo de 'precisando de banho' atingido! 😂🐶\nOi, ${primeiroNome}! ${listaPets} já está pedindo socorro por um banho caprichado 🛁✨\nBora resolver isso e deixar ${eles} ${cheirosos} novamente?\nSe quiser, posso te sugerir os melhores horários disponíveis! 💚`;
   if (maxDias >= 46 && maxDias <= 90)
-    return `Olá, ${primeiroNome}!\n\nJá faz bastante tempo que ${listaPets} não ${plural ? "vêm" : "vem"} ao nosso espaço. Sentimos falta! 💛\n\nQue tal agendar um banho especial?`;
-
-  return `Olá, ${primeiroNome}! Tudo bem?\n\nFaz muito tempo que ${listaPets} não nos visita. Adoraríamos recebê-${plural ? "los" : "lo"} novamente! 🐾\n\nPosso reservar um horário especial?`;
+    return `Oi, ${primeiroNome}!\nPercebemos que ${listaPets} não vem há um tempinho… sentimos falta ${deles} por aqui 😕\nQueremos muito continuar cuidando ${deles} como sempre fizemos 😔\nVamos agendar um horário pra retomar esse cuidado?`;
+  return `Oi, ${primeiroNome}!\nEstamos abrindo alguns horários especiais pra clientes que queremos muito receber de volta… e ${listaPets} está nessa lista 🐶✨\nQue tal aproveitar e agendar um banho pra deixar ${eles} ${cheirosos} novamente? 🛁😊`;
 };
 
 // Abrir link do WhatsApp agrupando todos os pets do mesmo cliente
