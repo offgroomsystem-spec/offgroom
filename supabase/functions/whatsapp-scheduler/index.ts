@@ -378,6 +378,32 @@ Deno.serve(async (req) => {
       }
 
       if (extracted) {
+        // === SYNC VALIDATION: check if agendado_para matches actual appointment time ===
+        if (extracted.data && extracted.horario && 
+            (msg.tipo_mensagem === "30min" || msg.tipo_mensagem === "3h" || msg.tipo_mensagem === "15h")) {
+          const agDateTimeReal = parseDateTimeBRT(extracted.data, extracted.horario);
+          let bufferMs: number;
+          if (msg.tipo_mensagem === "30min") {
+            bufferMs = 30 * 60 * 1000;
+          } else if (msg.tipo_mensagem === "3h") {
+            bufferMs = 3 * 60 * 60 * 1000;
+          } else {
+            bufferMs = 15 * 60 * 60 * 1000;
+          }
+          const expectedAgendadoPara = new Date(agDateTimeReal.getTime() - bufferMs);
+          const msgAgendadoPara = new Date(msg.agendado_para);
+          const diffMs = Math.abs(expectedAgendadoPara.getTime() - msgAgendadoPara.getTime());
+
+          if (diffMs > 2 * 60 * 1000) {
+            // Appointment time changed — reschedule this message
+            console.log(`Sync: msg ${msg.id} agendado_para ${msg.agendado_para} differs from expected ${expectedAgendadoPara.toISOString()} by ${Math.round(diffMs/60000)}min. Rescheduling.`);
+            await supabase.from("whatsapp_mensagens_agendadas")
+              .update({ agendado_para: expectedAgendadoPara.toISOString() })
+              .eq("id", msg.id);
+            continue; // skip this message, it will be picked up at the correct time
+          }
+        }
+
         regenList.push(extracted);
       } else {
         // Fallback: mark as ungroupable, will send with stored message
