@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
     const { data: instances } = await supabase
       .from("whatsapp_instances")
       .select("user_id, instance_name, status")
-      .eq("status", "open");
+      .eq("status", "connected");
 
     if (!instances || instances.length === 0) {
       return new Response(JSON.stringify({ message: "Nenhuma instância ativa" }), {
