@@ -382,9 +382,19 @@ Deno.serve(async (req) => {
           const servicoNumero = svAtual.numero || msg.servico_numero;
           const servicoNome = svAtual.nomeServico || svAtual.servico || svAtual.nome || "Banho";
 
+          // Cross-validate client name against cadastro (source of truth)
+          let nomeClientePacoteValidado = pacoteAtual.nome_cliente;
+          const numNormPacote = formatNumero(pacoteAtual.whatsapp);
+          const { data: clientesByNumPacote } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("user_id", msg.user_id);
+          const clienteRealPacote = (clientesByNumPacote || []).find(c => formatNumero(c.whatsapp) === numNormPacote);
+          if (clienteRealPacote && clienteRealPacote.nome_cliente.trim() !== pacoteAtual.nome_cliente.trim()) {
+            console.log(`Client name mismatch (pacote): pacote="${pacoteAtual.nome_cliente}" cadastro="${clienteRealPacote.nome_cliente}". Using cadastro.`);
+            nomeClientePacoteValidado = clienteRealPacote.nome_cliente;
+          }
+
           extracted = {
             msgId: msg.id, userId: msg.user_id,
-            nomeCliente: pacoteAtual.nome_cliente, nomePet: pacoteAtual.nome_pet, sexoPet,
+            nomeCliente: nomeClientePacoteValidado, nomePet: pacoteAtual.nome_pet, sexoPet,
             data: svAtual.data, horario: svAtual.horarioInicio, servico: servicoNome,
             taxiDog: pacoteAtual.taxi_dog, isPacote: true,
             servicoNumero, isUltimo: isUltimoServicoPacote(servicoNumero || ""),
