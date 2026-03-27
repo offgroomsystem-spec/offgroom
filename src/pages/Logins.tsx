@@ -226,7 +226,7 @@ export default function Logins() {
         <div className="flex items-center gap-3">
           <Users className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">Gerenciar Logins</h1>
+            <h1 className="text-3xl font-bold">Gerenciar Logins.</h1>
             <p className="text-muted-foreground">
               Controle os usuários e suas permissões de acesso
             </p>
