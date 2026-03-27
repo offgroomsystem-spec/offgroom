@@ -1,59 +1,89 @@
 
 
-## Plano: Arquitetura duas fases + escalonamento 5s entre instancias
+## Plano: Corrigir inconsistencia de dados nas mensagens WhatsApp agendadas
 
-### Problema atual
-A funcao usa `await sleep(5min)` entre envios, causando timeout da Edge Function apos 1 mensagem.
+### Causa raiz identificada
 
-### Solucao
+A tabela `agendamentos_pacotes` armazena `nome_cliente` e `whatsapp` como **campos de texto desnormalizados**, sem referencia (`cliente_id`) a tabela `clientes`. O pacote `63a64ffe` foi criado com:
+- `nome_cliente`: "Alan Henrique"
+- `whatsapp`: 61991531020
 
-Reescrever `whatsapp-risco-scheduler/index.ts` com arquitetura em duas fases e cron a cada minuto.
+Porem, na tabela `clientes`, o numero `61991531020` pertence a **"Mara"**. "Alan Henrique" nem existe como cliente cadastrado para este usuario. O sistema usa corretamente os dados do pacote para gerar mensagens, resultando em mensagens com "Oi, Alan!" enviadas para o numero da Mara.
 
-**Fase 1 - Agendamento (1x por dia, quando horaBRT=8 e nao ha pendentes hoje):**
-- Identificar clientes elegiveis (toda logica atual de risco permanece)
-- Para cada instancia, escalonar `agendado_para` com 5min entre clientes:
-  - Instancia A (index 0): 08:00:00, 08:05:00, 08:10:00...
-  - Instancia B (index 1): 08:00:05, 08:05:05, 08:10:05...
-  - Instancia C (index 2): 08:00:10, 08:05:10, 08:10:10...
-- O offset de 5 segundos por instancia evita sobrecarga no servidor
+Isso acontece porque o formulario de pacotes permite digitar um nome de cliente manualmente sem validar contra o cadastro real. O whatsapp eh preenchido automaticamente com base no primeiro cliente encontrado com o nome digitado, mas se o usuario alterar o nome depois, o whatsapp permanece do cliente anterior.
 
-**Fase 2 - Envio (cron cada minuto):**
-- Buscar 1 mensagem por instancia com `status='pendente'` e `agendado_para <= agora`
-- Enviar via Evolution API, atualizar status
-- Sem sleep — funcao termina em segundos
+### Solucao em 3 frentes
 
-### Alteracoes
+**1. Validacao pre-envio na Edge Function (whatsapp-scheduler)**
 
-**1. `supabase/functions/whatsapp-risco-scheduler/index.ts`**
+No Stage B, apos extrair dados do pacote (linhas 327-374), adicionar validacao cruzada:
+- Buscar o cliente real na tabela `clientes` usando `user_id` + `numero_whatsapp` (normalizado)
+- Se o `nome_cliente` do pacote **divergir** do `nome_cliente` do cadastro:
+  - Usar o nome do cadastro como fonte de verdade para gerar a mensagem
+  - Registrar a divergencia no campo `erro` como aviso (sem bloquear envio)
+- Se nenhum cliente for encontrado pelo numero, usar os dados do pacote como fallback
 
-Reescrever logica principal:
-- Remover `sleep(INTERVALO_ENVIO_MS)` (linha 441)
-- Adicionar deteccao automatica de fase:
-  - Se existem mensagens pendentes hoje → Fase Envio (busca 1 por instancia, envia, retorna)
-  - Se nao existem e horaBRT == 8 → Fase Agendamento (insere registros com `agendado_para` escalonado)
-- No agendamento, calcular offset por instancia: `instanceIndex * 5000ms` adicionado ao `agendado_para` base
-- Toda logica de elegibilidade, templates, unificacao de pets e concordancia de genero permanece identica
+Mesma validacao para agendamentos avulsos (linhas 286-326): buscar cliente por `cliente_id` ou por `whatsapp` quando `cliente_id` for null.
 
 ```text
-Escalonamento por instancia (5s offset):
-  base = 08:00:00 BRT (11:00:00 UTC)
-  
-  Instancia 0, cliente 1: 08:00:00
-  Instancia 1, cliente 1: 08:00:05
-  Instancia 2, cliente 1: 08:00:10
-  
-  Instancia 0, cliente 2: 08:05:00
-  Instancia 1, cliente 2: 08:05:05
-  Instancia 2, cliente 2: 08:05:10
+// Pseudocodigo apos extrair dados do pacote:
+const { data: clienteReal } = await supabase
+  .from("clientes")
+  .select("nome_cliente")
+  .eq("user_id", msg.user_id)
+  .eq("whatsapp", pacoteAtual.whatsapp) // numero original
+  .limit(1);
+
+if (clienteReal && clienteReal.nome_cliente.trim() !== pacoteAtual.nome_cliente.trim()) {
+  // Usar nome do cadastro
+  extracted.nomeCliente = clienteReal.nome_cliente;
+}
 ```
 
-**2. Alterar cron job via SQL**
+**2. Validacao no frontend ao criar/editar pacotes**
 
-De `0 11 * * *` (1x/dia) para `* 11-21 * * 1-5` (cada minuto, seg-sex, 08-18h BRT).
+No `Agendamentos.tsx`, funcao `handlePacoteSubmit` (linha 1420):
+- Antes de inserir, verificar se `pacoteFormData.nomeCliente` corresponde a um cliente existente no array `clientes` com o mesmo `whatsapp`
+- Se houver divergencia, exibir `toast.error` e bloquear a criacao
+
+No `handleAtualizarAgendamento` (linha 2372):
+- Mesma validacao ao editar
+
+**3. Correcao em massa dos registros pendentes**
+
+Via SQL (insert tool), atualizar mensagens pendentes existentes:
+- Buscar todas as mensagens pendentes ligadas a `agendamentos_pacotes`
+- Para cada uma, cruzar o `numero_whatsapp` com a tabela `clientes`
+- Se o nome no texto da mensagem divergir do cadastro, regenerar a mensagem com os dados corretos
+
+```text
+-- Identificar mensagens com divergencia:
+SELECT wm.id, wm.mensagem, ap.nome_cliente as pacote_nome, c.nome_cliente as cadastro_nome
+FROM whatsapp_mensagens_agendadas wm
+JOIN agendamentos_pacotes ap ON ap.id = wm.agendamento_pacote_id
+JOIN clientes c ON c.user_id = wm.user_id 
+  AND regexp_replace(c.whatsapp, '\D','','g') = regexp_replace(ap.whatsapp, '\D','','g')
+WHERE wm.status = 'pendente'
+  AND trim(ap.nome_cliente) <> trim(c.nome_cliente);
+```
+
+As mensagens divergentes terao suas `mensagem` regeneradas pela edge function na proxima execucao (pois o Stage B ja regenera o texto com dados atuais — agora usando o nome correto do cadastro).
+
+### Alteracoes por arquivo
+
+**`supabase/functions/whatsapp-scheduler/index.ts`**
+- Stage B: Adicionar busca do cliente real por `whatsapp` + `user_id` antes de construir `extracted`
+- Substituir `nomeCliente` do pacote/agendamento pelo nome do cadastro quando houver divergencia
+- Aplica-se tanto para agendamentos avulsos (quando `cliente_id` eh null) quanto para pacotes
+
+**`src/pages/Agendamentos.tsx`**
+- `handlePacoteSubmit`: Validar que `pacoteFormData.nomeCliente` + `pacoteFormData.whatsapp` correspondem a um cliente real no array `clientes`
+- `handleSubmit` (agendamento simples): Mesma validacao
+- Exibir erro claro caso haja inconsistencia
 
 ### Resultado
-- Cada instancia processa sua fila independentemente com 5s de diferenca entre elas
-- Sem risco de timeout (funcao executa em <5s por ciclo)
-- Intervalo de 5min entre mensagens da mesma instancia mantido
-- Todas as instancias iniciam envio proximo das 08:00, com leve escalonamento
+
+- Mensagens pendentes com dados inconsistentes serao automaticamente corrigidas na proxima execucao do scheduler
+- Novos agendamentos/pacotes so serao criados se os dados do cliente forem consistentes com o cadastro
+- O nome exibido nas mensagens sempre refletira o cadastro oficial do cliente, nao o texto digitado manualmente
 
