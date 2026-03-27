@@ -1463,6 +1463,14 @@ const Agendamentos = () => {
       }
     }
 
+    // Validar consistência cliente + whatsapp contra o cadastro
+    const whatsappNorm = pacoteFormData.whatsapp.replace(/\D/g, "");
+    const clienteCadastro = clientes.find(c => c.whatsapp.replace(/\D/g, "") === whatsappNorm);
+    if (clienteCadastro && clienteCadastro.nomeCliente.trim() !== pacoteFormData.nomeCliente.trim()) {
+      toast.error(`O número de WhatsApp informado pertence ao cliente "${clienteCadastro.nomeCliente}", mas o nome preenchido é "${pacoteFormData.nomeCliente}". Corrija antes de salvar.`);
+      return;
+    }
+
     setSalvando(true);
     try {
       const { error } = await supabase.from("agendamentos_pacotes").insert([

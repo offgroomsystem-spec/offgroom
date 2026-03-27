@@ -314,9 +314,28 @@ Deno.serve(async (req) => {
             if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
           }
 
+          // Cross-validate client name against cadastro (source of truth)
+          let nomeClienteValidado = agAtual.cliente;
+          if (agAtual.cliente_id) {
+            const { data: clienteReal } = await supabase.from("clientes").select("nome_cliente").eq("id", agAtual.cliente_id).single();
+            if (clienteReal && clienteReal.nome_cliente.trim() !== agAtual.cliente.trim()) {
+              console.log(`Client name mismatch (avulso): agendamento="${agAtual.cliente}" cadastro="${clienteReal.nome_cliente}". Using cadastro.`);
+              nomeClienteValidado = clienteReal.nome_cliente;
+            }
+          } else {
+            // No cliente_id — try to find by whatsapp number
+            const numNorm = formatNumero(agAtual.whatsapp);
+            const { data: clientesByNum } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("user_id", msg.user_id);
+            const clienteReal = (clientesByNum || []).find(c => formatNumero(c.whatsapp) === numNorm);
+            if (clienteReal && clienteReal.nome_cliente.trim() !== agAtual.cliente.trim()) {
+              console.log(`Client name mismatch (avulso no id): agendamento="${agAtual.cliente}" cadastro="${clienteReal.nome_cliente}". Using cadastro.`);
+              nomeClienteValidado = clienteReal.nome_cliente;
+            }
+          }
+
           extracted = {
             msgId: msg.id, userId: msg.user_id,
-            nomeCliente: agAtual.cliente, nomePet: agAtual.pet, sexoPet,
+            nomeCliente: nomeClienteValidado, nomePet: agAtual.pet, sexoPet,
             data: agAtual.data, horario: agAtual.horario, servico: agAtual.servico,
             taxiDog: agAtual.taxi_dog, isPacote: !!agAtual.numero_servico_pacote,
             servicoNumero: agAtual.numero_servico_pacote,
@@ -363,9 +382,19 @@ Deno.serve(async (req) => {
           const servicoNumero = svAtual.numero || msg.servico_numero;
           const servicoNome = svAtual.nomeServico || svAtual.servico || svAtual.nome || "Banho";
 
+          // Cross-validate client name against cadastro (source of truth)
+          let nomeClientePacoteValidado = pacoteAtual.nome_cliente;
+          const numNormPacote = formatNumero(pacoteAtual.whatsapp);
+          const { data: clientesByNumPacote } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("user_id", msg.user_id);
+          const clienteRealPacote = (clientesByNumPacote || []).find(c => formatNumero(c.whatsapp) === numNormPacote);
+          if (clienteRealPacote && clienteRealPacote.nome_cliente.trim() !== pacoteAtual.nome_cliente.trim()) {
+            console.log(`Client name mismatch (pacote): pacote="${pacoteAtual.nome_cliente}" cadastro="${clienteRealPacote.nome_cliente}". Using cadastro.`);
+            nomeClientePacoteValidado = clienteRealPacote.nome_cliente;
+          }
+
           extracted = {
             msgId: msg.id, userId: msg.user_id,
-            nomeCliente: pacoteAtual.nome_cliente, nomePet: pacoteAtual.nome_pet, sexoPet,
+            nomeCliente: nomeClientePacoteValidado, nomePet: pacoteAtual.nome_pet, sexoPet,
             data: svAtual.data, horario: svAtual.horarioInicio, servico: servicoNome,
             taxiDog: pacoteAtual.taxi_dog, isPacote: true,
             servicoNumero, isUltimo: isUltimoServicoPacote(servicoNumero || ""),
