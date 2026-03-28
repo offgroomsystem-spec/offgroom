@@ -52,8 +52,6 @@ const DRERow = ({ titulo, valor, nivel, destaque, cor = "default" }: DRERowProps
   );
 };
 
-// Subcategorias que são "custos operacionais" (separadas da seção Despesas Operacionais)
-const CUSTOS_OPERACIONAIS = ["Produtos para Banho", "Material de Limpeza"];
 
 export const DRE = ({ filtros }: DREProps) => {
   const { user, ownerId } = useAuth();
