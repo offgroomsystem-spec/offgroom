@@ -4224,13 +4224,13 @@ const Agendamentos = () => {
                             handleEditarClick(unified);
                           }}
                         >
-                                <div className="font-bold truncate">
+                                <div className="font-bold break-words">
                                   {ag.horario?.substring(0, 5)} - {ag.cliente}
                                 </div>
-                                <div className="font-bold truncate">
+                                <div className="font-bold break-words">
                                   {ag.pet} - {ag.raca}
                                 </div>
-                                <div className="truncate text-white/80">{ag.servico}</div>
+                                <div className="break-words text-white/80">{ag.servico}</div>
                               </div>
                         )}
                             {allPacotes.map((p, i) => {
