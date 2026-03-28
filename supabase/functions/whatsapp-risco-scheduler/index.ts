@@ -326,9 +326,10 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
     // Verificar agendamentos futuros
     const temFuturo = new Set<string>();
     for (const a of allAgendamentos) {
-      if (!a.cliente_id) continue;
+      const clienteId = resolverClienteId(a);
+      if (!clienteId) continue;
       const d = parseData(a.data);
-      if (d && d >= hoje) temFuturo.add(`${a.cliente_id}_${a.pet}`);
+      if (d && d >= hoje) temFuturo.add(`${clienteId}_${a.pet}`);
     }
     for (const p of allPacotes) {
       const clienteMatch = clientes.find((c: any) => c.nome_cliente === p.nome_cliente);
