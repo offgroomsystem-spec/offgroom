@@ -1079,16 +1079,22 @@ const Agendamentos = () => {
     return empresaConfig.diasFuncionamento[dayName];
   });
 
-  // Funções para buscar TODOS os agendamentos de um slot
+  // Funções para buscar TODOS os agendamentos de um slot (agrupa por hora)
+  const getHourFromTime = (time: string): string => {
+    if (!time) return "";
+    const h = time.split(":")[0];
+    return h ? h.padStart(2, "0") + ":00" : "";
+  };
+
   const getAllAgendamentosForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.filter((a) => a.data === dateStr && a.horario === horario);
+    return agendamentos.filter((a) => a.data === dateStr && getHourFromTime(a.horario) === horario);
   };
 
   const getAllPacotesForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     return agendamentosPacotes.filter((p) =>
-    p.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario)
+    p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === horario)
     );
   };
   const handleSubmit = async (e: React.FormEvent) => {
