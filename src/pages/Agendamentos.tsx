@@ -1079,16 +1079,22 @@ const Agendamentos = () => {
     return empresaConfig.diasFuncionamento[dayName];
   });
 
-  // Funções para buscar TODOS os agendamentos de um slot
+  // Funções para buscar TODOS os agendamentos de um slot (agrupa por hora)
+  const getHourFromTime = (time: string): string => {
+    if (!time) return "";
+    const h = time.split(":")[0];
+    return h ? h.padStart(2, "0") + ":00" : "";
+  };
+
   const getAllAgendamentosForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.filter((a) => a.data === dateStr && a.horario === horario);
+    return agendamentos.filter((a) => a.data === dateStr && getHourFromTime(a.horario) === horario);
   };
 
   const getAllPacotesForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     return agendamentosPacotes.filter((p) =>
-    p.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario)
+    p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === horario)
     );
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1573,11 +1579,11 @@ const Agendamentos = () => {
   };
   const getAgendamentoForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.find((a) => a.data === dateStr && a.horario === horario);
+    return agendamentos.find((a) => a.data === dateStr && getHourFromTime(a.horario) === horario);
   };
   const getPacoteForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentosPacotes.find((a) => a.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario));
+    return agendamentosPacotes.find((a) => a.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === horario));
   };
   const isHorarioOcupado = (date: Date, horario: string) => {
     return !!getAgendamentoForSlot(date, horario) || !!getPacoteForSlot(date, horario);
@@ -4195,10 +4201,11 @@ const Agendamentos = () => {
                                 <div className="font-semibold truncate">{ag.pet}</div>
                                 <div className="text-[10px] text-[#4590DB]/80 dark:text-accent-foreground/80 truncate">{ag.cliente}</div>
                                 <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60 truncate">{ag.servico}</div>
+                                <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60">{ag.horario} - {ag.horarioTermino}</div>
                               </div>
                         )}
                             {allPacotes.map((p, i) => {
-                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && s.horarioInicio === horario);
+                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && getHourFromTime(s.horarioInicio) === horario);
                           return (
                             <div key={`pk-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground">
                                   <div className="flex items-center gap-1">
