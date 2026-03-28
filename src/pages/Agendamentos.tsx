@@ -4246,7 +4246,7 @@ const Agendamentos = () => {
                           return (
                             <div
                               key={`pk-${i}`}
-                              className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full"
+                              className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full flex-1"
                               style={{ backgroundColor: '#1976D2' }}
                               onClick={() => {
                                 if (!servicoDoHorario) return;
