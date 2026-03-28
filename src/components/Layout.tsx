@@ -135,7 +135,7 @@ const Layout = () => {
         </div>
       </header>
 
-      <main className="container py-1 px-2">
+      <main className="w-full max-w-[1800px] mx-auto py-1 px-2">
         <Outlet />
       </main>
     </div>
