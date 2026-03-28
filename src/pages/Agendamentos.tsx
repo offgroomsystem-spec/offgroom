@@ -4267,13 +4267,13 @@ const Agendamentos = () => {
                     </div>
 
                     {/* Time grid body */}
-                    <div className="grid" style={{ gridTemplateColumns: `60px repeat(${filteredWeekDates.length}, 1fr)` }}>
+                    <div className="grid" style={{ gridTemplateColumns: `36px repeat(${filteredWeekDates.length}, 1fr)` }}>
                       {/* Time labels column */}
                       <div className="relative" style={{ height: totalHeight }}>
                         {horarios.map((h, i) => (
                           <div
                             key={h}
-                            className="absolute left-0 right-0 text-xs font-medium text-muted-foreground border-t flex items-start justify-center pt-0.5"
+                            className="absolute left-0 right-0 text-[10px] leading-tight font-medium text-muted-foreground border-t flex items-start justify-center pt-px"
                             style={{ top: i * slotH, height: slotH }}
                           >
                             {h}
