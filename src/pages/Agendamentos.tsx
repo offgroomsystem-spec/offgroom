@@ -4243,7 +4243,7 @@ const Agendamentos = () => {
         </CardHeader>
         <CardContent className="py-2 overflow-visible">
           {viewMode === "semana" ?
-           {(() => {
+           (() => {
                 const slotH = 40; // px per 30-min slot
                 const gridStartMin = timeToMinutes(horarios[0]);
                 const gridEndMin = timeToMinutes(horarios[horarios.length - 1]) + 30;
