@@ -301,7 +301,7 @@ export const DRE = ({ filtros }: DREProps) => {
     addSeparator();
 
     // Custos Operacionais
-    addRow("(-) Custos Operacionais", dre.custosOperacionais);
+    addRow("(-) Deduções e Custos Diretos", dre.custosOperacionais);
     for (const key of CUSTOS_OPERACIONAIS) {
       const val = dre.despesaOp.subcategorias[key] || 0;
       if (val !== 0) addRow(key, val, { indent: 1 });
