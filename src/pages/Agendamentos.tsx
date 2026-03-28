@@ -4197,7 +4197,26 @@ const Agendamentos = () => {
                       
                           <div className="flex flex-wrap gap-1">
                             {allAgendamentos.map((ag, i) =>
-                        <div key={`ag-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground">
+                        <div
+                          key={`ag-${i}`}
+                          className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground cursor-pointer hover:ring-2 hover:ring-primary/50"
+                          onClick={() => {
+                            setEditingAgendamento({
+                              tipo: "simples",
+                              cliente: ag.cliente,
+                              pet: ag.pet,
+                              agendamento: ag,
+                              agendamentoOriginal: ag
+                            });
+                            setEditFormData({
+                              data: ag.data,
+                              horarioInicio: ag.horario,
+                              tempoServico: ag.tempoServico || "",
+                              horarioTermino: ag.horarioTermino || "",
+                              servico: ag.servico
+                            });
+                            setEditDialogOpen(true);
+                          }}>
                                 <div className="font-semibold truncate">{ag.pet}</div>
                                 <div className="text-[10px] text-[#4590DB]/80 dark:text-accent-foreground/80 truncate">{ag.cliente}</div>
                                 <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60 truncate">{ag.servico}</div>
@@ -4207,7 +4226,28 @@ const Agendamentos = () => {
                             {allPacotes.map((p, i) => {
                           const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && getHourFromTime(s.horarioInicio) === horario);
                           return (
-                            <div key={`pk-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground">
+                            <div
+                              key={`pk-${i}`}
+                              className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground cursor-pointer hover:ring-2 hover:ring-primary/50"
+                              onClick={() => {
+                                if (servicoDoHorario) {
+                                  setEditingAgendamento({
+                                    tipo: "pacote",
+                                    cliente: p.nomeCliente,
+                                    pet: p.nomePet,
+                                    agendamentoPacote: p,
+                                    servicoAgendamento: servicoDoHorario
+                                  });
+                                  setEditFormData({
+                                    data: servicoDoHorario.data,
+                                    horarioInicio: servicoDoHorario.horarioInicio,
+                                    tempoServico: servicoDoHorario.tempoServico || "",
+                                    horarioTermino: servicoDoHorario.horarioTermino || "",
+                                    servico: servicoDoHorario.nomeServico
+                                  });
+                                  setEditDialogOpen(true);
+                                }
+                              }}>
                                   <div className="flex items-center gap-1">
                                     <Package className="h-3 w-3" />
                                     <span className="font-semibold truncate">{p.nomePet}</span>
