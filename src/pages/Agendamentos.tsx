@@ -3815,37 +3815,34 @@ const Agendamentos = () => {
                     </div>
                 }
 
-                  {editandoAgendamento.tipo === "simples" &&
-                <div className="space-y-1">
-                      <Label className="text-xs">Groomer</Label>
-                      <Select
-                    value={editandoAgendamento.groomer}
-                    onValueChange={(value) =>
-                    setEditandoAgendamento({
-                      ...editandoAgendamento,
-                      groomer: value
-                    })
-                    }>
-                    
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Selecione o groomer" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {groomers.length === 0 ?
-                      <SelectItem value="none" disabled className="text-xs">
-                              Nenhum groomer cadastrado
-                            </SelectItem> :
-
-                      groomers.map((g) =>
-                      <SelectItem key={g.id} value={g.nome} className="text-xs">
-                                {g.nome}
-                              </SelectItem>
-                      )
-                      }
-                        </SelectContent>
-                      </Select>
-                    </div>
-                }
+                  {/* Groomer - para ambos os tipos */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Groomer</Label>
+                    <Select
+                      value={editandoAgendamento.groomer}
+                      onValueChange={(value) =>
+                        setEditandoAgendamento({
+                          ...editandoAgendamento,
+                          groomer: value
+                        })
+                      }>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione o groomer" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {groomers.length === 0 ?
+                          <SelectItem value="none" disabled className="text-xs">
+                            Nenhum groomer cadastrado
+                          </SelectItem> :
+                          groomers.map((g) =>
+                            <SelectItem key={g.id} value={g.nome} className="text-xs">
+                              {g.nome}
+                            </SelectItem>
+                          )
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   {editandoAgendamento.tipo === "pacote" &&
                 <>
