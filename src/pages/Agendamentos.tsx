@@ -4652,12 +4652,14 @@ const Agendamentos = () => {
                   </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => {
-                      if (editingAgendamento.tipo === "pacote") {
+                  <div className="flex justify-between gap-2 pt-2">
+                    <div className="flex gap-2 items-center">
+                      <Button
+                      type="button"
+                      variant="destructive"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        if (editingAgendamento.tipo === "pacote") {
                         const updated = agendamentosPacotes.
                         map((p) => {
                           if (p.id === editingAgendamento.agendamentoPacote.id) {
