@@ -4234,7 +4234,7 @@ const Agendamentos = () => {
                               </div>
                         )}
                             {allPacotes.map((p, i) => {
-                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && s.horarioInicio === horario);
+                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && getHourFromTime(s.horarioInicio) === getHourFromTime(horario));
                           return (
                             <div
                               key={`pk-${i}`}
