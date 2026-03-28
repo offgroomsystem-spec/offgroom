@@ -4241,7 +4241,7 @@ const Agendamentos = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="py-2 overflow-visible">
+        <CardContent className="py-2 px-1 overflow-visible">
           {viewMode === "semana" ?
            (() => {
                 const slotH = 40; // px per 30-min slot
@@ -4250,11 +4250,11 @@ const Agendamentos = () => {
                 const totalSlots = horarios.length;
                 const totalHeight = totalSlots * slotH;
                 return (
-                  <div className="min-w-[600px]">
+                  <div className="w-full">
                     {/* Sticky header */}
-                    <div className="sticky top-12 z-20 bg-card border-b grid" style={{ gridTemplateColumns: `60px repeat(${filteredWeekDates.length}, 1fr)` }}>
-                      <div className="p-2 font-semibold flex items-center justify-center">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div className="sticky top-12 z-20 bg-card border-b grid" style={{ gridTemplateColumns: `36px repeat(${filteredWeekDates.length}, 1fr)` }}>
+                      <div className="p-0.5 flex items-center justify-center">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
                       </div>
                       {filteredWeekDates.map((date, idx) => (
                         <div key={idx} className="p-2 text-center border-l">
@@ -4267,13 +4267,13 @@ const Agendamentos = () => {
                     </div>
 
                     {/* Time grid body */}
-                    <div className="grid" style={{ gridTemplateColumns: `60px repeat(${filteredWeekDates.length}, 1fr)` }}>
+                    <div className="grid" style={{ gridTemplateColumns: `36px repeat(${filteredWeekDates.length}, 1fr)` }}>
                       {/* Time labels column */}
                       <div className="relative" style={{ height: totalHeight }}>
                         {horarios.map((h, i) => (
                           <div
                             key={h}
-                            className="absolute left-0 right-0 text-xs font-medium text-muted-foreground border-t flex items-start justify-center pt-0.5"
+                            className="absolute left-0 right-0 text-[10px] leading-tight font-medium text-muted-foreground border-t flex items-start justify-center pt-px"
                             style={{ top: i * slotH, height: slotH }}
                           >
                             {h}
