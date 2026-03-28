@@ -1088,15 +1088,23 @@ const Agendamentos = () => {
   const getAllAgendamentosForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     const slotHour = getHourFromTime(horario);
-    return agendamentos.filter((a) => a.data === dateStr && getHourFromTime(a.horario) === slotHour);
+    return agendamentos
+      .filter((a) => a.data === dateStr && getHourFromTime(a.horario) === slotHour)
+      .sort((a, b) => (a.horario || "").localeCompare(b.horario || ""));
   };
 
   const getAllPacotesForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     const slotHour = getHourFromTime(horario);
-    return agendamentosPacotes.filter((p) =>
-      p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)
-    );
+    return agendamentosPacotes
+      .filter((p) =>
+        p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)
+      )
+      .sort((a, b) => {
+        const aTime = a.servicos.find((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)?.horarioInicio || "";
+        const bTime = b.servicos.find((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)?.horarioInicio || "";
+        return aTime.localeCompare(bTime);
+      });
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
