@@ -290,15 +290,6 @@ export const DRE = ({ filtros }: DREProps) => {
 
     addSeparator();
 
-    // Custos Operacionais
-    addRow("(-) Deduções e Custos Diretos", dre.custosOperacionais);
-    for (const key of CUSTOS_OPERACIONAIS) {
-      const val = dre.despesaOp.subcategorias[key] || 0;
-      if (val !== 0) addRow(key, val, { indent: 1 });
-    }
-
-    addSeparator();
-
     // Lucro Bruto
     addRow("(=) Lucro Bruto", dre.lucroBruto, { bold: true, cor: dre.lucroBruto >= 0 ? "green" : "red" });
     addRow("Margem Bruta", `${dre.margemBruta.toFixed(2)}%`, { indent: 2 });
@@ -306,11 +297,8 @@ export const DRE = ({ filtros }: DREProps) => {
     addSeparator();
 
     // Despesas Operacionais
-    addRow("(-) Despesas Operacionais", dre.despesasOperacionaisTotal);
-    const despOpSubs = categoriasDescricao2["Despesa Operacional"] || [];
-    for (const sub of despOpSubs) {
-      if (CUSTOS_OPERACIONAIS.includes(sub)) continue;
-      const val = dre.despesaOp.subcategorias[sub] || 0;
+    addRow("(-) Despesas Operacionais", dre.despesaOp.total);
+    for (const [sub, val] of Object.entries(dre.despesaOp.subcategorias)) {
       if (val !== 0) addRow(sub, val, { indent: 1 });
     }
 
