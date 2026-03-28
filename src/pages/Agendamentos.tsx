@@ -1088,15 +1088,23 @@ const Agendamentos = () => {
   const getAllAgendamentosForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     const slotHour = getHourFromTime(horario);
-    return agendamentos.filter((a) => a.data === dateStr && getHourFromTime(a.horario) === slotHour);
+    return agendamentos
+      .filter((a) => a.data === dateStr && getHourFromTime(a.horario) === slotHour)
+      .sort((a, b) => (a.horario || "").localeCompare(b.horario || ""));
   };
 
   const getAllPacotesForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     const slotHour = getHourFromTime(horario);
-    return agendamentosPacotes.filter((p) =>
-      p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)
-    );
+    return agendamentosPacotes
+      .filter((p) =>
+        p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)
+      )
+      .sort((a, b) => {
+        const aTime = a.servicos.find((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)?.horarioInicio || "";
+        const bTime = b.servicos.find((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)?.horarioInicio || "";
+        return aTime.localeCompare(bTime);
+      });
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -4193,13 +4201,13 @@ const Agendamentos = () => {
                   return (
                     <div
                       key={idx}
-                      className={`p-1 rounded-lg min-h-[60px] transition-colors ${total > 0 ? "" : "bg-secondary/30 hover:bg-secondary/50"}`}>
+                      className={`p-1 rounded-lg min-h-[60px] transition-colors flex flex-col ${total > 0 ? "" : "bg-secondary/30 hover:bg-secondary/50"}`}>
                       
-                          <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-col gap-0.5 flex-1">
                             {allAgendamentos.map((ag, i) =>
                         <div
                           key={`ag-${i}`}
-                          className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full"
+                          className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full flex-1"
                           style={{ backgroundColor: '#1976D2' }}
                           onClick={() => {
                             const unified: AgendamentoUnificado = {
@@ -4238,7 +4246,7 @@ const Agendamentos = () => {
                           return (
                             <div
                               key={`pk-${i}`}
-                              className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full"
+                              className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full flex-1"
                               style={{ backgroundColor: '#1976D2' }}
                               onClick={() => {
                                 if (!servicoDoHorario) return;
