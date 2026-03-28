@@ -227,8 +227,6 @@ export const DRE = ({ filtros }: DREProps) => {
       despesaOp,
       despesaFixa,
       despesaNaoOp,
-      custosOperacionais,
-      despesasOperacionaisTotal,
       lucroBruto,
       lucroOperacional,
       resultadoNaoOperacional,
