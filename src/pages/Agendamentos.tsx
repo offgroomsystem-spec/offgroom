@@ -4268,14 +4268,14 @@ const Agendamentos = () => {
                                 handleEditarClick(unified);
                               }}
                             >
-                                  <div className="font-bold truncate flex items-center gap-0.5">
+                                  <div className="font-bold break-words flex items-center gap-0.5">
                                     <Package className="h-3 w-3 flex-shrink-0" />
                                     {servicoDoHorario?.horarioInicio?.substring(0, 5) || horario.substring(0, 5)} - {p.nomeCliente}
                                   </div>
-                                  <div className="font-bold truncate">
+                                  <div className="font-bold break-words">
                                     {p.nomePet} - {p.raca}
                                   </div>
-                                  <div className="truncate text-white/80">
+                                  <div className="break-words text-white/80">
                                     {servicoDoHorario ? servicoDoHorario.nomeServico : p.nomePacote}
                                   </div>
                                 </div>);
