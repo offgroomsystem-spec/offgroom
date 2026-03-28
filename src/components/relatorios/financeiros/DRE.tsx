@@ -52,8 +52,6 @@ const DRERow = ({ titulo, valor, nivel, destaque, cor = "default" }: DRERowProps
   );
 };
 
-// Subcategorias que são "custos operacionais" (separadas da seção Despesas Operacionais)
-const CUSTOS_OPERACIONAIS = ["Produtos para Banho", "Material de Limpeza"];
 
 export const DRE = ({ filtros }: DREProps) => {
   const { user, ownerId } = useAuth();
@@ -212,19 +210,13 @@ export const DRE = ({ filtros }: DREProps) => {
     const despesaFixa = buildSection("Despesa Fixa");
     const despesaNaoOp = buildSection("Despesa Não Operacional");
 
-    // Custos operacionais = Produtos para Banho + Material de Limpeza (extracted from Despesa Operacional)
-    const custosOperacionais = CUSTOS_OPERACIONAIS.reduce((sum, key) => sum + (despesaOp.subcategorias[key] || 0), 0);
-
-    // Despesas operacionais (excluindo custos)
-    const despesasOperacionaisTotal = despesaOp.total - custosOperacionais;
-
-    const lucroBruto = receitaOp.total - custosOperacionais;
-    const lucroOperacional = lucroBruto - despesasOperacionaisTotal - despesaFixa.total;
+    const lucroBruto = receitaOp.total;
+    const lucroOperacional = lucroBruto - despesaOp.total - despesaFixa.total;
     const resultadoNaoOperacional = receitaNaoOp.total - despesaNaoOp.total;
     const lucroLiquido = lucroOperacional + resultadoNaoOperacional;
 
     const receitaTotal = receitaOp.total + receitaNaoOp.total;
-    const despesasTotal = custosOperacionais + despesasOperacionaisTotal + despesaFixa.total + despesaNaoOp.total;
+    const despesasTotal = despesaOp.total + despesaFixa.total + despesaNaoOp.total;
     const margemBruta = receitaOp.total > 0 ? (lucroBruto / receitaOp.total) * 100 : 0;
     const margemOperacional = receitaTotal > 0 ? (lucroOperacional / receitaTotal) * 100 : 0;
     const margemLiquida = receitaTotal > 0 ? (lucroLiquido / receitaTotal) * 100 : 0;
@@ -235,8 +227,6 @@ export const DRE = ({ filtros }: DREProps) => {
       despesaOp,
       despesaFixa,
       despesaNaoOp,
-      custosOperacionais,
-      despesasOperacionaisTotal,
       lucroBruto,
       lucroOperacional,
       resultadoNaoOperacional,
@@ -300,15 +290,6 @@ export const DRE = ({ filtros }: DREProps) => {
 
     addSeparator();
 
-    // Custos Operacionais
-    addRow("(-) Deduções e Custos Diretos", dre.custosOperacionais);
-    for (const key of CUSTOS_OPERACIONAIS) {
-      const val = dre.despesaOp.subcategorias[key] || 0;
-      if (val !== 0) addRow(key, val, { indent: 1 });
-    }
-
-    addSeparator();
-
     // Lucro Bruto
     addRow("(=) Lucro Bruto", dre.lucroBruto, { bold: true, cor: dre.lucroBruto >= 0 ? "green" : "red" });
     addRow("Margem Bruta", `${dre.margemBruta.toFixed(2)}%`, { indent: 2 });
@@ -316,11 +297,8 @@ export const DRE = ({ filtros }: DREProps) => {
     addSeparator();
 
     // Despesas Operacionais
-    addRow("(-) Despesas Operacionais", dre.despesasOperacionaisTotal);
-    const despOpSubs = categoriasDescricao2["Despesa Operacional"] || [];
-    for (const sub of despOpSubs) {
-      if (CUSTOS_OPERACIONAIS.includes(sub)) continue;
-      const val = dre.despesaOp.subcategorias[sub] || 0;
+    addRow("(-) Despesas Operacionais", dre.despesaOp.total);
+    for (const [sub, val] of Object.entries(dre.despesaOp.subcategorias)) {
       if (val !== 0) addRow(sub, val, { indent: 1 });
     }
 
@@ -603,14 +581,6 @@ export const DRE = ({ filtros }: DREProps) => {
 
             <Separator className="my-3" />
 
-            {/* DEDUÇÕES E CUSTOS DIRETOS */}
-            <DRERow titulo="(-) Deduções e Custos Diretos" valor={dre.custosOperacionais} nivel={1} />
-            {CUSTOS_OPERACIONAIS.map((key) => (
-              <DRERow key={key} titulo={key} valor={dre.despesaOp.subcategorias[key] || 0} nivel={2} />
-            ))}
-
-            <Separator className="my-3" />
-
             {/* LUCRO BRUTO */}
             <DRERow titulo="(=) Lucro Bruto" valor={dre.lucroBruto} nivel={1} destaque cor={dre.lucroBruto >= 0 ? "green" : "red"} />
             <DRERow titulo="    Margem Bruta" valor={`${dre.margemBruta.toFixed(2)}%`} nivel={3} />
@@ -618,8 +588,8 @@ export const DRE = ({ filtros }: DREProps) => {
             <div className="pt-4" />
 
             {/* DESPESAS OPERACIONAIS */}
-            <DRERow titulo="(-) Despesas Operacionais" valor={dre.despesasOperacionaisTotal} nivel={1} />
-            {renderSubcategorias(dre.despesaOp.subcategorias, CUSTOS_OPERACIONAIS)}
+            <DRERow titulo="(-) Despesas Operacionais" valor={dre.despesaOp.total} nivel={1} />
+            {renderSubcategorias(dre.despesaOp.subcategorias)}
 
             <Separator className="my-3" />
 
