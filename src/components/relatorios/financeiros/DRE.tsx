@@ -210,19 +210,13 @@ export const DRE = ({ filtros }: DREProps) => {
     const despesaFixa = buildSection("Despesa Fixa");
     const despesaNaoOp = buildSection("Despesa Não Operacional");
 
-    // Custos operacionais = Produtos para Banho + Material de Limpeza (extracted from Despesa Operacional)
-    const custosOperacionais = CUSTOS_OPERACIONAIS.reduce((sum, key) => sum + (despesaOp.subcategorias[key] || 0), 0);
-
-    // Despesas operacionais (excluindo custos)
-    const despesasOperacionaisTotal = despesaOp.total - custosOperacionais;
-
-    const lucroBruto = receitaOp.total - custosOperacionais;
-    const lucroOperacional = lucroBruto - despesasOperacionaisTotal - despesaFixa.total;
+    const lucroBruto = receitaOp.total;
+    const lucroOperacional = lucroBruto - despesaOp.total - despesaFixa.total;
     const resultadoNaoOperacional = receitaNaoOp.total - despesaNaoOp.total;
     const lucroLiquido = lucroOperacional + resultadoNaoOperacional;
 
     const receitaTotal = receitaOp.total + receitaNaoOp.total;
-    const despesasTotal = custosOperacionais + despesasOperacionaisTotal + despesaFixa.total + despesaNaoOp.total;
+    const despesasTotal = despesaOp.total + despesaFixa.total + despesaNaoOp.total;
     const margemBruta = receitaOp.total > 0 ? (lucroBruto / receitaOp.total) * 100 : 0;
     const margemOperacional = receitaTotal > 0 ? (lucroOperacional / receitaTotal) * 100 : 0;
     const margemLiquida = receitaTotal > 0 ? (lucroLiquido / receitaTotal) * 100 : 0;
