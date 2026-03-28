@@ -255,6 +255,32 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
 
     const clienteMap = new Map(clientes.map((c: any) => [c.id, c]));
 
+    // Mapa auxiliar para resolver cliente quando cliente_id é NULL
+    // Chave: "nome_cliente|whatsapp" → cliente.id
+    const clienteByNomeWhatsapp = new Map<string, string>();
+    for (const c of clientes) {
+      const whatsLimpo = c.whatsapp.replace(/\D/g, "");
+      clienteByNomeWhatsapp.set(`${c.nome_cliente}|${whatsLimpo}`, c.id);
+      // Também mapear apenas por whatsapp para fallback
+      if (!clienteByNomeWhatsapp.has(`|${whatsLimpo}`)) {
+        clienteByNomeWhatsapp.set(`|${whatsLimpo}`, c.id);
+      }
+    }
+
+    function resolverClienteId(a: any): string | null {
+      if (a.cliente_id) return a.cliente_id;
+      // Tentar por nome + whatsapp
+      const whatsLimpo = (a.whatsapp || "").replace(/\D/g, "");
+      const byNome = clienteByNomeWhatsapp.get(`${a.cliente}|${whatsLimpo}`);
+      if (byNome) return byNome;
+      // Fallback: apenas por whatsapp
+      const byWhats = clienteByNomeWhatsapp.get(`|${whatsLimpo}`);
+      if (byWhats) return byWhats;
+      // Fallback: por nome_cliente apenas
+      const byNomeOnly = clientes.find((c: any) => c.nome_cliente === a.cliente);
+      return byNomeOnly?.id || null;
+    }
+
     const parseData = (str: string) => {
       const d = new Date(str + "T00:00:00");
       return isNaN(d.getTime()) ? null : d;
@@ -265,11 +291,13 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
 
     for (const a of allAgendamentos) {
       const d = parseData(a.data);
-      if (!d || !a.cliente_id) continue;
-      const chave = `${a.cliente_id}_${a.pet}`;
+      if (!d) continue;
+      const clienteId = resolverClienteId(a);
+      if (!clienteId) continue;
+      const chave = `${clienteId}_${a.pet}`;
       const existente = ultimoAgendamento.get(chave);
       if (!existente || d > existente.data) {
-        ultimoAgendamento.set(chave, { data: d, clienteId: a.cliente_id, nomePet: a.pet, whatsapp: a.whatsapp });
+        ultimoAgendamento.set(chave, { data: d, clienteId, nomePet: a.pet, whatsapp: a.whatsapp });
       }
     }
 
@@ -298,9 +326,10 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
     // Verificar agendamentos futuros
     const temFuturo = new Set<string>();
     for (const a of allAgendamentos) {
-      if (!a.cliente_id) continue;
+      const clienteId = resolverClienteId(a);
+      if (!clienteId) continue;
       const d = parseData(a.data);
-      if (d && d >= hoje) temFuturo.add(`${a.cliente_id}_${a.pet}`);
+      if (d && d >= hoje) temFuturo.add(`${clienteId}_${a.pet}`);
     }
     for (const p of allPacotes) {
       const clienteMatch = clientes.find((c: any) => c.nome_cliente === p.nome_cliente);
