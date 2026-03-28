@@ -2467,7 +2467,8 @@ const Agendamentos = () => {
           horarioTermino: calcularHorarioTermino(
             editandoAgendamento.horarioInicio,
             editandoAgendamento.tempoServico
-          )
+          ),
+          groomer: editandoAgendamento.groomer
         } :
         s
         );
