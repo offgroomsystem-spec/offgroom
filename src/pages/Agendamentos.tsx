@@ -1079,16 +1079,23 @@ const Agendamentos = () => {
     return empresaConfig.diasFuncionamento[dayName];
   });
 
-  // Funções para buscar TODOS os agendamentos de um slot
+  // Funções para buscar TODOS os agendamentos de um slot (por hora, não horário exato)
+  const getHourFromTime = (time: string): string => {
+    if (!time) return "";
+    return time.substring(0, 2);
+  };
+
   const getAllAgendamentosForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.filter((a) => a.data === dateStr && a.horario === horario);
+    const slotHour = getHourFromTime(horario);
+    return agendamentos.filter((a) => a.data === dateStr && getHourFromTime(a.horario) === slotHour);
   };
 
   const getAllPacotesForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
+    const slotHour = getHourFromTime(horario);
     return agendamentosPacotes.filter((p) =>
-    p.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario)
+      p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === slotHour)
     );
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -4227,7 +4234,7 @@ const Agendamentos = () => {
                               </div>
                         )}
                             {allPacotes.map((p, i) => {
-                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && s.horarioInicio === horario);
+                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && getHourFromTime(s.horarioInicio) === getHourFromTime(horario));
                           return (
                             <div
                               key={`pk-${i}`}
