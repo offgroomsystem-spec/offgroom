@@ -4192,9 +4192,9 @@ const Agendamentos = () => {
         </CardHeader>
         <CardContent className="py-2">
           {viewMode === "semana" ?
-          <div className="overflow-x-auto">
+           <div className="overflow-x-auto">
               <div className="min-w-[600px]">
-                <div className="grid gap-2" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
+                <div className="sticky top-12 z-20 bg-card border-b grid gap-2" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
                   <div className="p-2 font-semibold">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </div>
