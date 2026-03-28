@@ -4190,7 +4190,32 @@ const Agendamentos = () => {
                       
                           <div className="flex flex-wrap gap-1">
                             {allAgendamentos.map((ag, i) =>
-                        <div key={`ag-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground">
+                        <div
+                          key={`ag-${i}`}
+                          className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                          onClick={() => {
+                            const unified: AgendamentoUnificado = {
+                              id: ag.id,
+                              tipo: "simples",
+                              data: ag.data,
+                              horarioInicio: ag.horario,
+                              horarioTermino: ag.horarioTermino,
+                              cliente: ag.cliente,
+                              pet: ag.pet,
+                              raca: ag.raca,
+                              servico: ag.servico,
+                              nomePacote: "",
+                              numeroPacote: "",
+                              taxiDog: ag.taxiDog || "",
+                              dataVenda: ag.dataVenda,
+                              whatsapp: ag.whatsapp,
+                              tempoServico: ag.tempoServico || "",
+                              groomer: ag.groomer || "",
+                              agendamentoOriginal: ag
+                            };
+                            handleEditarClick(unified);
+                          }}
+                        >
                                 <div className="font-semibold truncate">{ag.pet}</div>
                                 <div className="text-[10px] text-[#4590DB]/80 dark:text-accent-foreground/80 truncate">{ag.cliente}</div>
                                 <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60 truncate">{ag.servico}</div>
@@ -4199,7 +4224,37 @@ const Agendamentos = () => {
                             {allPacotes.map((p, i) => {
                           const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && s.horarioInicio === horario);
                           return (
-                            <div key={`pk-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground">
+                            <div
+                              key={`pk-${i}`}
+                              className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                              onClick={() => {
+                                if (!servicoDoHorario) return;
+                                const extras = (servicoDoHorario as any).servicosExtras || [];
+                                const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
+                                const servicoCompleto = nomesExtras ? `${servicoDoHorario.nomeServico} + ${nomesExtras}` : servicoDoHorario.nomeServico;
+                                const unified: AgendamentoUnificado = {
+                                  id: `${p.id}-${servicoDoHorario.numero}`,
+                                  tipo: "pacote",
+                                  data: servicoDoHorario.data,
+                                  horarioInicio: servicoDoHorario.horarioInicio,
+                                  horarioTermino: servicoDoHorario.horarioTermino,
+                                  cliente: p.nomeCliente,
+                                  pet: p.nomePet,
+                                  raca: p.raca,
+                                  servico: servicoCompleto,
+                                  nomePacote: p.nomePacote,
+                                  numeroPacote: servicoDoHorario.numero,
+                                  taxiDog: p.taxiDog,
+                                  dataVenda: p.dataVenda,
+                                  whatsapp: p.whatsapp,
+                                  tempoServico: servicoDoHorario.tempoServico,
+                                  groomer: (servicoDoHorario as any).groomer || "",
+                                  pacoteOriginal: p,
+                                  servicoOriginal: servicoDoHorario
+                                };
+                                handleEditarClick(unified);
+                              }}
+                            >
                                   <div className="flex items-center gap-1">
                                     <Package className="h-3 w-3" />
                                     <span className="font-semibold truncate">{p.nomePet}</span>
