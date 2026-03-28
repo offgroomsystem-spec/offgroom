@@ -1041,7 +1041,58 @@ const Agendamentos = () => {
       setSimpleAvailableRacas([]);
     }
   };
-  const horarios = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+  // Generate 30-min interval time slots for week view
+  const horarios = useMemo(() => {
+    const slots: string[] = [];
+    const [startH] = (empresaConfig.horarioInicio || "08:00").split(":").map(Number);
+    const [endH] = (empresaConfig.horarioFim || "18:00").split(":").map(Number);
+    for (let h = startH; h <= endH; h++) {
+      slots.push(`${String(h).padStart(2, "0")}:00`);
+      if (h < endH) slots.push(`${String(h).padStart(2, "0")}:30`);
+    }
+    return slots;
+  }, [empresaConfig.horarioInicio, empresaConfig.horarioFim]);
+
+  // Helper: convert "HH:MM" to minutes from midnight
+  const timeToMinutes = (t: string): number => {
+    if (!t) return 0;
+    const [h, m] = t.substring(0, 5).split(":").map(Number);
+    return h * 60 + (m || 0);
+  };
+
+  // Get all unified items for a given date (for absolute positioning in week view)
+  const getUnifiedForDate = (date: Date): AgendamentoUnificado[] => {
+    const dateStr = formatDateForInput(date);
+    const items: AgendamentoUnificado[] = [];
+    agendamentos.filter(a => a.data === dateStr).forEach(ag => {
+      items.push({
+        id: ag.id, tipo: "simples", data: ag.data,
+        horarioInicio: ag.horario, horarioTermino: ag.horarioTermino,
+        cliente: ag.cliente, pet: ag.pet, raca: ag.raca, servico: ag.servico,
+        nomePacote: "", numeroPacote: "", taxiDog: ag.taxiDog || "",
+        dataVenda: ag.dataVenda, whatsapp: ag.whatsapp,
+        tempoServico: ag.tempoServico || "", groomer: ag.groomer || "",
+        agendamentoOriginal: ag
+      });
+    });
+    agendamentosPacotes.forEach(p => {
+      p.servicos.filter(s => s.data === dateStr).forEach(s => {
+        const extras = (s as any).servicosExtras || [];
+        const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
+        const servicoCompleto = nomesExtras ? `${s.nomeServico} + ${nomesExtras}` : s.nomeServico;
+        items.push({
+          id: `${p.id}-${s.numero}`, tipo: "pacote", data: s.data,
+          horarioInicio: s.horarioInicio, horarioTermino: s.horarioTermino,
+          cliente: p.nomeCliente, pet: p.nomePet, raca: p.raca,
+          servico: servicoCompleto, nomePacote: p.nomePacote, numeroPacote: s.numero,
+          taxiDog: p.taxiDog, dataVenda: p.dataVenda, whatsapp: p.whatsapp,
+          tempoServico: s.tempoServico, groomer: (s as any).groomer || "",
+          pacoteOriginal: p, servicoOriginal: s
+        });
+      });
+    });
+    return items.sort((a, b) => (a.horarioInicio || "").localeCompare(b.horarioInicio || ""));
+  };
   const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const mapDiaSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'] as const;
 
