@@ -9,7 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { RefreshCw, Filter, ChevronUp, ChevronDown, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { RefreshCw, Filter, ChevronUp, ChevronDown, TrendingUp, TrendingDown, DollarSign, FileText } from "lucide-react";
+import { categoriasDescricao2 } from "@/constants/categorias";
+import { format } from "date-fns";
 
 interface Filtros {
   periodo: string;
@@ -50,6 +52,9 @@ const DRERow = ({ titulo, valor, nivel, destaque, cor = "default" }: DRERowProps
   );
 };
 
+// Subcategorias que são "custos operacionais" (separadas da seção Despesas Operacionais)
+const CUSTOS_OPERACIONAIS = ["Produtos para Banho", "Material de Limpeza"];
+
 export const DRE = ({ filtros }: DREProps) => {
   const { user, ownerId } = useAuth();
   const [lancamentos, setLancamentos] = useState<any[]>([]);
@@ -75,13 +80,11 @@ export const DRE = ({ filtros }: DREProps) => {
     try {
       setLoading(true);
 
-      // Calcular período
       let dataInicio = new Date();
       let dataFim = new Date();
 
       switch (filtrosLocais.periodo) {
         case "hoje":
-          // Hoje
           break;
         case "semana":
           dataInicio.setDate(dataInicio.getDate() - dataInicio.getDay());
@@ -109,56 +112,37 @@ export const DRE = ({ filtros }: DREProps) => {
           break;
       }
 
-      // Buscar lançamentos financeiros
       let query = supabase
         .from("lancamentos_financeiros")
-        .select(
-          `
-          *,
-          lancamentos_financeiros_itens (*)
-        `,
-        )
+        .select(`*, lancamentos_financeiros_itens (*)`)
         .eq("user_id", user.id)
         .gte("data_pagamento", dataInicio.toISOString().split("T")[0])
         .lte("data_pagamento", dataFim.toISOString().split("T")[0]);
 
-      // Filtro de status pago
       if (filtrosLocais.pago !== null) {
         query = query.eq("pago", filtrosLocais.pago);
       }
 
       const { data: lancamentosData, error: lancamentosError } = await query;
-
       if (lancamentosError) throw lancamentosError;
 
-      // Buscar contas bancárias
       const { data: contasData, error: contasError } = await supabase
         .from("contas_bancarias")
         .select("*")
         .eq("user_id", ownerId);
-
       if (contasError) throw contasError;
 
-      // Mapear nome da conta para cada lançamento
       const lancamentosComBanco = (lancamentosData || []).map((l) => {
         const conta = contasData?.find((c) => c.id === l.conta_id);
-        return {
-          ...l,
-          nomeBanco: conta?.nome || "Sem conta",
-          itens: l.lancamentos_financeiros_itens || [],
-        };
+        return { ...l, nomeBanco: conta?.nome || "Sem conta", itens: l.lancamentos_financeiros_itens || [] };
       });
 
-      // Filtrar por bancos selecionados
       let lancamentosFiltrados = lancamentosComBanco;
       if (filtrosLocais.bancosSelecionados.length > 0) {
-        // Se há filtro de banco, incluir apenas lançamentos dos bancos selecionados
-        // E incluir "Sem conta" apenas se explicitamente selecionado
         lancamentosFiltrados = lancamentosComBanco.filter((l) =>
           filtrosLocais.bancosSelecionados.includes(l.nomeBanco),
         );
       }
-      // Se não há filtro de banco, incluir TODOS os lançamentos (com e sem conta)
 
       setLancamentos(lancamentosFiltrados);
       setContas(contasData || []);
@@ -172,39 +156,21 @@ export const DRE = ({ filtros }: DREProps) => {
 
   const atualizarSaldoContas = async () => {
     if (!user) return;
-
     try {
       setAtualizandoSaldo(true);
-
       for (const conta of contas) {
-        // Buscar todos os lançamentos pagos desta conta
         const { data: lancamentosConta, error } = await supabase
           .from("lancamentos_financeiros")
           .select("tipo, valor_total")
           .eq("user_id", user.id)
           .eq("conta_id", conta.id)
           .eq("pago", true);
-
         if (error) throw error;
-
-        const receitas = (lancamentosConta || [])
-          .filter((l) => l.tipo === "Receita")
-          .reduce((acc, l) => acc + Number(l.valor_total), 0);
-
-        const despesas = (lancamentosConta || [])
-          .filter((l) => l.tipo === "Despesa")
-          .reduce((acc, l) => acc + Number(l.valor_total), 0);
-
-        const saldoAtualizado = receitas - despesas;
-
-        const { error: updateError } = await supabase
-          .from("contas_bancarias")
-          .update({ saldo: saldoAtualizado })
-          .eq("id", conta.id);
-
+        const receitas = (lancamentosConta || []).filter((l) => l.tipo === "Receita").reduce((acc, l) => acc + Number(l.valor_total), 0);
+        const despesas = (lancamentosConta || []).filter((l) => l.tipo === "Despesa").reduce((acc, l) => acc + Number(l.valor_total), 0);
+        const { error: updateError } = await supabase.from("contas_bancarias").update({ saldo: receitas - despesas }).eq("id", conta.id);
         if (updateError) throw updateError;
       }
-
       toast.success("Saldo das contas atualizado com sucesso!");
       await loadData();
     } catch (error) {
@@ -216,27 +182,9 @@ export const DRE = ({ filtros }: DREProps) => {
   };
 
   const dre = useMemo(() => {
-    // Funções auxiliares
-    const somarPorCategoria = (categoria: string, tipo: "Receita" | "Despesa") => {
-      return lancamentos
-        .filter((l) => l.tipo === tipo && l.descricao1 === categoria && l.pago && l.observacao !== "Transferência entre contas")
-        .reduce((acc, l) => acc + Number(l.valor_total), 0);
-    };
-
-    const somarPorSubcategorias = (categoria: string, subcategorias: string[]) => {
-      return lancamentos
-        .filter((l) => l.descricao1 === categoria && l.pago)
-        .reduce((acc, l) => {
-          const valorItens = (l.itens || [])
-            .filter((item: any) => subcategorias.includes(item.descricao2))
-            .reduce((sum: number, item: any) => sum + Number(item.valor), 0);
-          return acc + valorItens;
-        }, 0);
-    };
-
     const somarSubcategoria = (subcategoria: string) => {
       return lancamentos
-        .filter((l) => l.pago)
+        .filter((l) => l.pago && l.observacao !== "Transferência entre contas")
         .reduce((acc, l) => {
           const valorItem = (l.itens || [])
             .filter((item: any) => item.descricao2 === subcategoria)
@@ -245,96 +193,59 @@ export const DRE = ({ filtros }: DREProps) => {
         }, 0);
     };
 
-    // 1. RECEITA OPERACIONAL BRUTA
-    const receitaOperacional = somarPorCategoria("Receita Operacional", "Receita");
-    const servicosReceita = somarSubcategoria("Serviços");
-    const vendaReceita = somarSubcategoria("Venda");
-    const outrasReceitasOp = receitaOperacional - servicosReceita - vendaReceita;
+    // Build dynamic maps from categoriasDescricao2
+    const buildSection = (descricao1Key: string): { total: number; subcategorias: Record<string, number> } => {
+      const subs = categoriasDescricao2[descricao1Key] || [];
+      const subcategorias: Record<string, number> = {};
+      let total = 0;
+      for (const sub of subs) {
+        const val = somarSubcategoria(sub);
+        subcategorias[sub] = val;
+        total += val;
+      }
+      return { total, subcategorias };
+    };
 
-    // 2. CUSTOS OPERACIONAIS
-    const produtosBanho = somarSubcategoria("Produtos para Banho");
-    const materialLimpeza = somarSubcategoria("Material de Limpeza");
-    const custosOperacionais = produtosBanho + materialLimpeza;
+    const receitaOp = buildSection("Receita Operacional");
+    const receitaNaoOp = buildSection("Receita Não Operacional");
+    const despesaOp = buildSection("Despesa Operacional");
+    const despesaFixa = buildSection("Despesa Fixa");
+    const despesaNaoOp = buildSection("Despesa Não Operacional");
 
-    // 3. LUCRO BRUTO
-    const lucroBruto = receitaOperacional - custosOperacionais;
+    // Custos operacionais = Produtos para Banho + Material de Limpeza (extracted from Despesa Operacional)
+    const custosOperacionais = CUSTOS_OPERACIONAIS.reduce((sum, key) => sum + (despesaOp.subcategorias[key] || 0), 0);
 
-    // 4. DESPESAS OPERACIONAIS
-    const contador = somarSubcategoria("Contador");
-    const freelancer = somarSubcategoria("Freelancer");
-    const telefonia = somarSubcategoria("Telefonia e internet");
-    const energia = somarSubcategoria("Energia elétrica");
-    const agua = somarSubcategoria("Água e esgoto");
-    const marketing = somarSubcategoria("Publicidade e marketing");
-    const outrasDespOp = somarSubcategoria("Outras Despesas Operacionais");
-    const despesasOperacionais = contador + freelancer + telefonia + energia + agua + marketing + outrasDespOp;
+    // Despesas operacionais (excluindo custos)
+    const despesasOperacionaisTotal = despesaOp.total - custosOperacionais;
 
-    // 5. DESPESAS FIXAS
-    const aluguel = somarSubcategoria("Aluguel");
-    const salarios = somarSubcategoria("Salários");
-    const impostos = somarSubcategoria("Impostos Fixos");
-    const outrasDespFixas = somarSubcategoria("Outras Despesas Fixas");
-    const despesasFixas = aluguel + salarios + impostos + outrasDespFixas;
-
-    // 6. LUCRO OPERACIONAL
-    const lucroOperacional = lucroBruto - despesasOperacionais - despesasFixas;
-
-    // 7. RESULTADO NÃO OPERACIONAL
-    const receitaNaoOperacional = somarPorCategoria("Receita Não Operacional", "Receita");
-    const despesaNaoOperacional = somarPorCategoria("Despesa Não Operacional", "Despesa");
-    const resultadoNaoOperacional = receitaNaoOperacional - despesaNaoOperacional;
-
-    // 8. LUCRO LÍQUIDO
+    const lucroBruto = receitaOp.total - custosOperacionais;
+    const lucroOperacional = lucroBruto - despesasOperacionaisTotal - despesaFixa.total;
+    const resultadoNaoOperacional = receitaNaoOp.total - despesaNaoOp.total;
     const lucroLiquido = lucroOperacional + resultadoNaoOperacional;
 
-    // MÉTRICAS ADICIONAIS
-    const receitaTotal = receitaOperacional + receitaNaoOperacional;
-    const despesasTotal = custosOperacionais + despesasOperacionais + despesasFixas + despesaNaoOperacional;
-    const margemBruta = receitaOperacional > 0 ? (lucroBruto / receitaOperacional) * 100 : 0;
+    const receitaTotal = receitaOp.total + receitaNaoOp.total;
+    const despesasTotal = custosOperacionais + despesasOperacionaisTotal + despesaFixa.total + despesaNaoOp.total;
+    const margemBruta = receitaOp.total > 0 ? (lucroBruto / receitaOp.total) * 100 : 0;
     const margemOperacional = receitaTotal > 0 ? (lucroOperacional / receitaTotal) * 100 : 0;
     const margemLiquida = receitaTotal > 0 ? (lucroLiquido / receitaTotal) * 100 : 0;
 
     return {
-      // Receita Operacional
-      receitaOperacional,
-      servicosReceita,
-      vendaReceita,
-      outrasReceitasOp,
-      // Custos
+      receitaOp,
+      receitaNaoOp,
+      despesaOp,
+      despesaFixa,
+      despesaNaoOp,
       custosOperacionais,
-      produtosBanho,
-      materialLimpeza,
-      // Lucro Bruto
+      despesasOperacionaisTotal,
       lucroBruto,
-      margemBruta,
-      // Despesas Operacionais
-      despesasOperacionais,
-      contador,
-      freelancer,
-      telefonia,
-      energia,
-      agua,
-      marketing,
-      outrasDespOp,
-      // Despesas Fixas
-      despesasFixas,
-      aluguel,
-      salarios,
-      impostos,
-      outrasDespFixas,
-      // Lucro Operacional
       lucroOperacional,
-      margemOperacional,
-      // Resultado Não Operacional
-      receitaNaoOperacional,
-      despesaNaoOperacional,
       resultadoNaoOperacional,
-      // Lucro Líquido
       lucroLiquido,
-      margemLiquida,
-      // Totais
       receitaTotal,
       despesasTotal,
+      margemBruta,
+      margemOperacional,
+      margemLiquida,
     };
   }, [lancamentos]);
 
@@ -362,6 +273,137 @@ export const DRE = ({ filtros }: DREProps) => {
     }
   };
 
+  const exportarPDF = () => {
+    const fc = formatCurrency;
+    const periodo = getPeriodoTexto();
+
+    // Build DRE rows for PDF
+    const rows: { titulo: string; valor: string; bold?: boolean; indent?: number; cor?: string }[] = [];
+
+    const addRow = (titulo: string, valor: number | string, opts?: { bold?: boolean; indent?: number; cor?: string }) => {
+      rows.push({
+        titulo,
+        valor: typeof valor === "number" ? fc(valor) : valor,
+        bold: opts?.bold,
+        indent: opts?.indent || 0,
+        cor: opts?.cor,
+      });
+    };
+
+    const addSeparator = () => rows.push({ titulo: "---", valor: "", indent: 0 });
+
+    // Receita Operacional
+    addRow("(+) Receita Operacional Bruta", dre.receitaOp.total, { bold: true });
+    for (const [sub, val] of Object.entries(dre.receitaOp.subcategorias)) {
+      if (val !== 0) addRow(sub, val, { indent: 1 });
+    }
+
+    addSeparator();
+
+    // Custos Operacionais
+    addRow("(-) Custos Operacionais", dre.custosOperacionais);
+    for (const key of CUSTOS_OPERACIONAIS) {
+      const val = dre.despesaOp.subcategorias[key] || 0;
+      if (val !== 0) addRow(key, val, { indent: 1 });
+    }
+
+    addSeparator();
+
+    // Lucro Bruto
+    addRow("(=) Lucro Bruto", dre.lucroBruto, { bold: true, cor: dre.lucroBruto >= 0 ? "green" : "red" });
+    addRow("Margem Bruta", `${dre.margemBruta.toFixed(2)}%`, { indent: 2 });
+
+    addSeparator();
+
+    // Despesas Operacionais
+    addRow("(-) Despesas Operacionais", dre.despesasOperacionaisTotal);
+    const despOpSubs = categoriasDescricao2["Despesa Operacional"] || [];
+    for (const sub of despOpSubs) {
+      if (CUSTOS_OPERACIONAIS.includes(sub)) continue;
+      const val = dre.despesaOp.subcategorias[sub] || 0;
+      if (val !== 0) addRow(sub, val, { indent: 1 });
+    }
+
+    addSeparator();
+
+    // Despesas Fixas
+    addRow("(-) Despesas Fixas", dre.despesaFixa.total);
+    for (const [sub, val] of Object.entries(dre.despesaFixa.subcategorias)) {
+      if (val !== 0) addRow(sub, val, { indent: 1 });
+    }
+
+    addSeparator();
+
+    // Lucro Operacional
+    addRow("(=) Lucro Operacional", dre.lucroOperacional, { bold: true, cor: dre.lucroOperacional >= 0 ? "green" : "red" });
+    addRow("Margem Operacional", `${dre.margemOperacional.toFixed(2)}%`, { indent: 2, cor: dre.margemOperacional >= 0 ? "green" : "red" });
+
+    addSeparator();
+
+    // Resultado Não Operacional
+    addRow("(+/-) Resultado Não Operacional", dre.resultadoNaoOperacional, { cor: dre.resultadoNaoOperacional >= 0 ? "green" : "red" });
+    addRow("(+) Receita Não Operacional", dre.receitaNaoOp.total, { indent: 1 });
+    for (const [sub, val] of Object.entries(dre.receitaNaoOp.subcategorias)) {
+      if (val !== 0) addRow(sub, val, { indent: 2 });
+    }
+    addRow("(-) Despesa Não Operacional", dre.despesaNaoOp.total, { indent: 1 });
+    for (const [sub, val] of Object.entries(dre.despesaNaoOp.subcategorias)) {
+      if (val !== 0) addRow(sub, val, { indent: 2 });
+    }
+
+    addSeparator();
+
+    // Lucro Líquido
+    addRow("(=) LUCRO LÍQUIDO DO EXERCÍCIO", dre.lucroLiquido, { bold: true, cor: dre.lucroLiquido >= 0 ? "green" : "red" });
+    addRow("Margem Líquida", `${dre.margemLiquida.toFixed(2)}%`, { indent: 2, cor: dre.margemLiquida >= 0 ? "green" : "red" });
+
+    const rowsHtml = rows
+      .map((r) => {
+        if (r.titulo === "---") return '<tr><td colspan="2" style="border-bottom:1px solid #d1d5db;padding:6px 0;"></td></tr>';
+        const pl = (r.indent || 0) * 24;
+        const fw = r.bold ? "700" : "400";
+        const fs = r.bold ? "13px" : "12px";
+        const color = r.cor === "green" ? "#16a34a" : r.cor === "red" ? "#dc2626" : "#111";
+        return `<tr>
+          <td style="padding:4px 6px 4px ${6 + pl}px;font-weight:${fw};font-size:${fs};color:${color};">${r.titulo}</td>
+          <td style="padding:4px 6px;text-align:right;font-family:monospace;font-weight:${fw};font-size:${fs};color:${color};">${r.valor}</td>
+        </tr>`;
+      })
+      .join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>DRE - Demonstrativo de Resultado</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 0; }
+    h1 { font-size: 18px; margin: 0 0 4px 0; }
+    p { font-size: 11px; color: #555; margin: 0 0 12px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <h1>DRE - Demonstrativo de Resultado do Exercício</h1>
+  <p>Período: ${periodo} | Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+  <table>${rowsHtml}</table>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) {
+      toast.error("Bloqueador de pop-ups ativo. Permita pop-ups para exportar o PDF.");
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 500);
+    toast.success("PDF gerado com sucesso!");
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -379,12 +421,23 @@ export const DRE = ({ filtros }: DREProps) => {
     );
   }
 
+  // Helper to render subcategory rows dynamically
+  const renderSubcategorias = (subs: Record<string, number>, exclude?: string[]) => {
+    return Object.entries(subs)
+      .filter(([key]) => !(exclude || []).includes(key))
+      .map(([key, val]) => <DRERow key={key} titulo={key} valor={val} nivel={2} />);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Header com Título e Botões */}
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">DRE - Demonstrativo de Resultado</h2>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportarPDF}>
+            <FileText className="h-4 w-4 mr-2" />
+            Baixar PDF
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setMostrarFiltros(!mostrarFiltros)}>
             <Filter className="h-4 w-4 mr-2" />
             {mostrarFiltros ? "Ocultar" : "Filtros"}
@@ -396,7 +449,7 @@ export const DRE = ({ filtros }: DREProps) => {
         </div>
       </div>
 
-      {/* Painel de Filtros */}
+      {/* Filtros */}
       {mostrarFiltros && (
         <Card>
           <CardHeader onClick={() => setMostrarFiltros(!mostrarFiltros)} className="cursor-pointer py-3">
@@ -410,16 +463,10 @@ export const DRE = ({ filtros }: DREProps) => {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Período */}
               <div className="space-y-2">
                 <Label>Período</Label>
-                <Select
-                  value={filtrosLocais.periodo}
-                  onValueChange={(value) => setFiltrosLocais({ ...filtrosLocais, periodo: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={filtrosLocais.periodo} onValueChange={(value) => setFiltrosLocais({ ...filtrosLocais, periodo: value })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="hoje">Hoje</SelectItem>
                     <SelectItem value="semana">Esta Semana</SelectItem>
@@ -430,44 +477,25 @@ export const DRE = ({ filtros }: DREProps) => {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Datas Personalizadas */}
               {filtrosLocais.periodo === "customizado" && (
                 <>
                   <div className="space-y-2">
                     <Label>Data Início</Label>
-                    <Input
-                      type="date"
-                      value={filtrosLocais.dataInicio}
-                      onChange={(e) => setFiltrosLocais({ ...filtrosLocais, dataInicio: e.target.value })}
-                    />
+                    <Input type="date" value={filtrosLocais.dataInicio} onChange={(e) => setFiltrosLocais({ ...filtrosLocais, dataInicio: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label>Data Fim</Label>
-                    <Input
-                      type="date"
-                      value={filtrosLocais.dataFim}
-                      onChange={(e) => setFiltrosLocais({ ...filtrosLocais, dataFim: e.target.value })}
-                    />
+                    <Input type="date" value={filtrosLocais.dataFim} onChange={(e) => setFiltrosLocais({ ...filtrosLocais, dataFim: e.target.value })} />
                   </div>
                 </>
               )}
-
-              {/* Status Pagamento */}
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
                   value={filtrosLocais.pago === null ? "todos" : filtrosLocais.pago ? "pago" : "nao-pago"}
-                  onValueChange={(value) =>
-                    setFiltrosLocais({
-                      ...filtrosLocais,
-                      pago: value === "todos" ? null : value === "pago",
-                    })
-                  }
+                  onValueChange={(value) => setFiltrosLocais({ ...filtrosLocais, pago: value === "todos" ? null : value === "pago" })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="pago">Pagos</SelectItem>
@@ -476,8 +504,6 @@ export const DRE = ({ filtros }: DREProps) => {
                 </Select>
               </div>
             </div>
-
-            {/* Filtro de Bancos */}
             {contas.length > 0 && (
               <div className="space-y-2">
                 <Label>Filtrar por Banco</Label>
@@ -496,9 +522,7 @@ export const DRE = ({ filtros }: DREProps) => {
                         }}
                         className="h-4 w-4"
                       />
-                      <Label htmlFor={`banco-${conta.id}`} className="text-xs cursor-pointer font-normal">
-                        {conta.nome}
-                      </Label>
+                      <Label htmlFor={`banco-${conta.id}`} className="text-xs cursor-pointer font-normal">{conta.nome}</Label>
                     </div>
                   ))}
                 </div>
@@ -510,7 +534,6 @@ export const DRE = ({ filtros }: DREProps) => {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Receita Total */}
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -519,13 +542,10 @@ export const DRE = ({ filtros }: DREProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(dre.receitaTotal)}
-            </div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(dre.receitaTotal)}</div>
           </CardContent>
         </Card>
 
-        {/* Despesas Totais */}
         <Card className="border-l-4 border-l-red-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -538,7 +558,6 @@ export const DRE = ({ filtros }: DREProps) => {
           </CardContent>
         </Card>
 
-        {/* Lucro Operacional */}
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -547,16 +566,13 @@ export const DRE = ({ filtros }: DREProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div
-              className={`text-2xl font-bold ${dre.lucroOperacional >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}
-            >
+            <div className={`text-2xl font-bold ${dre.lucroOperacional >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
               {formatCurrency(dre.lucroOperacional)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Margem: {dre.margemOperacional.toFixed(1)}%</p>
           </CardContent>
         </Card>
 
-        {/* Lucro Líquido */}
         <Card className={`border-l-4 ${dre.lucroLiquido >= 0 ? "border-l-emerald-500" : "border-l-red-500"}`}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -565,9 +581,7 @@ export const DRE = ({ filtros }: DREProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div
-              className={`text-2xl font-bold ${dre.lucroLiquido >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}
-            >
+            <div className={`text-2xl font-bold ${dre.lucroLiquido >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
               {formatCurrency(dre.lucroLiquido)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Margem: {dre.margemLiquida.toFixed(1)}%</p>
@@ -584,96 +598,55 @@ export const DRE = ({ filtros }: DREProps) => {
         <CardContent>
           <div className="space-y-1">
             {/* RECEITA OPERACIONAL BRUTA */}
-            <DRERow titulo="(+) Receita Operacional Bruta" valor={dre.receitaOperacional} nivel={1} destaque />
-            <DRERow titulo="Serviços" valor={dre.servicosReceita} nivel={2} />
-            <DRERow titulo="Venda" valor={dre.vendaReceita} nivel={2} />
-            <DRERow titulo="Outras Receitas Operacionais" valor={dre.outrasReceitasOp} nivel={2} />
+            <DRERow titulo="(+) Receita Operacional Bruta" valor={dre.receitaOp.total} nivel={1} destaque />
+            {renderSubcategorias(dre.receitaOp.subcategorias)}
 
             <Separator className="my-3" />
 
             {/* CUSTOS OPERACIONAIS */}
             <DRERow titulo="(-) Custos Operacionais" valor={dre.custosOperacionais} nivel={1} />
-            <DRERow titulo="Produtos para Banho" valor={dre.produtosBanho} nivel={2} />
-            <DRERow titulo="Material de Limpeza" valor={dre.materialLimpeza} nivel={2} />
+            {CUSTOS_OPERACIONAIS.map((key) => (
+              <DRERow key={key} titulo={key} valor={dre.despesaOp.subcategorias[key] || 0} nivel={2} />
+            ))}
 
             <Separator className="my-3" />
 
             {/* LUCRO BRUTO */}
-            <DRERow
-              titulo="(=) Lucro Bruto"
-              valor={dre.lucroBruto}
-              nivel={1}
-              destaque
-              cor={dre.lucroBruto >= 0 ? "green" : "red"}
-            />
+            <DRERow titulo="(=) Lucro Bruto" valor={dre.lucroBruto} nivel={1} destaque cor={dre.lucroBruto >= 0 ? "green" : "red"} />
             <DRERow titulo="    Margem Bruta" valor={`${dre.margemBruta.toFixed(2)}%`} nivel={3} />
 
             <div className="pt-4" />
 
             {/* DESPESAS OPERACIONAIS */}
-            <DRERow titulo="(-) Despesas Operacionais" valor={dre.despesasOperacionais} nivel={1} />
-            <DRERow titulo="Contador" valor={dre.contador} nivel={2} />
-            <DRERow titulo="Freelancer" valor={dre.freelancer} nivel={2} />
-            <DRERow titulo="Telefonia e Internet" valor={dre.telefonia} nivel={2} />
-            <DRERow titulo="Energia Elétrica" valor={dre.energia} nivel={2} />
-            <DRERow titulo="Água e Esgoto" valor={dre.agua} nivel={2} />
-            <DRERow titulo="Publicidade e Marketing" valor={dre.marketing} nivel={2} />
-            <DRERow titulo="Outras Despesas Operacionais" valor={dre.outrasDespOp} nivel={2} />
+            <DRERow titulo="(-) Despesas Operacionais" valor={dre.despesasOperacionaisTotal} nivel={1} />
+            {renderSubcategorias(dre.despesaOp.subcategorias, CUSTOS_OPERACIONAIS)}
 
             <Separator className="my-3" />
 
             {/* DESPESAS FIXAS */}
-            <DRERow titulo="(-) Despesas Fixas" valor={dre.despesasFixas} nivel={1} />
-            <DRERow titulo="Aluguel" valor={dre.aluguel} nivel={2} />
-            <DRERow titulo="Salários" valor={dre.salarios} nivel={2} />
-            <DRERow titulo="Impostos Fixos" valor={dre.impostos} nivel={2} />
-            <DRERow titulo="Outras Despesas Fixas" valor={dre.outrasDespFixas} nivel={2} />
+            <DRERow titulo="(-) Despesas Fixas" valor={dre.despesaFixa.total} nivel={1} />
+            {renderSubcategorias(dre.despesaFixa.subcategorias)}
 
             <Separator className="my-3" />
 
             {/* LUCRO OPERACIONAL */}
-            <DRERow
-              titulo="(=) Lucro Operacional"
-              valor={dre.lucroOperacional}
-              nivel={1}
-              destaque
-              cor={dre.lucroOperacional >= 0 ? "green" : "red"}
-            />
-            <DRERow
-              titulo="    Margem Operacional"
-              valor={`${dre.margemOperacional.toFixed(2)}%`}
-              nivel={3}
-              cor={dre.margemOperacional >= 0 ? "green" : "red"}
-            />
+            <DRERow titulo="(=) Lucro Operacional" valor={dre.lucroOperacional} nivel={1} destaque cor={dre.lucroOperacional >= 0 ? "green" : "red"} />
+            <DRERow titulo="    Margem Operacional" valor={`${dre.margemOperacional.toFixed(2)}%`} nivel={3} cor={dre.margemOperacional >= 0 ? "green" : "red"} />
 
             <div className="pt-4" />
 
             {/* RESULTADO NÃO OPERACIONAL */}
-            <DRERow
-              titulo="(+/-) Resultado Não Operacional"
-              valor={dre.resultadoNaoOperacional}
-              nivel={1}
-              cor={dre.resultadoNaoOperacional >= 0 ? "green" : "red"}
-            />
-            <DRERow titulo="(+) Receita Não Operacional" valor={dre.receitaNaoOperacional} nivel={2} />
-            <DRERow titulo="(-) Despesa Não Operacional" valor={dre.despesaNaoOperacional} nivel={2} />
+            <DRERow titulo="(+/-) Resultado Não Operacional" valor={dre.resultadoNaoOperacional} nivel={1} cor={dre.resultadoNaoOperacional >= 0 ? "green" : "red"} />
+            <DRERow titulo="(+) Receita Não Operacional" valor={dre.receitaNaoOp.total} nivel={2} />
+            {renderSubcategorias(dre.receitaNaoOp.subcategorias)}
+            <DRERow titulo="(-) Despesa Não Operacional" valor={dre.despesaNaoOp.total} nivel={2} />
+            {renderSubcategorias(dre.despesaNaoOp.subcategorias)}
 
             <Separator className="my-3" />
 
             {/* LUCRO LÍQUIDO */}
-            <DRERow
-              titulo="(=) LUCRO LÍQUIDO DO EXERCÍCIO"
-              valor={dre.lucroLiquido}
-              nivel={1}
-              destaque
-              cor={dre.lucroLiquido >= 0 ? "green" : "red"}
-            />
-            <DRERow
-              titulo="    Margem Líquida"
-              valor={`${dre.margemLiquida.toFixed(2)}%`}
-              nivel={3}
-              cor={dre.margemLiquida >= 0 ? "green" : "red"}
-            />
+            <DRERow titulo="(=) LUCRO LÍQUIDO DO EXERCÍCIO" valor={dre.lucroLiquido} nivel={1} destaque cor={dre.lucroLiquido >= 0 ? "green" : "red"} />
+            <DRERow titulo="    Margem Líquida" valor={`${dre.margemLiquida.toFixed(2)}%`} nivel={3} cor={dre.margemLiquida >= 0 ? "green" : "red"} />
           </div>
         </CardContent>
       </Card>
