@@ -4607,7 +4607,7 @@ const Agendamentos = () => {
                     <Button
                     type="button"
                     variant="destructive"
-                    onClick={() => {
+                    onClick={async () => {
                       if (editingAgendamento.tipo === "pacote") {
                         const updated = agendamentosPacotes.
                         map((p) => {
@@ -4625,6 +4625,21 @@ const Agendamentos = () => {
                         setAgendamentosPacotes(updated);
                         toast.success("Agendamento excluído!");
                         setEditDialogOpen(false);
+                      } else if (editingAgendamento.tipo === "simples") {
+                        const ag = editingAgendamento.agendamento || editingAgendamento.agendamentoOriginal;
+                        if (ag?.id) {
+                          try {
+                            await deletePendingMessages(ag.id);
+                            const { error } = await supabase.from("agendamentos").delete().eq("id", ag.id);
+                            if (error) throw error;
+                            await loadAgendamentos();
+                            toast.success("Agendamento excluído!");
+                          } catch (err) {
+                            console.error("Erro ao excluir:", err);
+                            toast.error("Erro ao excluir agendamento");
+                          }
+                        }
+                        setEditDialogOpen(false);
                       }
                     }}
                     className="h-8 text-xs">
@@ -4633,17 +4648,17 @@ const Agendamentos = () => {
                     </Button>
                     <Button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       const horarioTerminoCheck = editFormData.horarioTermino || calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
                       if (horarioTerminoCheck && editFormData.horarioInicio && horarioTerminoCheck <= editFormData.horarioInicio) {
                         toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
                         return;
                       }
+                      const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
+                        editFormData.horarioInicio,
+                        editFormData.tempoServico
+                      );
                       if (editingAgendamento.tipo === "pacote") {
-                        const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
-                          editFormData.horarioInicio,
-                          editFormData.tempoServico
-                        );
                         const updated = agendamentosPacotes.map((p) => {
                           if (p.id === editingAgendamento.agendamentoPacote.id) {
                             return {
@@ -4667,6 +4682,27 @@ const Agendamentos = () => {
                         });
                         setAgendamentosPacotes(updated);
                         toast.success("Agendamento atualizado!");
+                        setEditDialogOpen(false);
+                      } else if (editingAgendamento.tipo === "simples") {
+                        const ag = editingAgendamento.agendamento || editingAgendamento.agendamentoOriginal;
+                        if (ag?.id) {
+                          try {
+                            const { error } = await supabase.from("agendamentos").update({
+                              servico: editFormData.servico,
+                              data: editFormData.data,
+                              horario: editFormData.horarioInicio,
+                              tempo_servico: editFormData.tempoServico,
+                              horario_termino: horarioTermino,
+                              updated_at: new Date().toISOString()
+                            }).eq("id", ag.id);
+                            if (error) throw error;
+                            await loadAgendamentos();
+                            toast.success("Agendamento atualizado!");
+                          } catch (err) {
+                            console.error("Erro ao atualizar:", err);
+                            toast.error("Erro ao atualizar agendamento");
+                          }
+                        }
                         setEditDialogOpen(false);
                       }
                     }}
