@@ -603,8 +603,8 @@ export const DRE = ({ filtros }: DREProps) => {
 
             <Separator className="my-3" />
 
-            {/* CUSTOS OPERACIONAIS */}
-            <DRERow titulo="(-) Custos Operacionais" valor={dre.custosOperacionais} nivel={1} />
+            {/* DEDUÇÕES E CUSTOS DIRETOS */}
+            <DRERow titulo="(-) Deduções e Custos Diretos" valor={dre.custosOperacionais} nivel={1} />
             {CUSTOS_OPERACIONAIS.map((key) => (
               <DRERow key={key} titulo={key} valor={dre.despesaOp.subcategorias[key] || 0} nivel={2} />
             ))}
