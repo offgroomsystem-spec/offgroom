@@ -1079,22 +1079,16 @@ const Agendamentos = () => {
     return empresaConfig.diasFuncionamento[dayName];
   });
 
-  // Funções para buscar TODOS os agendamentos de um slot (agrupa por hora)
-  const getHourFromTime = (time: string): string => {
-    if (!time) return "";
-    const h = time.split(":")[0];
-    return h ? h.padStart(2, "0") + ":00" : "";
-  };
-
+  // Funções para buscar TODOS os agendamentos de um slot
   const getAllAgendamentosForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.filter((a) => a.data === dateStr && getHourFromTime(a.horario) === horario);
+    return agendamentos.filter((a) => a.data === dateStr && a.horario === horario);
   };
 
   const getAllPacotesForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
     return agendamentosPacotes.filter((p) =>
-    p.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === horario)
+    p.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario)
     );
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1579,11 +1573,11 @@ const Agendamentos = () => {
   };
   const getAgendamentoForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.find((a) => a.data === dateStr && getHourFromTime(a.horario) === horario);
+    return agendamentos.find((a) => a.data === dateStr && a.horario === horario);
   };
   const getPacoteForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentosPacotes.find((a) => a.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === horario));
+    return agendamentosPacotes.find((a) => a.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario));
   };
   const isHorarioOcupado = (date: Date, horario: string) => {
     return !!getAgendamentoForSlot(date, horario) || !!getPacoteForSlot(date, horario);
@@ -4197,57 +4191,16 @@ const Agendamentos = () => {
                       
                           <div className="flex flex-wrap gap-1">
                             {allAgendamentos.map((ag, i) =>
-                        <div
-                          key={`ag-${i}`}
-                          className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground cursor-pointer hover:ring-2 hover:ring-primary/50"
-                          onClick={() => {
-                            setEditingAgendamento({
-                              tipo: "simples",
-                              cliente: ag.cliente,
-                              pet: ag.pet,
-                              agendamento: ag,
-                              agendamentoOriginal: ag
-                            });
-                            setEditFormData({
-                              data: ag.data,
-                              horarioInicio: ag.horario,
-                              tempoServico: ag.tempoServico || "",
-                              horarioTermino: ag.horarioTermino || "",
-                              servico: ag.servico
-                            });
-                            setEditDialogOpen(true);
-                          }}>
+                        <div key={`ag-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground">
                                 <div className="font-semibold truncate">{ag.pet}</div>
                                 <div className="text-[10px] text-[#4590DB]/80 dark:text-accent-foreground/80 truncate">{ag.cliente}</div>
                                 <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60 truncate">{ag.servico}</div>
-                                <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60">{ag.horario} - {ag.horarioTermino}</div>
                               </div>
                         )}
                             {allPacotes.map((p, i) => {
-                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && getHourFromTime(s.horarioInicio) === horario);
+                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && s.horarioInicio === horario);
                           return (
-                            <div
-                              key={`pk-${i}`}
-                              className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground cursor-pointer hover:ring-2 hover:ring-primary/50"
-                              onClick={() => {
-                                if (servicoDoHorario) {
-                                  setEditingAgendamento({
-                                    tipo: "pacote",
-                                    cliente: p.nomeCliente,
-                                    pet: p.nomePet,
-                                    agendamentoPacote: p,
-                                    servicoAgendamento: servicoDoHorario
-                                  });
-                                  setEditFormData({
-                                    data: servicoDoHorario.data,
-                                    horarioInicio: servicoDoHorario.horarioInicio,
-                                    tempoServico: servicoDoHorario.tempoServico || "",
-                                    horarioTermino: servicoDoHorario.horarioTermino || "",
-                                    servico: servicoDoHorario.nomeServico
-                                  });
-                                  setEditDialogOpen(true);
-                                }
-                              }}>
+                            <div key={`pk-${i}`} className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground">
                                   <div className="flex items-center gap-1">
                                     <Package className="h-3 w-3" />
                                     <span className="font-semibold truncate">{p.nomePet}</span>
@@ -4607,7 +4560,7 @@ const Agendamentos = () => {
                     <Button
                     type="button"
                     variant="destructive"
-                    onClick={async () => {
+                    onClick={() => {
                       if (editingAgendamento.tipo === "pacote") {
                         const updated = agendamentosPacotes.
                         map((p) => {
@@ -4625,21 +4578,6 @@ const Agendamentos = () => {
                         setAgendamentosPacotes(updated);
                         toast.success("Agendamento excluído!");
                         setEditDialogOpen(false);
-                      } else if (editingAgendamento.tipo === "simples") {
-                        const ag = editingAgendamento.agendamento || editingAgendamento.agendamentoOriginal;
-                        if (ag?.id) {
-                          try {
-                            await deletePendingMessages(ag.id);
-                            const { error } = await supabase.from("agendamentos").delete().eq("id", ag.id);
-                            if (error) throw error;
-                            await loadAgendamentos();
-                            toast.success("Agendamento excluído!");
-                          } catch (err) {
-                            console.error("Erro ao excluir:", err);
-                            toast.error("Erro ao excluir agendamento");
-                          }
-                        }
-                        setEditDialogOpen(false);
                       }
                     }}
                     className="h-8 text-xs">
@@ -4648,17 +4586,17 @@ const Agendamentos = () => {
                     </Button>
                     <Button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
                       const horarioTerminoCheck = editFormData.horarioTermino || calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
                       if (horarioTerminoCheck && editFormData.horarioInicio && horarioTerminoCheck <= editFormData.horarioInicio) {
                         toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
                         return;
                       }
-                      const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
-                        editFormData.horarioInicio,
-                        editFormData.tempoServico
-                      );
                       if (editingAgendamento.tipo === "pacote") {
+                        const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
+                          editFormData.horarioInicio,
+                          editFormData.tempoServico
+                        );
                         const updated = agendamentosPacotes.map((p) => {
                           if (p.id === editingAgendamento.agendamentoPacote.id) {
                             return {
@@ -4682,27 +4620,6 @@ const Agendamentos = () => {
                         });
                         setAgendamentosPacotes(updated);
                         toast.success("Agendamento atualizado!");
-                        setEditDialogOpen(false);
-                      } else if (editingAgendamento.tipo === "simples") {
-                        const ag = editingAgendamento.agendamento || editingAgendamento.agendamentoOriginal;
-                        if (ag?.id) {
-                          try {
-                            const { error } = await supabase.from("agendamentos").update({
-                              servico: editFormData.servico,
-                              data: editFormData.data,
-                              horario: editFormData.horarioInicio,
-                              tempo_servico: editFormData.tempoServico,
-                              horario_termino: horarioTermino,
-                              updated_at: new Date().toISOString()
-                            }).eq("id", ag.id);
-                            if (error) throw error;
-                            await loadAgendamentos();
-                            toast.success("Agendamento atualizado!");
-                          } catch (err) {
-                            console.error("Erro ao atualizar:", err);
-                            toast.error("Erro ao atualizar agendamento");
-                          }
-                        }
                         setEditDialogOpen(false);
                       }
                     }}
