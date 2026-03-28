@@ -2416,6 +2416,7 @@ const Agendamentos = () => {
           tempo_servico: editandoAgendamento.tempoServico,
           horario_termino: editandoAgendamento.horarioTermino,
           data_venda: editandoAgendamento.dataVenda,
+          groomer: editandoAgendamento.groomer,
           updated_at: new Date().toISOString()
         }).
         eq("id", editandoAgendamento.agendamentoOriginal.id);
