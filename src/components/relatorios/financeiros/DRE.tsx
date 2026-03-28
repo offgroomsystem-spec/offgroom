@@ -301,7 +301,7 @@ export const DRE = ({ filtros }: DREProps) => {
     addSeparator();
 
     // Custos Operacionais
-    addRow("(-) Custos Operacionais", dre.custosOperacionais);
+    addRow("(-) Deduções e Custos Diretos", dre.custosOperacionais);
     for (const key of CUSTOS_OPERACIONAIS) {
       const val = dre.despesaOp.subcategorias[key] || 0;
       if (val !== 0) addRow(key, val, { indent: 1 });
@@ -603,8 +603,8 @@ export const DRE = ({ filtros }: DREProps) => {
 
             <Separator className="my-3" />
 
-            {/* CUSTOS OPERACIONAIS */}
-            <DRERow titulo="(-) Custos Operacionais" valor={dre.custosOperacionais} nivel={1} />
+            {/* DEDUÇÕES E CUSTOS DIRETOS */}
+            <DRERow titulo="(-) Deduções e Custos Diretos" valor={dre.custosOperacionais} nivel={1} />
             {CUSTOS_OPERACIONAIS.map((key) => (
               <DRERow key={key} titulo={key} valor={dre.despesaOp.subcategorias[key] || 0} nivel={2} />
             ))}
