@@ -1,55 +1,65 @@
 
 
-## Plano: Reorganizar estrutura do DRE - unificar Custos e Despesas Operacionais
+## Plano: Unificar Custos Diretos dentro de Despesas Operacionais
 
 ### Problema
 
-O DRE atual separa "Custos Operacionais" (Produtos para Banho, Material de Limpeza) de "Despesas Operacionais" (demais subcategorias), criando duas secoes do mesmo tema. Num DRE padrao de pet shop, todas as deducoes operacionais devem estar agrupadas de forma coerente.
+O DRE atual separa "Produtos para Banho" e "Material de Limpeza" numa seção própria ("Deduções e Custos Diretos"), enquanto as demais subcategorias de "Despesa Operacional" ficam em outra seção separada. O usuário quer que TODAS as subcategorias de "Despesa Operacional" fiquem juntas, eliminando a seção de custos diretos.
 
-### Solucao
-
-Reorganizar a estrutura para o padrao contabil correto:
+### Estrutura corrigida
 
 ```text
 (+) Receita Operacional Bruta
-    Servicos / Venda / Outras
+    Serviços / Venda / Outras Receitas Operacionais
 
-(-) Deducoes e Custos Diretos
+(=) Lucro Bruto   (= Receita Op Bruta, sem deduções de custos diretos)
+
+(-) Despesas Operacionais   ← TODAS juntas
     Produtos para Banho
     Material de Limpeza
-
-(=) Lucro Bruto
-    Margem Bruta
-
-(-) Despesas Operacionais          ← UNIFICADA (todas de "Despesa Operacional" exceto custos diretos)
-    Combustivel / Contador / Freelancer / etc.
+    Combustível
+    Contador
+    Freelancer
+    Telefonia e Internet
+    Energia Elétrica
+    Água e Esgoto
+    Publicidade e Marketing
+    Outras Despesas Operacionais
 
 (-) Despesas Fixas
-    Aluguel / Salarios / etc.
+    Aluguel / Salários / Impostos Fixos / Financiamentos / Sistemas e Softwares / Outras
 
 (=) Lucro Operacional
-    Margem Operacional
 
-(+/-) Resultado Nao Operacional
-  (+) Receitas Nao Operacionais
-  (-) Despesas Nao Operacionais
+(+/-) Resultado Não Operacional
+  (+) Receita Não Operacional
+  (-) Despesa Não Operacional
 
-(=) LUCRO LIQUIDO DO EXERCICIO
-    Margem Liquida
+(=) LUCRO LÍQUIDO DO EXERCÍCIO
 ```
 
-### Alteracoes
+### Alterações em `src/components/relatorios/financeiros/DRE.tsx`
 
-**Arquivo: `src/components/relatorios/financeiros/DRE.tsx`**
+1. **Remover `CUSTOS_OPERACIONAIS`** (linha 56) — constante não mais necessária
 
-1. **Renomear secao "Custos Operacionais"** para **"(-) Deducoes e Custos Diretos"** (linhas 606-610) - deixa claro que sao custos de mercadoria/insumo direto, diferenciando-se das despesas operacionais administrativas.
+2. **Simplificar `useMemo`** (linhas 215-221):
+   - Remover cálculo de `custosOperacionais` e `despesasOperacionaisTotal`
+   - `lucroBruto = receitaOp.total` (sem dedução de custos diretos)
+   - `lucroOperacional = lucroBruto - despesaOp.total - despesaFixa.total`
+   - `despesasTotal = despesaOp.total + despesaFixa.total + despesaNaoOp.total`
 
-2. **Manter "Despesas Operacionais"** como esta (linhas 620-622) - agora com o titulo da secao anterior diferente, nao ha mais confusao entre as duas.
+3. **Renderização JSX** (linhas 600-622):
+   - Remover bloco "Deduções e Custos Diretos" (linhas 606-610)
+   - Lucro Bruto = Receita Op (sem custos diretos)
+   - Despesas Operacionais: renderizar TODAS as subcategorias (sem filtro `CUSTOS_OPERACIONAIS`)
 
-3. **Mesma correcao no PDF** (linhas 303-308): renomear "(-) Custos Operacionais" para "(-) Deducoes e Custos Diretos".
+4. **PDF** (linhas 303-325):
+   - Remover bloco "Deduções e Custos Diretos"
+   - Despesas Operacionais: iterar sobre todas sem skip
 
-### Tecnico
+### Técnico
 
-- Apenas renomear labels na renderizacao e no PDF. A logica de calculo permanece identica (custos diretos separados das despesas operacionais para calcular lucro bruto corretamente).
-- 2 pontos de alteracao: renderizacao JSX (linha 607) e funcao `exportarPDF` (linha 304).
+- Apenas reorganização de labels e remoção de lógica de separação
+- Cálculos permanecem corretos (soma total de `despesaOp` usada diretamente)
+- O DRE continua 100% dinâmico via `categoriasDescricao2`
 
