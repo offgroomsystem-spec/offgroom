@@ -4243,129 +4243,129 @@ const Agendamentos = () => {
         </CardHeader>
         <CardContent className="py-2 overflow-visible">
           {viewMode === "semana" ?
-           <div className="min-w-[600px]">
-                <div className="sticky top-12 z-20 bg-card border-b grid gap-2" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
-                  <div className="p-2 font-semibold">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  {filteredWeekDates.map((date, idx) =>
-                <div key={idx} className="p-2 text-center">
-                      <div className="font-semibold text-sm">{diasSemana[date.getDay()]}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {date.toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit"
-                    })}
+           {(() => {
+                const slotH = 40; // px per 30-min slot
+                const gridStartMin = timeToMinutes(horarios[0]);
+                const gridEndMin = timeToMinutes(horarios[horarios.length - 1]) + 30;
+                const totalSlots = horarios.length;
+                const totalHeight = totalSlots * slotH;
+                return (
+                  <div className="min-w-[600px]">
+                    {/* Sticky header */}
+                    <div className="sticky top-12 z-20 bg-card border-b grid" style={{ gridTemplateColumns: `60px repeat(${filteredWeekDates.length}, 1fr)` }}>
+                      <div className="p-2 font-semibold flex items-center justify-center">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
                       </div>
+                      {filteredWeekDates.map((date, idx) => (
+                        <div key={idx} className="p-2 text-center border-l">
+                          <div className="font-semibold text-sm">{diasSemana[date.getDay()]}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                )}
-                </div>
 
-                {horarios.map((horario) =>
-              <div key={horario} className="grid gap-2 border-t" style={{ gridTemplateColumns: `auto repeat(${filteredWeekDates.length}, 1fr)` }}>
-                    <div className="p-2 text-sm font-medium text-muted-foreground">{horario}</div>
-                    {filteredWeekDates.map((date, idx) => {
-                  const allAgendamentos = getAllAgendamentosForSlot(date, horario);
-                  const allPacotes = getAllPacotesForSlot(date, horario);
-                  const total = allAgendamentos.length + allPacotes.length;
-                  return (
-                    <div
-                      key={idx}
-                      className={`p-1 rounded-lg min-h-[60px] transition-colors flex flex-col ${total > 0 ? "" : "bg-secondary/30 hover:bg-secondary/50"}`}>
-                      
-                          <div className="flex flex-col gap-0.5 flex-1">
-                            {allAgendamentos.map((ag, i) =>
-                        <div
-                          key={`ag-${i}`}
-                          className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full flex-1"
-                          style={{ backgroundColor: '#1976D2' }}
-                          onClick={() => {
-                            const unified: AgendamentoUnificado = {
-                              id: ag.id,
-                              tipo: "simples",
-                              data: ag.data,
-                              horarioInicio: ag.horario,
-                              horarioTermino: ag.horarioTermino,
-                              cliente: ag.cliente,
-                              pet: ag.pet,
-                              raca: ag.raca,
-                              servico: ag.servico,
-                              nomePacote: "",
-                              numeroPacote: "",
-                              taxiDog: ag.taxiDog || "",
-                              dataVenda: ag.dataVenda,
-                              whatsapp: ag.whatsapp,
-                              tempoServico: ag.tempoServico || "",
-                              groomer: ag.groomer || "",
-                              agendamentoOriginal: ag
-                            };
-                            handleEditarClick(unified);
-                          }}
-                        >
-                                <div className="font-bold break-words">
-                                  {ag.horario?.substring(0, 5)} - {ag.cliente}
-                                </div>
-                                <div className="font-bold break-words">
-                                  {ag.pet} - {ag.raca}
-                                </div>
-                                <div className="break-words text-white/80">{ag.servico}</div>
-                              </div>
-                        )}
-                            {allPacotes.map((p, i) => {
-                          const servicoDoHorario = p.servicos.find((s) => s.data === formatDateForInput(date) && getHourFromTime(s.horarioInicio) === getHourFromTime(horario));
-                          return (
-                            <div
-                              key={`pk-${i}`}
-                              className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all max-w-full flex-1"
-                              style={{ backgroundColor: '#1976D2' }}
-                              onClick={() => {
-                                if (!servicoDoHorario) return;
-                                const extras = (servicoDoHorario as any).servicosExtras || [];
-                                const nomesExtras = extras.map((e: any) => e.nome).join(' + ');
-                                const servicoCompleto = nomesExtras ? `${servicoDoHorario.nomeServico} + ${nomesExtras}` : servicoDoHorario.nomeServico;
-                                const unified: AgendamentoUnificado = {
-                                  id: `${p.id}-${servicoDoHorario.numero}`,
-                                  tipo: "pacote",
-                                  data: servicoDoHorario.data,
-                                  horarioInicio: servicoDoHorario.horarioInicio,
-                                  horarioTermino: servicoDoHorario.horarioTermino,
-                                  cliente: p.nomeCliente,
-                                  pet: p.nomePet,
-                                  raca: p.raca,
-                                  servico: servicoCompleto,
-                                  nomePacote: p.nomePacote,
-                                  numeroPacote: servicoDoHorario.numero,
-                                  taxiDog: p.taxiDog,
-                                  dataVenda: p.dataVenda,
-                                  whatsapp: p.whatsapp,
-                                  tempoServico: servicoDoHorario.tempoServico,
-                                  groomer: (servicoDoHorario as any).groomer || "",
-                                  pacoteOriginal: p,
-                                  servicoOriginal: servicoDoHorario
-                                };
-                                handleEditarClick(unified);
-                              }}
-                            >
+                    {/* Time grid body */}
+                    <div className="grid" style={{ gridTemplateColumns: `60px repeat(${filteredWeekDates.length}, 1fr)` }}>
+                      {/* Time labels column */}
+                      <div className="relative" style={{ height: totalHeight }}>
+                        {horarios.map((h, i) => (
+                          <div
+                            key={h}
+                            className="absolute left-0 right-0 text-xs font-medium text-muted-foreground border-t flex items-start justify-center pt-0.5"
+                            style={{ top: i * slotH, height: slotH }}
+                          >
+                            {h}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Day columns */}
+                      {filteredWeekDates.map((date, dayIdx) => {
+                        const items = getUnifiedForDate(date);
+                        // Calculate overlapping groups for side-by-side rendering
+                        const positioned = items.map(item => {
+                          const startMin = timeToMinutes(item.horarioInicio);
+                          const endMin = timeToMinutes(item.horarioTermino);
+                          const duration = endMin > startMin ? endMin - startMin : 60;
+                          const top = ((startMin - gridStartMin) / (gridEndMin - gridStartMin)) * totalHeight;
+                          const height = Math.max((duration / (gridEndMin - gridStartMin)) * totalHeight, 24);
+                          return { item, startMin, endMin: startMin + duration, top, height };
+                        });
+
+                        // Simple overlap grouping
+                        const groups: typeof positioned[] = [];
+                        const used = new Set<number>();
+                        positioned.forEach((p, i) => {
+                          if (used.has(i)) return;
+                          const group = [p];
+                          used.add(i);
+                          positioned.forEach((q, j) => {
+                            if (used.has(j)) return;
+                            if (q.startMin < p.endMin && q.endMin > p.startMin) {
+                              group.push(q);
+                              used.add(j);
+                            }
+                          });
+                          groups.push(group);
+                        });
+
+                        // Assign column index within each group
+                        const colMap = new Map<typeof positioned[0], { col: number; total: number }>();
+                        groups.forEach(group => {
+                          group.forEach((p, idx) => colMap.set(p, { col: idx, total: group.length }));
+                        });
+
+                        return (
+                          <div key={dayIdx} className="relative border-l" style={{ height: totalHeight }}>
+                            {/* Slot lines */}
+                            {horarios.map((h, i) => (
+                              <div
+                                key={h}
+                                className={`absolute left-0 right-0 border-t ${i % 2 === 0 ? 'border-border' : 'border-border/40'}`}
+                                style={{ top: i * slotH, height: slotH }}
+                              />
+                            ))}
+
+                            {/* Cards */}
+                            {positioned.map((p) => {
+                              const col = colMap.get(p) || { col: 0, total: 1 };
+                              const widthPct = 100 / col.total;
+                              const leftPct = col.col * widthPct;
+                              return (
+                                <div
+                                  key={p.item.id}
+                                  className="absolute p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all overflow-hidden"
+                                  style={{
+                                    backgroundColor: '#1976D2',
+                                    top: p.top,
+                                    height: Math.max(p.height, 24),
+                                    left: `${leftPct}%`,
+                                    width: `calc(${widthPct}% - 4px)`,
+                                    marginLeft: 2,
+                                    zIndex: 10
+                                  }}
+                                  onClick={() => handleEditarClick(p.item)}
+                                >
                                   <div className="font-bold break-words flex items-center gap-0.5">
-                                    <Package className="h-3 w-3 flex-shrink-0" />
-                                    {servicoDoHorario?.horarioInicio?.substring(0, 5) || horario.substring(0, 5)} - {p.nomeCliente}
+                                    {p.item.tipo === "pacote" && <Package className="h-3 w-3 flex-shrink-0" />}
+                                    {p.item.horarioInicio?.substring(0, 5)} - {p.item.cliente}
                                   </div>
                                   <div className="font-bold break-words">
-                                    {p.nomePet} - {p.raca}
+                                    {p.item.pet} - {p.item.raca}
                                   </div>
-                                  <div className="break-words text-white/80">
-                                    {servicoDoHorario ? servicoDoHorario.nomeServico : p.nomePacote}
-                                  </div>
-                                </div>);
-
-                        })}
+                                  <div className="break-words text-white/80">{p.item.servico}</div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>);
-
-                })}
+                        );
+                      })}
+                    </div>
                   </div>
-              )}
-              </div> :
+                );
+              })()} :
 
           <div className="flex gap-2">
               {/* Gantt Chart */}
