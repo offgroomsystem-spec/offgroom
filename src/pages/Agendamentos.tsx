@@ -1579,11 +1579,11 @@ const Agendamentos = () => {
   };
   const getAgendamentoForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentos.find((a) => a.data === dateStr && a.horario === horario);
+    return agendamentos.find((a) => a.data === dateStr && getHourFromTime(a.horario) === horario);
   };
   const getPacoteForSlot = (date: Date, horario: string) => {
     const dateStr = formatDateForInput(date);
-    return agendamentosPacotes.find((a) => a.servicos.some((s) => s.data === dateStr && s.horarioInicio === horario));
+    return agendamentosPacotes.find((a) => a.servicos.some((s) => s.data === dateStr && getHourFromTime(s.horarioInicio) === horario));
   };
   const isHorarioOcupado = (date: Date, horario: string) => {
     return !!getAgendamentoForSlot(date, horario) || !!getPacoteForSlot(date, horario);
