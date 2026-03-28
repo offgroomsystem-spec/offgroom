@@ -4186,13 +4186,14 @@ const Agendamentos = () => {
                   return (
                     <div
                       key={idx}
-                      className={`p-1 rounded-lg min-h-[60px] transition-colors ${total > 0 ? "bg-accent/50" : "bg-secondary/30 hover:bg-secondary/50"}`}>
+                      className={`p-1 rounded-lg min-h-[60px] transition-colors ${total > 0 ? "" : "bg-secondary/30 hover:bg-secondary/50"}`}>
                       
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-col gap-0.5">
                             {allAgendamentos.map((ag, i) =>
                         <div
                           key={`ag-${i}`}
-                          className="flex-1 min-w-[45%] p-1 rounded bg-accent text-xs text-[#4590DB] dark:text-accent-foreground cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                          className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all overflow-hidden"
+                          style={{ backgroundColor: '#1976D2' }}
                           onClick={() => {
                             const unified: AgendamentoUnificado = {
                               id: ag.id,
@@ -4216,9 +4217,13 @@ const Agendamentos = () => {
                             handleEditarClick(unified);
                           }}
                         >
-                                <div className="font-semibold truncate">{ag.pet}</div>
-                                <div className="text-[10px] text-[#4590DB]/80 dark:text-accent-foreground/80 truncate">{ag.cliente}</div>
-                                <div className="text-[10px] text-[#4590DB]/60 dark:text-accent-foreground/60 truncate">{ag.servico}</div>
+                                <div className="font-bold truncate">
+                                  {ag.horario?.substring(0, 5)} - {ag.cliente}
+                                </div>
+                                <div className="font-bold truncate">
+                                  {ag.pet} - {ag.raca}
+                                </div>
+                                <div className="truncate text-white/80">{ag.servico}</div>
                               </div>
                         )}
                             {allPacotes.map((p, i) => {
@@ -4226,7 +4231,8 @@ const Agendamentos = () => {
                           return (
                             <div
                               key={`pk-${i}`}
-                              className="flex-1 min-w-[45%] p-1 rounded bg-primary/20 border border-primary/40 text-xs text-[#4590DB] dark:text-primary-foreground cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                              className="p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all overflow-hidden"
+                              style={{ backgroundColor: '#1976D2' }}
                               onClick={() => {
                                 if (!servicoDoHorario) return;
                                 const extras = (servicoDoHorario as any).servicosExtras || [];
@@ -4255,15 +4261,16 @@ const Agendamentos = () => {
                                 handleEditarClick(unified);
                               }}
                             >
-                                  <div className="flex items-center gap-1">
-                                    <Package className="h-3 w-3" />
-                                    <span className="font-semibold truncate">{p.nomePet}</span>
+                                  <div className="font-bold truncate flex items-center gap-0.5">
+                                    <Package className="h-3 w-3 flex-shrink-0" />
+                                    {servicoDoHorario?.horarioInicio?.substring(0, 5) || horario.substring(0, 5)} - {p.nomeCliente}
                                   </div>
-                                  <div className="text-[10px] text-[#4590DB]/80 dark:text-primary-foreground/80 truncate">{p.nomeCliente}</div>
-                                  <div className="text-[10px] text-[#4590DB]/60 dark:text-primary-foreground/60 truncate">{p.nomePacote}</div>
-                                  {servicoDoHorario &&
-                              <div className="text-[10px] text-[#4590DB]/60 dark:text-primary-foreground/60 truncate">{servicoDoHorario.nomeServico}</div>
-                              }
+                                  <div className="font-bold truncate">
+                                    {p.nomePet} - {p.raca}
+                                  </div>
+                                  <div className="truncate text-white/80">
+                                    {servicoDoHorario ? servicoDoHorario.nomeServico : p.nomePacote}
+                                  </div>
                                 </div>);
 
                         })}
