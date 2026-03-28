@@ -4241,7 +4241,7 @@ const Agendamentos = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="py-2 overflow-visible">
+        <CardContent className="py-2 px-1 overflow-visible">
           {viewMode === "semana" ?
            (() => {
                 const slotH = 40; // px per 30-min slot
@@ -4250,11 +4250,11 @@ const Agendamentos = () => {
                 const totalSlots = horarios.length;
                 const totalHeight = totalSlots * slotH;
                 return (
-                  <div className="min-w-[600px]">
+                  <div className="w-full">
                     {/* Sticky header */}
-                    <div className="sticky top-12 z-20 bg-card border-b grid" style={{ gridTemplateColumns: `60px repeat(${filteredWeekDates.length}, 1fr)` }}>
-                      <div className="p-2 font-semibold flex items-center justify-center">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div className="sticky top-12 z-20 bg-card border-b grid" style={{ gridTemplateColumns: `36px repeat(${filteredWeekDates.length}, 1fr)` }}>
+                      <div className="p-0.5 flex items-center justify-center">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
                       </div>
                       {filteredWeekDates.map((date, idx) => (
                         <div key={idx} className="p-2 text-center border-l">
