@@ -4201,9 +4201,9 @@ const Agendamentos = () => {
                   return (
                     <div
                       key={idx}
-                      className={`p-1 rounded-lg min-h-[60px] transition-colors ${total > 0 ? "" : "bg-secondary/30 hover:bg-secondary/50"}`}>
+                      className={`p-1 rounded-lg min-h-[60px] transition-colors flex flex-col ${total > 0 ? "" : "bg-secondary/30 hover:bg-secondary/50"}`}>
                       
-                          <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-col gap-0.5 flex-1">
                             {allAgendamentos.map((ag, i) =>
                         <div
                           key={`ag-${i}`}
