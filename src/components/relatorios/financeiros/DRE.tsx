@@ -581,14 +581,6 @@ export const DRE = ({ filtros }: DREProps) => {
 
             <Separator className="my-3" />
 
-            {/* DEDUÇÕES E CUSTOS DIRETOS */}
-            <DRERow titulo="(-) Deduções e Custos Diretos" valor={dre.custosOperacionais} nivel={1} />
-            {CUSTOS_OPERACIONAIS.map((key) => (
-              <DRERow key={key} titulo={key} valor={dre.despesaOp.subcategorias[key] || 0} nivel={2} />
-            ))}
-
-            <Separator className="my-3" />
-
             {/* LUCRO BRUTO */}
             <DRERow titulo="(=) Lucro Bruto" valor={dre.lucroBruto} nivel={1} destaque cor={dre.lucroBruto >= 0 ? "green" : "red"} />
             <DRERow titulo="    Margem Bruta" valor={`${dre.margemBruta.toFixed(2)}%`} nivel={3} />
@@ -596,8 +588,8 @@ export const DRE = ({ filtros }: DREProps) => {
             <div className="pt-4" />
 
             {/* DESPESAS OPERACIONAIS */}
-            <DRERow titulo="(-) Despesas Operacionais" valor={dre.despesasOperacionaisTotal} nivel={1} />
-            {renderSubcategorias(dre.despesaOp.subcategorias, CUSTOS_OPERACIONAIS)}
+            <DRERow titulo="(-) Despesas Operacionais" valor={dre.despesaOp.total} nivel={1} />
+            {renderSubcategorias(dre.despesaOp.subcategorias)}
 
             <Separator className="my-3" />
 
