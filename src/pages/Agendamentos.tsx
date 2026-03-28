@@ -3976,15 +3976,35 @@ const Agendamentos = () => {
                 }
 
                   <div className="flex justify-between gap-2 pt-4">
-                    <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => handleExcluirAgendamento(editandoAgendamento)}
-                    className="h-8 text-xs gap-2">
-                    
-                      <Trash2 className="h-3 w-3" />
-                      Excluir Agendamento
-                    </Button>
+                    <div className="flex gap-2 items-center">
+                      <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => handleExcluirAgendamento(editandoAgendamento)}
+                      className="h-8 text-xs gap-2">
+                      
+                        <Trash2 className="h-3 w-3" />
+                        Excluir Agendamento
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Enviar WhatsApp"
+                        onClick={(e) => enviarWhatsAppDireto(editandoAgendamento, e)}>
+                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '14px' }}></i>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Pet Pronto"
+                        onClick={(e) => handlePetProntoClick(editandoAgendamento, e)}>
+                        <Check className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </div>
                     <div className="flex gap-2">
                       <Button
                       type="button"
@@ -4632,75 +4652,99 @@ const Agendamentos = () => {
                   </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => {
-                      if (editingAgendamento.tipo === "pacote") {
-                        const updated = agendamentosPacotes.
-                        map((p) => {
-                          if (p.id === editingAgendamento.agendamentoPacote.id) {
-                            return {
-                              ...p,
-                              servicos: p.servicos.filter(
-                                (s) => s.numero !== editingAgendamento.servicoAgendamento.numero
-                              )
-                            };
-                          }
-                          return p;
-                        }).
-                        filter((p) => p.servicos.length > 0);
-                        setAgendamentosPacotes(updated);
-                        toast.success("Agendamento excluído!");
-                        setEditDialogOpen(false);
-                      }
-                    }}
-                    className="h-8 text-xs">
-                    
-                      Excluir Agendamento
-                    </Button>
-                    <Button
-                    type="button"
-                    onClick={() => {
-                      const horarioTerminoCheck = editFormData.horarioTermino || calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
-                      if (horarioTerminoCheck && editFormData.horarioInicio && horarioTerminoCheck <= editFormData.horarioInicio) {
-                        toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
-                        return;
-                      }
-                      if (editingAgendamento.tipo === "pacote") {
-                        const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
-                          editFormData.horarioInicio,
-                          editFormData.tempoServico
-                        );
-                        const updated = agendamentosPacotes.map((p) => {
-                          if (p.id === editingAgendamento.agendamentoPacote.id) {
-                            return {
-                              ...p,
-                              servicos: p.servicos.map((s) => {
-                                if (s.numero === editingAgendamento.servicoAgendamento.numero) {
+                  <div className="flex justify-between gap-2 pt-2">
+                    <div className="flex gap-2 items-center">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="h-8 text-xs"
+                        onClick={() => {
+                          if (editingAgendamento.tipo === "pacote") {
+                            const updated = agendamentosPacotes.
+                              map((p) => {
+                                if (p.id === editingAgendamento.agendamentoPacote.id) {
                                   return {
-                                    ...s,
-                                    nomeServico: editFormData.servico,
-                                    data: editFormData.data,
-                                    horarioInicio: editFormData.horarioInicio,
-                                    tempoServico: editFormData.tempoServico,
-                                    horarioTermino
+                                    ...p,
+                                    servicos: p.servicos.filter(
+                                      (s) => s.numero !== editingAgendamento.servicoAgendamento.numero
+                                    )
                                   };
                                 }
-                                return s;
-                              })
-                            };
+                                return p;
+                              }).
+                              filter((p) => p.servicos.length > 0);
+                            setAgendamentosPacotes(updated);
+                            toast.success("Agendamento excluído!");
+                            setEditDialogOpen(false);
                           }
-                          return p;
-                        });
-                        setAgendamentosPacotes(updated);
-                        toast.success("Agendamento atualizado!");
-                        setEditDialogOpen(false);
-                      }
-                    }}
-                    className="h-8 text-xs">
-                    
+                        }}>
+                        Excluir Agendamento
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Enviar WhatsApp"
+                        onClick={(e) => {
+                          const agObj = {
+                            ...editingAgendamento,
+                            horarioInicio: editingAgendamento.servicoAgendamento?.horarioInicio || editFormData.horarioInicio,
+                          };
+                          enviarWhatsAppDireto(agObj, e);
+                        }}>
+                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '14px' }}></i>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Pet Pronto"
+                        onClick={(e) => handlePetProntoClick(editingAgendamento, e)}>
+                        <Check className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const horarioTerminoCheck = editFormData.horarioTermino || calcularHorarioTermino(editFormData.horarioInicio, editFormData.tempoServico);
+                        if (horarioTerminoCheck && editFormData.horarioInicio && horarioTerminoCheck <= editFormData.horarioInicio) {
+                          toast.error("O Horário de Fim não pode ser igual ou anterior ao Horário de Início. Por favor, corrija.");
+                          return;
+                        }
+                        if (editingAgendamento.tipo === "pacote") {
+                          const horarioTermino = editFormData.horarioTermino || calcularHorarioTermino(
+                            editFormData.horarioInicio,
+                            editFormData.tempoServico
+                          );
+                          const updated = agendamentosPacotes.map((p) => {
+                            if (p.id === editingAgendamento.agendamentoPacote.id) {
+                              return {
+                                ...p,
+                                servicos: p.servicos.map((s) => {
+                                  if (s.numero === editingAgendamento.servicoAgendamento.numero) {
+                                    return {
+                                      ...s,
+                                      nomeServico: editFormData.servico,
+                                      data: editFormData.data,
+                                      horarioInicio: editFormData.horarioInicio,
+                                      tempoServico: editFormData.tempoServico,
+                                      horarioTermino
+                                    };
+                                  }
+                                  return s;
+                                })
+                              };
+                            }
+                            return p;
+                          });
+                          setAgendamentosPacotes(updated);
+                          toast.success("Agendamento atualizado!");
+                          setEditDialogOpen(false);
+                        }
+                      }}
+                      className="h-8 text-xs">
                       Atualizar Agendamento
                     </Button>
                   </div>
