@@ -224,6 +224,9 @@ const ServicosCrecheHotel = () => {
                         {s.tipo === "creche" ? "Creche" : "Hotel"}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {s.tipo === "creche" ? getModeloCobrancaLabel(s.modelo_cobranca) : "—"}
+                    </TableCell>
                     <TableCell>{s.modelo_preco === "unico" ? "Valor Único" : "Por Porte"}</TableCell>
                     <TableCell className="text-sm">{getDisplayPrice(s)}</TableCell>
                     <TableCell>{s.is_padrao ? "Sim" : "Não"}</TableCell>
