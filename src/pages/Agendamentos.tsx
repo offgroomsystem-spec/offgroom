@@ -3013,6 +3013,8 @@ const Agendamentos = () => {
 
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentos();
+        // Refresh financial state so Financeiro dialog shows updated data
+        await loadFinanceiroVinculado(editandoAgendamento);
       } else if (
       editandoAgendamento.tipo === "pacote" &&
       editandoAgendamento.pacoteOriginal &&
