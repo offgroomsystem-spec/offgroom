@@ -2885,6 +2885,13 @@ const Agendamentos = () => {
       setServicoPrincipalEdicao(agendamento.servico.split(' + ')[0]);
     }
 
+    // Find sibling agendamentos (same client, same date) for multi-pet view
+    const siblings = agendamentosUnificados.filter(a => 
+      a.cliente === agendamento.cliente && a.data === agendamento.data && a.id !== agendamento.id
+    );
+    setEditMultiPetGroup(siblings);
+    loadFinanceiroVinculado(agendamento);
+
     setEditDialogGerenciamento(true);
   };
 
