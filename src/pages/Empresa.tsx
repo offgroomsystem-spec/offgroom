@@ -154,6 +154,7 @@ const Empresa = () => {
           codigoCnae: empresaData.codigo_cnae || '',
           ambienteFiscal: empresaData.ambiente_fiscal || 'homologacao',
         });
+        setCrecheAtiva(empresaData.creche_ativa ?? false);
       }
       setLoading(false);
     };
