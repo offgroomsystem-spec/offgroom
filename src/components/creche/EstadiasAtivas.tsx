@@ -89,9 +89,10 @@ const getStatus = (e: Estadia) => {
   return { label: "Ativo", variant: "secondary" as const };
 };
 
-const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes, onAdicionarObs }: EstadiasAtivasProps) => {
+const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes, onAdicionarObs, onRefresh }: EstadiasAtivasProps) => {
   const { ownerId } = useAuth();
   const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
+  const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, Record<string, boolean>>>({});
 
   const handleQuickToggle = async (estadiaId: string, key: string, currentValue: boolean) => {
     if (!ownerId) return;
