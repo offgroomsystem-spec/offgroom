@@ -1,0 +1,362 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Plus, Pencil, Trash2, Dog, Hotel } from "lucide-react";
+import { toast } from "sonner";
+
+interface ServicoCreche {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  tipo: string;
+  modelo_preco: string;
+  valor_unico: number;
+  valor_pequeno: number;
+  valor_medio: number;
+  valor_grande: number;
+  is_padrao: boolean;
+  is_opcional: boolean;
+  observacoes_internas: string | null;
+}
+
+const emptyForm: Omit<ServicoCreche, "id"> = {
+  nome: "",
+  descricao: "",
+  tipo: "creche",
+  modelo_preco: "unico",
+  valor_unico: 0,
+  valor_pequeno: 0,
+  valor_medio: 0,
+  valor_grande: 0,
+  is_padrao: false,
+  is_opcional: true,
+  observacoes_internas: "",
+};
+
+const ServicosCrecheHotel = () => {
+  const { user } = useAuth();
+  const [servicos, setServicos] = useState<ServicoCreche[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+
+  const loadServicos = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("servicos_creche")
+      .select("*")
+      .order("nome");
+    if (error) {
+      toast.error("Erro ao carregar serviços");
+      return;
+    }
+    setServicos((data as any[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadServicos();
+  }, [user]);
+
+  const openNew = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (s: ServicoCreche) => {
+    setEditingId(s.id);
+    setForm({
+      nome: s.nome,
+      descricao: s.descricao || "",
+      tipo: s.tipo,
+      modelo_preco: s.modelo_preco,
+      valor_unico: s.valor_unico,
+      valor_pequeno: s.valor_pequeno,
+      valor_medio: s.valor_medio,
+      valor_grande: s.valor_grande,
+      is_padrao: s.is_padrao,
+      is_opcional: s.is_opcional,
+      observacoes_internas: s.observacoes_internas || "",
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.nome.trim()) {
+      toast.error("Nome do serviço é obrigatório");
+      return;
+    }
+    if (form.modelo_preco === "porte" && (form.valor_pequeno <= 0 || form.valor_medio <= 0 || form.valor_grande <= 0)) {
+      toast.error("Defina o valor para todos os portes");
+      return;
+    }
+    if (form.modelo_preco === "unico" && form.valor_unico <= 0) {
+      toast.error("Defina o valor do serviço");
+      return;
+    }
+
+    const payload = {
+      nome: form.nome.trim(),
+      descricao: form.descricao?.trim() || null,
+      tipo: form.tipo,
+      modelo_preco: form.modelo_preco,
+      valor_unico: form.modelo_preco === "unico" ? form.valor_unico : 0,
+      valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
+      valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
+      valor_grande: form.modelo_preco === "porte" ? form.valor_grande : 0,
+      is_padrao: form.is_padrao,
+      is_opcional: form.is_opcional,
+      observacoes_internas: form.observacoes_internas?.trim() || null,
+    };
+
+    if (editingId) {
+      const { error } = await supabase
+        .from("servicos_creche")
+        .update(payload as any)
+        .eq("id", editingId);
+      if (error) {
+        toast.error("Erro ao atualizar serviço");
+        return;
+      }
+      toast.success("Serviço atualizado com sucesso");
+    } else {
+      const { error } = await supabase
+        .from("servicos_creche")
+        .insert({ ...payload, user_id: user!.id } as any);
+      if (error) {
+        toast.error("Erro ao criar serviço");
+        return;
+      }
+      toast.success("Serviço criado com sucesso");
+    }
+    setDialogOpen(false);
+    loadServicos();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este serviço?")) return;
+    const { error } = await supabase.from("servicos_creche").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir serviço");
+      return;
+    }
+    toast.success("Serviço excluído");
+    loadServicos();
+  };
+
+  const formatCurrency = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const getDisplayPrice = (s: ServicoCreche) => {
+    if (s.modelo_preco === "unico") return formatCurrency(s.valor_unico);
+    return `P: ${formatCurrency(s.valor_pequeno)} | M: ${formatCurrency(s.valor_medio)} | G: ${formatCurrency(s.valor_grande)}`;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Serviços Creche & Hotel</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os serviços disponíveis para Creche e Hotel Pet</p>
+        </div>
+        <Button onClick={openNew} className="gap-2">
+          <Plus className="h-4 w-4" /> Novo Serviço
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <p className="p-6 text-center text-muted-foreground">Carregando...</p>
+          ) : servicos.length === 0 ? (
+            <p className="p-6 text-center text-muted-foreground">Nenhum serviço cadastrado ainda.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Modelo</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Padrão</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {servicos.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{s.nome}</TableCell>
+                    <TableCell>
+                      <Badge variant={s.tipo === "creche" ? "default" : "secondary"} className="gap-1">
+                        {s.tipo === "creche" ? <Dog className="h-3 w-3" /> : <Hotel className="h-3 w-3" />}
+                        {s.tipo === "creche" ? "Creche" : "Hotel"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{s.modelo_preco === "unico" ? "Valor Único" : "Por Porte"}</TableCell>
+                    <TableCell className="text-sm">{getDisplayPrice(s)}</TableCell>
+                    <TableCell>{s.is_padrao ? "Sim" : "Não"}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome do Serviço *</Label>
+              <Input
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Ex: Creche Período Integral"
+              />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea
+                value={form.descricao || ""}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                placeholder="Descrição opcional do serviço"
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label>Tipo do Serviço *</Label>
+              <ToggleGroup
+                type="single"
+                value={form.tipo}
+                onValueChange={(v) => v && setForm({ ...form, tipo: v })}
+                className="justify-start mt-1"
+              >
+                <ToggleGroupItem value="creche" className="gap-1">
+                  <Dog className="h-4 w-4" /> Creche
+                </ToggleGroupItem>
+                <ToggleGroupItem value="hotel" className="gap-1">
+                  <Hotel className="h-4 w-4" /> Hotel
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            <div>
+              <Label>Modelo de Precificação *</Label>
+              <ToggleGroup
+                type="single"
+                value={form.modelo_preco}
+                onValueChange={(v) => v && setForm({ ...form, modelo_preco: v })}
+                className="justify-start mt-1"
+              >
+                <ToggleGroupItem value="unico">Valor Único</ToggleGroupItem>
+                <ToggleGroupItem value="porte">Por Porte</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            {form.modelo_preco === "unico" ? (
+              <div>
+                <Label>Valor (R$) *</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.valor_unico || ""}
+                  onChange={(e) => setForm({ ...form, valor_unico: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Pequeno (R$) *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.valor_pequeno || ""}
+                    onChange={(e) => setForm({ ...form, valor_pequeno: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label>Médio (R$) *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.valor_medio || ""}
+                    onChange={(e) => setForm({ ...form, valor_medio: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label>Grande (R$) *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.valor_grande || ""}
+                    onChange={(e) => setForm({ ...form, valor_grande: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={form.is_padrao}
+                  onCheckedChange={(v) => setForm({ ...form, is_padrao: v })}
+                />
+                <Label>Serviço Padrão</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={form.is_opcional}
+                  onCheckedChange={(v) => setForm({ ...form, is_opcional: v })}
+                />
+                <Label>Opcional</Label>
+              </div>
+            </div>
+
+            <div>
+              <Label>Observações Internas</Label>
+              <Textarea
+                value={form.observacoes_internas || ""}
+                onChange={(e) => setForm({ ...form, observacoes_internas: e.target.value })}
+                placeholder="Notas internas sobre o serviço"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSave}>{editingId ? "Atualizar" : "Criar Serviço"}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ServicosCrecheHotel;
