@@ -167,85 +167,118 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
         const items: BillingItem[] = [];
 
         for (const est of selectedEstadias) {
-          const mp = est.modelo_preco || "unico";
-          // For hotel, modelo_cobranca in DB is "periodo" (default); for creche use what's stored
-          const mc = est.modelo_cobranca || (est.tipo === "hotel" ? "periodo" : null);
+          const tipoEstadia = (est.tipo || "").toLowerCase();
+          const isHotel = tipoEstadia === "hotel";
+          const mcOriginal = est.modelo_cobranca || null;
+          const mpOriginal = est.modelo_preco || "unico";
+          let mpResolvido = mpOriginal;
 
-          const petPorteNorm = (est.pet_porte || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const petPorteNorm = (est.pet_porte || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+          const porteField = petPorteNorm === "pequeno"
+            ? "valor_pequeno"
+            : petPorteNorm === "medio"
+              ? "valor_medio"
+              : petPorteNorm === "grande"
+                ? "valor_grande"
+                : null;
 
-          console.log(`[Checkout] Pet: ${est.pet_nome}, tipo: ${est.tipo}, modelo_preco: ${mp}, modelo_cobranca: ${mc}, porte: ${petPorteNorm}`);
-
-          if (!mc) {
-            console.warn(`[Checkout] Sem modelo de cobrança para ${est.pet_nome}`);
-            continue;
-          }
-
-          // Filter all services matching tipo + modelo_cobranca + modelo_preco
-          const matchingServicos = servicos.filter(
-            (s: any) => s.tipo === est.tipo && s.modelo_cobranca === mc && s.modelo_preco === mp
+          console.log(
+            `[Checkout] Pet: ${est.pet_nome}, tipo: ${tipoEstadia}, modelo_preco: ${mpOriginal}, modelo_cobranca: ${mcOriginal}, porte: ${petPorteNorm}`
           );
 
-          // Fallback: tipo + modelo_preco (ignore modelo_cobranca)
-          const fallback1 = matchingServicos.length > 0 ? matchingServicos : servicos.filter(
-            (s: any) => s.tipo === est.tipo && s.modelo_preco === mp
-          );
+          const servicosDoTipo = servicos.filter((s: any) => s.tipo === tipoEstadia);
+
+          // Para hotel, ignoramos modelo_cobranca na busca (o cálculo será sempre por diária no checkout)
+          const matchingServicos = !isHotel && mcOriginal
+            ? servicosDoTipo.filter(
+                (s: any) => s.modelo_cobranca === mcOriginal && s.modelo_preco === mpOriginal
+              )
+            : servicosDoTipo.filter((s: any) => s.modelo_preco === mpOriginal);
+
+          // Fallback: tipo + modelo_preco
+          const fallback1 = matchingServicos.length > 0
+            ? matchingServicos
+            : servicosDoTipo.filter((s: any) => s.modelo_preco === mpOriginal);
 
           // Fallback: tipo only
-          const fallback2 = fallback1.length > 0 ? fallback1 : servicos.filter(
-            (s: any) => s.tipo === est.tipo
-          );
+          let candidatos = fallback1.length > 0 ? fallback1 : servicosDoTipo;
 
-          const candidatos = fallback2;
+          // Autoajuste para inconsistência de modelo_preco no hotel (ex.: estadia salva como "unico" mas serviço cadastrado por porte)
+          if (isHotel && candidatos.length > 0 && porteField) {
+            const hasUnico = candidatos.some((s: any) => (s.valor_unico || 0) > 0);
+            const hasPorte = candidatos.some((s: any) => (s[porteField] || 0) > 0);
+
+            if (mpOriginal === "unico" && !hasUnico && hasPorte) {
+              mpResolvido = "porte";
+              candidatos = servicosDoTipo.filter((s: any) => (s[porteField] || 0) > 0);
+            }
+
+            if (mpOriginal === "porte" && !hasPorte && hasUnico) {
+              mpResolvido = "unico";
+              candidatos = servicosDoTipo.filter((s: any) => (s.valor_unico || 0) > 0);
+            }
+          }
 
           if (candidatos.length === 0) {
-            console.warn(`[Checkout] Serviço não encontrado para ${est.pet_nome} (tipo=${est.tipo}, mc=${mc}, mp=${mp})`);
+            console.warn(
+              `[Checkout] Serviço não encontrado para ${est.pet_nome} (tipo=${tipoEstadia}, mc=${mcOriginal}, mp=${mpOriginal})`
+            );
             toast.error(`Valor do serviço não encontrado para ${est.pet_nome}. Verifique o cadastro.`);
             continue;
           }
 
-          // Get unit price: for "porte" mode, find the specific record with the matching porte value
+          // Buscar valor unitário de forma resiliente
           let valorUnit = 0;
           let servicoUsado = candidatos[0];
 
-          if (mp === "porte" && petPorteNorm) {
-            // Each porte has its own DB record; find the one with the right non-zero value
-            const porteField = petPorteNorm === "pequeno" ? "valor_pequeno"
-              : petPorteNorm === "medio" ? "valor_medio"
-              : petPorteNorm === "grande" ? "valor_grande" : null;
+          const shouldUsePorte = mpResolvido === "porte" || (
+            !!porteField &&
+            !candidatos.some((s: any) => (s.valor_unico || 0) > 0) &&
+            candidatos.some((s: any) => (s[porteField] || 0) > 0)
+          );
 
-            if (porteField) {
-              // Find the record that has a non-zero value for this porte
-              const match = candidatos.find((s: any) => (s[porteField] || 0) > 0);
-              if (match) {
-                servicoUsado = match;
-                valorUnit = match[porteField] || 0;
-              } else {
-                // Aggregate: check across ALL matching records
-                for (const s of candidatos) {
-                  const v = s[porteField] || 0;
-                  if (v > 0) { valorUnit = v; servicoUsado = s; break; }
-                }
-              }
-            }
-          } else {
-            // Único: use valor_unico
-            const match = candidatos.find((s: any) => (s.valor_unico || 0) > 0);
+          if (shouldUsePorte && porteField) {
+            const match = candidatos.find((s: any) => (s[porteField] || 0) > 0);
             if (match) {
               servicoUsado = match;
-              valorUnit = match.valor_unico || 0;
+              valorUnit = match[porteField] || 0;
+            }
+          }
+
+          if (valorUnit === 0) {
+            const matchUnico = candidatos.find((s: any) => (s.valor_unico || 0) > 0);
+            if (matchUnico) {
+              servicoUsado = matchUnico;
+              valorUnit = matchUnico.valor_unico || 0;
+              mpResolvido = "unico";
+            }
+          }
+
+          if (valorUnit === 0 && porteField) {
+            const matchPorte = candidatos.find((s: any) => (s[porteField] || 0) > 0);
+            if (matchPorte) {
+              servicoUsado = matchPorte;
+              valorUnit = matchPorte[porteField] || 0;
+              mpResolvido = "porte";
             }
           }
 
           const servico = servicoUsado;
 
-          console.log(`[Checkout] Serviço encontrado: ${servico.nome}, valorUnit=${valorUnit}, mp=${mp}, porte=${petPorteNorm}`);
+          console.log(
+            `[Checkout] Serviço encontrado: ${servico.nome}, valorUnit=${valorUnit}, mp=${mpResolvido}, porte=${petPorteNorm}`
+          );
 
           if (valorUnit === 0) {
             console.warn(`[Checkout] Valor unitário zerado para ${est.pet_nome} (porte=${est.pet_porte}, modelo=${mp})`);
             toast.error(`Valor do serviço zerado para ${est.pet_nome}. Verifique o cadastro em Serviços Creche & Hotel.`);
           }
 
-          const effectiveMc = servico.modelo_cobranca || mc;
+          // Hotel sempre calcula por diária (24h), usando timestamp real do check-out
+          const effectiveMc = isHotel ? "dia" : (servico.modelo_cobranca || mcOriginal || "periodo");
           const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, effectiveMc);
 
           console.log(`[Checkout] Cálculo: qty=${result.quantidade}, valorUnit=${valorUnit}, total=${result.valorTotal}`);
@@ -298,11 +331,22 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
       return;
     }
 
+    const selectedEstadias = filteredEstadias.filter((e) => selectedIds.has(e.id));
+    const selectedBillingItems = billingItems.filter((b) => selectedIds.has(b.estadiaId));
+    const missingBilling = selectedEstadias.filter(
+      (est) => !selectedBillingItems.some((b) => b.estadiaId === est.id)
+    );
+    const zeroBilling = selectedBillingItems.filter((b) => b.valorUnitario <= 0 || b.valorTotal <= 0);
+
+    if (missingBilling.length > 0 || zeroBilling.length > 0) {
+      toast.error("Não foi possível calcular o valor de todos os pets. Revise os serviços antes de confirmar o check-out.");
+      return;
+    }
+
     setSaving(true);
     try {
       const now = new Date();
       const ids = [...selectedIds];
-      const selectedEstadias = filteredEstadias.filter((e) => selectedIds.has(e.id));
 
       const { error } = await supabase
         .from("creche_estadias")
@@ -333,17 +377,6 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
         quantidade: b.quantidade,
         valor: b.valorUnitario,
       }));
-
-      // For pets without billing items (service not found), add a generic entry
-      for (const est of selectedEstadias) {
-        if (!billingItems.find((b) => b.estadiaId === est.id)) {
-          itensFinanceiro.push({
-            produtoServico: `Serviço de ${est.tipo === "hotel" ? "Hotel" : "Creche"}`,
-            quantidade: 1,
-            valor: 0,
-          });
-        }
-      }
 
       onOpenChange(false);
       onSuccess();
