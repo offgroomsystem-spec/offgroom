@@ -94,17 +94,32 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
   const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
   const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, Record<string, boolean>>>({});
 
+  // Clear optimistic overrides when estadias prop updates (real data arrived)
+  useEffect(() => {
+    setOptimisticOverrides({});
+  }, [estadias]);
+
   const handleQuickToggle = async (estadiaId: string, key: string, currentValue: boolean) => {
     if (!ownerId) return;
     const toggleKey = `${estadiaId}-${key}`;
     if (togglingKeys.has(toggleKey)) return;
     
+    const newValue = !currentValue;
+
+    // Optimistic UI update immediately
+    setOptimisticOverrides(prev => ({
+      ...prev,
+      [estadiaId]: {
+        ...(prev[estadiaId] || {}),
+        [key]: newValue,
+      },
+    }));
+
     setTogglingKeys(prev => new Set(prev).add(toggleKey));
     
     try {
       const hoje = format(new Date(), "yyyy-MM-dd");
       
-      // Find today's latest registro for this estadia
       const { data: existing } = await supabase
         .from("creche_registros_diarios")
         .select("id, comeu, bebeu_agua, brincou, interagiu_bem, brigas, fez_necessidades, sinais_doenca, pulgas_carrapatos")
@@ -113,17 +128,13 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
         .order("hora_registro", { ascending: false })
         .limit(1);
 
-      const newValue = !currentValue;
-
       if (existing && existing.length > 0) {
-        // Update existing registro
         const { error } = await supabase
           .from("creche_registros_diarios")
           .update({ [key]: newValue })
           .eq("id", existing[0].id);
         if (error) throw error;
       } else {
-        // Create new registro for today
         const { error } = await supabase
           .from("creche_registros_diarios")
           .insert({
@@ -135,7 +146,17 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
       }
       
       toast.success(`${indicadores.find(i => i.key === key)?.label} atualizado!`);
+      onRefresh?.();
     } catch {
+      // Revert optimistic update on error
+      setOptimisticOverrides(prev => {
+        const copy = { ...prev };
+        if (copy[estadiaId]) {
+          delete copy[estadiaId][key];
+          if (Object.keys(copy[estadiaId]).length === 0) delete copy[estadiaId];
+        }
+        return copy;
+      });
       toast.error("Erro ao atualizar indicador.");
     } finally {
       setTogglingKeys(prev => {
