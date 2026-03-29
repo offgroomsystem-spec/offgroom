@@ -3183,7 +3183,7 @@ const Agendamentos = () => {
                 </div>
 
                 <div className="grid grid-cols-4 gap-1.5">
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="data" className="text-xs">
                       Dia Agendamento*
                     </Label>
