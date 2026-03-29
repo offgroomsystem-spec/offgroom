@@ -161,13 +161,30 @@ export const FinanceiroEditDialog = ({
       ? lancamento.pet_ids.filter((value: unknown): value is string => typeof value === "string")
       : [];
 
+    // Find clienteId from lancamento or by matching pet IDs
     let clienteId = typeof lancamento.cliente_id === "string" ? lancamento.cliente_id : "";
+    
+    // Verify clienteId exists in our clientes list
+    if (clienteId && !clientes.find((c) => c.id === clienteId)) {
+      clienteId = "";
+    }
+    
+    // If clienteId not found, try to find by any pet ID
     if (!clienteId && petIds.length > 0) {
-      const clienteByPet = clientes.find((cliente) => cliente.pets.some((pet) => pet.id === petIds[0]));
-      clienteId = clienteByPet?.id || "";
+      for (const pId of petIds) {
+        const clienteByPet = clientes.find((cliente) => cliente.pets.some((pet) => pet.id === pId));
+        if (clienteByPet) {
+          clienteId = clienteByPet.id;
+          break;
+        }
+      }
     }
 
-    const petPrincipalId = petIds[0] || "";
+    // Ensure all pet IDs actually belong to this client's pets
+    const clientePets = clientes.find((c) => c.id === clienteId)?.pets || [];
+    const validPetIds = petIds.filter((pId) => clientePets.some((p) => p.id === pId));
+    
+    const petPrincipalId = validPetIds[0] || "";
 
     setForm({
       ano: lancamento.ano || "",
@@ -176,7 +193,7 @@ export const FinanceiroEditDialog = ({
       descricao1: lancamento.descricao1 || "",
       clienteId,
       petPrincipalId,
-      petsAdicionaisIds: petIds.slice(1),
+      petsAdicionaisIds: validPetIds.slice(1),
       dataPagamento: lancamento.data_pagamento || "",
       contaId: lancamento.conta_id || "",
       pago: Boolean(lancamento.pago),
@@ -189,13 +206,20 @@ export const FinanceiroEditDialog = ({
 
     if ((itens || []).length > 0) {
       setItensForm(
-        itens.map((item: any) => ({
-          id: item.id || crypto.randomUUID(),
-          descricao2: item.descricao2 || "",
-          produtoServico: item.produto_servico || "",
-          quantidade: Number(item.quantidade) > 0 ? Number(item.quantidade) : 1,
-          valor: Number(item.valor) || 0,
-        })),
+        itens.map((item: any) => {
+          // Strip "PetName - " prefix from produto_servico to get just the service/product name
+          let produtoServico = item.produto_servico || "";
+          if (produtoServico.includes(" - ")) {
+            produtoServico = produtoServico.split(" - ").slice(1).join(" - ");
+          }
+          return {
+            id: item.id || crypto.randomUUID(),
+            descricao2: item.descricao2 || "",
+            produtoServico,
+            quantidade: Number(item.quantidade) > 0 ? Number(item.quantidade) : 1,
+            valor: Number(item.valor) || 0,
+          };
+        }),
       );
       return;
     }
