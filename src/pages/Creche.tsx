@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, BarChart3 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -12,6 +13,7 @@ import EstadiasAtivas from "@/components/creche/EstadiasAtivas";
 import RegistroDiarioModal from "@/components/creche/RegistroDiarioModal";
 import TimelineModal from "@/components/creche/TimelineModal";
 import ObservacaoModal from "@/components/creche/ObservacaoModal";
+import CrecheRelatorios from "@/components/creche/CrecheRelatorios";
 
 interface EstadiaComNomes {
   id: string;
