@@ -3144,8 +3144,103 @@ const Agendamentos = () => {
           isUltimoServicoPacote: isUltimo,
         });
 
+        // --- Financial sync for pacote edits ---
+        if (lancamentoVinculado) {
+          const nomePacote = editandoAgendamento.pacoteOriginal.nome_pacote;
+          
+          // Build full service list: package + extras
+          const extrasAtuais = servicosExtrasEdicao.filter((e) => e.nome);
+          
+          if (lancamentoVinculado.pago === false) {
+            // UNPAID: Full replace strategy
+            // 1. Delete all existing items
+            await supabase
+              .from("lancamentos_financeiros_itens")
+              .delete()
+              .eq("lancamento_id", lancamentoVinculado.id);
+
+            // 2. Fetch package value
+            const { data: pacoteData } = await supabase
+              .from("pacotes")
+              .select("valor_final")
+              .eq("user_id", ownerId || user.id)
+              .ilike("nome", nomePacote)
+              .limit(1);
+            const valorPacote = pacoteData?.[0]?.valor_final ? Number(pacoteData[0].valor_final) : 0;
+
+            // 3. Build new items: package + each extra
+            const novosItens: Array<{ lancamento_id: string; descricao2: string; produto_servico: string; valor: number; quantidade: number }> = [
+              {
+                lancamento_id: lancamentoVinculado.id,
+                descricao2: "Serviços",
+                produto_servico: nomePacote,
+                valor: valorPacote,
+                quantidade: 1,
+              },
+            ];
+            for (const extra of extrasAtuais) {
+              novosItens.push({
+                lancamento_id: lancamentoVinculado.id,
+                descricao2: "Serviços",
+                produto_servico: extra.nome,
+                valor: extra.valor || 0,
+                quantidade: 1,
+              });
+            }
+            await supabase.from("lancamentos_financeiros_itens").insert(novosItens);
+
+            // 4. Recalculate total
+            const novoTotal = novosItens.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
+            await supabase
+              .from("lancamentos_financeiros")
+              .update({ valor_total: novoTotal })
+              .eq("id", lancamentoVinculado.id);
+          } else {
+            // PAID: Do NOT modify existing entry. Create new entry for newly added extras only.
+            // Compare current extras vs items in original financial entry
+            const existingItemNames = lancamentoItensVinculado.map((item: any) => item.produto_servico);
+            const novosExtras = extrasAtuais.filter((e) => !existingItemNames.includes(e.nome));
+
+            if (novosExtras.length > 0) {
+              const valorNovos = novosExtras.reduce((sum, e) => sum + (e.valor || 0), 0);
+              const [ano, mes] = editandoAgendamento.data.split("-");
+
+              // Create new financial entry
+              const { data: novoLancamento, error: novoLancErr } = await supabase
+                .from("lancamentos_financeiros")
+                .insert([{
+                  user_id: lancamentoVinculado.user_id,
+                  ano,
+                  mes_competencia: mes,
+                  tipo: "Receita",
+                  descricao1: "Receita Operacional",
+                  cliente_id: lancamentoVinculado.cliente_id,
+                  pet_ids: lancamentoVinculado.pet_ids,
+                  valor_total: valorNovos,
+                  data_pagamento: editandoAgendamento.data,
+                  conta_id: lancamentoVinculado.conta_id,
+                  pago: false,
+                }])
+                .select("id")
+                .single();
+
+              if (!novoLancErr && novoLancamento) {
+                const itensNovos = novosExtras.map((extra) => ({
+                  lancamento_id: novoLancamento.id,
+                  descricao2: "Serviços",
+                  produto_servico: extra.nome,
+                  valor: extra.valor || 0,
+                  quantidade: 1,
+                }));
+                await supabase.from("lancamentos_financeiros_itens").insert(itensNovos);
+              }
+            }
+          }
+        }
+
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentosPacotes();
+        await loadFinanceiroVinculado(editandoAgendamento);
       }
 
       setEditDialogGerenciamento(false);
