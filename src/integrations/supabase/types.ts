@@ -330,6 +330,8 @@ export type Database = {
           hora_saida: string | null
           hora_saida_prevista: string | null
           id: string
+          modelo_cobranca: string | null
+          modelo_preco: string
           observacoes_entrada: string | null
           observacoes_saida: string | null
           pet_id: string
@@ -349,6 +351,8 @@ export type Database = {
           hora_saida?: string | null
           hora_saida_prevista?: string | null
           id?: string
+          modelo_cobranca?: string | null
+          modelo_preco?: string
           observacoes_entrada?: string | null
           observacoes_saida?: string | null
           pet_id: string
@@ -368,6 +372,8 @@ export type Database = {
           hora_saida?: string | null
           hora_saida_prevista?: string | null
           id?: string
+          modelo_cobranca?: string | null
+          modelo_preco?: string
           observacoes_entrada?: string | null
           observacoes_saida?: string | null
           pet_id?: string
