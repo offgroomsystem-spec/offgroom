@@ -299,7 +299,7 @@ export const FinanceiroEditDialog = ({
     setSaving(true);
 
     try {
-      const petIds = [form.petPrincipalId, ...form.petsAdicionaisIds].filter(Boolean);
+      const petIds = form.petIds.filter(Boolean);
 
       const { error: updateError } = await supabase
         .from("lancamentos_financeiros")
