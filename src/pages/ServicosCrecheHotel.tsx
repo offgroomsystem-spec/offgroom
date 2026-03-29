@@ -361,36 +361,6 @@ const ServicosCrecheHotel = () => {
               </div>
             )}
 
-            <div className="flex items-center gap-5">
-              <div className="flex items-center gap-1.5">
-                <Switch
-                  checked={form.is_padrao}
-                  onCheckedChange={(v) => setForm({ ...form, is_padrao: v })}
-                  className="scale-90"
-                />
-                <Label className="text-xs">Serviço Padrão</Label>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Switch
-                  checked={form.is_opcional}
-                  onCheckedChange={(v) => setForm({ ...form, is_opcional: v })}
-                  className="scale-90"
-                />
-                <Label className="text-xs">Opcional</Label>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Observações Internas</Label>
-              <Textarea
-                value={form.observacoes_internas || ""}
-                onChange={(e) => setForm({ ...form, observacoes_internas: e.target.value })}
-                placeholder="Notas internas sobre o serviço"
-                rows={2}
-                className="text-sm min-h-[56px] py-1.5"
-              />
-            </div>
-
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
               <Button size="sm" onClick={handleSave}>{editingId ? "Atualizar" : "Criar Serviço"}</Button>
