@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Pencil, Trash2, Dog, Hotel } from "lucide-react";
+import { Plus, Pencil, Trash2, Dog, Hotel, Clock, CalendarDays, Sun } from "lucide-react";
 import { toast } from "sonner";
 
 interface ServicoCreche {
@@ -20,6 +20,7 @@ interface ServicoCreche {
   descricao: string | null;
   tipo: string;
   modelo_preco: string;
+  modelo_cobranca: string;
   valor_unico: number;
   valor_pequeno: number;
   valor_medio: number;
@@ -34,6 +35,7 @@ const emptyForm: Omit<ServicoCreche, "id"> = {
   descricao: "",
   tipo: "creche",
   modelo_preco: "unico",
+  modelo_cobranca: "periodo",
   valor_unico: 0,
   valor_pequeno: 0,
   valor_medio: 0,
@@ -82,6 +84,7 @@ const ServicosCrecheHotel = () => {
       descricao: s.descricao || "",
       tipo: s.tipo,
       modelo_preco: s.modelo_preco,
+      modelo_cobranca: s.modelo_cobranca || "periodo",
       valor_unico: s.valor_unico,
       valor_pequeno: s.valor_pequeno,
       valor_medio: s.valor_medio,
@@ -112,6 +115,7 @@ const ServicosCrecheHotel = () => {
       descricao: form.descricao?.trim() || null,
       tipo: form.tipo,
       modelo_preco: form.modelo_preco,
+      modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "periodo",
       valor_unico: form.modelo_preco === "unico" ? form.valor_unico : 0,
       valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
       valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
@@ -160,8 +164,24 @@ const ServicosCrecheHotel = () => {
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const getDisplayPrice = (s: ServicoCreche) => {
-    if (s.modelo_preco === "unico") return formatCurrency(s.valor_unico);
-    return `P: ${formatCurrency(s.valor_pequeno)} | M: ${formatCurrency(s.valor_medio)} | G: ${formatCurrency(s.valor_grande)}`;
+    const suffix = s.tipo === "creche" ? (s.modelo_cobranca === "hora" ? "/h" : s.modelo_cobranca === "dia" ? "/dia" : "/período") : "";
+    if (s.modelo_preco === "unico") return formatCurrency(s.valor_unico) + suffix;
+    return `P: ${formatCurrency(s.valor_pequeno)} | M: ${formatCurrency(s.valor_medio)} | G: ${formatCurrency(s.valor_grande)}${suffix ? ` ${suffix}` : ""}`;
+  };
+
+  const getModeloCobrancaLabel = (mc: string) => {
+    if (mc === "hora") return "Por Hora";
+    if (mc === "dia") return "Por Dia";
+    return "Por Período";
+  };
+
+  const getValorLabel = () => {
+    if (form.tipo === "creche") {
+      if (form.modelo_cobranca === "hora") return "Valor/Hora (R$) *";
+      if (form.modelo_cobranca === "dia") return "Valor/Dia (R$) *";
+      return "Valor/Período (R$) *";
+    }
+    return "Valor (R$) *";
   };
 
   return (
@@ -188,6 +208,7 @@ const ServicosCrecheHotel = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Cobrança</TableHead>
                   <TableHead>Modelo</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Padrão</TableHead>
@@ -203,6 +224,9 @@ const ServicosCrecheHotel = () => {
                         {s.tipo === "creche" ? <Dog className="h-3 w-3" /> : <Hotel className="h-3 w-3" />}
                         {s.tipo === "creche" ? "Creche" : "Hotel"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {s.tipo === "creche" ? getModeloCobrancaLabel(s.modelo_cobranca) : "—"}
                     </TableCell>
                     <TableCell>{s.modelo_preco === "unico" ? "Valor Único" : "Por Porte"}</TableCell>
                     <TableCell className="text-sm">{getDisplayPrice(s)}</TableCell>
@@ -281,9 +305,32 @@ const ServicosCrecheHotel = () => {
               </div>
             </div>
 
+            {form.tipo === "creche" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Modelo de Cobrança *</Label>
+                <ToggleGroup
+                  type="single"
+                  value={form.modelo_cobranca}
+                  onValueChange={(v) => v && setForm({ ...form, modelo_cobranca: v })}
+                  className="justify-start"
+                  size="sm"
+                >
+                  <ToggleGroupItem value="hora" className="gap-1 h-7 px-2.5 text-xs">
+                    <Clock className="h-3 w-3" /> Por Hora
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="periodo" className="gap-1 h-7 px-2.5 text-xs">
+                    <Sun className="h-3 w-3" /> Por Período
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="dia" className="gap-1 h-7 px-2.5 text-xs">
+                    <CalendarDays className="h-3 w-3" /> Por Dia
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
+
             {form.modelo_preco === "unico" ? (
               <div className="space-y-1">
-                <Label className="text-xs">Valor (R$) *</Label>
+                <Label className="text-xs">{getValorLabel()}</Label>
                 <Input
                   type="number"
                   min="0"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import { calcularValorPorHora } from "@/utils/crecheBilling";
 
 interface Estadia {
   id: string;
@@ -17,6 +18,7 @@ interface Estadia {
   data_saida_prevista: string | null;
   pet_nome: string;
   cliente_nome: string;
+  pet_porte?: string;
 }
 
 interface CheckoutModalProps {
@@ -30,8 +32,72 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: Checko
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [billingInfo, setBillingInfo] = useState<{
+    valorTotal: number;
+    descricao: string;
+    servicoNome: string;
+  } | null>(null);
 
   const selected = estadiasAtivas.find((e) => e.id === selectedId);
+
+  // Calculate billing when a pet is selected
+  useEffect(() => {
+    if (!selected) {
+      setBillingInfo(null);
+      return;
+    }
+
+    const calcBilling = async () => {
+      try {
+        // Fetch servicos_creche for this user that match the tipo
+        const { data: servicos } = await supabase
+          .from("servicos_creche")
+          .select("*")
+          .eq("tipo", selected.tipo)
+          .eq("is_padrao", true)
+          .limit(1);
+
+        const servico = servicos?.[0];
+        if (!servico || (servico as any).modelo_cobranca !== "hora") {
+          setBillingInfo(null);
+          return;
+        }
+
+        const now = new Date();
+        const horaSaida = format(now, "HH:mm");
+        const dataSaida = format(now, "yyyy-MM-dd");
+
+        // Get valor based on porte
+        let valorHora = (servico as any).valor_unico || 0;
+        if ((servico as any).modelo_preco === "porte" && selected.pet_porte) {
+          const porte = selected.pet_porte.toLowerCase();
+          if (porte === "pequeno") valorHora = (servico as any).valor_pequeno || 0;
+          else if (porte === "medio" || porte === "médio") valorHora = (servico as any).valor_medio || 0;
+          else if (porte === "grande") valorHora = (servico as any).valor_grande || 0;
+        }
+
+        const result = calcularValorPorHora(
+          selected.hora_entrada,
+          selected.data_entrada,
+          horaSaida,
+          dataSaida,
+          valorHora
+        );
+
+        setBillingInfo({
+          valorTotal: result.valorTotal,
+          descricao: result.descricao,
+          servicoNome: (servico as any).nome,
+        });
+      } catch {
+        setBillingInfo(null);
+      }
+    };
+
+    calcBilling();
+    const interval = setInterval(calcBilling, 60000); // update every minute
+    return () => clearInterval(interval);
+  }, [selected]);
 
   const handleCheckout = async () => {
     if (!selectedId) {
@@ -56,6 +122,7 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: Checko
       toast.success("Check-out realizado com sucesso!");
       setSelectedId(null);
       setObservacoes("");
+      setBillingInfo(null);
       onOpenChange(false);
       onSuccess();
     } catch (err: any) {
@@ -106,6 +173,16 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: Checko
                 {selected.data_saida_prevista && (
                   <p><strong>Saída Prevista:</strong> {format(new Date(selected.data_saida_prevista + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</p>
                 )}
+              </div>
+            )}
+
+            {billingInfo && (
+              <div className="bg-primary/5 border border-primary/20 rounded-md p-3 space-y-1">
+                <p className="text-xs font-medium text-primary">💰 Cálculo Automático ({billingInfo.servicoNome})</p>
+                <p className="text-xs text-muted-foreground">{billingInfo.descricao}</p>
+                <p className="text-lg font-bold text-foreground">
+                  {billingInfo.valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </p>
               </div>
             )}
 
