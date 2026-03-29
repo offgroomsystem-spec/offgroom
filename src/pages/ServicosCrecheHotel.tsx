@@ -255,25 +255,6 @@ const ServicosCrecheHotel = () => {
             <DialogTitle className="text-base">{editingId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Nome do Serviço *</Label>
-              <Input
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Creche Período Integral"
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Descrição</Label>
-              <Textarea
-                value={form.descricao || ""}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                placeholder="Descrição opcional do serviço"
-                rows={2}
-                className="text-sm min-h-[56px] py-1.5"
-              />
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Tipo do Serviço *</Label>
