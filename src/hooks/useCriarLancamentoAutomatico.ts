@@ -29,6 +29,15 @@ interface DadosAgendamentoMultiplosServicos {
   ownerId: string;
 }
 
+interface DadosAgendamentoConsolidado {
+  agendamentoIds: string[];
+  nomeCliente: string;
+  petServicos: Array<{ petName: string; servicos: Array<{ nome: string; valor: number }> }>;
+  dataAgendamento: string;
+  dataVenda: string;
+  ownerId: string;
+}
+
 export const criarLancamentoFinanceiroAvulso = async (dados: DadosAgendamentoAvulso) => {
   try {
     const { nomeCliente, nomePet, nomeServico, dataAgendamento, dataVenda, ownerId } = dados;
