@@ -508,6 +508,7 @@ export type Database = {
           codigo_ibge_cidade: string | null
           complemento_fiscal: string | null
           created_at: string | null
+          creche_ativa: boolean
           dias_funcionamento: Json | null
           email_fiscal: string | null
           endereco: string | null
@@ -540,6 +541,7 @@ export type Database = {
           codigo_ibge_cidade?: string | null
           complemento_fiscal?: string | null
           created_at?: string | null
+          creche_ativa?: boolean
           dias_funcionamento?: Json | null
           email_fiscal?: string | null
           endereco?: string | null
@@ -572,6 +574,7 @@ export type Database = {
           codigo_ibge_cidade?: string | null
           complemento_fiscal?: string | null
           created_at?: string | null
+          creche_ativa?: boolean
           dias_funcionamento?: Json | null
           email_fiscal?: string | null
           endereco?: string | null
