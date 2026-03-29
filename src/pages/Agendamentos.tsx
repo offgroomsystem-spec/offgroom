@@ -2789,6 +2789,48 @@ const Agendamentos = () => {
           if (data) lancamento = data;
         }
       }
+      // For pacote: search by cliente_id + data_pagamento matching dataVenda
+      if (!lancamento && agendamento.tipo === "pacote") {
+        // First get the cliente_id
+        const { data: clientesData } = await supabase
+          .from("clientes")
+          .select("id")
+          .eq("user_id", ownerId)
+          .ilike("nome_cliente", agendamento.cliente)
+          .limit(1);
+        const clienteId = clientesData?.[0]?.id;
+        if (clienteId) {
+          // Search financial entries for this client with matching date
+          const { data: lancamentos } = await supabase
+            .from("lancamentos_financeiros")
+            .select("*")
+            .eq("user_id", ownerId)
+            .eq("cliente_id", clienteId)
+            .eq("data_pagamento", agendamento.dataVenda)
+            .eq("tipo", "Receita")
+            .eq("descricao1", "Receita Operacional");
+          if (lancamentos && lancamentos.length > 0) {
+            // Try to find one whose items match the package name
+            for (const l of lancamentos) {
+              const { data: itens } = await supabase
+                .from("lancamentos_financeiros_itens")
+                .select("*")
+                .eq("lancamento_id", l.id);
+              const hasPackageItem = (itens || []).some((item: any) =>
+                item.produto_servico?.toLowerCase() === agendamento.nomePacote?.toLowerCase()
+              );
+              if (hasPackageItem) {
+                lancamento = l;
+                break;
+              }
+            }
+            // If no exact package match, use the first one
+            if (!lancamento) {
+              lancamento = lancamentos[0];
+            }
+          }
+        }
+      }
       if (lancamento) {
         setLancamentoVinculado(lancamento);
         const { data: itens } = await supabase
