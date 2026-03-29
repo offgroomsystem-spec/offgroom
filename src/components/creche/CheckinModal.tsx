@@ -82,7 +82,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       const clienteIds = [...new Set(data.map((p) => p.cliente_id))];
       const { data: clientes } = await supabase
         .from("clientes")
-        .select("id, nome_cliente")
+        .select("id, nome_cliente, whatsapp")
         .in("id", clienteIds);
 
       const clienteMap = new Map(
