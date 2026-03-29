@@ -115,9 +115,10 @@ const ServicosCrecheHotel = () => {
       return;
     }
 
+    const autoNome = generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco);
     const payload = {
-      nome: form.nome.trim(),
-      descricao: form.descricao?.trim() || null,
+      nome: autoNome,
+      descricao: null as string | null,
       tipo: form.tipo,
       modelo_preco: form.modelo_preco,
       modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "periodo",
