@@ -55,12 +55,75 @@ const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: strin
   return [tipoLabel, precoLabel, cobrancaLabel, porteLabel].filter(Boolean).join(", ");
 };
 
+interface GroupedServico {
+  key: string;
+  tipo: string;
+  modelo_preco: string;
+  modelo_cobranca: string;
+  valor_unico: number;
+  valor_pequeno: number;
+  valor_medio: number;
+  valor_grande: number;
+  ids: string[];
+  records: ServicoCreche[];
+}
+
+const groupServicos = (servicos: ServicoCreche[]): GroupedServico[] => {
+  const singles: GroupedServico[] = [];
+  const porteMap = new Map<string, ServicoCreche[]>();
+
+  for (const s of servicos) {
+    if (s.modelo_preco === "porte") {
+      const key = `${s.tipo}|${s.modelo_cobranca}`;
+      if (!porteMap.has(key)) porteMap.set(key, []);
+      porteMap.get(key)!.push(s);
+    } else {
+      singles.push({
+        key: s.id,
+        tipo: s.tipo,
+        modelo_preco: s.modelo_preco,
+        modelo_cobranca: s.modelo_cobranca,
+        valor_unico: s.valor_unico,
+        valor_pequeno: 0,
+        valor_medio: 0,
+        valor_grande: 0,
+        ids: [s.id],
+        records: [s],
+      });
+    }
+  }
+
+  for (const [key, recs] of porteMap) {
+    const first = recs[0];
+    let vp = 0, vm = 0, vg = 0;
+    for (const r of recs) {
+      if (r.valor_pequeno > 0) vp = r.valor_pequeno;
+      if (r.valor_medio > 0) vm = r.valor_medio;
+      if (r.valor_grande > 0) vg = r.valor_grande;
+    }
+    singles.push({
+      key,
+      tipo: first.tipo,
+      modelo_preco: "porte",
+      modelo_cobranca: first.modelo_cobranca,
+      valor_unico: 0,
+      valor_pequeno: vp,
+      valor_medio: vm,
+      valor_grande: vg,
+      ids: recs.map((r) => r.id),
+      records: recs,
+    });
+  }
+
+  return singles;
+};
+
 const ServicosCrecheHotel = () => {
   const { user } = useAuth();
   const [servicos, setServicos] = useState<ServicoCreche[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingIds, setEditingIds] = useState<string[]>([]);
   const [form, setForm] = useState(emptyForm);
 
   const loadServicos = async () => {
@@ -81,27 +144,29 @@ const ServicosCrecheHotel = () => {
     loadServicos();
   }, [user]);
 
+  const grouped = groupServicos(servicos);
+
   const openNew = () => {
-    setEditingId(null);
+    setEditingIds([]);
     setForm(emptyForm);
     setDialogOpen(true);
   };
 
-  const openEdit = (s: ServicoCreche) => {
-    setEditingId(s.id);
+  const openEdit = (g: GroupedServico) => {
+    setEditingIds(g.ids);
     setForm({
-      nome: s.nome,
-      descricao: s.descricao || "",
-      tipo: s.tipo,
-      modelo_preco: s.modelo_preco,
-      modelo_cobranca: s.modelo_cobranca || "periodo",
-      valor_unico: s.valor_unico,
-      valor_pequeno: s.valor_pequeno,
-      valor_medio: s.valor_medio,
-      valor_grande: s.valor_grande,
-      is_padrao: s.is_padrao,
-      is_opcional: s.is_opcional,
-      observacoes_internas: s.observacoes_internas || "",
+      nome: "",
+      descricao: "",
+      tipo: g.tipo,
+      modelo_preco: g.modelo_preco,
+      modelo_cobranca: g.modelo_cobranca || "periodo",
+      valor_unico: g.valor_unico,
+      valor_pequeno: g.valor_pequeno,
+      valor_medio: g.valor_medio,
+      valor_grande: g.valor_grande,
+      is_padrao: false,
+      is_opcional: true,
+      observacoes_internas: g.records[0]?.observacoes_internas || "",
     });
     setDialogOpen(true);
   };
@@ -126,23 +191,40 @@ const ServicosCrecheHotel = () => {
       observacoes_internas: form.observacoes_internas?.trim() || null,
     };
 
-    if (editingId) {
-      const autoNome = generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco);
-      const payload = {
-        ...basePayload,
-        nome: autoNome,
-        valor_unico: form.modelo_preco === "unico" ? form.valor_unico : 0,
-        valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
-        valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
-        valor_grande: form.modelo_preco === "porte" ? form.valor_grande : 0,
-      };
-      const { error } = await supabase
-        .from("servicos_creche")
-        .update(payload as any)
-        .eq("id", editingId);
-      if (error) {
-        toast.error("Erro ao atualizar serviço");
-        return;
+    if (editingIds.length > 0) {
+      if (form.modelo_preco === "porte") {
+        const portes = [
+          { label: "Pequeno", valor: form.valor_pequeno, field: "valor_pequeno" as const },
+          { label: "Médio", valor: form.valor_medio, field: "valor_medio" as const },
+          { label: "Grande", valor: form.valor_grande, field: "valor_grande" as const },
+        ];
+        for (let i = 0; i < editingIds.length && i < portes.length; i++) {
+          const p = portes[i];
+          await supabase
+            .from("servicos_creche")
+            .update({
+              ...basePayload,
+              nome: generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco, p.label),
+              valor_unico: 0,
+              valor_pequeno: p.field === "valor_pequeno" ? p.valor : 0,
+              valor_medio: p.field === "valor_medio" ? p.valor : 0,
+              valor_grande: p.field === "valor_grande" ? p.valor : 0,
+            } as any)
+            .eq("id", editingIds[i]);
+        }
+      } else {
+        const autoNome = generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco);
+        await supabase
+          .from("servicos_creche")
+          .update({
+            ...basePayload,
+            nome: autoNome,
+            valor_unico: form.valor_unico,
+            valor_pequeno: 0,
+            valor_medio: 0,
+            valor_grande: 0,
+          } as any)
+          .eq("id", editingIds[0]);
       }
       toast.success("Serviço atualizado com sucesso");
     } else if (form.modelo_preco === "porte") {
@@ -187,24 +269,28 @@ const ServicosCrecheHotel = () => {
     loadServicos();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este serviço?")) return;
-    const { error } = await supabase.from("servicos_creche").delete().eq("id", id);
+  const handleDelete = async (g: GroupedServico) => {
+    const count = g.ids.length;
+    const msg = count > 1
+      ? `Isso removerá ${count} registros vinculados (Pequeno, Médio e Grande). Confirmar?`
+      : "Tem certeza que deseja excluir este serviço?";
+    if (!confirm(msg)) return;
+    const { error } = await supabase.from("servicos_creche").delete().in("id", g.ids);
     if (error) {
       toast.error("Erro ao excluir serviço");
       return;
     }
-    toast.success("Serviço excluído");
+    toast.success(count > 1 ? `${count} registros excluídos` : "Serviço excluído");
     loadServicos();
   };
 
   const formatCurrency = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const getDisplayPrice = (s: ServicoCreche) => {
-    const suffix = s.tipo === "creche" ? (s.modelo_cobranca === "hora" ? "/h" : s.modelo_cobranca === "dia" ? "/dia" : "/período") : "";
-    if (s.modelo_preco === "unico") return formatCurrency(s.valor_unico) + suffix;
-    return `P: ${formatCurrency(s.valor_pequeno)} | M: ${formatCurrency(s.valor_medio)} | G: ${formatCurrency(s.valor_grande)}${suffix ? ` ${suffix}` : ""}`;
+  const getDisplayPrice = (g: GroupedServico) => {
+    const suffix = g.tipo === "creche" ? (g.modelo_cobranca === "hora" ? "/h" : g.modelo_cobranca === "dia" ? "/dia" : "/período") : "";
+    if (g.modelo_preco === "unico") return formatCurrency(g.valor_unico) + suffix;
+    return `P: ${formatCurrency(g.valor_pequeno)} | M: ${formatCurrency(g.valor_medio)} | G: ${formatCurrency(g.valor_grande)}${suffix ? ` ${suffix}` : ""}`;
   };
 
   const getModeloCobrancaLabel = (mc: string) => {
@@ -238,7 +324,7 @@ const ServicosCrecheHotel = () => {
         <CardContent className="p-0">
           {loading ? (
             <p className="p-6 text-center text-muted-foreground">Carregando...</p>
-          ) : servicos.length === 0 ? (
+          ) : grouped.length === 0 ? (
             <p className="p-6 text-center text-muted-foreground">Nenhum serviço cadastrado ainda.</p>
           ) : (
             <Table>
@@ -252,24 +338,24 @@ const ServicosCrecheHotel = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {servicos.map((s) => (
-                  <TableRow key={s.id}>
+                {grouped.map((g) => (
+                  <TableRow key={g.key}>
                     <TableCell>
-                      <Badge variant={s.tipo === "creche" ? "default" : "secondary"} className="gap-1">
-                        {s.tipo === "creche" ? <Dog className="h-3 w-3" /> : <Hotel className="h-3 w-3" />}
-                        {s.tipo === "creche" ? "Creche" : "Hotel"}
+                      <Badge variant={g.tipo === "creche" ? "default" : "secondary"} className="gap-1">
+                        {g.tipo === "creche" ? <Dog className="h-3 w-3" /> : <Hotel className="h-3 w-3" />}
+                        {g.tipo === "creche" ? "Creche" : "Hotel"}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {s.tipo === "creche" ? getModeloCobrancaLabel(s.modelo_cobranca) : "—"}
+                      {g.tipo === "creche" ? getModeloCobrancaLabel(g.modelo_cobranca) : "—"}
                     </TableCell>
-                    <TableCell>{s.modelo_preco === "unico" ? "Valor Único" : "Por Porte"}</TableCell>
-                    <TableCell className="text-sm">{getDisplayPrice(s)}</TableCell>
+                    <TableCell>{g.modelo_preco === "unico" ? "Valor Único" : "Por Porte"}</TableCell>
+                    <TableCell className="text-sm">{getDisplayPrice(g)}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(g)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(g)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
@@ -284,7 +370,7 @@ const ServicosCrecheHotel = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader className="pb-1">
-            <DialogTitle className="text-base">{editingId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
+            <DialogTitle className="text-base">{editingIds.length > 0 ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -395,7 +481,7 @@ const ServicosCrecheHotel = () => {
 
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button size="sm" onClick={handleSave}>{editingId ? "Atualizar" : "Criar Serviço"}</Button>
+              <Button size="sm" onClick={handleSave}>{editingIds.length > 0 ? "Atualizar" : "Criar Serviço"}</Button>
             </div>
           </div>
         </DialogContent>
