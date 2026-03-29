@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 import { callNuvemFiscal } from "@/hooks/useNotasFiscais";
 
 // Interfaces
