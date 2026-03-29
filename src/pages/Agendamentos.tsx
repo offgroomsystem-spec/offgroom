@@ -849,8 +849,53 @@ const Agendamentos = () => {
     }
   };
 
+  // Busca inteligente por WhatsApp (Pacotes)
+  useEffect(() => {
+    if (pacoteWhatsappJustSelected.current) {
+      pacoteWhatsappJustSelected.current = false;
+      return;
+    }
+    if (pacoteWhatsappSearch.length >= 2) {
+      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }> = [];
+      clientes.forEach((cliente) => {
+        if (cliente.whatsapp.includes(pacoteWhatsappSearch)) {
+          if (cliente.pets.length > 0) {
+            cliente.pets.forEach((pet) => {
+              results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: pet.nome, raca: pet.raca });
+            });
+          } else {
+            results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: "", raca: "" });
+          }
+        }
+      });
+      setPacoteFilteredWhatsapp(results);
+    } else {
+      setPacoteFilteredWhatsapp([]);
+    }
+  }, [pacoteWhatsappSearch, clientes]);
 
-  const handleClienteSelect = (nomeCliente: string) => {
+  const handlePacoteWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string }) => {
+    pacoteWhatsappJustSelected.current = true;
+    const formatted = item.whatsapp.length >= 11
+      ? `(${item.whatsapp.slice(0, 2)}) ${item.whatsapp.slice(2, 7)}-${item.whatsapp.slice(7)}`
+      : item.whatsapp;
+    setPacoteWhatsappSearch(formatted);
+    setPacoteFilteredWhatsapp([]);
+    setPacoteFormData({
+      ...pacoteFormData,
+      nomeCliente: item.nomeCliente,
+      nomePet: item.nomePet,
+      raca: item.raca,
+      whatsapp: item.whatsapp,
+    });
+    setClienteSearch(item.nomeCliente);
+    setPetSearch(item.nomePet);
+    if (item.raca) {
+      setAvailableRacas([item.raca]);
+    }
+  };
+
+
     clienteJustSelected.current = true;
     setClienteSearch(nomeCliente);
     setSearchStartedWith("cliente");
