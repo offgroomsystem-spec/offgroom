@@ -3138,7 +3138,7 @@ const Agendamentos = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-1 relative">
+                  <div className="space-y-0.5 relative">
                     <Label htmlFor="whatsapp" className="text-xs">
                       WhatsApp
                     </Label>
