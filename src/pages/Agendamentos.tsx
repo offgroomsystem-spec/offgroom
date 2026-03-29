@@ -2980,6 +2980,36 @@ const Agendamentos = () => {
           isPacote,
         });
 
+        // Sync financial entry for simples
+        if (lancamentoVinculado) {
+          // Delete existing items for this pet and re-insert
+          const existingItems = lancamentoItensVinculado.filter(
+            (item: any) => item.produto_servico?.startsWith(`${editandoAgendamento.pet} - `) || 
+              (!item.produto_servico?.includes(" - ") && editMultiPetGroup.length === 0)
+          );
+          for (const item of existingItems) {
+            await supabase.from("lancamentos_financeiros_itens").delete().eq("id", item.id);
+          }
+          // Insert updated items
+          const novosItens = todosServicosArray.map((s: any) => ({
+            lancamento_id: lancamentoVinculado.id,
+            descricao2: "Serviços",
+            produto_servico: editMultiPetGroup.length > 0 ? `${editandoAgendamento.pet} - ${s.nome}` : s.nome,
+            valor: s.valor || 0,
+            quantidade: 1,
+          }));
+          if (novosItens.length > 0) {
+            await supabase.from("lancamentos_financeiros_itens").insert(novosItens);
+          }
+          // Recalculate total from all remaining items
+          const { data: allItems } = await supabase
+            .from("lancamentos_financeiros_itens")
+            .select("*")
+            .eq("lancamento_id", lancamentoVinculado.id);
+          const novoTotal = (allItems || []).reduce((sum: number, item: any) => sum + (Number(item.valor) * (Number(item.quantidade) || 1)), 0);
+          await supabase.from("lancamentos_financeiros").update({ valor_total: novoTotal }).eq("id", lancamentoVinculado.id);
+        }
+
         toast.success("Agendamento atualizado com sucesso!");
         await loadAgendamentos();
       } else if (
