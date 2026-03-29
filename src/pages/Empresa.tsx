@@ -103,6 +103,8 @@ const Empresa = () => {
   const [editandoGroomer, setEditandoGroomer] = useState<Groomer | null>(null);
   const [loading, setLoading] = useState(true);
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [crecheAtiva, setCrecheAtiva] = useState(false);
+  const [salvandoCreche, setSalvandoCreche] = useState(false);
 
   // Fetch empresa config from Supabase
   useEffect(() => {
