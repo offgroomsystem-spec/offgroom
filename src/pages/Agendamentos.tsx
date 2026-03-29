@@ -1375,6 +1375,8 @@ const Agendamentos = () => {
     setSimpleFilteredPets([]);
     setSimpleAvailableRacas([]);
     setSimpleSearchStartedWith(null);
+    setSimpleWhatsappSearch("");
+    setSimpleFilteredWhatsapp([]);
     setServicosSelecionadosSimples([{ instanceId: crypto.randomUUID(), nome: "", valor: 0 }]);
     setOpenServicoComboboxIndex(null);
     setIsDialogOpen(false);
