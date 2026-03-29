@@ -161,13 +161,30 @@ export const FinanceiroEditDialog = ({
       ? lancamento.pet_ids.filter((value: unknown): value is string => typeof value === "string")
       : [];
 
+    // Find clienteId from lancamento or by matching pet IDs
     let clienteId = typeof lancamento.cliente_id === "string" ? lancamento.cliente_id : "";
+    
+    // Verify clienteId exists in our clientes list
+    if (clienteId && !clientes.find((c) => c.id === clienteId)) {
+      clienteId = "";
+    }
+    
+    // If clienteId not found, try to find by any pet ID
     if (!clienteId && petIds.length > 0) {
-      const clienteByPet = clientes.find((cliente) => cliente.pets.some((pet) => pet.id === petIds[0]));
-      clienteId = clienteByPet?.id || "";
+      for (const pId of petIds) {
+        const clienteByPet = clientes.find((cliente) => cliente.pets.some((pet) => pet.id === pId));
+        if (clienteByPet) {
+          clienteId = clienteByPet.id;
+          break;
+        }
+      }
     }
 
-    const petPrincipalId = petIds[0] || "";
+    // Ensure all pet IDs actually belong to this client's pets
+    const clientePets = clientes.find((c) => c.id === clienteId)?.pets || [];
+    const validPetIds = petIds.filter((pId) => clientePets.some((p) => p.id === pId));
+    
+    const petPrincipalId = validPetIds[0] || "";
 
     setForm({
       ano: lancamento.ano || "",
