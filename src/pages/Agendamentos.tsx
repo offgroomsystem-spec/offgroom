@@ -3016,13 +3016,13 @@ const Agendamentos = () => {
                 Novo Agendamento
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="max-h-[85vh] flex flex-col">
+              <DialogHeader className="pb-1">
                 <DialogTitle className="text-lg">Novo Agendamento</DialogTitle>
                 <DialogDescription className="text-xs">Preencha os dados do agendamento</DialogDescription>
               </DialogHeader>
 
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-1.5 overflow-y-auto flex-1 pr-1">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1 relative">
                     <Label htmlFor="cliente" className="text-xs">
