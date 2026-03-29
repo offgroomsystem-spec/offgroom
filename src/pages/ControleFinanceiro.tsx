@@ -766,7 +766,7 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
     window.history.replaceState({}, document.title);
   }, [location.state, clientes, pets]);
 
-
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
