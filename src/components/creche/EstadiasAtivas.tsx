@@ -41,7 +41,7 @@ interface Estadia {
 interface EstadiasAtivasProps {
   estadias: Estadia[];
   onRegistro: (estadiaId: string, petNome: string) => void;
-  onCheckoutDireto: (estadiaId: string) => void;
+  onCheckoutDireto: (estadiaId: string, clienteNome: string) => void;
   onVerDetalhes: (estadiaId: string, petNome: string) => void;
   onAdicionarObs: (estadiaId: string, petNome: string) => void;
   onRefresh?: () => void;
