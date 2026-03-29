@@ -1449,6 +1449,8 @@ const Agendamentos = () => {
     setFilteredPets([]);
     setAvailableRacas([]);
     setSearchStartedWith(null);
+    setPacoteWhatsappSearch("");
+    setPacoteFilteredWhatsapp([]);
     setIsPacoteDialogOpen(false);
   };
 
