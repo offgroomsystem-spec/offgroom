@@ -30,6 +30,7 @@ import Home from "./pages/Home";
 import Logins from "./pages/Logins";
 import CRMOffgroom from "./pages/CRMOffgroom";
 import NotasFiscais from "./pages/NotasFiscais";
+import Creche from "./pages/Creche";
 
 const queryClient = new QueryClient();
 
