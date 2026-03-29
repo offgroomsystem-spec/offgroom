@@ -895,7 +895,8 @@ const Agendamentos = () => {
     }
   };
 
-
+  // Atualizar pets disponíveis quando cliente é selecionado (Pacotes)
+  const handleClienteSelect = (nomeCliente: string) => {
     clienteJustSelected.current = true;
     setClienteSearch(nomeCliente);
     setSearchStartedWith("cliente");
