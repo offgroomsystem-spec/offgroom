@@ -84,7 +84,7 @@ const Creche = () => {
         .order("hora_registro", { ascending: false }),
     ]);
 
-    const petMap = new Map(petsRes.data?.map((p) => [p.id, p.nome_pet]) || []);
+    const petMap = new Map(petsRes.data?.map((p) => [p.id, { nome: p.nome_pet, porte: p.porte }]) || []);
     const clienteMap = new Map(clientesRes.data?.map((c) => [c.id, c.nome_cliente]) || []);
 
     // Get latest registro per estadia
