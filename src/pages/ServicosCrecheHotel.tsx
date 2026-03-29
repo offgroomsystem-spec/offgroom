@@ -20,6 +20,7 @@ interface ServicoCreche {
   descricao: string | null;
   tipo: string;
   modelo_preco: string;
+  modelo_cobranca: string;
   valor_unico: number;
   valor_pequeno: number;
   valor_medio: number;
