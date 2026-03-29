@@ -5154,7 +5154,7 @@ const Agendamentos = () => {
                   </thead>
                   <tbody>
                     {agendamentosDia.map((agendamento, index) =>
-                  <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
+                  <tr key={index} className="hover:bg-cyan-500/20 transition-colors cursor-pointer" onClick={() => handleEditarClick(convertDiaItemToUnificado(agendamento))}>
                         <td className="p-1.5 border">
                           {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
                         </td>
