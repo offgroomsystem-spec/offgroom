@@ -1469,6 +1469,7 @@ export type Database = {
           id: string
           is_opcional: boolean
           is_padrao: boolean
+          modelo_cobranca: string
           modelo_preco: string
           nome: string
           observacoes_internas: string | null
@@ -1486,6 +1487,7 @@ export type Database = {
           id?: string
           is_opcional?: boolean
           is_padrao?: boolean
+          modelo_cobranca?: string
           modelo_preco?: string
           nome: string
           observacoes_internas?: string | null
@@ -1503,6 +1505,7 @@ export type Database = {
           id?: string
           is_opcional?: boolean
           is_padrao?: boolean
+          modelo_cobranca?: string
           modelo_preco?: string
           nome?: string
           observacoes_internas?: string | null

@@ -115,6 +115,7 @@ const ServicosCrecheHotel = () => {
       descricao: form.descricao?.trim() || null,
       tipo: form.tipo,
       modelo_preco: form.modelo_preco,
+      modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "periodo",
       valor_unico: form.modelo_preco === "unico" ? form.valor_unico : 0,
       valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
       valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
