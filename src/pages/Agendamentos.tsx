@@ -1427,7 +1427,7 @@ const Agendamentos = () => {
       return;
     }
 
-    // Validar horários dos pets adicionais
+    // Validar horários e serviços dos pets adicionais
     for (const ap of additionalPets) {
       if (!ap.horario) {
         toast.error(`Favor preencher o Horário de Início para o pet ${ap.petName}`);
@@ -1435,6 +1435,11 @@ const Agendamentos = () => {
       }
       if (!ap.tempoServico && !ap.horarioTermino) {
         toast.error(`Favor preencher o Tempo de Serviço ou Horário de Fim para o pet ${ap.petName}`);
+        return;
+      }
+      const apServicosValidos = ap.servicos.filter(s => s.nome);
+      if (apServicosValidos.length === 0) {
+        toast.error(`Favor selecionar pelo menos um serviço para o pet ${ap.petName}`);
         return;
       }
     }
@@ -1451,7 +1456,7 @@ const Agendamentos = () => {
 
     setSalvando(true);
     try {
-      // Inserir agendamento e obter o ID
+      // Inserir agendamento principal e obter o ID
       const { data: agendamentoData, error } = await supabase.from("agendamentos").insert([
       {
         user_id: ownerId,
@@ -1459,8 +1464,8 @@ const Agendamentos = () => {
         pet: formData.pet,
         raca: formData.raca,
         whatsapp: formData.whatsapp,
-        servico: servicosNomes, // Ex: "Banho + Tosa"
-        servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })), // Array JSON
+        servico: servicosNomes,
+        servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
         data: formData.data,
         horario: formData.horario,
         tempo_servico: formData.tempoServico,
@@ -1475,20 +1480,14 @@ const Agendamentos = () => {
 
       if (error) throw error;
 
-      // Criar UM ÚNICO lançamento financeiro consolidado com múltiplos itens
-      await criarLancamentoFinanceiroMultiplosServicos({
-        agendamentoId: agendamentoData.id,
-        nomeCliente: formData.cliente,
-        nomePet: formData.pet,
-        servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
-        dataAgendamento: formData.data,
-        dataVenda: formData.dataVenda,
-        ownerId: ownerId || user.id
-      });
+      // Coletar todos os IDs de agendamento e serviços por pet para lançamento consolidado
+      const allAgendamentoIds: string[] = [agendamentoData.id];
+      const allPetServicos: Array<{ petName: string; servicos: Array<{ nome: string; valor: number }> }> = [
+        { petName: formData.pet, servicos: servicosValidos.map(s => ({ nome: s.nome, valor: s.valor })) }
+      ];
 
-      // Agendar mensagens WhatsApp automáticas
+      // Agendar mensagens WhatsApp automáticas para pet principal
       try {
-        // Buscar sexo do pet
         let sexoPet = "";
         for (const cliente of clientes) {
           const pet = cliente.pets.find(p => p.nome === formData.pet && p.raca === formData.raca);
@@ -1525,9 +1524,11 @@ const Agendamentos = () => {
         console.error("Erro ao agendar mensagens WhatsApp:", schedErr);
       }
 
-      // Criar agendamentos para pets adicionais
+      // Criar agendamentos para pets adicionais (cada um com seus próprios serviços e groomer)
       for (const ap of additionalPets) {
         const apHorarioTermino = ap.horarioTermino || calcularHorarioTermino(ap.horario, ap.tempoServico);
+        const apServicosValidos = ap.servicos.filter(s => s.nome);
+        const apServicosNomes = apServicosValidos.map(s => s.nome).join(" + ");
         try {
           const { data: apData, error: apError } = await supabase.from("agendamentos").insert([{
             user_id: ownerId,
@@ -1535,29 +1536,22 @@ const Agendamentos = () => {
             pet: ap.petName,
             raca: ap.raca,
             whatsapp: formData.whatsapp,
-            servico: servicosNomes,
-            servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
+            servico: apServicosNomes,
+            servicos: apServicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
             data: formData.data,
             horario: ap.horario,
             tempo_servico: ap.tempoServico,
             horario_termino: apHorarioTermino,
             data_venda: formData.dataVenda,
             numero_servico_pacote: formData.numeroServicoPacote || null,
-            groomer: formData.groomer,
+            groomer: ap.groomer || formData.groomer,
             taxi_dog: formData.taxiDog,
             status: "confirmado"
           }]).select("id").single();
 
           if (!apError && apData) {
-            await criarLancamentoFinanceiroMultiplosServicos({
-              agendamentoId: apData.id,
-              nomeCliente: formData.cliente,
-              nomePet: ap.petName,
-              servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
-              dataAgendamento: formData.data,
-              dataVenda: formData.dataVenda,
-              ownerId: ownerId || user.id
-            });
+            allAgendamentoIds.push(apData.id);
+            allPetServicos.push({ petName: ap.petName, servicos: apServicosValidos.map(s => ({ nome: s.nome, valor: s.valor })) });
 
             // WhatsApp para pet adicional
             try {
@@ -1576,7 +1570,7 @@ const Agendamentos = () => {
                 whatsapp: formData.whatsapp,
                 dataAgendamento: formData.data,
                 horarioInicio: ap.horario,
-                servicos: servicosNomes,
+                servicos: apServicosNomes,
                 taxiDog: formData.taxiDog,
                 bordao: empresaConfig.bordao,
                 isPacote: !!formData.numeroServicoPacote,
@@ -1591,6 +1585,16 @@ const Agendamentos = () => {
           console.error(`Erro ao criar agendamento para ${ap.petName}:`, apErr);
         }
       }
+
+      // Criar UM ÚNICO lançamento financeiro consolidado com todos os pets e serviços
+      await criarLancamentoFinanceiroConsolidado({
+        agendamentoIds: allAgendamentoIds,
+        nomeCliente: formData.cliente,
+        petServicos: allPetServicos,
+        dataAgendamento: formData.data,
+        dataVenda: formData.dataVenda,
+        ownerId: ownerId || user.id
+      });
 
       const totalAgendamentos = 1 + additionalPets.length;
       toast.success(`${totalAgendamentos} agendamento(s) criado(s) com sucesso!`);
