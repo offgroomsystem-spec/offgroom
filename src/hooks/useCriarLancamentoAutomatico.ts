@@ -29,6 +29,15 @@ interface DadosAgendamentoMultiplosServicos {
   ownerId: string;
 }
 
+interface DadosAgendamentoConsolidado {
+  agendamentoIds: string[];
+  nomeCliente: string;
+  petServicos: Array<{ petName: string; servicos: Array<{ nome: string; valor: number }> }>;
+  dataAgendamento: string;
+  dataVenda: string;
+  ownerId: string;
+}
+
 export const criarLancamentoFinanceiroAvulso = async (dados: DadosAgendamentoAvulso) => {
   try {
     const { nomeCliente, nomePet, nomeServico, dataAgendamento, dataVenda, ownerId } = dados;
@@ -425,5 +434,119 @@ export const criarLancamentoFinanceiroMultiplosServicos = async (dados: DadosAge
     console.log(`Lançamento financeiro com ${servicos.length} serviços, total: R$ ${valorTotal.toFixed(2)}`);
   } catch (error) {
     console.error("Erro na automação de lançamento financeiro (múltiplos serviços):", error);
+  }
+};
+
+export const criarLancamentoFinanceiroConsolidado = async (dados: DadosAgendamentoConsolidado) => {
+  try {
+    const { agendamentoIds, nomeCliente, petServicos, dataAgendamento, dataVenda, ownerId } = dados;
+
+    if (petServicos.length === 0) {
+      console.warn("Nenhum pet/serviço para criar lançamento financeiro consolidado");
+      return;
+    }
+
+    // Se só tem 1 pet, usar a função padrão
+    if (petServicos.length === 1) {
+      await criarLancamentoFinanceiroMultiplosServicos({
+        agendamentoId: agendamentoIds[0],
+        nomeCliente,
+        nomePet: petServicos[0].petName,
+        servicos: petServicos[0].servicos,
+        dataAgendamento,
+        dataVenda,
+        ownerId
+      });
+      return;
+    }
+
+    // 1. Buscar cliente_id
+    const { data: clientesData } = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("user_id", ownerId)
+      .ilike("nome_cliente", nomeCliente)
+      .limit(1);
+
+    const clienteId = clientesData?.[0]?.id || null;
+
+    // 2. Coletar todos os pet_ids
+    const allPetIds: string[] = [];
+    for (const ps of petServicos) {
+      if (clienteId) {
+        const { data: petsData } = await supabase
+          .from("pets")
+          .select("id")
+          .eq("user_id", ownerId)
+          .eq("cliente_id", clienteId)
+          .ilike("nome_pet", ps.petName)
+          .limit(1);
+        if (petsData?.[0]?.id) allPetIds.push(petsData[0].id);
+      }
+    }
+
+    // 3. Calcular valor total de todos os pets
+    const valorTotal = petServicos.reduce((acc, ps) => 
+      acc + ps.servicos.reduce((sacc, s) => sacc + s.valor, 0), 0
+    );
+
+    // 4. Buscar primeira conta bancária
+    const { data: contasData } = await supabase
+      .from("contas_bancarias")
+      .select("id")
+      .eq("user_id", ownerId)
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    const contaId = contasData?.[0]?.id || null;
+    const [ano, mes] = dataAgendamento.split("-");
+
+    // 5. Criar um único lançamento financeiro (vinculado ao primeiro agendamento)
+    const { data: lancamentoData, error: lancamentoError } = await supabase
+      .from("lancamentos_financeiros")
+      .insert([{
+        user_id: ownerId,
+        agendamento_id: agendamentoIds[0],
+        ano,
+        mes_competencia: mes,
+        tipo: "Receita",
+        descricao1: "Receita Operacional",
+        cliente_id: clienteId,
+        pet_ids: allPetIds,
+        valor_total: valorTotal,
+        data_pagamento: dataVenda,
+        conta_id: contaId,
+        pago: false,
+      }])
+      .select("id")
+      .single();
+
+    if (lancamentoError) {
+      console.error("Erro ao criar lançamento financeiro consolidado:", lancamentoError);
+      return;
+    }
+
+    // 6. Criar itens separados por pet
+    const itensParaInserir = petServicos.flatMap((ps) =>
+      ps.servicos.map((servico) => ({
+        lancamento_id: lancamentoData.id,
+        descricao2: "Serviços",
+        produto_servico: `${ps.petName} - ${servico.nome}`,
+        valor: servico.valor,
+        quantidade: 1,
+      }))
+    );
+
+    const { error: itemError } = await supabase
+      .from("lancamentos_financeiros_itens")
+      .insert(itensParaInserir);
+
+    if (itemError) {
+      console.error("Erro ao criar itens do lançamento consolidado:", itemError);
+    }
+
+    console.log(`Lançamento financeiro consolidado: ${petServicos.length} pets, ${itensParaInserir.length} itens, total: R$ ${valorTotal.toFixed(2)}`);
+  } catch (error) {
+    console.error("Erro na automação de lançamento financeiro consolidado:", error);
   }
 };
