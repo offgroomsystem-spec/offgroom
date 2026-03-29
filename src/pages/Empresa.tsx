@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SubscriptionInfoCard } from "@/components/SubscriptionInfoCard";
 import { WhatsAppIntegration } from "@/components/empresa/WhatsAppIntegration";
 import { Search, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { 
   formatCNPJ, 
   formatCEP, 
@@ -102,6 +103,8 @@ const Empresa = () => {
   const [editandoGroomer, setEditandoGroomer] = useState<Groomer | null>(null);
   const [loading, setLoading] = useState(true);
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [crecheAtiva, setCrecheAtiva] = useState(false);
+  const [salvandoCreche, setSalvandoCreche] = useState(false);
 
   // Fetch empresa config from Supabase
   useEffect(() => {
@@ -151,6 +154,7 @@ const Empresa = () => {
           codigoCnae: empresaData.codigo_cnae || '',
           ambienteFiscal: empresaData.ambiente_fiscal || 'homologacao',
         });
+        setCrecheAtiva(empresaData.creche_ativa ?? false);
       }
       setLoading(false);
     };
@@ -860,6 +864,66 @@ const Empresa = () => {
                 Nenhum groomer cadastrado ainda.
               </p>
             )}
+          </div>
+        </CardContent>
+      </Card>
+      {/* Card Creche Pet */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Creche</CardTitle>
+          <CardDescription>
+            Adicionar a seção de gerenciamento de creche pet à plataforma.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">
+              {crecheAtiva ? 'Liberado' : 'Desativado'}
+            </span>
+            <Switch
+              checked={crecheAtiva}
+              disabled={salvandoCreche}
+              onCheckedChange={async (checked) => {
+                if (!user) return;
+                setSalvandoCreche(true);
+                
+                if (formData.id) {
+                  const { error } = await supabase
+                    .from('empresa_config')
+                    .update({ creche_ativa: checked } as any)
+                    .eq('id', formData.id)
+                    .eq('user_id', ownerId);
+                  
+                  if (error) {
+                    console.error('Error updating creche:', error);
+                    toast.error('Erro ao atualizar configuração da creche');
+                  } else {
+                    setCrecheAtiva(checked);
+                    toast.success(checked ? 'Módulo Creche ativado!' : 'Módulo Creche desativado!');
+                  }
+                } else {
+                  const { data, error } = await supabase
+                    .from('empresa_config')
+                    .insert({
+                      user_id: ownerId,
+                      creche_ativa: checked,
+                    } as any)
+                    .select()
+                    .single();
+                  
+                  if (error) {
+                    console.error('Error inserting empresa config:', error);
+                    toast.error('Erro ao salvar configuração da creche');
+                  } else {
+                    setFormData({ ...formData, id: data.id });
+                    setCrecheAtiva(checked);
+                    toast.success(checked ? 'Módulo Creche ativado!' : 'Módulo Creche desativado!');
+                  }
+                }
+                
+                setSalvandoCreche(false);
+              }}
+            />
           </div>
         </CardContent>
       </Card>
