@@ -26,6 +26,11 @@ interface EstadiaComNomes {
   observacoes_entrada: string | null;
   checklist_entrada?: any;
   ultimo_registro?: any;
+  modelo_cobranca?: string | null;
+  modelo_preco?: string;
+  pet_porte?: string;
+  pet_id?: string;
+  cliente_id?: string;
 }
 
 const Creche = () => {
