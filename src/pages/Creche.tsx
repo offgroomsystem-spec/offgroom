@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, BarChart3 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -12,6 +13,7 @@ import EstadiasAtivas from "@/components/creche/EstadiasAtivas";
 import RegistroDiarioModal from "@/components/creche/RegistroDiarioModal";
 import TimelineModal from "@/components/creche/TimelineModal";
 import ObservacaoModal from "@/components/creche/ObservacaoModal";
+import CrecheRelatorios from "@/components/creche/CrecheRelatorios";
 
 interface EstadiaComNomes {
   id: string;
@@ -192,31 +194,46 @@ const Creche = () => {
         </div>
       </div>
 
-      <CrecheKPICards
-        crecheHoje={crecheHoje}
-        hospedadosAtivos={hospedadosAtivos}
-        checkinHoje={checkinHoje}
-        checkoutHoje={checkoutHoje}
-      />
+      <Tabs defaultValue="operacional" className="w-full">
+        <TabsList className="w-full grid grid-cols-2 h-auto">
+          <TabsTrigger value="operacional" className="text-xs py-1.5">🐾 Painel Operacional</TabsTrigger>
+          <TabsTrigger value="relatorios" className="text-xs py-1.5 gap-1">
+            <BarChart3 className="h-3.5 w-3.5" /> Relatórios
+          </TabsTrigger>
+        </TabsList>
 
-      <CrecheFilters
-        search={search}
-        onSearchChange={setSearch}
-        tipoFilter={tipoFilter}
-        onTipoChange={setTipoFilter}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
+        <TabsContent value="operacional" className="space-y-3 mt-3">
+          <CrecheKPICards
+            crecheHoje={crecheHoje}
+            hospedadosAtivos={hospedadosAtivos}
+            checkinHoje={checkinHoje}
+            checkoutHoje={checkoutHoje}
+          />
 
-      <EstadiasAtivas
-        estadias={filteredEstadias}
-        onRegistro={handleRegistro}
-        onCheckoutDireto={handleCheckoutDireto}
-        onVerDetalhes={handleVerDetalhes}
-        onAdicionarObs={handleAdicionarObs}
-      />
+          <CrecheFilters
+            search={search}
+            onSearchChange={setSearch}
+            tipoFilter={tipoFilter}
+            onTipoChange={setTipoFilter}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+          />
+
+          <EstadiasAtivas
+            estadias={filteredEstadias}
+            onRegistro={handleRegistro}
+            onCheckoutDireto={handleCheckoutDireto}
+            onVerDetalhes={handleVerDetalhes}
+            onAdicionarObs={handleAdicionarObs}
+          />
+        </TabsContent>
+
+        <TabsContent value="relatorios" className="mt-3">
+          <CrecheRelatorios />
+        </TabsContent>
+      </Tabs>
 
       <CheckinModal open={checkinOpen} onOpenChange={setCheckinOpen} onSuccess={loadEstadias} />
       <CheckoutModal
