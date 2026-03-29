@@ -201,6 +201,9 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
                   >
                     <span className="font-medium">{p.nome_pet}</span>
                     <span className="text-muted-foreground ml-2">({p.cliente_nome})</span>
+                    {p.cliente_whatsapp && (
+                      <span className="text-muted-foreground ml-1 text-xs">• {p.cliente_whatsapp}</span>
+                    )}
                   </div>
                 ))}
               </div>
