@@ -1111,6 +1111,7 @@ const Agendamentos = () => {
       setSimpleFilteredPets(todosPetsDoNome);
       setSimpleFilteredClientes([]);
       setSimpleAvailableRacas([]);
+      setAdditionalPets([]);
     }
   };
 
