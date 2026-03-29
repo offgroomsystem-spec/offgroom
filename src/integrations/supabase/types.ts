@@ -1462,6 +1462,60 @@ export type Database = {
         }
         Relationships: []
       }
+      servicos_creche: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          is_opcional: boolean
+          is_padrao: boolean
+          modelo_preco: string
+          nome: string
+          observacoes_internas: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor_grande: number | null
+          valor_medio: number | null
+          valor_pequeno: number | null
+          valor_unico: number | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_opcional?: boolean
+          is_padrao?: boolean
+          modelo_preco?: string
+          nome: string
+          observacoes_internas?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id: string
+          valor_grande?: number | null
+          valor_medio?: number | null
+          valor_pequeno?: number | null
+          valor_unico?: number | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_opcional?: boolean
+          is_padrao?: boolean
+          modelo_preco?: string
+          nome?: string
+          observacoes_internas?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_grande?: number | null
+          valor_medio?: number | null
+          valor_pequeno?: number | null
+          valor_unico?: number | null
+        }
+        Relationships: []
+      }
       staff_accounts: {
         Row: {
           ativo: boolean
