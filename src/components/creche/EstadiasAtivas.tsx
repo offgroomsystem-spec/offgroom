@@ -246,7 +246,10 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
                 <TooltipProvider delayDuration={200}>
                   <div className="flex flex-wrap gap-1">
                     {indicadores.map((ind) => {
-                      const active = reg ? (reg as any)[ind.key] : false;
+                      const overrides = optimisticOverrides[e.id];
+                      const active = overrides && ind.key in overrides
+                        ? overrides[ind.key]
+                        : reg ? (reg as any)[ind.key] : false;
                       const Icon = ind.icon;
                       const isToggling = togglingKeys.has(`${e.id}-${ind.key}`);
                       return (
