@@ -3328,139 +3328,95 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                {/* Linhas de horário para pets adicionais */}
-                {additionalPets.map((ap, apIdx) => (
-                  <div key={ap.petName} className="grid grid-cols-4 gap-1.5">
-                    <div className="flex items-center">
-                      <span className="text-xs font-medium text-muted-foreground truncate">{ap.petName}:</span>
-                    </div>
-                    <div>
-                      <TimeInput
-                        value={ap.horario}
-                        onChange={(value) => updateAdditionalPetTime(apIdx, 'horario', value)}
-                        placeholder="00:00"
-                        className="h-8 text-xs" />
-                    </div>
-                    <div>
-                      <TimeInput
-                        value={ap.horarioTermino}
-                        onChange={(value) => updateAdditionalPetTime(apIdx, 'horarioTermino', value)}
-                        placeholder="00:00"
-                        className="h-8 text-xs" />
-                    </div>
-                    <div>
-                      <Input
-                        type="text"
-                        value={ap.tempoServico}
-                        onChange={(event) => {
-                          let valorDigitado = event.target.value;
-                          valorDigitado = valorDigitado.replace(/\D/g, "");
-                          if (valorDigitado.length > 3) valorDigitado = valorDigitado.slice(0, 3);
-                          if (valorDigitado.length === 0) valorDigitado = "";
-                          else if (valorDigitado.length === 2) valorDigitado = `${valorDigitado[0]}:${valorDigitado[1]}`;
-                          else if (valorDigitado.length === 3) valorDigitado = `${valorDigitado[0]}:${valorDigitado.slice(1, 3)}`;
-                          const partes = valorDigitado.split(":");
-                          if (partes.length === 2 && parseInt(partes[1], 10) > 59) {
-                            partes[1] = "59";
-                            valorDigitado = `${partes[0]}:${partes[1]}`;
-                          }
-                          updateAdditionalPetTime(apIdx, 'tempoServico', valorDigitado);
-                        }}
-                        placeholder="0:00"
-                        className="h-8 text-xs"
-                        maxLength={4} />
-                    </div>
-                  </div>
-                ))}
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Serviço(s) *</Label>
-                    <div className="space-y-2">
-                      {servicosSelecionadosSimples.map((servicoItem, index) =>
-                      <div key={servicoItem.instanceId} className="flex items-center gap-1">
-                          <Popover
-                          open={openServicoComboboxIndex === index}
-                          onOpenChange={(open) => setOpenServicoComboboxIndex(open ? index : null)}>
-                          
-                            <PopoverTrigger asChild>
-                              <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={openServicoComboboxIndex === index}
-                              className="h-8 flex-1 justify-between text-xs font-normal">
-                              
-                                {servicoItem.nome || "Selecione um serviço"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0 bg-background z-50">
-                              <Command>
-                                <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
-                                <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
-                                  {formData.raca ?
-                                "Nenhum serviço cadastrado para este porte." :
-                                "Selecione cliente e pet primeiro"}
-                                </CommandEmpty>
-                                {servicosFiltradosPorPorte.length > 0 &&
-                              <CommandGroup heading="Serviços" className="text-xs">
-                                    {servicosFiltradosPorPorte.map((servico) =>
-                                <CommandItem
-                                  key={`servico-${servico.id}`}
-                                  value={`${servico.nome}__${servico.id}`}
-                                  onSelect={(currentValue) => {
-                                    atualizarServicoSimples(servicoItem.instanceId, currentValue);
-                                  }}
-                                  className="text-xs">
-                                  
-                                        <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      servicoItem.nome === servico.nome && servicoItem.valor === servico.valor ? "opacity-100" : "opacity-0"
-                                    )} />
-                                  
-                                        {servico.nome} — {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(servico.valor)}
-                                      </CommandItem>
-                                )}
-                                  </CommandGroup>
-                              }
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                          
-                          {/* Botão X para remover (vermelho, discreto) */}
-                          {servicosSelecionadosSimples.length > 1 &&
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => removerServicoSimples(servicoItem.instanceId)}>
-                          
-                              <X className="h-3 w-3" />
+                {/* Bloco de Serviços e Groomer do pet principal */}
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    {additionalPets.length > 0 ? `${formData.pet}: Serviço(s) *` : 'Serviço(s) *'}
+                  </Label>
+                  <div className="space-y-2">
+                    {servicosSelecionadosSimples.map((servicoItem, index) =>
+                    <div key={servicoItem.instanceId} className="flex items-center gap-1">
+                        <Popover
+                        open={openServicoComboboxIndex === index}
+                        onOpenChange={(open) => setOpenServicoComboboxIndex(open ? index : null)}>
+                        
+                          <PopoverTrigger asChild>
+                            <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openServicoComboboxIndex === index}
+                            className="h-8 flex-1 justify-between text-xs font-normal">
+                            
+                              {servicoItem.nome || "Selecione um serviço"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
-                        }
-                          
-                          {/* Botão "+ Serviço" ao lado do último campo */}
-                          {index === servicosSelecionadosSimples.length - 1 && servicoItem.nome &&
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs text-primary hover:text-primary/80"
-                          onClick={adicionarServicoSimples}>
-                          
-                              + Serviço
-                            </Button>
-                        }
-                        </div>
-                      )}
-                    </div>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0 bg-background z-50">
+                            <Command>
+                              <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
+                              <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
+                                {formData.raca ?
+                              "Nenhum serviço cadastrado para este porte." :
+                              "Selecione cliente e pet primeiro"}
+                              </CommandEmpty>
+                              {servicosFiltradosPorPorte.length > 0 &&
+                            <CommandGroup heading="Serviços" className="text-xs">
+                                  {servicosFiltradosPorPorte.map((servico) =>
+                              <CommandItem
+                                key={`servico-${servico.id}`}
+                                value={`${servico.nome}__${servico.id}`}
+                                onSelect={(currentValue) => {
+                                  atualizarServicoSimples(servicoItem.instanceId, currentValue);
+                                }}
+                                className="text-xs">
+                                
+                                      <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    servicoItem.nome === servico.nome && servicoItem.valor === servico.valor ? "opacity-100" : "opacity-0"
+                                  )} />
+                                
+                                      {servico.nome} — {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(servico.valor)}
+                                    </CommandItem>
+                              )}
+                                </CommandGroup>
+                            }
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        
+                        {servicosSelecionadosSimples.length > 1 &&
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                        onClick={() => removerServicoSimples(servicoItem.instanceId)}>
+                        
+                            <X className="h-3 w-3" />
+                          </Button>
+                      }
+                        
+                        {index === servicosSelecionadosSimples.length - 1 && servicoItem.nome &&
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-primary hover:text-primary/80"
+                        onClick={adicionarServicoSimples}>
+                        
+                            + Serviço
+                          </Button>
+                      }
+                      </div>
+                    )}
                   </div>
+                </div>
 
-
+                {/* Groomer do pet principal */}
                 <div className="space-y-1">
                   <Label htmlFor="groomer" className="text-xs">
-                    Groomer
+                    {additionalPets.length > 0 ? `${formData.pet}: Groomer` : 'Groomer'}
                   </Label>
                   <Select
                     value={formData.groomer}
@@ -3489,6 +3445,158 @@ const Agendamentos = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Blocos de horário + serviço + groomer para cada pet adicional */}
+                {additionalPets.map((ap, apIdx) => {
+                  const apServicosFiltrados = getServicosFiltradosPorPorteAdditional(ap.porte);
+                  return (
+                    <div key={ap.petName} className="space-y-2 border-t pt-2">
+                      {/* Horários */}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        <div className="flex items-center">
+                          <span className="text-xs font-medium text-muted-foreground truncate">{ap.petName}:</span>
+                        </div>
+                        <div>
+                          <TimeInput
+                            value={ap.horario}
+                            onChange={(value) => updateAdditionalPetTime(apIdx, 'horario', value)}
+                            placeholder="00:00"
+                            className="h-8 text-xs" />
+                        </div>
+                        <div>
+                          <TimeInput
+                            value={ap.horarioTermino}
+                            onChange={(value) => updateAdditionalPetTime(apIdx, 'horarioTermino', value)}
+                            placeholder="00:00"
+                            className="h-8 text-xs" />
+                        </div>
+                        <div>
+                          <Input
+                            type="text"
+                            value={ap.tempoServico}
+                            onChange={(event) => {
+                              let valorDigitado = event.target.value;
+                              valorDigitado = valorDigitado.replace(/\D/g, "");
+                              if (valorDigitado.length > 3) valorDigitado = valorDigitado.slice(0, 3);
+                              if (valorDigitado.length === 0) valorDigitado = "";
+                              else if (valorDigitado.length === 2) valorDigitado = `${valorDigitado[0]}:${valorDigitado[1]}`;
+                              else if (valorDigitado.length === 3) valorDigitado = `${valorDigitado[0]}:${valorDigitado.slice(1, 3)}`;
+                              const partes = valorDigitado.split(":");
+                              if (partes.length === 2 && parseInt(partes[1], 10) > 59) {
+                                partes[1] = "59";
+                                valorDigitado = `${partes[0]}:${partes[1]}`;
+                              }
+                              updateAdditionalPetTime(apIdx, 'tempoServico', valorDigitado);
+                            }}
+                            placeholder="0:00"
+                            className="h-8 text-xs"
+                            maxLength={4} />
+                        </div>
+                      </div>
+
+                      {/* Serviços do pet adicional */}
+                      <div className="space-y-1">
+                        <Label className="text-xs">{ap.petName}: Serviço(s) *</Label>
+                        <div className="space-y-2">
+                          {ap.servicos.map((servicoItem, sIdx) => {
+                            const comboKey = `${apIdx}-${sIdx}`;
+                            return (
+                              <div key={servicoItem.instanceId} className="flex items-center gap-1">
+                                <Popover
+                                  open={openAdditionalServicoCombobox === comboKey}
+                                  onOpenChange={(open) => setOpenAdditionalServicoCombobox(open ? comboKey : null)}>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      role="combobox"
+                                      className="h-8 flex-1 justify-between text-xs font-normal">
+                                      {servicoItem.nome || "Selecione um serviço"}
+                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-[300px] p-0 bg-background z-50">
+                                    <Command>
+                                      <CommandInput placeholder="Buscar serviço..." className="h-9 text-xs" />
+                                      <CommandEmpty className="text-xs py-6 text-center text-muted-foreground">
+                                        Nenhum serviço cadastrado para este porte.
+                                      </CommandEmpty>
+                                      {apServicosFiltrados.length > 0 &&
+                                        <CommandGroup heading="Serviços" className="text-xs">
+                                          {apServicosFiltrados.map((servico) =>
+                                            <CommandItem
+                                              key={`ap-servico-${servico.id}`}
+                                              value={`${servico.nome}__${servico.id}`}
+                                              onSelect={(currentValue) => {
+                                                atualizarServicoAdditionalPet(apIdx, servicoItem.instanceId, currentValue);
+                                              }}
+                                              className="text-xs">
+                                              <Check
+                                                className={cn(
+                                                  "mr-2 h-4 w-4",
+                                                  servicoItem.nome === servico.nome && servicoItem.valor === servico.valor ? "opacity-100" : "opacity-0"
+                                                )} />
+                                              {servico.nome} — {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(servico.valor)}
+                                            </CommandItem>
+                                          )}
+                                        </CommandGroup>
+                                      }
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
+                                
+                                {ap.servicos.length > 1 &&
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                    onClick={() => removerServicoAdditionalPet(apIdx, servicoItem.instanceId)}>
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                }
+                                
+                                {sIdx === ap.servicos.length - 1 && servicoItem.nome &&
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs text-primary hover:text-primary/80"
+                                    onClick={() => adicionarServicoAdditionalPet(apIdx)}>
+                                    + Serviço
+                                  </Button>
+                                }
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Groomer do pet adicional */}
+                      <div className="space-y-1">
+                        <Label className="text-xs">{ap.petName}: Groomer</Label>
+                        <Select
+                          value={ap.groomer}
+                          onValueChange={(value) => updateAdditionalPetGroomer(apIdx, value)}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Selecione o groomer" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            {groomers.length === 0 ?
+                              <SelectItem value="none" disabled className="text-xs">
+                                Nenhum groomer cadastrado
+                              </SelectItem> :
+                              groomers.map((g) =>
+                                <SelectItem key={g.id} value={g.nome} className="text-xs">
+                                  {g.nome}
+                                </SelectItem>
+                              )
+                            }
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  );
+                })}
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
