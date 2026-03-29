@@ -3259,6 +3259,51 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
+                {/* Linhas de horário para pets adicionais */}
+                {additionalPets.map((ap, apIdx) => (
+                  <div key={ap.petName} className="grid grid-cols-4 gap-1.5">
+                    <div className="flex items-center">
+                      <span className="text-xs font-medium text-muted-foreground truncate">{ap.petName}:</span>
+                    </div>
+                    <div>
+                      <TimeInput
+                        value={ap.horario}
+                        onChange={(value) => updateAdditionalPetTime(apIdx, 'horario', value)}
+                        placeholder="00:00"
+                        className="h-8 text-xs" />
+                    </div>
+                    <div>
+                      <TimeInput
+                        value={ap.horarioTermino}
+                        onChange={(value) => updateAdditionalPetTime(apIdx, 'horarioTermino', value)}
+                        placeholder="00:00"
+                        className="h-8 text-xs" />
+                    </div>
+                    <div>
+                      <Input
+                        type="text"
+                        value={ap.tempoServico}
+                        onChange={(event) => {
+                          let valorDigitado = event.target.value;
+                          valorDigitado = valorDigitado.replace(/\D/g, "");
+                          if (valorDigitado.length > 3) valorDigitado = valorDigitado.slice(0, 3);
+                          if (valorDigitado.length === 0) valorDigitado = "";
+                          else if (valorDigitado.length === 2) valorDigitado = `${valorDigitado[0]}:${valorDigitado[1]}`;
+                          else if (valorDigitado.length === 3) valorDigitado = `${valorDigitado[0]}:${valorDigitado.slice(1, 3)}`;
+                          const partes = valorDigitado.split(":");
+                          if (partes.length === 2 && parseInt(partes[1], 10) > 59) {
+                            partes[1] = "59";
+                            valorDigitado = `${partes[0]}:${partes[1]}`;
+                          }
+                          updateAdditionalPetTime(apIdx, 'tempoServico', valorDigitado);
+                        }}
+                        placeholder="0:00"
+                        className="h-8 text-xs"
+                        maxLength={4} />
+                    </div>
+                  </div>
+                ))}
+
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço(s) *</Label>
                     <div className="space-y-2">
