@@ -45,13 +45,14 @@ const emptyForm: Omit<ServicoCreche, "id"> = {
   observacoes_internas: "",
 };
 
-const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: string) => {
-  const tipoLabel = tipo === "creche" ? "Creche" : "Hotel";
+const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: string, porte?: string) => {
+  const tipoLabel = tipo === "creche" ? "Serviço de Creche" : "Serviço de Hotel";
+  const precoLabel = modelo_preco === "unico" ? "Único" : "Por Porte";
   const cobrancaLabel = tipo === "creche"
     ? modelo_cobranca === "hora" ? "Por Hora" : modelo_cobranca === "dia" ? "Por Dia" : "Por Período"
     : "";
-  const precoLabel = modelo_preco === "porte" ? "Por Porte" : "";
-  return [tipoLabel, cobrancaLabel, precoLabel].filter(Boolean).join(" - ");
+  const porteLabel = porte ? `Porte ${porte}` : "";
+  return [tipoLabel, precoLabel, cobrancaLabel, porteLabel].filter(Boolean).join(", ");
 };
 
 const ServicosCrecheHotel = () => {
