@@ -1362,6 +1362,18 @@ const Agendamentos = () => {
       return;
     }
 
+    // Validar horários dos pets adicionais
+    for (const ap of additionalPets) {
+      if (!ap.horario) {
+        toast.error(`Favor preencher o Horário de Início para o pet ${ap.petName}`);
+        return;
+      }
+      if (!ap.tempoServico && !ap.horarioTermino) {
+        toast.error(`Favor preencher o Tempo de Serviço ou Horário de Fim para o pet ${ap.petName}`);
+        return;
+      }
+    }
+
     const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
     if (horarioTermino && formData.horario && horarioTermino <= formData.horario) {
