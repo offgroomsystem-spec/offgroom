@@ -2760,6 +2760,100 @@ const Agendamentos = () => {
     }
   };
 
+  // Load linked financial entry
+  const loadFinanceiroVinculado = async (agendamento: AgendamentoUnificado) => {
+    if (!user || !agendamento) return;
+    try {
+      let lancamento = null;
+      if (agendamento.tipo === "simples" && agendamento.agendamentoOriginal) {
+        const { data } = await supabase
+          .from("lancamentos_financeiros")
+          .select("*")
+          .eq("agendamento_id", agendamento.agendamentoOriginal.id)
+          .maybeSingle();
+        lancamento = data;
+      }
+      if (!lancamento) {
+        const { data } = await supabase
+          .from("lancamentos_financeiros")
+          .select("*")
+          .eq("user_id", ownerId)
+          .eq("descricao1", agendamento.cliente)
+          .eq("data_pagamento", agendamento.dataVenda || agendamento.data)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        lancamento = data;
+      }
+      if (lancamento) {
+        setLancamentoVinculado(lancamento);
+        const { data: itens } = await supabase
+          .from("lancamentos_financeiros_itens")
+          .select("*")
+          .eq("lancamento_id", lancamento.id);
+        setLancamentoItensVinculado(itens || []);
+      } else {
+        setLancamentoVinculado(null);
+        setLancamentoItensVinculado([]);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar financeiro:", e);
+      setLancamentoVinculado(null);
+      setLancamentoItensVinculado([]);
+    }
+  };
+
+  // Excluir pet individual
+  const confirmarExclusaoPet = async () => {
+    if (!petParaDeletar || !user) return;
+    try {
+      if (petParaDeletar.tipo === "simples" && petParaDeletar.agendamentoOriginal) {
+        await deletePendingMessages({ agendamentoId: petParaDeletar.agendamentoOriginal.id });
+        const { error } = await supabase.from("agendamentos").delete().eq("id", petParaDeletar.agendamentoOriginal.id);
+        if (error) throw error;
+        // Sync financial: remove items for this pet
+        if (lancamentoVinculado) {
+          const itensParaDeletar = lancamentoItensVinculado.filter(item => item.descricao2?.includes(petParaDeletar.pet));
+          for (const item of itensParaDeletar) {
+            await supabase.from("lancamentos_financeiros_itens").delete().eq("id", item.id);
+          }
+          const itensRestantes = lancamentoItensVinculado.filter(item => !item.descricao2?.includes(petParaDeletar.pet));
+          const novoTotal = itensRestantes.reduce((sum: number, item: any) => sum + (item.valor * (item.quantidade || 1)), 0);
+          await supabase.from("lancamentos_financeiros").update({ valor_total: novoTotal }).eq("id", lancamentoVinculado.id);
+        }
+        toast.success(`Agendamento de ${petParaDeletar.pet} excluído com sucesso!`);
+      } else if (petParaDeletar.tipo === "pacote" && petParaDeletar.pacoteOriginal && petParaDeletar.servicoOriginal) {
+        await deletePendingMessages({ agendamentoPacoteId: petParaDeletar.pacoteOriginal.id, servicoNumero: petParaDeletar.servicoOriginal.numero });
+        const servicosAtualizados = petParaDeletar.pacoteOriginal.servicos.filter(s => s.numero !== petParaDeletar.servicoOriginal!.numero);
+        if (servicosAtualizados.length === 0) {
+          await supabase.from("agendamentos_pacotes").delete().eq("id", petParaDeletar.pacoteOriginal.id);
+        } else {
+          servicosAtualizados.forEach((s, i) => { s.numero = `${String(i + 1).padStart(2, "0")}/${String(servicosAtualizados.length).padStart(2, "0")}`; });
+          await supabase.from("agendamentos_pacotes").update({ servicos: servicosAtualizados as any }).eq("id", petParaDeletar.pacoteOriginal.id);
+        }
+        toast.success(`Agendamento de ${petParaDeletar.pet} excluído com sucesso!`);
+      }
+      await loadAgendamentos();
+      await loadAgendamentosPacotes();
+      setEditMultiPetGroup(prev => prev.filter(a => a.id !== petParaDeletar.id));
+      if (editandoAgendamento?.id === petParaDeletar.id) {
+        const remaining = editMultiPetGroup.filter(a => a.id !== petParaDeletar.id);
+        if (remaining.length > 0) {
+          handleEditarClick(remaining[0]);
+        } else {
+          setEditDialogGerenciamento(false);
+          setEditandoAgendamento(null);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao excluir pet:", error);
+      toast.error("Erro ao excluir agendamento");
+    } finally {
+      setDeletePetDialogOpen(false);
+      setPetParaDeletar(null);
+    }
+  };
+
   // Abrir edição
   const handleEditarClick = (agendamento: AgendamentoUnificado) => {
     setEditandoAgendamento(agendamento);
