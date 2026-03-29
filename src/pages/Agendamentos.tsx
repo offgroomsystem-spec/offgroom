@@ -4717,17 +4717,86 @@ const Agendamentos = () => {
                     </div>
                 }
 
-                  <div className="flex justify-between gap-2 pt-4">
-                    <div className="flex gap-2 items-center">
-                      <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => handleExcluirAgendamento(editandoAgendamento)}
-                      className="h-8 text-xs gap-2">
-                      
-                        <Trash2 className="h-3 w-3" />
-                        Excluir Agendamento
+                  {/* Outros pets no mesmo agendamento */}
+                  {editMultiPetGroup.length > 0 && (
+                    <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                      <Label className="text-xs font-semibold">Outros pets neste agendamento</Label>
+                      <div className="space-y-1.5">
+                        {editMultiPetGroup.map((sibling) => (
+                          <div key={sibling.id} className="flex items-center justify-between p-2 rounded border bg-background">
+                            <div className="flex-1">
+                              <div className="text-xs font-medium">{sibling.pet} <span className="text-muted-foreground">({sibling.raca})</span></div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {sibling.horarioInicio?.substring(0, 5)} - {sibling.horarioTermino?.substring(0, 5)} • {sibling.servico} {sibling.groomer ? `• ${sibling.groomer}` : ''}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] text-primary hover:text-primary/80"
+                                onClick={() => handleEditarClick(sibling)}>
+                                Editar
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                onClick={() => { setPetParaDeletar(sibling); setDeletePetDialogOpen(true); }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {editMultiPetGroup.length > 0 && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-xs font-semibold text-primary">Editando: {editandoAgendamento.pet}</span>
+                      <Button type="button" variant="ghost" size="icon"
+                        className="h-5 w-5 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                        onClick={() => { setPetParaDeletar(editandoAgendamento); setDeletePetDialogOpen(true); }}>
+                        <X className="h-3 w-3" />
                       </Button>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between gap-2 pt-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2 items-center">
+                        <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => handleExcluirAgendamento(editandoAgendamento)}
+                        className="h-8 text-xs gap-2">
+                        
+                          <Trash2 className="h-3 w-3" />
+                          Excluir Agendamento
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Enviar WhatsApp"
+                          onClick={(e) => enviarWhatsAppDireto(editandoAgendamento, e)}>
+                          <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '14px' }}></i>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Pet Pronto"
+                          onClick={(e) => handlePetProntoClick(editandoAgendamento, e)}>
+                          <Check className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        className="h-8 text-xs gap-2 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => setFinanceiroDialogOpen(true)}
+                        disabled={!lancamentoVinculado}>
+                        Financeiro
+                      </Button>
+                    </div>
                       <Button
                         type="button"
                         variant="ghost"
