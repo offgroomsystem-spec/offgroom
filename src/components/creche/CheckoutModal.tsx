@@ -30,7 +30,7 @@ interface CheckoutModalProps {
   contextEstadiaId?: string | null;
 }
 
-const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: CheckoutModalProps) => {
+const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextClienteNome, contextEstadiaId }: CheckoutModalProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -40,7 +40,24 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: Checko
     servicoNome: string;
   } | null>(null);
 
-  const selected = estadiasAtivas.find((e) => e.id === selectedId);
+  // Filter by tutor when context is provided
+  const filteredEstadias = contextClienteNome
+    ? estadiasAtivas.filter((e) => e.cliente_nome === contextClienteNome)
+    : estadiasAtivas;
+
+  const selected = filteredEstadias.find((e) => e.id === selectedId);
+
+  // Pre-select the pet when opening with context
+  useEffect(() => {
+    if (open && contextEstadiaId) {
+      setSelectedId(contextEstadiaId);
+    }
+    if (!open) {
+      setSelectedId(null);
+      setObservacoes("");
+      setBillingInfo(null);
+    }
+  }, [open, contextEstadiaId]);
 
   // Calculate billing when a pet is selected
   useEffect(() => {
