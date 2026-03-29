@@ -164,8 +164,24 @@ const ServicosCrecheHotel = () => {
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const getDisplayPrice = (s: ServicoCreche) => {
-    if (s.modelo_preco === "unico") return formatCurrency(s.valor_unico);
-    return `P: ${formatCurrency(s.valor_pequeno)} | M: ${formatCurrency(s.valor_medio)} | G: ${formatCurrency(s.valor_grande)}`;
+    const suffix = s.tipo === "creche" ? (s.modelo_cobranca === "hora" ? "/h" : s.modelo_cobranca === "dia" ? "/dia" : "/período") : "";
+    if (s.modelo_preco === "unico") return formatCurrency(s.valor_unico) + suffix;
+    return `P: ${formatCurrency(s.valor_pequeno)} | M: ${formatCurrency(s.valor_medio)} | G: ${formatCurrency(s.valor_grande)}${suffix ? ` ${suffix}` : ""}`;
+  };
+
+  const getModeloCobrancaLabel = (mc: string) => {
+    if (mc === "hora") return "Por Hora";
+    if (mc === "dia") return "Por Dia";
+    return "Por Período";
+  };
+
+  const getValorLabel = () => {
+    if (form.tipo === "creche") {
+      if (form.modelo_cobranca === "hora") return "Valor/Hora (R$) *";
+      if (form.modelo_cobranca === "dia") return "Valor/Dia (R$) *";
+      return "Valor/Período (R$) *";
+    }
+    return "Valor (R$) *";
   };
 
   return (
