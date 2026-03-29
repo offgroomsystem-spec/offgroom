@@ -1460,7 +1460,75 @@ const Agendamentos = () => {
         console.error("Erro ao agendar mensagens WhatsApp:", schedErr);
       }
 
-      toast.success("Agendamento criado com sucesso!");
+      // Criar agendamentos para pets adicionais
+      for (const ap of additionalPets) {
+        const apHorarioTermino = ap.horarioTermino || calcularHorarioTermino(ap.horario, ap.tempoServico);
+        try {
+          const { data: apData, error: apError } = await supabase.from("agendamentos").insert([{
+            user_id: ownerId,
+            cliente: formData.cliente,
+            pet: ap.petName,
+            raca: ap.raca,
+            whatsapp: formData.whatsapp,
+            servico: servicosNomes,
+            servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
+            data: formData.data,
+            horario: ap.horario,
+            tempo_servico: ap.tempoServico,
+            horario_termino: apHorarioTermino,
+            data_venda: formData.dataVenda,
+            numero_servico_pacote: formData.numeroServicoPacote || null,
+            groomer: formData.groomer,
+            taxi_dog: formData.taxiDog,
+            status: "confirmado"
+          }]).select("id").single();
+
+          if (!apError && apData) {
+            await criarLancamentoFinanceiroMultiplosServicos({
+              agendamentoId: apData.id,
+              nomeCliente: formData.cliente,
+              nomePet: ap.petName,
+              servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
+              dataAgendamento: formData.data,
+              dataVenda: formData.dataVenda,
+              ownerId: ownerId || user.id
+            });
+
+            // WhatsApp para pet adicional
+            try {
+              let sexoPetAd = "";
+              for (const cliente of clientes) {
+                const pet = cliente.pets.find(p => p.nome === ap.petName && p.raca === ap.raca);
+                if (pet) { sexoPetAd = pet.sexo || ""; break; }
+              }
+              await scheduleWhatsAppMessages({
+                userId: ownerId || user.id,
+                agendamentoId: apData.id,
+                nomeCliente: formData.cliente,
+                nomePet: ap.petName,
+                sexoPet: sexoPetAd,
+                raca: ap.raca,
+                whatsapp: formData.whatsapp,
+                dataAgendamento: formData.data,
+                horarioInicio: ap.horario,
+                servicos: servicosNomes,
+                taxiDog: formData.taxiDog,
+                bordao: empresaConfig.bordao,
+                isPacote: !!formData.numeroServicoPacote,
+                isUltimoServicoPacote: false,
+                servicoNumero: formData.numeroServicoPacote || undefined,
+              });
+            } catch (schedErr) {
+              console.error("Erro ao agendar WhatsApp para pet adicional:", schedErr);
+            }
+          }
+        } catch (apErr) {
+          console.error(`Erro ao criar agendamento para ${ap.petName}:`, apErr);
+        }
+      }
+
+      const totalAgendamentos = 1 + additionalPets.length;
+      toast.success(`${totalAgendamentos} agendamento(s) criado(s) com sucesso!`);
       await loadAgendamentos();
       resetForm();
     } catch (error) {
