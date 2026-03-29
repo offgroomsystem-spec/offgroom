@@ -16,7 +16,11 @@ interface Pet {
   nome_pet: string;
   cliente_id: string;
   cliente_nome?: string;
+  cliente_whatsapp?: string;
 }
+
+const normalizePhone = (phone: string) =>
+  phone.replace(/[\s\-\(\)\+]/g, "");
 
 interface CheckinModalProps {
   open: boolean;
