@@ -81,7 +81,12 @@ const Layout = () => {
               <span className="font-medium">Agendamentos</span>
             </Link>
 
-            {filteredCadastroItems.length > 0 && (
+            {crecheAtiva && (isAdministrador || isRecepcionista) && (
+              <Link to="/creche" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${location.pathname === "/creche" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                <Dog className="h-4 w-4" />
+                <span className="font-medium">Creche</span>
+              </Link>
+            )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className={`flex items-center gap-2 px-3 py-1.5 h-auto text-sm ${isCadastroActive ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
