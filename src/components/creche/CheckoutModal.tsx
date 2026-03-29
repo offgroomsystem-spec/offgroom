@@ -45,6 +45,34 @@ interface CheckoutModalProps {
   contextEstadiaId?: string | null;
 }
 
+const normalizeText = (value?: string | null) =>
+  (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const normalizeTipo = (value?: string | null) => {
+  const v = normalizeText(value);
+  if (v.includes("hotel") || v.includes("hosped")) return "hotel";
+  if (v.includes("creche") || v.includes("day")) return "creche";
+  return v;
+};
+
+const normalizeModeloPreco = (value?: string | null) => {
+  const v = normalizeText(value);
+  if (v.includes("porte")) return "porte";
+  return "unico";
+};
+
+const normalizeModeloCobranca = (value?: string | null) => {
+  const v = normalizeText(value);
+  if (v.includes("hora")) return "hora";
+  if (v.includes("dia") || v.includes("diaria")) return "dia";
+  if (v.includes("period")) return "periodo";
+  return null;
+};
+
 function calcularBillingItem(
   horaEntrada: string,
   dataEntrada: string,
@@ -167,16 +195,13 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
         const items: BillingItem[] = [];
 
         for (const est of selectedEstadias) {
-          const tipoEstadia = (est.tipo || "").toLowerCase();
+          const tipoEstadia = normalizeTipo(est.tipo);
           const isHotel = tipoEstadia === "hotel";
-          const mcOriginal = est.modelo_cobranca || null;
-          const mpOriginal = est.modelo_preco || "unico";
+          const mcOriginal = normalizeModeloCobranca(est.modelo_cobranca);
+          const mpOriginal = normalizeModeloPreco(est.modelo_preco || "unico");
           let mpResolvido = mpOriginal;
 
-          const petPorteNorm = (est.pet_porte || "")
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
+          const petPorteNorm = normalizeText(est.pet_porte);
           const porteField = petPorteNorm === "pequeno"
             ? "valor_pequeno"
             : petPorteNorm === "medio"
@@ -189,38 +214,62 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
             `[Checkout] Pet: ${est.pet_nome}, tipo: ${tipoEstadia}, modelo_preco: ${mpOriginal}, modelo_cobranca: ${mcOriginal}, porte: ${petPorteNorm}`
           );
 
-          const servicosDoTipo = servicos.filter((s: any) => s.tipo === tipoEstadia);
+          const servicosDoTipo = servicos.filter((s: any) => normalizeTipo(s.tipo) === tipoEstadia);
+
+          const servicosTipoFallback =
+            servicosDoTipo.length > 0
+              ? servicosDoTipo
+              : isHotel
+                ? servicos.filter((s: any) => {
+                    const nome = normalizeText(s.nome);
+                    return nome.includes("hotel") || nome.includes("hosped");
+                  })
+                : servicosDoTipo;
+
+          const servicosMesmoModeloPreco = servicosTipoFallback.filter(
+            (s: any) => normalizeModeloPreco(s.modelo_preco) === mpOriginal
+          );
 
           // Para hotel, ignoramos modelo_cobranca na busca (o cálculo será sempre por diária no checkout)
           const matchingServicos = !isHotel && mcOriginal
-            ? servicosDoTipo.filter(
-                (s: any) => s.modelo_cobranca === mcOriginal && s.modelo_preco === mpOriginal
+            ? servicosMesmoModeloPreco.filter(
+                (s: any) => normalizeModeloCobranca(s.modelo_cobranca) === mcOriginal
               )
-            : servicosDoTipo.filter((s: any) => s.modelo_preco === mpOriginal);
+            : servicosMesmoModeloPreco;
 
           // Fallback: tipo + modelo_preco
           const fallback1 = matchingServicos.length > 0
             ? matchingServicos
-            : servicosDoTipo.filter((s: any) => s.modelo_preco === mpOriginal);
+            : servicosMesmoModeloPreco;
 
           // Fallback: tipo only
-          let candidatos = fallback1.length > 0 ? fallback1 : servicosDoTipo;
+          let candidatos = fallback1.length > 0 ? fallback1 : servicosTipoFallback;
 
           // Autoajuste para inconsistência de modelo_preco no hotel (ex.: estadia salva como "unico" mas serviço cadastrado por porte)
-          if (isHotel && candidatos.length > 0 && porteField) {
-            const hasUnico = candidatos.some((s: any) => (s.valor_unico || 0) > 0);
-            const hasPorte = candidatos.some((s: any) => (s[porteField] || 0) > 0);
+          if (isHotel && candidatos.length > 0) {
+            const hasUnicoTipo = servicosTipoFallback.some((s: any) => (s.valor_unico || 0) > 0);
+            const hasPorteTipo = !!porteField && servicosTipoFallback.some((s: any) => (s[porteField] || 0) > 0);
+            const hasUnicoNosCandidatos = candidatos.some((s: any) => (s.valor_unico || 0) > 0);
+            const hasPorteNosCandidatos = !!porteField && candidatos.some((s: any) => (s[porteField] || 0) > 0);
 
-            if (mpOriginal === "unico" && !hasUnico && hasPorte) {
+            if (mpOriginal === "unico" && !hasUnicoNosCandidatos && hasPorteTipo && porteField) {
               mpResolvido = "porte";
-              candidatos = servicosDoTipo.filter((s: any) => (s[porteField] || 0) > 0);
+              candidatos = servicosTipoFallback.filter(
+                (s: any) => normalizeModeloPreco(s.modelo_preco) === "porte" || (s[porteField] || 0) > 0
+              );
             }
 
-            if (mpOriginal === "porte" && !hasPorte && hasUnico) {
+            if (mpOriginal === "porte" && !hasPorteNosCandidatos && hasUnicoTipo) {
               mpResolvido = "unico";
-              candidatos = servicosDoTipo.filter((s: any) => (s.valor_unico || 0) > 0);
+              candidatos = servicosTipoFallback.filter(
+                (s: any) => normalizeModeloPreco(s.modelo_preco) === "unico" || (s.valor_unico || 0) > 0
+              );
             }
           }
+
+          console.log(
+            `[Checkout] Busca serviço: tipo=${tipoEstadia}, candidatos_tipo=${servicosTipoFallback.length}, candidatos_finais=${candidatos.length}, mp_original=${mpOriginal}, mp_resolvido=${mpResolvido}`
+          );
 
           if (candidatos.length === 0) {
             console.warn(
