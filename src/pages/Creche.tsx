@@ -227,6 +227,7 @@ const Creche = () => {
             onCheckoutDireto={handleCheckoutDireto}
             onVerDetalhes={handleVerDetalhes}
             onAdicionarObs={handleAdicionarObs}
+            onRefresh={loadEstadias}
           />
         </TabsContent>
 
