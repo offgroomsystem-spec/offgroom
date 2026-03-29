@@ -85,11 +85,14 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
         .select("id, nome_cliente")
         .in("id", clienteIds);
 
-      const clienteMap = new Map(clientes?.map((c) => [c.id, c.nome_cliente]) || []);
+      const clienteMap = new Map(
+        clientes?.map((c) => [c.id, { nome: c.nome_cliente, whatsapp: c.whatsapp }]) || []
+      );
       setPets(
         data.map((p) => ({
           ...p,
-          cliente_nome: clienteMap.get(p.cliente_id) || "",
+          cliente_nome: clienteMap.get(p.cliente_id)?.nome || "",
+          cliente_whatsapp: clienteMap.get(p.cliente_id)?.whatsapp || "",
         }))
       );
     }
