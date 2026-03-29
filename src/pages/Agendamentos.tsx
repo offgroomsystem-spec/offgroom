@@ -2981,34 +2981,54 @@ const Agendamentos = () => {
           isPacote,
         });
 
-        // Sync financial entry for simples
+        // Sync financial entry for simples - full replace strategy
         if (lancamentoVinculado) {
-          // Delete existing items for this pet and re-insert
-          const existingItems = lancamentoItensVinculado.filter(
-            (item: any) => item.produto_servico?.startsWith(`${editandoAgendamento.pet} - `) || 
-              (!item.produto_servico?.includes(" - ") && editMultiPetGroup.length === 0)
-          );
-          for (const item of existingItems) {
+          const isMultiPet = editMultiPetGroup.length > 0;
+          const petName = editandoAgendamento.pet;
+
+          // 1. Fetch ALL current items for this lancamento
+          const { data: currentItems } = await supabase
+            .from("lancamentos_financeiros_itens")
+            .select("*")
+            .eq("lancamento_id", lancamentoVinculado.id);
+
+          // 2. Determine which items to DELETE (belonging to this pet)
+          const itemsToDelete = (currentItems || []).filter((item: any) => {
+            if (isMultiPet) {
+              return item.produto_servico?.startsWith(`${petName} - `);
+            }
+            return true; // single pet: delete all
+          });
+
+          // 3. Delete items for this pet
+          for (const item of itemsToDelete) {
             await supabase.from("lancamentos_financeiros_itens").delete().eq("id", item.id);
           }
-          // Insert updated items
+
+          // 4. Build clean new items from todosServicosArray
           const novosItens = todosServicosArray.map((s: any) => ({
             lancamento_id: lancamentoVinculado.id,
             descricao2: "Serviços",
-            produto_servico: editMultiPetGroup.length > 0 ? `${editandoAgendamento.pet} - ${s.nome}` : s.nome,
+            produto_servico: isMultiPet ? `${petName} - ${s.nome}` : s.nome,
             valor: s.valor || 0,
             quantidade: 1,
           }));
+
           if (novosItens.length > 0) {
             await supabase.from("lancamentos_financeiros_itens").insert(novosItens);
           }
-          // Recalculate total from all remaining items
+
+          // 5. Recalculate total from ALL items (kept + new)
           const { data: allItems } = await supabase
             .from("lancamentos_financeiros_itens")
             .select("*")
             .eq("lancamento_id", lancamentoVinculado.id);
-          const novoTotal = (allItems || []).reduce((sum: number, item: any) => sum + (Number(item.valor) * (Number(item.quantidade) || 1)), 0);
-          await supabase.from("lancamentos_financeiros").update({ valor_total: novoTotal }).eq("id", lancamentoVinculado.id);
+          const novoTotal = (allItems || []).reduce(
+            (sum: number, item: any) => sum + (Number(item.valor) * (Number(item.quantidade) || 1)), 0
+          );
+          await supabase.from("lancamentos_financeiros")
+            .update({ valor_total: novoTotal })
+            .eq("id", lancamentoVinculado.id);
         }
 
         toast.success("Agendamento atualizado com sucesso!");
