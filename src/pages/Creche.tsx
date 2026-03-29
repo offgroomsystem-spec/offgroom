@@ -26,6 +26,11 @@ interface EstadiaComNomes {
   observacoes_entrada: string | null;
   checklist_entrada?: any;
   ultimo_registro?: any;
+  modelo_cobranca?: string | null;
+  modelo_preco?: string;
+  pet_porte?: string;
+  pet_id?: string;
+  cliente_id?: string;
 }
 
 const Creche = () => {
@@ -55,7 +60,7 @@ const Creche = () => {
     if (!user) return;
     const { data } = await supabase
       .from("creche_estadias")
-      .select("id, tipo, data_entrada, hora_entrada, data_saida_prevista, pet_id, cliente_id, observacoes_entrada, checklist_entrada")
+      .select("id, tipo, data_entrada, hora_entrada, data_saida_prevista, pet_id, cliente_id, observacoes_entrada, checklist_entrada, modelo_cobranca, modelo_preco")
       .eq("status", "ativo")
       .order("data_entrada", { ascending: false });
 
@@ -69,7 +74,7 @@ const Creche = () => {
     const estadiaIds = data.map((d) => d.id);
 
     const [petsRes, clientesRes, registrosRes] = await Promise.all([
-      supabase.from("pets").select("id, nome_pet").in("id", petIds),
+      supabase.from("pets").select("id, nome_pet, porte").in("id", petIds),
       supabase.from("clientes").select("id, nome_cliente").in("id", clienteIds),
       supabase
         .from("creche_registros_diarios")
@@ -79,7 +84,7 @@ const Creche = () => {
         .order("hora_registro", { ascending: false }),
     ]);
 
-    const petMap = new Map(petsRes.data?.map((p) => [p.id, p.nome_pet]) || []);
+    const petMap = new Map(petsRes.data?.map((p) => [p.id, { nome: p.nome_pet, porte: p.porte }]) || []);
     const clienteMap = new Map(clientesRes.data?.map((c) => [c.id, c.nome_cliente]) || []);
 
     // Get latest registro per estadia
@@ -97,11 +102,16 @@ const Creche = () => {
         data_entrada: d.data_entrada,
         hora_entrada: d.hora_entrada,
         data_saida_prevista: d.data_saida_prevista,
-        pet_nome: petMap.get(d.pet_id) || "Pet",
+        pet_nome: petMap.get(d.pet_id)?.nome || "Pet",
         cliente_nome: clienteMap.get(d.cliente_id) || "Cliente",
         observacoes_entrada: d.observacoes_entrada,
         checklist_entrada: d.checklist_entrada,
         ultimo_registro: ultimoRegistroMap.get(d.id) || null,
+        modelo_cobranca: d.modelo_cobranca,
+        modelo_preco: d.modelo_preco,
+        pet_porte: petMap.get(d.pet_id)?.porte || "",
+        pet_id: d.pet_id,
+        cliente_id: d.cliente_id,
       }))
     );
   }, [user]);

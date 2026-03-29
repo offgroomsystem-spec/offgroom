@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 import { callNuvemFiscal } from "@/hooks/useNotasFiscais";
 
 // Interfaces
@@ -396,6 +397,7 @@ interface ControleFinanceiroProps {
 
 const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) => {
   const { user, ownerId } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [lancamentos, setLancamentos] = useState<LancamentoFinanceiro[]>([]);
 
@@ -717,6 +719,52 @@ const ControleFinanceiro = ({ filtrosIniciais }: ControleFinanceiroProps = {}) =
       setMostrarFiltros(false);
     }
   }, [filtrosIniciais]);
+
+  // Pre-fill from Creche checkout navigation
+  useEffect(() => {
+    const state = location.state as any;
+    if (!state?.crecheCheckout || clientes.length === 0) return;
+
+    const checkout = state.crecheCheckout;
+    const now = new Date();
+
+    // Find matching pets for petsSelecionados
+    const cliente = clientes.find((c) => c.nomeCliente === checkout.clienteNome);
+    const petNomes = (checkout.petNomes || []) as string[];
+    const matchedPets = pets.filter(
+      (p) => petNomes.includes(p.nomePet) && (cliente ? p.clienteId === cliente.id : true)
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      ano: now.getFullYear().toString(),
+      mesCompetencia: String(now.getMonth() + 1).padStart(2, "0"),
+      tipo: "Receita" as "Receita",
+      descricao1: "Receita Operacional",
+      nomeCliente: checkout.clienteNome || "",
+      nomePet: petNomes[0] || "",
+      petsSelecionados: matchedPets.length > 1 ? matchedPets.slice(1) : [],
+      dataPagamento: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+      pago: false,
+    }));
+
+    const itens = (checkout.itens || []).map((item: any, i: number) => ({
+      id: (Date.now() + i).toString(),
+      descricao2: "Serviços",
+      produtoServico: item.produtoServico || "",
+      valor: item.valor || 0,
+      quantidade: item.quantidade || 1,
+    }));
+
+    if (itens.length > 0) {
+      setItensLancamento(itens);
+    }
+
+    setIsDialogOpen(true);
+
+    // Clear navigation state to prevent re-triggering
+    window.history.replaceState({}, document.title);
+  }, [location.state, clientes, pets]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
