@@ -204,15 +204,6 @@ const ServicoExtraCombobox = ({
 
 
 
-  // Multi-pet edit group
-  const [editMultiPetGroup, setEditMultiPetGroup] = useState<AgendamentoUnificado[]>([]);
-  const [deletePetDialogOpen, setDeletePetDialogOpen] = useState(false);
-  const [petParaDeletar, setPetParaDeletar] = useState<AgendamentoUnificado | null>(null);
-  const [financeiroDialogOpen, setFinanceiroDialogOpen] = useState(false);
-  const [lancamentoVinculado, setLancamentoVinculado] = useState<any>(null);
-  const [lancamentoItensVinculado, setLancamentoItensVinculado] = useState<any[]>([]);
-
-
 }: {extra: {id: string;nome: string;valor: number;};index: number;servicos: Servico[];onSelect: (servico: Servico) => void;}) => {
   const [open, setOpen] = useState(false);
 
