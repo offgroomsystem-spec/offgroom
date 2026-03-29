@@ -164,9 +164,14 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
         ) : (
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">Selecione o Pet</Label>
+              <Label className="text-xs">
+                Selecione o Pet
+                {contextClienteNome && (
+                  <span className="text-muted-foreground ml-1">— Tutor: {contextClienteNome}</span>
+                )}
+              </Label>
               <div className="border rounded-md max-h-48 overflow-y-auto mt-1">
-                {estadiasAtivas.map((e) => (
+                {filteredEstadias.map((e) => (
                   <div
                     key={e.id}
                     onClick={() => setSelectedId(e.id)}
