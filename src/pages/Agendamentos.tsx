@@ -641,6 +641,11 @@ const Agendamentos = () => {
   const simpleWhatsappJustSelected = useRef(false);
   const petJustSelected = useRef(false);
 
+  // Estados para busca por WhatsApp (Pacotes)
+  const [pacoteWhatsappSearch, setPacoteWhatsappSearch] = useState("");
+  const [pacoteFilteredWhatsapp, setPacoteFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
+  const pacoteWhatsappJustSelected = useRef(false);
+
   // Estados para Gerenciamento de Agendamentos
   const [gerenciamentoOpen, setGerenciamentoOpen] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -844,7 +849,53 @@ const Agendamentos = () => {
     }
   };
 
+  // Busca inteligente por WhatsApp (Pacotes)
+  useEffect(() => {
+    if (pacoteWhatsappJustSelected.current) {
+      pacoteWhatsappJustSelected.current = false;
+      return;
+    }
+    if (pacoteWhatsappSearch.length >= 2) {
+      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }> = [];
+      clientes.forEach((cliente) => {
+        if (cliente.whatsapp.includes(pacoteWhatsappSearch)) {
+          if (cliente.pets.length > 0) {
+            cliente.pets.forEach((pet) => {
+              results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: pet.nome, raca: pet.raca });
+            });
+          } else {
+            results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: "", raca: "" });
+          }
+        }
+      });
+      setPacoteFilteredWhatsapp(results);
+    } else {
+      setPacoteFilteredWhatsapp([]);
+    }
+  }, [pacoteWhatsappSearch, clientes]);
 
+  const handlePacoteWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string }) => {
+    pacoteWhatsappJustSelected.current = true;
+    const formatted = item.whatsapp.length >= 11
+      ? `(${item.whatsapp.slice(0, 2)}) ${item.whatsapp.slice(2, 7)}-${item.whatsapp.slice(7)}`
+      : item.whatsapp;
+    setPacoteWhatsappSearch(formatted);
+    setPacoteFilteredWhatsapp([]);
+    setPacoteFormData({
+      ...pacoteFormData,
+      nomeCliente: item.nomeCliente,
+      nomePet: item.nomePet,
+      raca: item.raca,
+      whatsapp: item.whatsapp,
+    });
+    setClienteSearch(item.nomeCliente);
+    setPetSearch(item.nomePet);
+    if (item.raca) {
+      setAvailableRacas([item.raca]);
+    }
+  };
+
+  // Atualizar pets disponíveis quando cliente é selecionado (Pacotes)
   const handleClienteSelect = (nomeCliente: string) => {
     clienteJustSelected.current = true;
     setClienteSearch(nomeCliente);
@@ -1398,6 +1449,8 @@ const Agendamentos = () => {
     setFilteredPets([]);
     setAvailableRacas([]);
     setSearchStartedWith(null);
+    setPacoteWhatsappSearch("");
+    setPacoteFilteredWhatsapp([]);
     setIsPacoteDialogOpen(false);
   };
 
@@ -3310,20 +3363,45 @@ const Agendamentos = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <Label htmlFor="whatsapp" className="text-xs">
                       WhatsApp
                     </Label>
-                    <Input
-                      id="whatsapp"
-                      value={
-                      pacoteFormData.whatsapp ?
-                      `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}` :
-                      ""
-                      }
-                      readOnly
-                      className="h-8 text-xs bg-secondary" />
-                    
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Input
+                        id="whatsapp-pacote"
+                        value={pacoteWhatsappSearch || (
+                          pacoteFormData.whatsapp ?
+                          `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}` :
+                          ""
+                        )}
+                        onChange={(e) => setPacoteWhatsappSearch(e.target.value.replace(/\D/g, ''))}
+                        onFocus={() => {
+                          if (pacoteFormData.whatsapp && !pacoteWhatsappSearch) {
+                            setPacoteWhatsappSearch('');
+                          }
+                        }}
+                        placeholder="Buscar por WhatsApp..."
+                        className="h-8 text-xs pl-7" />
+                    </div>
+                    {pacoteFilteredWhatsapp.length > 0 &&
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {pacoteFilteredWhatsapp.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="px-3 py-2 hover:bg-accent cursor-pointer"
+                        onClick={() => handlePacoteWhatsappSelect(item)}>
+                        <div className="text-xs font-medium">
+                          ({item.whatsapp.slice(0, 2)}) {item.whatsapp.slice(2, 7)}-{item.whatsapp.slice(7)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {item.nomeCliente}{item.nomePet ? ` • ${item.nomePet}` : ''}
+                        </div>
+                      </div>
+                      ))}
+                      </div>
+                    }
                   </div>
 
                   <div className="space-y-1">
