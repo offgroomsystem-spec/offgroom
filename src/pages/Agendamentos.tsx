@@ -3146,7 +3146,7 @@ const Agendamentos = () => {
 
         // --- Financial sync for pacote edits ---
         if (lancamentoVinculado) {
-          const nomePacote = editandoAgendamento.pacoteOriginal.nome_pacote;
+          const nomePacote = editandoAgendamento.pacoteOriginal.nomePacote;
           
           // Build full service list: package + extras
           const extrasAtuais = servicosExtrasEdicao.filter((e) => e.nome);
