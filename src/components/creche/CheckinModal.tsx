@@ -16,7 +16,11 @@ interface Pet {
   nome_pet: string;
   cliente_id: string;
   cliente_nome?: string;
+  cliente_whatsapp?: string;
 }
+
+const normalizePhone = (phone: string) =>
+  phone.replace(/[\s\-\(\)\+]/g, "");
 
 interface CheckinModalProps {
   open: boolean;
@@ -58,11 +62,13 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       setFilteredPets(pets);
     } else {
       const s = searchPet.toLowerCase();
+      const sNorm = normalizePhone(s);
       setFilteredPets(
         pets.filter(
           (p) =>
             p.nome_pet.toLowerCase().includes(s) ||
-            (p.cliente_nome && p.cliente_nome.toLowerCase().includes(s))
+            (p.cliente_nome && p.cliente_nome.toLowerCase().includes(s)) ||
+            (p.cliente_whatsapp && normalizePhone(p.cliente_whatsapp).includes(sNorm))
         )
       );
     }
@@ -78,14 +84,17 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       const clienteIds = [...new Set(data.map((p) => p.cliente_id))];
       const { data: clientes } = await supabase
         .from("clientes")
-        .select("id, nome_cliente")
+        .select("id, nome_cliente, whatsapp")
         .in("id", clienteIds);
 
-      const clienteMap = new Map(clientes?.map((c) => [c.id, c.nome_cliente]) || []);
+      const clienteMap = new Map(
+        clientes?.map((c) => [c.id, { nome: c.nome_cliente, whatsapp: c.whatsapp }]) || []
+      );
       setPets(
         data.map((p) => ({
           ...p,
-          cliente_nome: clienteMap.get(p.cliente_id) || "",
+          cliente_nome: clienteMap.get(p.cliente_id)?.nome || "",
+          cliente_whatsapp: clienteMap.get(p.cliente_id)?.whatsapp || "",
         }))
       );
     }
@@ -171,7 +180,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
           <div>
             <Label className="text-xs">Buscar Pet / Tutor</Label>
             <Input
-              placeholder="Digite o nome do pet ou tutor..."
+              placeholder="Nome do pet, tutor ou WhatsApp..."
               value={searchPet}
               onChange={(e) => {
                 setSearchPet(e.target.value);
@@ -179,6 +188,9 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               }}
               className="h-8 text-sm"
             />
+            {searchPet && !selectedPet && filteredPets.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">Nenhum pet ou tutor encontrado com os dados informados</p>
+            )}
             {searchPet && !selectedPet && filteredPets.length > 0 && (
               <div className="border rounded-md mt-1 max-h-32 overflow-y-auto bg-background">
                 {filteredPets.slice(0, 10).map((p) => (
@@ -192,6 +204,9 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
                   >
                     <span className="font-medium">{p.nome_pet}</span>
                     <span className="text-muted-foreground ml-2">({p.cliente_nome})</span>
+                    {p.cliente_whatsapp && (
+                      <span className="text-muted-foreground ml-1 text-xs">• {p.cliente_whatsapp}</span>
+                    )}
                   </div>
                 ))}
               </div>
