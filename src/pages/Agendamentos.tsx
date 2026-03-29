@@ -3004,23 +3004,10 @@ const Agendamentos = () => {
 
         <div className="flex gap-2">
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
             if (!open) {
-              setFormData({
-                cliente: "",
-                pet: "",
-                raca: "",
-                whatsapp: "",
-                servico: "",
-                data: "",
-                horario: "",
-                tempoServico: "",
-                horarioTermino: "",
-                dataVenda: "",
-                numeroServicoPacote: "",
-                groomer: "",
-                taxiDog: ""
-              });
+              resetForm();
+            } else {
+              setIsDialogOpen(true);
             }
           }}>
             <DialogTrigger asChild>
