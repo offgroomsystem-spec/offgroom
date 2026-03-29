@@ -180,7 +180,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
           <div>
             <Label className="text-xs">Buscar Pet / Tutor</Label>
             <Input
-              placeholder="Digite o nome do pet ou tutor..."
+              placeholder="Nome do pet, tutor ou WhatsApp..."
               value={searchPet}
               onChange={(e) => {
                 setSearchPet(e.target.value);
@@ -188,6 +188,9 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               }}
               className="h-8 text-sm"
             />
+            {searchPet && !selectedPet && filteredPets.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">Nenhum pet ou tutor encontrado com os dados informados</p>
+            )}
             {searchPet && !selectedPet && filteredPets.length > 0 && (
               <div className="border rounded-md mt-1 max-h-32 overflow-y-auto bg-background">
                 {filteredPets.slice(0, 10).map((p) => (
