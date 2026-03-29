@@ -162,7 +162,12 @@ const Creche = () => {
     setRegistroOpen(true);
   };
 
-  const handleCheckoutDireto = (estadiaId: string) => {
+  const [checkoutContextClienteNome, setCheckoutContextClienteNome] = useState<string | null>(null);
+  const [checkoutContextEstadiaId, setCheckoutContextEstadiaId] = useState<string | null>(null);
+
+  const handleCheckoutDireto = (estadiaId: string, clienteNome: string) => {
+    setCheckoutContextClienteNome(clienteNome);
+    setCheckoutContextEstadiaId(estadiaId);
     setCheckoutOpen(true);
   };
 
