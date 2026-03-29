@@ -867,6 +867,66 @@ const Empresa = () => {
           </div>
         </CardContent>
       </Card>
+      {/* Card Creche Pet */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Creche</CardTitle>
+          <CardDescription>
+            Adicionar a seção de gerenciamento de creche pet à plataforma.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">
+              {crecheAtiva ? 'Liberado' : 'Desativado'}
+            </span>
+            <Switch
+              checked={crecheAtiva}
+              disabled={salvandoCreche}
+              onCheckedChange={async (checked) => {
+                if (!user) return;
+                setSalvandoCreche(true);
+                
+                if (formData.id) {
+                  const { error } = await supabase
+                    .from('empresa_config')
+                    .update({ creche_ativa: checked } as any)
+                    .eq('id', formData.id)
+                    .eq('user_id', ownerId);
+                  
+                  if (error) {
+                    console.error('Error updating creche:', error);
+                    toast.error('Erro ao atualizar configuração da creche');
+                  } else {
+                    setCrecheAtiva(checked);
+                    toast.success(checked ? 'Módulo Creche ativado!' : 'Módulo Creche desativado!');
+                  }
+                } else {
+                  const { data, error } = await supabase
+                    .from('empresa_config')
+                    .insert({
+                      user_id: ownerId,
+                      creche_ativa: checked,
+                    } as any)
+                    .select()
+                    .single();
+                  
+                  if (error) {
+                    console.error('Error inserting empresa config:', error);
+                    toast.error('Erro ao salvar configuração da creche');
+                  } else {
+                    setFormData({ ...formData, id: data.id });
+                    setCrecheAtiva(checked);
+                    toast.success(checked ? 'Módulo Creche ativado!' : 'Módulo Creche desativado!');
+                  }
+                }
+                
+                setSalvandoCreche(false);
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
