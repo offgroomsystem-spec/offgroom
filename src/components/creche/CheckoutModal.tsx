@@ -168,55 +168,77 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
 
         for (const est of selectedEstadias) {
           const mp = est.modelo_preco || "unico";
-          // For hotel without modelo_cobranca, default to "dia"
-          const mc = est.modelo_cobranca || (est.tipo === "hotel" ? "dia" : null);
+          // For hotel, modelo_cobranca in DB is "periodo" (default); for creche use what's stored
+          const mc = est.modelo_cobranca || (est.tipo === "hotel" ? "periodo" : null);
 
-          console.log(`[Checkout] Pet: ${est.pet_nome}, tipo: ${est.tipo}, modelo_preco: ${mp}, modelo_cobranca: ${mc}, porte: ${est.pet_porte}`);
+          const petPorteNorm = (est.pet_porte || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+          console.log(`[Checkout] Pet: ${est.pet_nome}, tipo: ${est.tipo}, modelo_preco: ${mp}, modelo_cobranca: ${mc}, porte: ${petPorteNorm}`);
 
           if (!mc) {
             console.warn(`[Checkout] Sem modelo de cobrança para ${est.pet_nome}`);
             continue;
           }
 
-          // Find matching service: must match tipo, modelo_cobranca, and modelo_preco
-          let servico = servicos.find(
+          // Filter all services matching tipo + modelo_cobranca + modelo_preco
+          const matchingServicos = servicos.filter(
             (s: any) => s.tipo === est.tipo && s.modelo_cobranca === mc && s.modelo_preco === mp
           );
 
-          // Fallback: match only tipo + modelo_cobranca
-          if (!servico) {
-            servico = servicos.find(
-              (s: any) => s.tipo === est.tipo && s.modelo_cobranca === mc
-            );
-          }
+          // Fallback: tipo + modelo_preco (ignore modelo_cobranca)
+          const fallback1 = matchingServicos.length > 0 ? matchingServicos : servicos.filter(
+            (s: any) => s.tipo === est.tipo && s.modelo_preco === mp
+          );
 
-          // Fallback: match only tipo (for hotel with no cobranca set)
-          if (!servico) {
-            servico = servicos.find(
-              (s: any) => s.tipo === est.tipo
-            );
-          }
+          // Fallback: tipo only
+          const fallback2 = fallback1.length > 0 ? fallback1 : servicos.filter(
+            (s: any) => s.tipo === est.tipo
+          );
 
-          if (!servico) {
+          const candidatos = fallback2;
+
+          if (candidatos.length === 0) {
             console.warn(`[Checkout] Serviço não encontrado para ${est.pet_nome} (tipo=${est.tipo}, mc=${mc}, mp=${mp})`);
             toast.error(`Valor do serviço não encontrado para ${est.pet_nome}. Verifique o cadastro.`);
             continue;
           }
 
-          console.log(`[Checkout] Serviço encontrado: ${servico.nome}, valor_unico=${servico.valor_unico}, valor_pequeno=${servico.valor_pequeno}, valor_medio=${servico.valor_medio}, valor_grande=${servico.valor_grande}`);
-
-          // Get unit price based on modelo_preco
+          // Get unit price: for "porte" mode, find the specific record with the matching porte value
           let valorUnit = 0;
-          const servicoModeloPreco = servico.modelo_preco || "unico";
+          let servicoUsado = candidatos[0];
 
-          if (servicoModeloPreco === "porte" && est.pet_porte) {
-            const porte = est.pet_porte.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if (porte === "pequeno") valorUnit = servico.valor_pequeno || 0;
-            else if (porte === "medio") valorUnit = servico.valor_medio || 0;
-            else if (porte === "grande") valorUnit = servico.valor_grande || 0;
+          if (mp === "porte" && petPorteNorm) {
+            // Each porte has its own DB record; find the one with the right non-zero value
+            const porteField = petPorteNorm === "pequeno" ? "valor_pequeno"
+              : petPorteNorm === "medio" ? "valor_medio"
+              : petPorteNorm === "grande" ? "valor_grande" : null;
+
+            if (porteField) {
+              // Find the record that has a non-zero value for this porte
+              const match = candidatos.find((s: any) => (s[porteField] || 0) > 0);
+              if (match) {
+                servicoUsado = match;
+                valorUnit = match[porteField] || 0;
+              } else {
+                // Aggregate: check across ALL matching records
+                for (const s of candidatos) {
+                  const v = s[porteField] || 0;
+                  if (v > 0) { valorUnit = v; servicoUsado = s; break; }
+                }
+              }
+            }
           } else {
-            valorUnit = servico.valor_unico || 0;
+            // Único: use valor_unico
+            const match = candidatos.find((s: any) => (s.valor_unico || 0) > 0);
+            if (match) {
+              servicoUsado = match;
+              valorUnit = match.valor_unico || 0;
+            }
           }
+
+          const servico = servicoUsado;
+
+          console.log(`[Checkout] Serviço encontrado: ${servico.nome}, valorUnit=${valorUnit}, mp=${mp}, porte=${petPorteNorm}`);
 
           if (valorUnit === 0) {
             console.warn(`[Checkout] Valor unitário zerado para ${est.pet_nome} (porte=${est.pet_porte}, modelo=${servicoModeloPreco})`);
