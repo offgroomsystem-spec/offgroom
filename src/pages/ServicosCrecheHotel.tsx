@@ -45,6 +45,15 @@ const emptyForm: Omit<ServicoCreche, "id"> = {
   observacoes_internas: "",
 };
 
+const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: string) => {
+  const tipoLabel = tipo === "creche" ? "Creche" : "Hotel";
+  const cobrancaLabel = tipo === "creche"
+    ? modelo_cobranca === "hora" ? "Por Hora" : modelo_cobranca === "dia" ? "Por Dia" : "Por Período"
+    : "";
+  const precoLabel = modelo_preco === "porte" ? "Por Porte" : "";
+  return [tipoLabel, cobrancaLabel, precoLabel].filter(Boolean).join(" - ");
+};
+
 const ServicosCrecheHotel = () => {
   const { user } = useAuth();
   const [servicos, setServicos] = useState<ServicoCreche[]>([]);
