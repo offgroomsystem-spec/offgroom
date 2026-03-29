@@ -193,7 +193,7 @@ export const FinanceiroEditDialog = ({
       descricao1: lancamento.descricao1 || "",
       clienteId,
       petPrincipalId,
-      petsAdicionaisIds: petIds.slice(1),
+      petsAdicionaisIds: validPetIds.slice(1),
       dataPagamento: lancamento.data_pagamento || "",
       contaId: lancamento.conta_id || "",
       pago: Boolean(lancamento.pago),
