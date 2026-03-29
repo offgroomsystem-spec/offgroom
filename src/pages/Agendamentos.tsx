@@ -4797,25 +4797,7 @@ const Agendamentos = () => {
                         Financeiro
                       </Button>
                     </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Enviar WhatsApp"
-                        onClick={(e) => enviarWhatsAppDireto(editandoAgendamento, e)}>
-                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '14px' }}></i>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Pet Pronto"
-                        onClick={(e) => handlePetProntoClick(editandoAgendamento, e)}>
-                        <Check className="h-4 w-4 text-blue-600" />
-                      </Button>
-                    </div>
+                    
                     <div className="flex gap-2">
                       <Button
                       type="button"
