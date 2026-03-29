@@ -305,9 +305,32 @@ const ServicosCrecheHotel = () => {
               </div>
             </div>
 
+            {form.tipo === "creche" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Modelo de Cobrança *</Label>
+                <ToggleGroup
+                  type="single"
+                  value={form.modelo_cobranca}
+                  onValueChange={(v) => v && setForm({ ...form, modelo_cobranca: v })}
+                  className="justify-start"
+                  size="sm"
+                >
+                  <ToggleGroupItem value="hora" className="gap-1 h-7 px-2.5 text-xs">
+                    <Clock className="h-3 w-3" /> Por Hora
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="periodo" className="gap-1 h-7 px-2.5 text-xs">
+                    <Sun className="h-3 w-3" /> Por Período
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="dia" className="gap-1 h-7 px-2.5 text-xs">
+                    <CalendarDays className="h-3 w-3" /> Por Dia
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
+
             {form.modelo_preco === "unico" ? (
               <div className="space-y-1">
-                <Label className="text-xs">Valor (R$) *</Label>
+                <Label className="text-xs">{getValorLabel()}</Label>
                 <Input
                   type="number"
                   min="0"
