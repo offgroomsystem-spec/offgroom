@@ -202,12 +202,28 @@ export const FinanceiroEditDialog = ({
     });
 
     if ((itens || []).length > 0) {
+      // Collect all pet names from the selected client to detect "PetName - Service" prefixes
+      const allPetNames = new Set<string>();
+      const petIds = Array.isArray(lancamento.pet_ids)
+        ? lancamento.pet_ids.filter((v: unknown): v is string => typeof v === "string")
+        : [];
+      for (const c of clientes) {
+        for (const p of c.pets) {
+          if (petIds.includes(p.id)) {
+            allPetNames.add(p.nome.toLowerCase());
+          }
+        }
+      }
+
       setItensForm(
         itens.map((item: any) => {
-          // Strip "PetName - " prefix from produto_servico to get just the service/product name
+          // Strip "PetName - " prefix ONLY when the part before " - " is a known pet name
           let produtoServico = item.produto_servico || "";
           if (produtoServico.includes(" - ")) {
-            produtoServico = produtoServico.split(" - ").slice(1).join(" - ");
+            const prefix = produtoServico.split(" - ")[0].trim();
+            if (allPetNames.has(prefix.toLowerCase())) {
+              produtoServico = produtoServico.split(" - ").slice(1).join(" - ");
+            }
           }
           return {
             id: item.id || crypto.randomUUID(),
