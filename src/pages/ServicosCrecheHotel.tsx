@@ -45,6 +45,15 @@ const emptyForm: Omit<ServicoCreche, "id"> = {
   observacoes_internas: "",
 };
 
+const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: string) => {
+  const tipoLabel = tipo === "creche" ? "Creche" : "Hotel";
+  const cobrancaLabel = tipo === "creche"
+    ? modelo_cobranca === "hora" ? "Por Hora" : modelo_cobranca === "dia" ? "Por Dia" : "Por Período"
+    : "";
+  const precoLabel = modelo_preco === "porte" ? "Por Porte" : "";
+  return [tipoLabel, cobrancaLabel, precoLabel].filter(Boolean).join(" - ");
+};
+
 const ServicosCrecheHotel = () => {
   const { user } = useAuth();
   const [servicos, setServicos] = useState<ServicoCreche[]>([]);
@@ -97,10 +106,6 @@ const ServicosCrecheHotel = () => {
   };
 
   const handleSave = async () => {
-    if (!form.nome.trim()) {
-      toast.error("Nome do serviço é obrigatório");
-      return;
-    }
     if (form.modelo_preco === "porte" && (form.valor_pequeno <= 0 || form.valor_medio <= 0 || form.valor_grande <= 0)) {
       toast.error("Defina o valor para todos os portes");
       return;
@@ -110,9 +115,10 @@ const ServicosCrecheHotel = () => {
       return;
     }
 
+    const autoNome = generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco);
     const payload = {
-      nome: form.nome.trim(),
-      descricao: form.descricao?.trim() || null,
+      nome: autoNome,
+      descricao: null as string | null,
       tipo: form.tipo,
       modelo_preco: form.modelo_preco,
       modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "periodo",
@@ -120,8 +126,8 @@ const ServicosCrecheHotel = () => {
       valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
       valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
       valor_grande: form.modelo_preco === "porte" ? form.valor_grande : 0,
-      is_padrao: form.is_padrao,
-      is_opcional: form.is_opcional,
+      is_padrao: false,
+      is_opcional: true,
       observacoes_internas: form.observacoes_internas?.trim() || null,
     };
 
@@ -206,19 +212,16 @@ const ServicosCrecheHotel = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Cobrança</TableHead>
                   <TableHead>Modelo</TableHead>
                   <TableHead>Valor</TableHead>
-                  <TableHead>Padrão</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {servicos.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.nome}</TableCell>
                     <TableCell>
                       <Badge variant={s.tipo === "creche" ? "default" : "secondary"} className="gap-1">
                         {s.tipo === "creche" ? <Dog className="h-3 w-3" /> : <Hotel className="h-3 w-3" />}
@@ -230,7 +233,6 @@ const ServicosCrecheHotel = () => {
                     </TableCell>
                     <TableCell>{s.modelo_preco === "unico" ? "Valor Único" : "Por Porte"}</TableCell>
                     <TableCell className="text-sm">{getDisplayPrice(s)}</TableCell>
-                    <TableCell>{s.is_padrao ? "Sim" : "Não"}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
                         <Pencil className="h-4 w-4" />
@@ -253,25 +255,6 @@ const ServicosCrecheHotel = () => {
             <DialogTitle className="text-base">{editingId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Nome do Serviço *</Label>
-              <Input
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Creche Período Integral"
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Descrição</Label>
-              <Textarea
-                value={form.descricao || ""}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                placeholder="Descrição opcional do serviço"
-                rows={2}
-                className="text-sm min-h-[56px] py-1.5"
-              />
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Tipo do Serviço *</Label>
@@ -377,36 +360,6 @@ const ServicosCrecheHotel = () => {
                 </div>
               </div>
             )}
-
-            <div className="flex items-center gap-5">
-              <div className="flex items-center gap-1.5">
-                <Switch
-                  checked={form.is_padrao}
-                  onCheckedChange={(v) => setForm({ ...form, is_padrao: v })}
-                  className="scale-90"
-                />
-                <Label className="text-xs">Serviço Padrão</Label>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Switch
-                  checked={form.is_opcional}
-                  onCheckedChange={(v) => setForm({ ...form, is_opcional: v })}
-                  className="scale-90"
-                />
-                <Label className="text-xs">Opcional</Label>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Observações Internas</Label>
-              <Textarea
-                value={form.observacoes_internas || ""}
-                onChange={(e) => setForm({ ...form, observacoes_internas: e.target.value })}
-                placeholder="Notas internas sobre o serviço"
-                rows={2}
-                className="text-sm min-h-[56px] py-1.5"
-              />
-            </div>
 
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
