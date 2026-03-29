@@ -241,7 +241,7 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
           console.log(`[Checkout] Serviço encontrado: ${servico.nome}, valorUnit=${valorUnit}, mp=${mp}, porte=${petPorteNorm}`);
 
           if (valorUnit === 0) {
-            console.warn(`[Checkout] Valor unitário zerado para ${est.pet_nome} (porte=${est.pet_porte}, modelo=${servicoModeloPreco})`);
+            console.warn(`[Checkout] Valor unitário zerado para ${est.pet_nome} (porte=${est.pet_porte}, modelo=${mp})`);
             toast.error(`Valor do serviço zerado para ${est.pet_nome}. Verifique o cadastro em Serviços Creche & Hotel.`);
           }
 
