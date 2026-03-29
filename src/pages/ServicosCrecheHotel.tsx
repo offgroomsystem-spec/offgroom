@@ -35,6 +35,7 @@ const emptyForm: Omit<ServicoCreche, "id"> = {
   descricao: "",
   tipo: "creche",
   modelo_preco: "unico",
+  modelo_cobranca: "periodo",
   valor_unico: 0,
   valor_pequeno: 0,
   valor_medio: 0,
