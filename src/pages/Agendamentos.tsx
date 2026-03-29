@@ -634,6 +634,11 @@ const Agendamentos = () => {
   const simpleClienteJustSelected = useRef(false);
   const clienteJustSelected = useRef(false);
   const simplePetJustSelected = useRef(false);
+
+  // Estados para busca por WhatsApp (Agendamento Simples)
+  const [simpleWhatsappSearch, setSimpleWhatsappSearch] = useState("");
+  const [simpleFilteredWhatsapp, setSimpleFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
+  const simpleWhatsappJustSelected = useRef(false);
   const petJustSelected = useRef(false);
 
   // Estados para Gerenciamento de Agendamentos
