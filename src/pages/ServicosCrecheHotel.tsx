@@ -212,19 +212,16 @@ const ServicosCrecheHotel = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Cobrança</TableHead>
                   <TableHead>Modelo</TableHead>
                   <TableHead>Valor</TableHead>
-                  <TableHead>Padrão</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {servicos.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.nome}</TableCell>
                     <TableCell>
                       <Badge variant={s.tipo === "creche" ? "default" : "secondary"} className="gap-1">
                         {s.tipo === "creche" ? <Dog className="h-3 w-3" /> : <Hotel className="h-3 w-3" />}
@@ -236,7 +233,6 @@ const ServicosCrecheHotel = () => {
                     </TableCell>
                     <TableCell>{s.modelo_preco === "unico" ? "Valor Único" : "Por Porte"}</TableCell>
                     <TableCell className="text-sm">{getDisplayPrice(s)}</TableCell>
-                    <TableCell>{s.is_padrao ? "Sim" : "Não"}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
                         <Pencil className="h-4 w-4" />
