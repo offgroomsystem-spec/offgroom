@@ -3144,22 +3144,29 @@ const Agendamentos = () => {
           isUltimoServicoPacote: isUltimo,
         });
 
-        // --- Financial sync for pacote edits ---
+        // --- Financial sync for pacote edits (accumulative across sessions) ---
         if (lancamentoVinculado) {
           const nomePacote = editandoAgendamento.pacoteOriginal.nomePacote;
           
-          // Build full service list: package + extras
-          const extrasAtuais = servicosExtrasEdicao.filter((e) => e.nome);
+          // Collect ALL unique extras from ALL sessions of the package (after update)
+          const todosExtrasDosPacotes: Array<{ nome: string; valor: number }> = [];
+          for (const sessao of updatedServicos) {
+            if (sessao.servicosExtras && Array.isArray(sessao.servicosExtras)) {
+              for (const extra of sessao.servicosExtras) {
+                if (extra.nome && !todosExtrasDosPacotes.some((e: any) => e.nome === extra.nome)) {
+                  todosExtrasDosPacotes.push({ nome: extra.nome, valor: extra.valor || 0 });
+                }
+              }
+            }
+          }
           
           if (lancamentoVinculado.pago === false) {
-            // UNPAID: Full replace strategy
-            // 1. Delete all existing items
+            // UNPAID: Accumulative rebuild - package + ALL unique extras from ALL sessions
             await supabase
               .from("lancamentos_financeiros_itens")
               .delete()
               .eq("lancamento_id", lancamentoVinculado.id);
 
-            // 2. Fetch package value
             const { data: pacoteData } = await supabase
               .from("pacotes")
               .select("valor_final")
@@ -3168,7 +3175,6 @@ const Agendamentos = () => {
               .limit(1);
             const valorPacote = pacoteData?.[0]?.valor_final ? Number(pacoteData[0].valor_final) : 0;
 
-            // 3. Build new items: package + each extra
             const novosItens: Array<{ lancamento_id: string; descricao2: string; produto_servico: string; valor: number; quantidade: number }> = [
               {
                 lancamento_id: lancamentoVinculado.id,
@@ -3178,7 +3184,7 @@ const Agendamentos = () => {
                 quantidade: 1,
               },
             ];
-            for (const extra of extrasAtuais) {
+            for (const extra of todosExtrasDosPacotes) {
               novosItens.push({
                 lancamento_id: lancamentoVinculado.id,
                 descricao2: "Serviços",
@@ -3189,23 +3195,20 @@ const Agendamentos = () => {
             }
             await supabase.from("lancamentos_financeiros_itens").insert(novosItens);
 
-            // 4. Recalculate total
             const novoTotal = novosItens.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
             await supabase
               .from("lancamentos_financeiros")
               .update({ valor_total: novoTotal })
               .eq("id", lancamentoVinculado.id);
           } else {
-            // PAID: Do NOT modify existing entry. Create new entry for newly added extras only.
-            // Compare current extras vs items in original financial entry
+            // PAID: Do NOT modify existing entry. Create new entry for truly new extras only.
             const existingItemNames = lancamentoItensVinculado.map((item: any) => item.produto_servico);
-            const novosExtras = extrasAtuais.filter((e) => !existingItemNames.includes(e.nome));
+            const novosExtras = todosExtrasDosPacotes.filter((e) => !existingItemNames.includes(e.nome));
 
             if (novosExtras.length > 0) {
               const valorNovos = novosExtras.reduce((sum, e) => sum + (e.valor || 0), 0);
               const [ano, mes] = editandoAgendamento.data.split("-");
 
-              // Create new financial entry
               const { data: novoLancamento, error: novoLancErr } = await supabase
                 .from("lancamentos_financeiros")
                 .insert([{
