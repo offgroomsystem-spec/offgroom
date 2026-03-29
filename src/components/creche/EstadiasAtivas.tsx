@@ -7,11 +7,12 @@ import {
   Droplets, UtensilsCrossed, Dog, Smile, Frown,
   Bug, Stethoscope, CircleCheck, AlertTriangle, Clock
 } from "lucide-react";
-import { format, differenceInHours } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 
 interface Registro {
   comeu: boolean;
@@ -45,7 +46,7 @@ interface EstadiasAtivasProps {
   onAdicionarObs: (estadiaId: string, petNome: string) => void;
 }
 
-const indicadores = [
+export const indicadores = [
   { key: "comeu", icon: UtensilsCrossed, label: "Comeu", color: "text-green-600 dark:text-green-400" },
   { key: "bebeu_agua", icon: Droplets, label: "Bebeu água", color: "text-blue-600 dark:text-blue-400" },
   { key: "brincou", icon: Dog, label: "Brincou", color: "text-yellow-600 dark:text-yellow-400" },
@@ -88,20 +89,58 @@ const getStatus = (e: Estadia) => {
 };
 
 const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes, onAdicionarObs }: EstadiasAtivasProps) => {
-  const { user } = useAuth();
+  const { ownerId } = useAuth();
+  const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
 
   const handleQuickToggle = async (estadiaId: string, key: string, currentValue: boolean) => {
-    if (!user) return;
+    if (!ownerId) return;
+    const toggleKey = `${estadiaId}-${key}`;
+    if (togglingKeys.has(toggleKey)) return;
+    
+    setTogglingKeys(prev => new Set(prev).add(toggleKey));
+    
     try {
-      const { error } = await supabase.from("creche_registros_diarios").insert({
-        estadia_id: estadiaId,
-        user_id: user.id,
-        [key]: !currentValue,
-      });
-      if (error) throw error;
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      
+      // Find today's latest registro for this estadia
+      const { data: existing } = await supabase
+        .from("creche_registros_diarios")
+        .select("id, comeu, bebeu_agua, brincou, interagiu_bem, brigas, fez_necessidades, sinais_doenca, pulgas_carrapatos")
+        .eq("estadia_id", estadiaId)
+        .eq("data_registro", hoje)
+        .order("hora_registro", { ascending: false })
+        .limit(1);
+
+      const newValue = !currentValue;
+
+      if (existing && existing.length > 0) {
+        // Update existing registro
+        const { error } = await supabase
+          .from("creche_registros_diarios")
+          .update({ [key]: newValue })
+          .eq("id", existing[0].id);
+        if (error) throw error;
+      } else {
+        // Create new registro for today
+        const { error } = await supabase
+          .from("creche_registros_diarios")
+          .insert({
+            estadia_id: estadiaId,
+            user_id: ownerId,
+            [key]: newValue,
+          });
+        if (error) throw error;
+      }
+      
       toast.success(`${indicadores.find(i => i.key === key)?.label} atualizado!`);
     } catch {
       toast.error("Erro ao atualizar indicador.");
+    } finally {
+      setTogglingKeys(prev => {
+        const next = new Set(prev);
+        next.delete(toggleKey);
+        return next;
+      });
     }
   };
 
@@ -186,16 +225,18 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
                     {indicadores.map((ind) => {
                       const active = reg ? (reg as any)[ind.key] : false;
                       const Icon = ind.icon;
+                      const isToggling = togglingKeys.has(`${e.id}-${ind.key}`);
                       return (
                         <Tooltip key={ind.key}>
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleQuickToggle(e.id, ind.key, active)}
+                              disabled={isToggling}
                               className={`p-1.5 rounded-md border transition-colors ${
                                 active
                                   ? `${ind.color} bg-accent border-accent`
                                   : "text-muted-foreground/40 border-transparent hover:border-border hover:text-muted-foreground"
-                              }`}
+                              } ${isToggling ? "opacity-50" : ""}`}
                             >
                               <Icon className="h-3.5 w-3.5" />
                             </button>
