@@ -155,6 +155,7 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
           .select("*");
 
         if (!servicos || servicos.length === 0) {
+          console.warn("[Checkout] Nenhum serviço cadastrado em servicos_creche");
           setBillingItems([]);
           return;
         }
@@ -166,27 +167,66 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
         const items: BillingItem[] = [];
 
         for (const est of selectedEstadias) {
-          const mc = est.modelo_cobranca;
-          if (!mc) continue;
+          const mp = est.modelo_preco || "unico";
+          // For hotel without modelo_cobranca, default to "dia"
+          const mc = est.modelo_cobranca || (est.tipo === "hotel" ? "dia" : null);
 
-          // Find matching service by tipo and modelo_cobranca
-          const servico = servicos.find(
-            (s: any) => s.tipo === est.tipo && s.modelo_cobranca === mc
-          );
+          console.log(`[Checkout] Pet: ${est.pet_nome}, tipo: ${est.tipo}, modelo_preco: ${mp}, modelo_cobranca: ${mc}, porte: ${est.pet_porte}`);
 
-          if (!servico) continue;
-
-          // Get unit price
-          let valorUnit = servico.valor_unico || 0;
-          const mp = est.modelo_preco || servico.modelo_preco || "unico";
-          if (mp === "porte" && est.pet_porte) {
-            const porte = est.pet_porte.toLowerCase();
-            if (porte === "pequeno") valorUnit = servico.valor_pequeno || 0;
-            else if (porte === "medio" || porte === "médio") valorUnit = servico.valor_medio || 0;
-            else if (porte === "grande") valorUnit = servico.valor_grande || 0;
+          if (!mc) {
+            console.warn(`[Checkout] Sem modelo de cobrança para ${est.pet_nome}`);
+            continue;
           }
 
-          const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, mc);
+          // Find matching service: must match tipo, modelo_cobranca, and modelo_preco
+          let servico = servicos.find(
+            (s: any) => s.tipo === est.tipo && s.modelo_cobranca === mc && s.modelo_preco === mp
+          );
+
+          // Fallback: match only tipo + modelo_cobranca
+          if (!servico) {
+            servico = servicos.find(
+              (s: any) => s.tipo === est.tipo && s.modelo_cobranca === mc
+            );
+          }
+
+          // Fallback: match only tipo (for hotel with no cobranca set)
+          if (!servico) {
+            servico = servicos.find(
+              (s: any) => s.tipo === est.tipo
+            );
+          }
+
+          if (!servico) {
+            console.warn(`[Checkout] Serviço não encontrado para ${est.pet_nome} (tipo=${est.tipo}, mc=${mc}, mp=${mp})`);
+            toast.error(`Valor do serviço não encontrado para ${est.pet_nome}. Verifique o cadastro.`);
+            continue;
+          }
+
+          console.log(`[Checkout] Serviço encontrado: ${servico.nome}, valor_unico=${servico.valor_unico}, valor_pequeno=${servico.valor_pequeno}, valor_medio=${servico.valor_medio}, valor_grande=${servico.valor_grande}`);
+
+          // Get unit price based on modelo_preco
+          let valorUnit = 0;
+          const servicoModeloPreco = servico.modelo_preco || "unico";
+
+          if (servicoModeloPreco === "porte" && est.pet_porte) {
+            const porte = est.pet_porte.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (porte === "pequeno") valorUnit = servico.valor_pequeno || 0;
+            else if (porte === "medio") valorUnit = servico.valor_medio || 0;
+            else if (porte === "grande") valorUnit = servico.valor_grande || 0;
+          } else {
+            valorUnit = servico.valor_unico || 0;
+          }
+
+          if (valorUnit === 0) {
+            console.warn(`[Checkout] Valor unitário zerado para ${est.pet_nome} (porte=${est.pet_porte}, modelo=${servicoModeloPreco})`);
+            toast.error(`Valor do serviço zerado para ${est.pet_nome}. Verifique o cadastro em Serviços Creche & Hotel.`);
+          }
+
+          const effectiveMc = servico.modelo_cobranca || mc;
+          const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, effectiveMc);
+
+          console.log(`[Checkout] Cálculo: qty=${result.quantidade}, valorUnit=${valorUnit}, total=${result.valorTotal}`);
 
           items.push({
             estadiaId: est.id,
@@ -200,7 +240,8 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
         }
 
         setBillingItems(items);
-      } catch {
+      } catch (err) {
+        console.error("[Checkout] Erro ao calcular billing:", err);
         setBillingItems([]);
       }
     };
