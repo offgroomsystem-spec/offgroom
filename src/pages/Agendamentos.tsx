@@ -2921,6 +2921,13 @@ const Agendamentos = () => {
       { id: servicoPrincipalObj?.id || '', nome: servicoPrincipalEdicao, valor: servicoPrincipalObj?.valor || 0 },
       ...servicosExtrasEdicao.filter((e) => e.nome)];
 
+    // Find sibling agendamentos (same client, same date) for multi-pet view
+    const siblings = agendamentosUnificados.filter(a => 
+      a.cliente === agendamento.cliente && a.data === agendamento.data && a.id !== agendamento.id
+    );
+    setEditMultiPetGroup(siblings);
+    loadFinanceiroVinculado(agendamento);
+
 
       if (editandoAgendamento.tipo === "simples" && editandoAgendamento.agendamentoOriginal) {
         const { error } = await supabase.
