@@ -53,8 +53,7 @@ type FormFinanceiro = {
   tipo: "Receita" | "Despesa";
   descricao1: string;
   clienteId: string;
-  petPrincipalId: string;
-  petsAdicionaisIds: string[];
+  petIds: string[];
   dataPagamento: string;
   contaId: string;
   pago: boolean;
