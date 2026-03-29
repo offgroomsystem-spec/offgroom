@@ -102,11 +102,16 @@ const Creche = () => {
         data_entrada: d.data_entrada,
         hora_entrada: d.hora_entrada,
         data_saida_prevista: d.data_saida_prevista,
-        pet_nome: petMap.get(d.pet_id) || "Pet",
+        pet_nome: petMap.get(d.pet_id)?.nome || "Pet",
         cliente_nome: clienteMap.get(d.cliente_id) || "Cliente",
         observacoes_entrada: d.observacoes_entrada,
         checklist_entrada: d.checklist_entrada,
         ultimo_registro: ultimoRegistroMap.get(d.id) || null,
+        modelo_cobranca: d.modelo_cobranca,
+        modelo_preco: d.modelo_preco,
+        pet_porte: petMap.get(d.pet_id)?.porte || "",
+        pet_id: d.pet_id,
+        cliente_id: d.cliente_id,
       }))
     );
   }, [user]);
