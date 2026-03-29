@@ -208,6 +208,7 @@ const ServicosCrecheHotel = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Cobrança</TableHead>
                   <TableHead>Modelo</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Padrão</TableHead>
