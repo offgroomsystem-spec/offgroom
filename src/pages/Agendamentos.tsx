@@ -3229,7 +3229,7 @@ const Agendamentos = () => {
                     </Popover>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="horario" className="text-xs">
                       {additionalPets.length > 0 ? `${formData.pet}:` : 'Horário de Início *'}
                     </Label>
@@ -3250,7 +3250,7 @@ const Agendamentos = () => {
                     
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="horarioFim" className="text-xs">
                       Horário de Fim *
                     </Label>
@@ -3269,7 +3269,7 @@ const Agendamentos = () => {
                     
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço*
                     </Label>
@@ -3317,7 +3317,7 @@ const Agendamentos = () => {
                 </div>
 
                 {/* Bloco de Serviços e Groomer do pet principal */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <Label className="text-xs">
                     {additionalPets.length > 0 ? `${formData.pet}: Serviço(s) *` : 'Serviço(s) *'}
                   </Label>
@@ -3402,7 +3402,7 @@ const Agendamentos = () => {
                 </div>
 
                 {/* Groomer do pet principal */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <Label htmlFor="groomer" className="text-xs">
                     {additionalPets.length > 0 ? `${formData.pet}: Groomer` : 'Groomer'}
                   </Label>
@@ -3483,7 +3483,7 @@ const Agendamentos = () => {
                       </div>
 
                       {/* Serviços do pet adicional */}
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <Label className="text-xs">{ap.petName}: Serviço(s) *</Label>
                         <div className="space-y-2">
                           {ap.servicos.map((servicoItem, sIdx) => {
@@ -3560,7 +3560,7 @@ const Agendamentos = () => {
                       </div>
 
                       {/* Groomer do pet adicional */}
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <Label className="text-xs">{ap.petName}: Groomer</Label>
                         <Select
                           value={ap.groomer}
@@ -3587,7 +3587,7 @@ const Agendamentos = () => {
                 })}
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="dataVenda" className="text-xs">
                       Data da Venda do Serviço *
                     </Label>
@@ -3607,7 +3607,7 @@ const Agendamentos = () => {
                     
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="taxiDog" className="text-xs">
                       Taxi Dog *
                     </Label>
