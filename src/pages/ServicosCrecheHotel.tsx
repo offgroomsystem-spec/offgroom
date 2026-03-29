@@ -126,8 +126,8 @@ const ServicosCrecheHotel = () => {
       valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
       valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
       valor_grande: form.modelo_preco === "porte" ? form.valor_grande : 0,
-      is_padrao: form.is_padrao,
-      is_opcional: form.is_opcional,
+      is_padrao: false,
+      is_opcional: true,
       observacoes_internas: form.observacoes_internas?.trim() || null,
     };
 
