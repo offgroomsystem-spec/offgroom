@@ -284,7 +284,15 @@ const Agendamentos = () => {
   const [petProntoAgendamento, setPetProntoAgendamento] = useState<any>(null);
   const [petProntoHoraAtual, setPetProntoHoraAtual] = useState("");
 
-  // Função para normalizar porte (ignora capitalização e acentos)
+  // Multi-pet edit & financeiro states
+  const [editMultiPetGroup, setEditMultiPetGroup] = useState<AgendamentoUnificado[]>([]);
+  const [lancamentoVinculado, setLancamentoVinculado] = useState<any>(null);
+  const [lancamentoItensVinculado, setLancamentoItensVinculado] = useState<any[]>([]);
+  const [deletePetDialogOpen, setDeletePetDialogOpen] = useState(false);
+  const [petParaDeletar, setPetParaDeletar] = useState<AgendamentoUnificado | null>(null);
+  const [financeiroDialogOpen, setFinanceiroDialogOpen] = useState(false);
+
+
   const normalizarPorte = (porte: string): string => {
     return porte.
     toLowerCase().
