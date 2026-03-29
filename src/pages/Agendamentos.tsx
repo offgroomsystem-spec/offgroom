@@ -284,7 +284,15 @@ const Agendamentos = () => {
   const [petProntoAgendamento, setPetProntoAgendamento] = useState<any>(null);
   const [petProntoHoraAtual, setPetProntoHoraAtual] = useState("");
 
-  // Função para normalizar porte (ignora capitalização e acentos)
+  // Multi-pet edit & financeiro states
+  const [editMultiPetGroup, setEditMultiPetGroup] = useState<AgendamentoUnificado[]>([]);
+  const [lancamentoVinculado, setLancamentoVinculado] = useState<any>(null);
+  const [lancamentoItensVinculado, setLancamentoItensVinculado] = useState<any[]>([]);
+  const [deletePetDialogOpen, setDeletePetDialogOpen] = useState(false);
+  const [petParaDeletar, setPetParaDeletar] = useState<AgendamentoUnificado | null>(null);
+  const [financeiroDialogOpen, setFinanceiroDialogOpen] = useState(false);
+
+
   const normalizarPorte = (porte: string): string => {
     return porte.
     toLowerCase().
@@ -2885,6 +2893,13 @@ const Agendamentos = () => {
       setServicoPrincipalEdicao(agendamento.servico.split(' + ')[0]);
     }
 
+    // Find sibling agendamentos (same client, same date) for multi-pet view
+    const siblings = agendamentosUnificados.filter(a => 
+      a.cliente === agendamento.cliente && a.data === agendamento.data && a.id !== agendamento.id
+    );
+    setEditMultiPetGroup(siblings);
+    loadFinanceiroVinculado(agendamento);
+
     setEditDialogGerenciamento(true);
   };
 
@@ -2912,12 +2927,6 @@ const Agendamentos = () => {
       { id: servicoPrincipalObj?.id || '', nome: servicoPrincipalEdicao, valor: servicoPrincipalObj?.valor || 0 },
       ...servicosExtrasEdicao.filter((e) => e.nome)];
 
-    // Find sibling agendamentos (same client, same date) for multi-pet view
-    const siblings = agendamentosUnificados.filter(a => 
-      a.cliente === agendamento.cliente && a.data === agendamento.data && a.id !== agendamento.id
-    );
-    setEditMultiPetGroup(siblings);
-    loadFinanceiroVinculado(agendamento);
 
 
       if (editandoAgendamento.tipo === "simples" && editandoAgendamento.agendamentoOriginal) {
