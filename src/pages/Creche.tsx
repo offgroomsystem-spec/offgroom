@@ -244,9 +244,17 @@ const Creche = () => {
       <CheckinModal open={checkinOpen} onOpenChange={setCheckinOpen} onSuccess={loadEstadias} />
       <CheckoutModal
         open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
+        onOpenChange={(open) => {
+          setCheckoutOpen(open);
+          if (!open) {
+            setCheckoutContextClienteNome(null);
+            setCheckoutContextEstadiaId(null);
+          }
+        }}
         estadiasAtivas={estadiasAtivas}
         onSuccess={loadEstadias}
+        contextClienteNome={checkoutContextClienteNome}
+        contextEstadiaId={checkoutContextEstadiaId}
       />
       <RegistroDiarioModal
         open={registroOpen}
