@@ -318,6 +318,143 @@ export type Database = {
         }
         Relationships: []
       }
+      creche_estadias: {
+        Row: {
+          checklist_entrada: Json
+          cliente_id: string
+          created_at: string
+          data_entrada: string
+          data_saida: string | null
+          data_saida_prevista: string | null
+          hora_entrada: string
+          hora_saida: string | null
+          hora_saida_prevista: string | null
+          id: string
+          observacoes_entrada: string | null
+          observacoes_saida: string | null
+          pet_id: string
+          status: string
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checklist_entrada?: Json
+          cliente_id: string
+          created_at?: string
+          data_entrada: string
+          data_saida?: string | null
+          data_saida_prevista?: string | null
+          hora_entrada: string
+          hora_saida?: string | null
+          hora_saida_prevista?: string | null
+          id?: string
+          observacoes_entrada?: string | null
+          observacoes_saida?: string | null
+          pet_id: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checklist_entrada?: Json
+          cliente_id?: string
+          created_at?: string
+          data_entrada?: string
+          data_saida?: string | null
+          data_saida_prevista?: string | null
+          hora_entrada?: string
+          hora_saida?: string | null
+          hora_saida_prevista?: string | null
+          id?: string
+          observacoes_entrada?: string | null
+          observacoes_saida?: string | null
+          pet_id?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creche_estadias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creche_estadias_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creche_registros_diarios: {
+        Row: {
+          bebeu_agua: boolean | null
+          brigas: boolean | null
+          brincou: boolean | null
+          comeu: boolean | null
+          created_at: string
+          data_registro: string
+          estadia_id: string
+          fez_necessidades: boolean | null
+          hora_registro: string
+          id: string
+          interagiu_bem: boolean | null
+          observacoes: string | null
+          pulgas_carrapatos: boolean | null
+          sinais_doenca: boolean | null
+          user_id: string
+        }
+        Insert: {
+          bebeu_agua?: boolean | null
+          brigas?: boolean | null
+          brincou?: boolean | null
+          comeu?: boolean | null
+          created_at?: string
+          data_registro?: string
+          estadia_id: string
+          fez_necessidades?: boolean | null
+          hora_registro?: string
+          id?: string
+          interagiu_bem?: boolean | null
+          observacoes?: string | null
+          pulgas_carrapatos?: boolean | null
+          sinais_doenca?: boolean | null
+          user_id: string
+        }
+        Update: {
+          bebeu_agua?: boolean | null
+          brigas?: boolean | null
+          brincou?: boolean | null
+          comeu?: boolean | null
+          created_at?: string
+          data_registro?: string
+          estadia_id?: string
+          fez_necessidades?: boolean | null
+          hora_registro?: string
+          id?: string
+          interagiu_bem?: boolean | null
+          observacoes?: string | null
+          pulgas_carrapatos?: boolean | null
+          sinais_doenca?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creche_registros_diarios_estadia_id_fkey"
+            columns: ["estadia_id"]
+            isOneToOne: false
+            referencedRelation: "creche_estadias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_leads: {
         Row: {
           agendou_reuniao: boolean | null
