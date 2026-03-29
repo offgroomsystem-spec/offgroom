@@ -1635,6 +1635,7 @@ const Agendamentos = () => {
     setSimpleFilteredWhatsapp([]);
     setServicosSelecionadosSimples([{ instanceId: crypto.randomUUID(), nome: "", valor: 0 }]);
     setOpenServicoComboboxIndex(null);
+    setOpenAdditionalServicoCombobox(null);
     setAdditionalPets([]);
     setShowAdditionalPetsPopover(false);
     setIsDialogOpen(false);
