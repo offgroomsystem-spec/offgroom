@@ -646,6 +646,62 @@ const Agendamentos = () => {
   const [pacoteFilteredWhatsapp, setPacoteFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
   const pacoteWhatsappJustSelected = useRef(false);
 
+  // Estados para agendamento de múltiplos pets
+  interface AdditionalPetSchedule {
+    petName: string;
+    raca: string;
+    porte: string;
+    horario: string;
+    horarioTermino: string;
+    tempoServico: string;
+  }
+  const [additionalPets, setAdditionalPets] = useState<AdditionalPetSchedule[]>([]);
+  const [showAdditionalPetsPopover, setShowAdditionalPetsPopover] = useState(false);
+
+  // Pets do mesmo cliente disponíveis para agendamento adicional
+  const otherPetsFromClient = useMemo(() => {
+    if (!formData.cliente || !formData.pet || !formData.raca || !formData.whatsapp) return [];
+    const clientesDoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
+    const allPets: Pet[] = [];
+    clientesDoNome.forEach(c => c.pets.forEach(p => allPets.push(p)));
+    // Excluir o pet principal e os já adicionados
+    const addedNames = additionalPets.map(ap => ap.petName);
+    return allPets.filter(p => !(p.nome === formData.pet && p.raca === formData.raca) && !addedNames.includes(p.nome));
+  }, [formData.cliente, formData.pet, formData.raca, formData.whatsapp, clientes, additionalPets]);
+
+  const handleToggleAdditionalPet = (pet: Pet) => {
+    const exists = additionalPets.find(ap => ap.petName === pet.nome);
+    if (exists) {
+      setAdditionalPets(additionalPets.filter(ap => ap.petName !== pet.nome));
+    } else {
+      setAdditionalPets([...additionalPets, {
+        petName: pet.nome,
+        raca: pet.raca,
+        porte: pet.porte,
+        horario: "",
+        horarioTermino: "",
+        tempoServico: "",
+      }]);
+    }
+  };
+
+  const updateAdditionalPetTime = (index: number, field: 'horario' | 'horarioTermino' | 'tempoServico', value: string) => {
+    setAdditionalPets(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      if (field === 'horario' || field === 'tempoServico') {
+        const h = field === 'horario' ? value : updated[index].horario;
+        const t = field === 'tempoServico' ? value : updated[index].tempoServico;
+        if (h && t) updated[index].horarioTermino = calcularHorarioTermino(h, t);
+      }
+      if (field === 'horarioTermino') {
+        const h = updated[index].horario;
+        if (h && value) updated[index].tempoServico = calcularTempoServico(h, value);
+      }
+      return updated;
+    });
+  };
+
   // Estados para Gerenciamento de Agendamentos
   const [gerenciamentoOpen, setGerenciamentoOpen] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -1055,6 +1111,7 @@ const Agendamentos = () => {
       setSimpleFilteredPets(todosPetsDoNome);
       setSimpleFilteredClientes([]);
       setSimpleAvailableRacas([]);
+      setAdditionalPets([]);
     }
   };
 
@@ -1306,6 +1363,18 @@ const Agendamentos = () => {
       return;
     }
 
+    // Validar horários dos pets adicionais
+    for (const ap of additionalPets) {
+      if (!ap.horario) {
+        toast.error(`Favor preencher o Horário de Início para o pet ${ap.petName}`);
+        return;
+      }
+      if (!ap.tempoServico && !ap.horarioTermino) {
+        toast.error(`Favor preencher o Tempo de Serviço ou Horário de Fim para o pet ${ap.petName}`);
+        return;
+      }
+    }
+
     const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
     if (horarioTermino && formData.horario && horarioTermino <= formData.horario) {
@@ -1392,7 +1461,75 @@ const Agendamentos = () => {
         console.error("Erro ao agendar mensagens WhatsApp:", schedErr);
       }
 
-      toast.success("Agendamento criado com sucesso!");
+      // Criar agendamentos para pets adicionais
+      for (const ap of additionalPets) {
+        const apHorarioTermino = ap.horarioTermino || calcularHorarioTermino(ap.horario, ap.tempoServico);
+        try {
+          const { data: apData, error: apError } = await supabase.from("agendamentos").insert([{
+            user_id: ownerId,
+            cliente: formData.cliente,
+            pet: ap.petName,
+            raca: ap.raca,
+            whatsapp: formData.whatsapp,
+            servico: servicosNomes,
+            servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
+            data: formData.data,
+            horario: ap.horario,
+            tempo_servico: ap.tempoServico,
+            horario_termino: apHorarioTermino,
+            data_venda: formData.dataVenda,
+            numero_servico_pacote: formData.numeroServicoPacote || null,
+            groomer: formData.groomer,
+            taxi_dog: formData.taxiDog,
+            status: "confirmado"
+          }]).select("id").single();
+
+          if (!apError && apData) {
+            await criarLancamentoFinanceiroMultiplosServicos({
+              agendamentoId: apData.id,
+              nomeCliente: formData.cliente,
+              nomePet: ap.petName,
+              servicos: servicosValidos.map((s) => ({ nome: s.nome, valor: s.valor })),
+              dataAgendamento: formData.data,
+              dataVenda: formData.dataVenda,
+              ownerId: ownerId || user.id
+            });
+
+            // WhatsApp para pet adicional
+            try {
+              let sexoPetAd = "";
+              for (const cliente of clientes) {
+                const pet = cliente.pets.find(p => p.nome === ap.petName && p.raca === ap.raca);
+                if (pet) { sexoPetAd = pet.sexo || ""; break; }
+              }
+              await scheduleWhatsAppMessages({
+                userId: ownerId || user.id,
+                agendamentoId: apData.id,
+                nomeCliente: formData.cliente,
+                nomePet: ap.petName,
+                sexoPet: sexoPetAd,
+                raca: ap.raca,
+                whatsapp: formData.whatsapp,
+                dataAgendamento: formData.data,
+                horarioInicio: ap.horario,
+                servicos: servicosNomes,
+                taxiDog: formData.taxiDog,
+                bordao: empresaConfig.bordao,
+                isPacote: !!formData.numeroServicoPacote,
+                isUltimoServicoPacote: false,
+                servicoNumero: formData.numeroServicoPacote || undefined,
+              });
+            } catch (schedErr) {
+              console.error("Erro ao agendar WhatsApp para pet adicional:", schedErr);
+            }
+          }
+        } catch (apErr) {
+          console.error(`Erro ao criar agendamento para ${ap.petName}:`, apErr);
+        }
+      }
+
+      const totalAgendamentos = 1 + additionalPets.length;
+      toast.success(`${totalAgendamentos} agendamento(s) criado(s) com sucesso!`);
       await loadAgendamentos();
       resetForm();
     } catch (error) {
@@ -1430,6 +1567,8 @@ const Agendamentos = () => {
     setSimpleFilteredWhatsapp([]);
     setServicosSelecionadosSimples([{ instanceId: crypto.randomUUID(), nome: "", valor: 0 }]);
     setOpenServicoComboboxIndex(null);
+    setAdditionalPets([]);
+    setShowAdditionalPetsPopover(false);
     setIsDialogOpen(false);
   };
   const resetPacoteForm = () => {
@@ -2856,9 +2995,43 @@ const Agendamentos = () => {
                   </div>
 
                   <div className="space-y-1 relative">
-                    <Label htmlFor="pet" className="text-xs">
-                      Pet *
-                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="pet" className="text-xs">
+                        Pet *
+                      </Label>
+                      {formData.cliente && formData.pet && formData.raca && formData.whatsapp && otherPetsFromClient.length > 0 && (
+                        <Popover open={showAdditionalPetsPopover} onOpenChange={setShowAdditionalPetsPopover}>
+                          <PopoverTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-primary hover:text-primary/80">
+                              + Agendar demais pets
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2 z-50" align="start">
+                            <div className="text-xs font-medium mb-1.5">Selecionar pets:</div>
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                              {(() => {
+                                const clientesDoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
+                                const allPets: Pet[] = [];
+                                clientesDoNome.forEach(c => c.pets.forEach(p => allPets.push(p)));
+                                const others = allPets.filter(p => !(p.nome === formData.pet && p.raca === formData.raca));
+                                return others.map((pet, idx) => {
+                                  const isSelected = additionalPets.some(ap => ap.petName === pet.nome);
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={cn("flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs hover:bg-accent", isSelected && "bg-accent")}
+                                      onClick={() => handleToggleAdditionalPet(pet)}>
+                                      <Check className={cn("h-3 w-3", isSelected ? "opacity-100" : "opacity-0")} />
+                                      {pet.nome} ({pet.raca})
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                     <Input
                       id="pet"
                       value={simplePetSearch}
@@ -3002,7 +3175,7 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label htmlFor="horario" className="text-xs">
-                      Horário de Início *
+                      {additionalPets.length > 0 ? `${formData.pet}:` : 'Horário de Início *'}
                     </Label>
                     <TimeInput
                       value={formData.horario}
@@ -3086,6 +3259,51 @@ const Agendamentos = () => {
                     
                   </div>
                 </div>
+
+                {/* Linhas de horário para pets adicionais */}
+                {additionalPets.map((ap, apIdx) => (
+                  <div key={ap.petName} className="grid grid-cols-4 gap-1.5">
+                    <div className="flex items-center">
+                      <span className="text-xs font-medium text-muted-foreground truncate">{ap.petName}:</span>
+                    </div>
+                    <div>
+                      <TimeInput
+                        value={ap.horario}
+                        onChange={(value) => updateAdditionalPetTime(apIdx, 'horario', value)}
+                        placeholder="00:00"
+                        className="h-8 text-xs" />
+                    </div>
+                    <div>
+                      <TimeInput
+                        value={ap.horarioTermino}
+                        onChange={(value) => updateAdditionalPetTime(apIdx, 'horarioTermino', value)}
+                        placeholder="00:00"
+                        className="h-8 text-xs" />
+                    </div>
+                    <div>
+                      <Input
+                        type="text"
+                        value={ap.tempoServico}
+                        onChange={(event) => {
+                          let valorDigitado = event.target.value;
+                          valorDigitado = valorDigitado.replace(/\D/g, "");
+                          if (valorDigitado.length > 3) valorDigitado = valorDigitado.slice(0, 3);
+                          if (valorDigitado.length === 0) valorDigitado = "";
+                          else if (valorDigitado.length === 2) valorDigitado = `${valorDigitado[0]}:${valorDigitado[1]}`;
+                          else if (valorDigitado.length === 3) valorDigitado = `${valorDigitado[0]}:${valorDigitado.slice(1, 3)}`;
+                          const partes = valorDigitado.split(":");
+                          if (partes.length === 2 && parseInt(partes[1], 10) > 59) {
+                            partes[1] = "59";
+                            valorDigitado = `${partes[0]}:${partes[1]}`;
+                          }
+                          updateAdditionalPetTime(apIdx, 'tempoServico', valorDigitado);
+                        }}
+                        placeholder="0:00"
+                        className="h-8 text-xs"
+                        maxLength={4} />
+                    </div>
+                  </div>
+                ))}
 
                   <div className="space-y-1">
                     <Label className="text-xs">Serviço(s) *</Label>
