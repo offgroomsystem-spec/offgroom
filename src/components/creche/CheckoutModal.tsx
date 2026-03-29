@@ -26,6 +26,8 @@ interface CheckoutModalProps {
   onOpenChange: (open: boolean) => void;
   estadiasAtivas: Estadia[];
   onSuccess: () => void;
+  contextClienteNome?: string | null;
+  contextEstadiaId?: string | null;
 }
 
 const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: CheckoutModalProps) => {
