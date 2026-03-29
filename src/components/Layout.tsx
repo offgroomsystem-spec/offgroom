@@ -43,6 +43,7 @@ const Layout = () => {
     { path: "/compras-realizadas", label: "Compras Realizadas", icon: FileText, permission: "compras.visualizar" },
     { path: "/contas-bancarias", label: "Contas Bancárias", icon: DollarSign, permission: "contas.visualizar" },
     { path: "/logins", label: "Logins", icon: UserCog, permission: "admin_only" },
+    ...(crecheAtiva ? [{ path: "/servicos-creche-hotel", label: "Serviços Creche & Hotel", icon: Dog, permission: "servicos.visualizar" }] : []),
   ];
   
   const filteredCadastroItems = cadastroItems.filter(item => {

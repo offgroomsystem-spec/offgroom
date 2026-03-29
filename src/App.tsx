@@ -31,6 +31,7 @@ import Logins from "./pages/Logins";
 import CRMOffgroom from "./pages/CRMOffgroom";
 import NotasFiscais from "./pages/NotasFiscais";
 import Creche from "./pages/Creche";
+import ServicosCrecheHotel from "./pages/ServicosCrecheHotel";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const App = () => (
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/notas-fiscais" element={<NotasFiscais />} />
                 <Route path="/logins" element={<Logins />} />
+                <Route path="/servicos-creche-hotel" element={<ServicosCrecheHotel />} />
               </Route>
             </Route>
             
