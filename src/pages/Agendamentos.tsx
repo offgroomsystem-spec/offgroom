@@ -3361,21 +3361,45 @@ const Agendamentos = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <Label htmlFor="whatsapp" className="text-xs">
                       WhatsApp
                     </Label>
-                    <Input
-                      id="whatsapp"
-                      value={
-                      pacoteFormData.whatsapp ?
-                      `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}` :
-                      ""
-                      }
-                      readOnly
-                      className="h-8 text-xs bg-secondary" />
-                    
-                  </div>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Input
+                        id="whatsapp-pacote"
+                        value={pacoteWhatsappSearch || (
+                          pacoteFormData.whatsapp ?
+                          `(${pacoteFormData.whatsapp.slice(0, 2)}) ${pacoteFormData.whatsapp.slice(2, 7)}-${pacoteFormData.whatsapp.slice(7)}` :
+                          ""
+                        )}
+                        onChange={(e) => setPacoteWhatsappSearch(e.target.value.replace(/\D/g, ''))}
+                        onFocus={() => {
+                          if (pacoteFormData.whatsapp && !pacoteWhatsappSearch) {
+                            setPacoteWhatsappSearch('');
+                          }
+                        }}
+                        placeholder="Buscar por WhatsApp..."
+                        className="h-8 text-xs pl-7" />
+                    </div>
+                    {pacoteFilteredWhatsapp.length > 0 &&
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {pacoteFilteredWhatsapp.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="px-3 py-2 hover:bg-accent cursor-pointer"
+                        onClick={() => handlePacoteWhatsappSelect(item)}>
+                        <div className="text-xs font-medium">
+                          ({item.whatsapp.slice(0, 2)}) {item.whatsapp.slice(2, 7)}-{item.whatsapp.slice(7)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {item.nomeCliente}{item.nomePet ? ` • ${item.nomePet}` : ''}
+                        </div>
+                      </div>
+                      ))}
+                      </div>
+                    }
 
                   <div className="space-y-1">
                     <Label htmlFor="taxiDog" className="text-xs">
