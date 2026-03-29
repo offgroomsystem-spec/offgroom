@@ -2801,16 +2801,20 @@ const Agendamentos = () => {
         const clienteId = clientesData?.[0]?.id;
         if (clienteId) {
           // Search financial entries for this client with matching date
+          // Search all financial entries for this client (sale date OR session dates)
           const { data: lancamentos } = await supabase
             .from("lancamentos_financeiros")
             .select("*")
             .eq("user_id", ownerId)
             .eq("cliente_id", clienteId)
-            .eq("data_pagamento", agendamento.dataVenda)
             .eq("tipo", "Receita")
-            .eq("descricao1", "Receita Operacional");
+            .eq("descricao1", "Receita Operacional")
+            .order("created_at", { ascending: false });
           if (lancamentos && lancamentos.length > 0) {
-            // Try to find one whose items match the package name
+            // Prefer the most recent UNPAID entry (new extras entry)
+            const unpaidFirst = lancamentos.find((l: any) => l.pago === false);
+            // Also check for package-matching entries
+            let packageMatch = null;
             for (const l of lancamentos) {
               const { data: itens } = await supabase
                 .from("lancamentos_financeiros_itens")
@@ -2820,14 +2824,12 @@ const Agendamentos = () => {
                 item.produto_servico?.toLowerCase() === agendamento.nomePacote?.toLowerCase()
               );
               if (hasPackageItem) {
-                lancamento = l;
+                packageMatch = l;
                 break;
               }
             }
-            // If no exact package match, use the first one
-            if (!lancamento) {
-              lancamento = lancamentos[0];
-            }
+            // Priority: most recent unpaid > package match > most recent overall
+            lancamento = unpaidFirst || packageMatch || lancamentos[0];
           }
         }
       }
