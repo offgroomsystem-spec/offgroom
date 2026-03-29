@@ -189,13 +189,20 @@ export const FinanceiroEditDialog = ({
 
     if ((itens || []).length > 0) {
       setItensForm(
-        itens.map((item: any) => ({
-          id: item.id || crypto.randomUUID(),
-          descricao2: item.descricao2 || "",
-          produtoServico: item.produto_servico || "",
-          quantidade: Number(item.quantidade) > 0 ? Number(item.quantidade) : 1,
-          valor: Number(item.valor) || 0,
-        })),
+        itens.map((item: any) => {
+          // Strip "PetName - " prefix from produto_servico to get just the service/product name
+          let produtoServico = item.produto_servico || "";
+          if (produtoServico.includes(" - ")) {
+            produtoServico = produtoServico.split(" - ").slice(1).join(" - ");
+          }
+          return {
+            id: item.id || crypto.randomUUID(),
+            descricao2: item.descricao2 || "",
+            produtoServico,
+            quantidade: Number(item.quantidade) > 0 ? Number(item.quantidade) : 1,
+            valor: Number(item.valor) || 0,
+          };
+        }),
       );
       return;
     }
