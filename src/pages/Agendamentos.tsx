@@ -4805,6 +4805,9 @@ const Agendamentos = () => {
                       onClick={() => {
                         setEditDialogGerenciamento(false);
                         setEditandoAgendamento(null);
+                        setEditMultiPetGroup([]);
+                        setLancamentoVinculado(null);
+                        setLancamentoItensVinculado([]);
                       }}
                       className="h-8 text-xs">
                       
