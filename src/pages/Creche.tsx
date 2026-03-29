@@ -74,7 +74,7 @@ const Creche = () => {
     const estadiaIds = data.map((d) => d.id);
 
     const [petsRes, clientesRes, registrosRes] = await Promise.all([
-      supabase.from("pets").select("id, nome_pet").in("id", petIds),
+      supabase.from("pets").select("id, nome_pet, porte").in("id", petIds),
       supabase.from("clientes").select("id, nome_cliente").in("id", clienteIds),
       supabase
         .from("creche_registros_diarios")
