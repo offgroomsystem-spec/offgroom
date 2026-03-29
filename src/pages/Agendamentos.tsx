@@ -634,6 +634,11 @@ const Agendamentos = () => {
   const simpleClienteJustSelected = useRef(false);
   const clienteJustSelected = useRef(false);
   const simplePetJustSelected = useRef(false);
+
+  // Estados para busca por WhatsApp (Agendamento Simples)
+  const [simpleWhatsappSearch, setSimpleWhatsappSearch] = useState("");
+  const [simpleFilteredWhatsapp, setSimpleFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
+  const simpleWhatsappJustSelected = useRef(false);
   const petJustSelected = useRef(false);
 
   // Estados para Gerenciamento de Agendamentos
@@ -782,7 +787,64 @@ const Agendamentos = () => {
     }
   }, [simplePetSearch, clientes]);
 
-  // Atualizar pets disponíveis quando cliente é selecionado (Pacotes)
+  // Busca inteligente por WhatsApp (Agendamento Simples)
+  useEffect(() => {
+    if (simpleWhatsappJustSelected.current) {
+      simpleWhatsappJustSelected.current = false;
+      return;
+    }
+    if (simpleWhatsappSearch.length >= 2) {
+      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }> = [];
+      clientes.forEach((cliente) => {
+        if (cliente.whatsapp.includes(simpleWhatsappSearch)) {
+          if (cliente.pets.length > 0) {
+            cliente.pets.forEach((pet) => {
+              results.push({
+                whatsapp: cliente.whatsapp,
+                nomeCliente: cliente.nomeCliente,
+                nomePet: pet.nome,
+                raca: pet.raca,
+              });
+            });
+          } else {
+            results.push({
+              whatsapp: cliente.whatsapp,
+              nomeCliente: cliente.nomeCliente,
+              nomePet: "",
+              raca: "",
+            });
+          }
+        }
+      });
+      setSimpleFilteredWhatsapp(results);
+    } else {
+      setSimpleFilteredWhatsapp([]);
+    }
+  }, [simpleWhatsappSearch, clientes]);
+
+  // Handler para seleção por WhatsApp (Agendamento Simples)
+  const handleSimpleWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string }) => {
+    simpleWhatsappJustSelected.current = true;
+    const formatted = item.whatsapp.length >= 11
+      ? `(${item.whatsapp.slice(0, 2)}) ${item.whatsapp.slice(2, 7)}-${item.whatsapp.slice(7)}`
+      : item.whatsapp;
+    setSimpleWhatsappSearch(formatted);
+    setSimpleFilteredWhatsapp([]);
+    setFormData({
+      ...formData,
+      cliente: item.nomeCliente,
+      pet: item.nomePet,
+      raca: item.raca,
+      whatsapp: item.whatsapp,
+    });
+    setSimpleClienteSearch(item.nomeCliente);
+    setSimplePetSearch(item.nomePet);
+    if (item.raca) {
+      setSimpleAvailableRacas([item.raca]);
+    }
+  };
+
+
   const handleClienteSelect = (nomeCliente: string) => {
     clienteJustSelected.current = true;
     setClienteSearch(nomeCliente);
@@ -1313,6 +1375,8 @@ const Agendamentos = () => {
     setSimpleFilteredPets([]);
     setSimpleAvailableRacas([]);
     setSimpleSearchStartedWith(null);
+    setSimpleWhatsappSearch("");
+    setSimpleFilteredWhatsapp([]);
     setServicosSelecionadosSimples([{ instanceId: crypto.randomUUID(), nome: "", valor: 0 }]);
     setOpenServicoComboboxIndex(null);
     setIsDialogOpen(false);
@@ -2792,20 +2856,47 @@ const Agendamentos = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <Label htmlFor="whatsapp" className="text-xs">
                       WhatsApp
                     </Label>
-                    <Input
-                      id="whatsapp"
-                      value={
-                      formData.whatsapp ?
-                      `(${formData.whatsapp.slice(0, 2)}) ${formData.whatsapp.slice(2, 7)}-${formData.whatsapp.slice(7)}` :
-                      ""
-                      }
-                      readOnly
-                      className="h-8 text-xs bg-secondary" />
-                    
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Input
+                        id="whatsapp"
+                        value={simpleWhatsappSearch || (
+                          formData.whatsapp ?
+                          `(${formData.whatsapp.slice(0, 2)}) ${formData.whatsapp.slice(2, 7)}-${formData.whatsapp.slice(7)}` :
+                          ""
+                        )}
+                        onChange={(e) => {
+                          setSimpleWhatsappSearch(e.target.value.replace(/\D/g, ''));
+                        }}
+                        onFocus={() => {
+                          if (formData.whatsapp && !simpleWhatsappSearch) {
+                            setSimpleWhatsappSearch('');
+                          }
+                        }}
+                        placeholder="Buscar por WhatsApp..."
+                        className="h-8 text-xs pl-7" />
+                    </div>
+                    {simpleFilteredWhatsapp.length > 0 &&
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {simpleFilteredWhatsapp.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="px-3 py-2 hover:bg-accent cursor-pointer"
+                        onClick={() => handleSimpleWhatsappSelect(item)}>
+                        <div className="text-xs font-medium">
+                          ({item.whatsapp.slice(0, 2)}) {item.whatsapp.slice(2, 7)}-{item.whatsapp.slice(7)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {item.nomeCliente}{item.nomePet ? ` • ${item.nomePet}` : ''}
+                        </div>
+                      </div>
+                      ))}
+                      </div>
+                    }
                   </div>
                 </div>
 
