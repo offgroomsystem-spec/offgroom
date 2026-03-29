@@ -204,7 +204,6 @@ const ServicoExtraCombobox = ({
 
 
 
-
 }: {extra: {id: string;nome: string;valor: number;};index: number;servicos: Servico[];onSelect: (servico: Servico) => void;}) => {
   const [open, setOpen] = useState(false);
 
@@ -2514,6 +2513,34 @@ const Agendamentos = () => {
     setPetProntoDialogOpen(false);
   };
 
+  // Convert dia item to AgendamentoUnificado for edit dialog
+  const convertDiaItemToUnificado = (item: typeof agendamentosDia[0]): AgendamentoUnificado => {
+    if (item.tipo === "simples") {
+      const ag = (item as any).agendamentoOriginal || (item as any).agendamento;
+      return {
+        id: ag.id, tipo: "simples", data: ag.data,
+        horarioInicio: ag.horario, horarioTermino: ag.horarioTermino,
+        cliente: ag.cliente, pet: ag.pet, raca: ag.raca,
+        servico: ag.servico, nomePacote: "", numeroPacote: "",
+        taxiDog: ag.taxiDog || "", dataVenda: ag.dataVenda,
+        whatsapp: ag.whatsapp, tempoServico: ag.tempoServico || "",
+        groomer: ag.groomer || "", agendamentoOriginal: ag,
+      };
+    } else {
+      const p = (item as any).agendamentoPacote;
+      const s = (item as any).servicoAgendamento;
+      return {
+        id: `${p.id}-${s.numero}`, tipo: "pacote", data: s.data,
+        horarioInicio: s.horarioInicio, horarioTermino: s.horarioTermino,
+        cliente: p.nomeCliente, pet: p.nomePet, raca: p.raca,
+        servico: item.servico, nomePacote: p.nomePacote, numeroPacote: s.numero,
+        taxiDog: p.taxiDog, dataVenda: p.dataVenda, whatsapp: p.whatsapp,
+        tempoServico: s.tempoServico, groomer: (s as any).groomer || "",
+        pacoteOriginal: p, servicoOriginal: s,
+      };
+    }
+  };
+
 
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
@@ -2724,6 +2751,100 @@ const Agendamentos = () => {
     }
   };
 
+  // Load linked financial entry
+  const loadFinanceiroVinculado = async (agendamento: AgendamentoUnificado) => {
+    if (!user || !agendamento) return;
+    try {
+      let lancamento = null;
+      if (agendamento.tipo === "simples" && agendamento.agendamentoOriginal) {
+        const { data } = await supabase
+          .from("lancamentos_financeiros")
+          .select("*")
+          .eq("agendamento_id", agendamento.agendamentoOriginal.id)
+          .maybeSingle();
+        lancamento = data;
+      }
+      if (!lancamento) {
+        const { data } = await supabase
+          .from("lancamentos_financeiros")
+          .select("*")
+          .eq("user_id", ownerId)
+          .eq("descricao1", agendamento.cliente)
+          .eq("data_pagamento", agendamento.dataVenda || agendamento.data)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        lancamento = data;
+      }
+      if (lancamento) {
+        setLancamentoVinculado(lancamento);
+        const { data: itens } = await supabase
+          .from("lancamentos_financeiros_itens")
+          .select("*")
+          .eq("lancamento_id", lancamento.id);
+        setLancamentoItensVinculado(itens || []);
+      } else {
+        setLancamentoVinculado(null);
+        setLancamentoItensVinculado([]);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar financeiro:", e);
+      setLancamentoVinculado(null);
+      setLancamentoItensVinculado([]);
+    }
+  };
+
+  // Excluir pet individual
+  const confirmarExclusaoPet = async () => {
+    if (!petParaDeletar || !user) return;
+    try {
+      if (petParaDeletar.tipo === "simples" && petParaDeletar.agendamentoOriginal) {
+        await deletePendingMessages({ agendamentoId: petParaDeletar.agendamentoOriginal.id });
+        const { error } = await supabase.from("agendamentos").delete().eq("id", petParaDeletar.agendamentoOriginal.id);
+        if (error) throw error;
+        // Sync financial: remove items for this pet
+        if (lancamentoVinculado) {
+          const itensParaDeletar = lancamentoItensVinculado.filter(item => item.descricao2?.includes(petParaDeletar.pet));
+          for (const item of itensParaDeletar) {
+            await supabase.from("lancamentos_financeiros_itens").delete().eq("id", item.id);
+          }
+          const itensRestantes = lancamentoItensVinculado.filter(item => !item.descricao2?.includes(petParaDeletar.pet));
+          const novoTotal = itensRestantes.reduce((sum: number, item: any) => sum + (item.valor * (item.quantidade || 1)), 0);
+          await supabase.from("lancamentos_financeiros").update({ valor_total: novoTotal }).eq("id", lancamentoVinculado.id);
+        }
+        toast.success(`Agendamento de ${petParaDeletar.pet} excluído com sucesso!`);
+      } else if (petParaDeletar.tipo === "pacote" && petParaDeletar.pacoteOriginal && petParaDeletar.servicoOriginal) {
+        await deletePendingMessages({ agendamentoPacoteId: petParaDeletar.pacoteOriginal.id, servicoNumero: petParaDeletar.servicoOriginal.numero });
+        const servicosAtualizados = petParaDeletar.pacoteOriginal.servicos.filter(s => s.numero !== petParaDeletar.servicoOriginal!.numero);
+        if (servicosAtualizados.length === 0) {
+          await supabase.from("agendamentos_pacotes").delete().eq("id", petParaDeletar.pacoteOriginal.id);
+        } else {
+          servicosAtualizados.forEach((s, i) => { s.numero = `${String(i + 1).padStart(2, "0")}/${String(servicosAtualizados.length).padStart(2, "0")}`; });
+          await supabase.from("agendamentos_pacotes").update({ servicos: servicosAtualizados as any }).eq("id", petParaDeletar.pacoteOriginal.id);
+        }
+        toast.success(`Agendamento de ${petParaDeletar.pet} excluído com sucesso!`);
+      }
+      await loadAgendamentos();
+      await loadAgendamentosPacotes();
+      setEditMultiPetGroup(prev => prev.filter(a => a.id !== petParaDeletar.id));
+      if (editandoAgendamento?.id === petParaDeletar.id) {
+        const remaining = editMultiPetGroup.filter(a => a.id !== petParaDeletar.id);
+        if (remaining.length > 0) {
+          handleEditarClick(remaining[0]);
+        } else {
+          setEditDialogGerenciamento(false);
+          setEditandoAgendamento(null);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao excluir pet:", error);
+      toast.error("Erro ao excluir agendamento");
+    } finally {
+      setDeletePetDialogOpen(false);
+      setPetParaDeletar(null);
+    }
+  };
+
   // Abrir edição
   const handleEditarClick = (agendamento: AgendamentoUnificado) => {
     setEditandoAgendamento(agendamento);
@@ -2790,6 +2911,13 @@ const Agendamentos = () => {
       const todosServicosArray = [
       { id: servicoPrincipalObj?.id || '', nome: servicoPrincipalEdicao, valor: servicoPrincipalObj?.valor || 0 },
       ...servicosExtrasEdicao.filter((e) => e.nome)];
+
+    // Find sibling agendamentos (same client, same date) for multi-pet view
+    const siblings = agendamentosUnificados.filter(a => 
+      a.cliente === agendamento.cliente && a.data === agendamento.data && a.id !== agendamento.id
+    );
+    setEditMultiPetGroup(siblings);
+    loadFinanceiroVinculado(agendamento);
 
 
       if (editandoAgendamento.tipo === "simples" && editandoAgendamento.agendamentoOriginal) {
@@ -2916,6 +3044,9 @@ const Agendamentos = () => {
       setEditandoAgendamento(null);
       setServicosExtrasEdicao([]);
       setServicoPrincipalEdicao("");
+      setEditMultiPetGroup([]);
+      setLancamentoVinculado(null);
+      setLancamentoItensVinculado([]);
     } catch (error) {
       console.error("Erro ao atualizar agendamento:", error);
       toast.error("Erro ao atualizar agendamento");
@@ -4577,36 +4708,87 @@ const Agendamentos = () => {
                     </div>
                 }
 
-                  <div className="flex justify-between gap-2 pt-4">
-                    <div className="flex gap-2 items-center">
-                      <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => handleExcluirAgendamento(editandoAgendamento)}
-                      className="h-8 text-xs gap-2">
-                      
-                        <Trash2 className="h-3 w-3" />
-                        Excluir Agendamento
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Enviar WhatsApp"
-                        onClick={(e) => enviarWhatsAppDireto(editandoAgendamento, e)}>
-                        <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '14px' }}></i>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Pet Pronto"
-                        onClick={(e) => handlePetProntoClick(editandoAgendamento, e)}>
-                        <Check className="h-4 w-4 text-blue-600" />
+                  {/* Outros pets no mesmo agendamento */}
+                  {editMultiPetGroup.length > 0 && (
+                    <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                      <Label className="text-xs font-semibold">Outros pets neste agendamento</Label>
+                      <div className="space-y-1.5">
+                        {editMultiPetGroup.map((sibling) => (
+                          <div key={sibling.id} className="flex items-center justify-between p-2 rounded border bg-background">
+                            <div className="flex-1">
+                              <div className="text-xs font-medium">{sibling.pet} <span className="text-muted-foreground">({sibling.raca})</span></div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {sibling.horarioInicio?.substring(0, 5)} - {sibling.horarioTermino?.substring(0, 5)} • {sibling.servico} {sibling.groomer ? `• ${sibling.groomer}` : ''}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] text-primary hover:text-primary/80"
+                                onClick={() => handleEditarClick(sibling)}>
+                                Editar
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                onClick={() => { setPetParaDeletar(sibling); setDeletePetDialogOpen(true); }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {editMultiPetGroup.length > 0 && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-xs font-semibold text-primary">Editando: {editandoAgendamento.pet}</span>
+                      <Button type="button" variant="ghost" size="icon"
+                        className="h-5 w-5 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                        onClick={() => { setPetParaDeletar(editandoAgendamento); setDeletePetDialogOpen(true); }}>
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
+                  )}
+
+                  <div className="flex justify-between gap-2 pt-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2 items-center">
+                        <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => handleExcluirAgendamento(editandoAgendamento)}
+                        className="h-8 text-xs gap-2">
+                        
+                          <Trash2 className="h-3 w-3" />
+                          Excluir Agendamento
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Enviar WhatsApp"
+                          onClick={(e) => enviarWhatsAppDireto(editandoAgendamento, e)}>
+                          <i className="fi fi-brands-whatsapp text-green-600" style={{ fontSize: '14px' }}></i>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Pet Pronto"
+                          onClick={(e) => handlePetProntoClick(editandoAgendamento, e)}>
+                          <Check className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        className="h-8 text-xs gap-2 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => setFinanceiroDialogOpen(true)}
+                        disabled={!lancamentoVinculado}>
+                        Financeiro
+                      </Button>
+                    </div>
+                    
                     <div className="flex gap-2">
                       <Button
                       type="button"
@@ -4614,6 +4796,9 @@ const Agendamentos = () => {
                       onClick={() => {
                         setEditDialogGerenciamento(false);
                         setEditandoAgendamento(null);
+                        setEditMultiPetGroup([]);
+                        setLancamentoVinculado(null);
+                        setLancamentoItensVinculado([]);
                       }}
                       className="h-8 text-xs">
                       
@@ -5014,7 +5199,7 @@ const Agendamentos = () => {
                   </thead>
                   <tbody>
                     {agendamentosDia.map((agendamento, index) =>
-                  <tr key={index} className="hover:bg-cyan-500/20 transition-colors">
+                  <tr key={index} className="hover:bg-cyan-500/20 transition-colors cursor-pointer" onClick={() => handleEditarClick(convertDiaItemToUnificado(agendamento))}>
                         <td className="p-1.5 border">
                           {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
                         </td>
