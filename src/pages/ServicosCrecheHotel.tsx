@@ -45,13 +45,14 @@ const emptyForm: Omit<ServicoCreche, "id"> = {
   observacoes_internas: "",
 };
 
-const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: string) => {
-  const tipoLabel = tipo === "creche" ? "Creche" : "Hotel";
+const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: string, porte?: string) => {
+  const tipoLabel = tipo === "creche" ? "Serviço de Creche" : "Serviço de Hotel";
+  const precoLabel = modelo_preco === "unico" ? "Único" : "Por Porte";
   const cobrancaLabel = tipo === "creche"
     ? modelo_cobranca === "hora" ? "Por Hora" : modelo_cobranca === "dia" ? "Por Dia" : "Por Período"
     : "";
-  const precoLabel = modelo_preco === "porte" ? "Por Porte" : "";
-  return [tipoLabel, cobrancaLabel, precoLabel].filter(Boolean).join(" - ");
+  const porteLabel = porte ? `Porte ${porte}` : "";
+  return [tipoLabel, precoLabel, cobrancaLabel, porteLabel].filter(Boolean).join(", ");
 };
 
 const ServicosCrecheHotel = () => {
@@ -115,23 +116,26 @@ const ServicosCrecheHotel = () => {
       return;
     }
 
-    const autoNome = generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco);
-    const payload = {
-      nome: autoNome,
+    const basePayload = {
       descricao: null as string | null,
       tipo: form.tipo,
       modelo_preco: form.modelo_preco,
       modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "periodo",
-      valor_unico: form.modelo_preco === "unico" ? form.valor_unico : 0,
-      valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
-      valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
-      valor_grande: form.modelo_preco === "porte" ? form.valor_grande : 0,
       is_padrao: false,
       is_opcional: true,
       observacoes_internas: form.observacoes_internas?.trim() || null,
     };
 
     if (editingId) {
+      const autoNome = generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco);
+      const payload = {
+        ...basePayload,
+        nome: autoNome,
+        valor_unico: form.modelo_preco === "unico" ? form.valor_unico : 0,
+        valor_pequeno: form.modelo_preco === "porte" ? form.valor_pequeno : 0,
+        valor_medio: form.modelo_preco === "porte" ? form.valor_medio : 0,
+        valor_grande: form.modelo_preco === "porte" ? form.valor_grande : 0,
+      };
       const { error } = await supabase
         .from("servicos_creche")
         .update(payload as any)
@@ -141,10 +145,38 @@ const ServicosCrecheHotel = () => {
         return;
       }
       toast.success("Serviço atualizado com sucesso");
+    } else if (form.modelo_preco === "porte") {
+      const portes = [
+        { label: "Pequeno", valor: form.valor_pequeno },
+        { label: "Médio", valor: form.valor_medio },
+        { label: "Grande", valor: form.valor_grande },
+      ];
+      const inserts = portes.map((p) => ({
+        ...basePayload,
+        nome: generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco, p.label),
+        valor_unico: 0,
+        valor_pequeno: p.label === "Pequeno" ? p.valor : 0,
+        valor_medio: p.label === "Médio" ? p.valor : 0,
+        valor_grande: p.label === "Grande" ? p.valor : 0,
+        user_id: user!.id,
+      }));
+      const { error } = await supabase.from("servicos_creche").insert(inserts as any);
+      if (error) {
+        toast.error("Erro ao criar serviços");
+        return;
+      }
+      toast.success("3 serviços criados com sucesso (por porte)");
     } else {
-      const { error } = await supabase
-        .from("servicos_creche")
-        .insert({ ...payload, user_id: user!.id } as any);
+      const payload = {
+        ...basePayload,
+        nome: generateNome(form.tipo, form.modelo_cobranca, form.modelo_preco),
+        valor_unico: form.valor_unico,
+        valor_pequeno: 0,
+        valor_medio: 0,
+        valor_grande: 0,
+        user_id: user!.id,
+      };
+      const { error } = await supabase.from("servicos_creche").insert(payload as any);
       if (error) {
         toast.error("Erro ao criar serviço");
         return;
