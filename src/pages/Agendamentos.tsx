@@ -3111,8 +3111,8 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="space-y-0.5">
                     <Label htmlFor="raca" className="text-xs">
                       Raça *
                     </Label>
