@@ -2994,9 +2994,43 @@ const Agendamentos = () => {
                   </div>
 
                   <div className="space-y-1 relative">
-                    <Label htmlFor="pet" className="text-xs">
-                      Pet *
-                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="pet" className="text-xs">
+                        Pet *
+                      </Label>
+                      {formData.cliente && formData.pet && formData.raca && formData.whatsapp && otherPetsFromClient.length > 0 && (
+                        <Popover open={showAdditionalPetsPopover} onOpenChange={setShowAdditionalPetsPopover}>
+                          <PopoverTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-primary hover:text-primary/80">
+                              + Agendar demais pets
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2 z-50" align="start">
+                            <div className="text-xs font-medium mb-1.5">Selecionar pets:</div>
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                              {(() => {
+                                const clientesDoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
+                                const allPets: Pet[] = [];
+                                clientesDoNome.forEach(c => c.pets.forEach(p => allPets.push(p)));
+                                const others = allPets.filter(p => !(p.nome === formData.pet && p.raca === formData.raca));
+                                return others.map((pet, idx) => {
+                                  const isSelected = additionalPets.some(ap => ap.petName === pet.nome);
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={cn("flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs hover:bg-accent", isSelected && "bg-accent")}
+                                      onClick={() => handleToggleAdditionalPet(pet)}>
+                                      <Check className={cn("h-3 w-3", isSelected ? "opacity-100" : "opacity-0")} />
+                                      {pet.nome} ({pet.raca})
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                     <Input
                       id="pet"
                       value={simplePetSearch}
