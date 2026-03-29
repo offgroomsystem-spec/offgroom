@@ -2764,6 +2764,7 @@ const Agendamentos = () => {
     if (!user || !agendamento) return;
     try {
       let lancamento = null;
+      // Try by agendamento_id first (for simples)
       if (agendamento.tipo === "simples" && agendamento.agendamentoOriginal) {
         const { data } = await supabase
           .from("lancamentos_financeiros")
@@ -2772,17 +2773,20 @@ const Agendamentos = () => {
           .maybeSingle();
         lancamento = data;
       }
-      if (!lancamento) {
-        const { data } = await supabase
-          .from("lancamentos_financeiros")
-          .select("*")
-          .eq("user_id", ownerId)
-          .eq("descricao1", agendamento.cliente)
-          .eq("data_pagamento", agendamento.dataVenda || agendamento.data)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        lancamento = data;
+      // Also try siblings' agendamento_ids
+      if (!lancamento && agendamento.tipo === "simples") {
+        const siblings = agendamentosUnificados.filter(a =>
+          a.cliente === agendamento.cliente && a.data === agendamento.data && a.tipo === "simples" && a.agendamentoOriginal
+        );
+        for (const sib of siblings) {
+          if (lancamento) break;
+          const { data } = await supabase
+            .from("lancamentos_financeiros")
+            .select("*")
+            .eq("agendamento_id", sib.agendamentoOriginal!.id)
+            .maybeSingle();
+          if (data) lancamento = data;
+        }
       }
       if (lancamento) {
         setLancamentoVinculado(lancamento);
