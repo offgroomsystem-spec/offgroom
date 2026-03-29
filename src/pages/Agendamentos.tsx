@@ -646,6 +646,62 @@ const Agendamentos = () => {
   const [pacoteFilteredWhatsapp, setPacoteFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
   const pacoteWhatsappJustSelected = useRef(false);
 
+  // Estados para agendamento de múltiplos pets
+  interface AdditionalPetSchedule {
+    petName: string;
+    raca: string;
+    porte: string;
+    horario: string;
+    horarioTermino: string;
+    tempoServico: string;
+  }
+  const [additionalPets, setAdditionalPets] = useState<AdditionalPetSchedule[]>([]);
+  const [showAdditionalPetsPopover, setShowAdditionalPetsPopover] = useState(false);
+
+  // Pets do mesmo cliente disponíveis para agendamento adicional
+  const otherPetsFromClient = useMemo(() => {
+    if (!formData.cliente || !formData.pet || !formData.raca || !formData.whatsapp) return [];
+    const clientesDoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
+    const allPets: Pet[] = [];
+    clientesDoNome.forEach(c => c.pets.forEach(p => allPets.push(p)));
+    // Excluir o pet principal e os já adicionados
+    const addedNames = additionalPets.map(ap => ap.petName);
+    return allPets.filter(p => !(p.nome === formData.pet && p.raca === formData.raca) && !addedNames.includes(p.nome));
+  }, [formData.cliente, formData.pet, formData.raca, formData.whatsapp, clientes, additionalPets]);
+
+  const handleToggleAdditionalPet = (pet: Pet) => {
+    const exists = additionalPets.find(ap => ap.petName === pet.nome);
+    if (exists) {
+      setAdditionalPets(additionalPets.filter(ap => ap.petName !== pet.nome));
+    } else {
+      setAdditionalPets([...additionalPets, {
+        petName: pet.nome,
+        raca: pet.raca,
+        porte: pet.porte,
+        horario: "",
+        horarioTermino: "",
+        tempoServico: "",
+      }]);
+    }
+  };
+
+  const updateAdditionalPetTime = (index: number, field: 'horario' | 'horarioTermino' | 'tempoServico', value: string) => {
+    setAdditionalPets(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      if (field === 'horario' || field === 'tempoServico') {
+        const h = field === 'horario' ? value : updated[index].horario;
+        const t = field === 'tempoServico' ? value : updated[index].tempoServico;
+        if (h && t) updated[index].horarioTermino = calcularHorarioTermino(h, t);
+      }
+      if (field === 'horarioTermino') {
+        const h = updated[index].horario;
+        if (h && value) updated[index].tempoServico = calcularTempoServico(h, value);
+      }
+      return updated;
+    });
+  };
+
   // Estados para Gerenciamento de Agendamentos
   const [gerenciamentoOpen, setGerenciamentoOpen] = useState(false);
   const [filtros, setFiltros] = useState({
