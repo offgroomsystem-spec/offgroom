@@ -528,12 +528,17 @@ export const FinanceiroEditDialog = ({
               </div>
 
               {itensForm.map((item) => {
-                const optionsProdutoServico =
+                let optionsProdutoServico =
                   item.descricao2 === "Serviços"
                     ? servicos.map((servico) => ({ value: servico.nome, label: servico.nome, valor: servico.valor }))
                     : item.descricao2 === "Venda"
                       ? produtos.map((produto) => ({ value: produto.nome, label: produto.nome, valor: produto.valor }))
                       : [];
+
+                // If current value (e.g. package name) isn't in the options list, add it so Select displays it
+                if (item.produtoServico && optionsProdutoServico.length > 0 && !optionsProdutoServico.some(o => o.value === item.produtoServico)) {
+                  optionsProdutoServico = [{ value: item.produtoServico, label: item.produtoServico, valor: item.valor }, ...optionsProdutoServico];
+                }
 
                 return (
                   <div key={item.id} className="grid grid-cols-[2fr_2fr_0.7fr_1fr_1fr_auto] gap-1.5 items-end border rounded-md p-2">
