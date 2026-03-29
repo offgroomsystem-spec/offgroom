@@ -2522,6 +2522,34 @@ const Agendamentos = () => {
     setPetProntoDialogOpen(false);
   };
 
+  // Convert dia item to AgendamentoUnificado for edit dialog
+  const convertDiaItemToUnificado = (item: typeof agendamentosDia[0]): AgendamentoUnificado => {
+    if (item.tipo === "simples") {
+      const ag = (item as any).agendamentoOriginal || (item as any).agendamento;
+      return {
+        id: ag.id, tipo: "simples", data: ag.data,
+        horarioInicio: ag.horario, horarioTermino: ag.horarioTermino,
+        cliente: ag.cliente, pet: ag.pet, raca: ag.raca,
+        servico: ag.servico, nomePacote: "", numeroPacote: "",
+        taxiDog: ag.taxiDog || "", dataVenda: ag.dataVenda,
+        whatsapp: ag.whatsapp, tempoServico: ag.tempoServico || "",
+        groomer: ag.groomer || "", agendamentoOriginal: ag,
+      };
+    } else {
+      const p = (item as any).agendamentoPacote;
+      const s = (item as any).servicoAgendamento;
+      return {
+        id: `${p.id}-${s.numero}`, tipo: "pacote", data: s.data,
+        horarioInicio: s.horarioInicio, horarioTermino: s.horarioTermino,
+        cliente: p.nomeCliente, pet: p.nomePet, raca: p.raca,
+        servico: item.servico, nomePacote: p.nomePacote, numeroPacote: s.numero,
+        taxiDog: p.taxiDog, dataVenda: p.dataVenda, whatsapp: p.whatsapp,
+        tempoServico: s.tempoServico, groomer: (s as any).groomer || "",
+        pacoteOriginal: p, servicoOriginal: s,
+      };
+    }
+  };
+
 
   const getHorariosGantt = () => {
     if (empresaConfig.horarioInicio && empresaConfig.horarioFim) {
