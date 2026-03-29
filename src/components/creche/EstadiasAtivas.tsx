@@ -41,7 +41,7 @@ interface Estadia {
 interface EstadiasAtivasProps {
   estadias: Estadia[];
   onRegistro: (estadiaId: string, petNome: string) => void;
-  onCheckoutDireto: (estadiaId: string) => void;
+  onCheckoutDireto: (estadiaId: string, clienteNome: string) => void;
   onVerDetalhes: (estadiaId: string, petNome: string) => void;
   onAdicionarObs: (estadiaId: string, petNome: string) => void;
   onRefresh?: () => void;
@@ -309,7 +309,7 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
                     variant="outline"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => onCheckoutDireto(e.id)}
+                    onClick={() => onCheckoutDireto(e.id, e.cliente_nome)}
                   >
                     <LogOut className="h-3 w-3" />
                   </Button>

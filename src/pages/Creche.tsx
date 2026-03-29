@@ -162,7 +162,12 @@ const Creche = () => {
     setRegistroOpen(true);
   };
 
-  const handleCheckoutDireto = (estadiaId: string) => {
+  const [checkoutContextClienteNome, setCheckoutContextClienteNome] = useState<string | null>(null);
+  const [checkoutContextEstadiaId, setCheckoutContextEstadiaId] = useState<string | null>(null);
+
+  const handleCheckoutDireto = (estadiaId: string, clienteNome: string) => {
+    setCheckoutContextClienteNome(clienteNome);
+    setCheckoutContextEstadiaId(estadiaId);
     setCheckoutOpen(true);
   };
 
@@ -239,9 +244,17 @@ const Creche = () => {
       <CheckinModal open={checkinOpen} onOpenChange={setCheckinOpen} onSuccess={loadEstadias} />
       <CheckoutModal
         open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
+        onOpenChange={(open) => {
+          setCheckoutOpen(open);
+          if (!open) {
+            setCheckoutContextClienteNome(null);
+            setCheckoutContextEstadiaId(null);
+          }
+        }}
         estadiasAtivas={estadiasAtivas}
         onSuccess={loadEstadias}
+        contextClienteNome={checkoutContextClienteNome}
+        contextEstadiaId={checkoutContextEstadiaId}
       />
       <RegistroDiarioModal
         open={registroOpen}

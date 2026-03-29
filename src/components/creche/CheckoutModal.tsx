@@ -26,9 +26,11 @@ interface CheckoutModalProps {
   onOpenChange: (open: boolean) => void;
   estadiasAtivas: Estadia[];
   onSuccess: () => void;
+  contextClienteNome?: string | null;
+  contextEstadiaId?: string | null;
 }
 
-const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: CheckoutModalProps) => {
+const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextClienteNome, contextEstadiaId }: CheckoutModalProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -38,7 +40,24 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: Checko
     servicoNome: string;
   } | null>(null);
 
-  const selected = estadiasAtivas.find((e) => e.id === selectedId);
+  // Filter by tutor when context is provided
+  const filteredEstadias = contextClienteNome
+    ? estadiasAtivas.filter((e) => e.cliente_nome === contextClienteNome)
+    : estadiasAtivas;
+
+  const selected = filteredEstadias.find((e) => e.id === selectedId);
+
+  // Pre-select the pet when opening with context
+  useEffect(() => {
+    if (open && contextEstadiaId) {
+      setSelectedId(contextEstadiaId);
+    }
+    if (!open) {
+      setSelectedId(null);
+      setObservacoes("");
+      setBillingInfo(null);
+    }
+  }, [open, contextEstadiaId]);
 
   // Calculate billing when a pet is selected
   useEffect(() => {
@@ -140,14 +159,19 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess }: Checko
           <DialogDescription>Registrar saída de pet.</DialogDescription>
         </DialogHeader>
 
-        {estadiasAtivas.length === 0 ? (
+        {filteredEstadias.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhum pet ativo no momento.</p>
         ) : (
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">Selecione o Pet</Label>
+              <Label className="text-xs">
+                Selecione o Pet
+                {contextClienteNome && (
+                  <span className="text-muted-foreground ml-1">— Tutor: {contextClienteNome}</span>
+                )}
+              </Label>
               <div className="border rounded-md max-h-48 overflow-y-auto mt-1">
-                {estadiasAtivas.map((e) => (
+                {filteredEstadias.map((e) => (
                   <div
                     key={e.id}
                     onClick={() => setSelectedId(e.id)}
