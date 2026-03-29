@@ -62,11 +62,13 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       setFilteredPets(pets);
     } else {
       const s = searchPet.toLowerCase();
+      const sNorm = normalizePhone(s);
       setFilteredPets(
         pets.filter(
           (p) =>
             p.nome_pet.toLowerCase().includes(s) ||
-            (p.cliente_nome && p.cliente_nome.toLowerCase().includes(s))
+            (p.cliente_nome && p.cliente_nome.toLowerCase().includes(s)) ||
+            (p.cliente_whatsapp && normalizePhone(p.cliente_whatsapp).includes(sNorm))
         )
       );
     }
