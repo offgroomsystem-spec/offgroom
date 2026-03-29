@@ -1,16 +1,31 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home, UserCog } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home, UserCog, Dog } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/usePermissions";
+import { supabase } from "@/integrations/supabase/client";
 
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const { hasPermission, isAdministrador, isTaxiDog, isRecepcionista } = usePermissions();
+  const [crecheAtiva, setCrecheAtiva] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const loadCrecheConfig = async () => {
+      const { data } = await supabase
+        .from("empresa_config")
+        .select("creche_ativa")
+        .single();
+      if (data) setCrecheAtiva(data.creche_ativa);
+    };
+    loadCrecheConfig();
+  }, [user]);
   
   const handleLogout = async () => {
     await signOut();
