@@ -3004,23 +3004,10 @@ const Agendamentos = () => {
 
         <div className="flex gap-2">
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
             if (!open) {
-              setFormData({
-                cliente: "",
-                pet: "",
-                raca: "",
-                whatsapp: "",
-                servico: "",
-                data: "",
-                horario: "",
-                tempoServico: "",
-                horarioTermino: "",
-                dataVenda: "",
-                numeroServicoPacote: "",
-                groomer: "",
-                taxiDog: ""
-              });
+              resetForm();
+            } else {
+              setIsDialogOpen(true);
             }
           }}>
             <DialogTrigger asChild>
@@ -3029,15 +3016,15 @@ const Agendamentos = () => {
                 Novo Agendamento
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="max-h-[85vh] flex flex-col">
+              <DialogHeader className="pb-1">
                 <DialogTitle className="text-lg">Novo Agendamento</DialogTitle>
                 <DialogDescription className="text-xs">Preencha os dados do agendamento</DialogDescription>
               </DialogHeader>
 
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1 relative">
+              <form onSubmit={handleSubmit} className="space-y-1.5 overflow-y-auto flex-1 pr-1">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="space-y-0.5 relative">
                     <Label htmlFor="cliente" className="text-xs">
                       Cliente *
                     </Label>
@@ -3063,7 +3050,7 @@ const Agendamentos = () => {
                     }
                   </div>
 
-                  <div className="space-y-1 relative">
+                  <div className="space-y-0.5 relative">
                     <div className="flex items-center gap-1">
                       <Label htmlFor="pet" className="text-xs">
                         Pet *
@@ -3124,8 +3111,8 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="space-y-0.5">
                     <Label htmlFor="raca" className="text-xs">
                       Raça *
                     </Label>
@@ -3151,7 +3138,7 @@ const Agendamentos = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-1 relative">
+                  <div className="space-y-0.5 relative">
                     <Label htmlFor="whatsapp" className="text-xs">
                       WhatsApp
                     </Label>
@@ -3196,7 +3183,7 @@ const Agendamentos = () => {
                 </div>
 
                 <div className="grid grid-cols-4 gap-1.5">
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="data" className="text-xs">
                       Dia Agendamento*
                     </Label>
@@ -3242,7 +3229,7 @@ const Agendamentos = () => {
                     </Popover>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="horario" className="text-xs">
                       {additionalPets.length > 0 ? `${formData.pet}:` : 'Horário de Início *'}
                     </Label>
@@ -3263,7 +3250,7 @@ const Agendamentos = () => {
                     
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="horarioFim" className="text-xs">
                       Horário de Fim *
                     </Label>
@@ -3282,7 +3269,7 @@ const Agendamentos = () => {
                     
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="tempoServico" className="text-xs">
                       Tempo de Serviço*
                     </Label>
@@ -3330,7 +3317,7 @@ const Agendamentos = () => {
                 </div>
 
                 {/* Bloco de Serviços e Groomer do pet principal */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <Label className="text-xs">
                     {additionalPets.length > 0 ? `${formData.pet}: Serviço(s) *` : 'Serviço(s) *'}
                   </Label>
@@ -3415,7 +3402,7 @@ const Agendamentos = () => {
                 </div>
 
                 {/* Groomer do pet principal */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <Label htmlFor="groomer" className="text-xs">
                     {additionalPets.length > 0 ? `${formData.pet}: Groomer` : 'Groomer'}
                   </Label>
@@ -3496,7 +3483,7 @@ const Agendamentos = () => {
                       </div>
 
                       {/* Serviços do pet adicional */}
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <Label className="text-xs">{ap.petName}: Serviço(s) *</Label>
                         <div className="space-y-2">
                           {ap.servicos.map((servicoItem, sIdx) => {
@@ -3573,7 +3560,7 @@ const Agendamentos = () => {
                       </div>
 
                       {/* Groomer do pet adicional */}
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <Label className="text-xs">{ap.petName}: Groomer</Label>
                         <Select
                           value={ap.groomer}
@@ -3600,7 +3587,7 @@ const Agendamentos = () => {
                 })}
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="dataVenda" className="text-xs">
                       Data da Venda do Serviço *
                     </Label>
@@ -3620,7 +3607,7 @@ const Agendamentos = () => {
                     
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <Label htmlFor="taxiDog" className="text-xs">
                       Taxi Dog *
                     </Label>
@@ -3649,7 +3636,7 @@ const Agendamentos = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-1">
                   <Button type="button" variant="outline" onClick={resetForm} className="h-8 text-xs">
                     Cancelar
                   </Button>
