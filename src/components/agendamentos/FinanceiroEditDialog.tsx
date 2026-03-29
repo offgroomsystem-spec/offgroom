@@ -53,8 +53,7 @@ type FormFinanceiro = {
   tipo: "Receita" | "Despesa";
   descricao1: string;
   clienteId: string;
-  petPrincipalId: string;
-  petsAdicionaisIds: string[];
+  petIds: string[];
   dataPagamento: string;
   contaId: string;
   pago: boolean;
@@ -97,8 +96,7 @@ const defaultForm: FormFinanceiro = {
   tipo: "Receita",
   descricao1: "",
   clienteId: "",
-  petPrincipalId: "",
-  petsAdicionaisIds: [],
+  petIds: [],
   dataPagamento: "",
   contaId: "",
   pago: false,
@@ -184,7 +182,7 @@ export const FinanceiroEditDialog = ({
     const clientePets = clientes.find((c) => c.id === clienteId)?.pets || [];
     const validPetIds = petIds.filter((pId) => clientePets.some((p) => p.id === pId));
     
-    const petPrincipalId = validPetIds[0] || "";
+    
 
     setForm({
       ano: lancamento.ano || "",
@@ -192,8 +190,7 @@ export const FinanceiroEditDialog = ({
       tipo: lancamento.tipo === "Despesa" ? "Despesa" : "Receita",
       descricao1: lancamento.descricao1 || "",
       clienteId,
-      petPrincipalId,
-      petsAdicionaisIds: validPetIds.slice(1),
+      petIds: validPetIds,
       dataPagamento: lancamento.data_pagamento || "",
       contaId: lancamento.conta_id || "",
       pago: Boolean(lancamento.pago),
@@ -302,7 +299,7 @@ export const FinanceiroEditDialog = ({
     setSaving(true);
 
     try {
-      const petIds = [form.petPrincipalId, ...form.petsAdicionaisIds].filter(Boolean);
+      const petIds = form.petIds.filter(Boolean);
 
       const { error: updateError } = await supabase
         .from("lancamentos_financeiros")
@@ -441,7 +438,7 @@ export const FinanceiroEditDialog = ({
                 <Select
                   value={form.clienteId}
                   onValueChange={(value) =>
-                    setForm((prev) => ({ ...prev, clienteId: value, petPrincipalId: "", petsAdicionaisIds: [] }))
+                    setForm((prev) => ({ ...prev, clienteId: value, petIds: [] }))
                   }
                 >
                   <SelectTrigger className="h-7 text-xs">
@@ -460,73 +457,51 @@ export const FinanceiroEditDialog = ({
               <div className="space-y-0.5">
                 <div className="flex items-center justify-between gap-2">
                   <Label className="text-[10px] font-semibold">Pets *</Label>
-                  <Popover open={openAddPetPopover} onOpenChange={setOpenAddPetPopover}>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2 gap-1">
-                        <Plus className="h-3 w-3" /> Pet
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64 p-2">
-                      <div className="space-y-1 max-h-44 overflow-y-auto">
-                        {petsDoCliente
-                          .filter(
-                            (pet) => pet.id !== form.petPrincipalId && !form.petsAdicionaisIds.includes(pet.id),
-                          )
-                          .map((pet) => (
-                            <Button
-                              key={pet.id}
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start h-8 text-xs"
-                              onClick={() =>
-                                setForm((prev) => ({ ...prev, petsAdicionaisIds: [...prev.petsAdicionaisIds, pet.id] }))
-                              }
-                            >
-                              {pet.nome} ({pet.raca})
-                            </Button>
-                          ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  {petsDoCliente.filter((pet) => !form.petIds.includes(pet.id)).length > 0 && (
+                    <Popover open={openAddPetPopover} onOpenChange={setOpenAddPetPopover}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2 gap-1">
+                          <Plus className="h-3 w-3" /> Pet
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2">
+                        <div className="space-y-1 max-h-44 overflow-y-auto">
+                          {petsDoCliente
+                            .filter((pet) => !form.petIds.includes(pet.id))
+                            .map((pet) => (
+                              <Button
+                                key={pet.id}
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-start h-8 text-xs"
+                                onClick={() =>
+                                  setForm((prev) => ({ ...prev, petIds: [...prev.petIds, pet.id] }))
+                                }
+                              >
+                                {pet.nome} ({pet.raca})
+                              </Button>
+                            ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
 
-                <Select
-                  value={form.petPrincipalId}
-                  onValueChange={(value) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      petPrincipalId: value,
-                      petsAdicionaisIds: prev.petsAdicionaisIds.filter((petId) => petId !== value),
-                    }))
-                  }
-                >
-                  <SelectTrigger className="h-7 text-xs">
-                    <SelectValue placeholder="Selecione o pet principal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {petsDoCliente.map((pet) => (
-                      <SelectItem key={pet.id} value={pet.id} className="text-xs">
-                        {pet.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {form.petsAdicionaisIds.length > 0 && (
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {form.petsAdicionaisIds.map((petId) => {
-                      const pet = petsDoCliente.find((petItem) => petItem.id === petId);
+                {form.petIds.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 min-h-[28px] border rounded-md p-1.5">
+                    {form.petIds.map((petId) => {
+                      const pet = petsDoCliente.find((p) => p.id === petId);
                       if (!pet) return null;
                       return (
-                        <div key={petId} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px]">
+                        <div key={petId} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 text-[10px]">
                           {pet.nome}
                           <button
                             type="button"
                             onClick={() =>
                               setForm((prev) => ({
                                 ...prev,
-                                petsAdicionaisIds: prev.petsAdicionaisIds.filter((id) => id !== petId),
+                                petIds: prev.petIds.filter((id) => id !== petId),
                               }))
                             }
                           >
@@ -535,6 +510,10 @@ export const FinanceiroEditDialog = ({
                         </div>
                       );
                     })}
+                  </div>
+                ) : (
+                  <div className="h-7 border rounded-md flex items-center px-3 text-xs text-muted-foreground">
+                    Nenhum pet selecionado
                   </div>
                 )}
               </div>
