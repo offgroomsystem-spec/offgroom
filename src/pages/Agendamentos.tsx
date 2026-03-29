@@ -654,9 +654,21 @@ const Agendamentos = () => {
     horario: string;
     horarioTermino: string;
     tempoServico: string;
+    servicos: ServicoAgendamentoSimples[];
+    groomer: string;
   }
   const [additionalPets, setAdditionalPets] = useState<AdditionalPetSchedule[]>([]);
   const [showAdditionalPetsPopover, setShowAdditionalPetsPopover] = useState(false);
+  const [openAdditionalServicoCombobox, setOpenAdditionalServicoCombobox] = useState<string | null>(null); // "apIdx-sIdx"
+
+  // Filtrar serviços por porte para um pet adicional
+  const getServicosFiltradosPorPorteAdditional = (porte: string) => {
+    if (!porte) return servicos;
+    const porteNormalizado = normalizarPorte(porte);
+    return servicos.filter(
+      (s) => normalizarPorte(s.porte) === porteNormalizado || normalizarPorte(s.porte) === "todos"
+    );
+  };
 
   // Pets do mesmo cliente disponíveis para agendamento adicional
   const otherPetsFromClient = useMemo(() => {
@@ -681,6 +693,8 @@ const Agendamentos = () => {
         horario: "",
         horarioTermino: "",
         tempoServico: "",
+        servicos: [{ instanceId: crypto.randomUUID(), nome: "", valor: 0 }],
+        groomer: "",
       }]);
     }
   };
@@ -700,6 +714,56 @@ const Agendamentos = () => {
       }
       return updated;
     });
+  };
+
+  const updateAdditionalPetGroomer = (index: number, groomer: string) => {
+    setAdditionalPets(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], groomer };
+      return updated;
+    });
+  };
+
+  const adicionarServicoAdditionalPet = (apIdx: number) => {
+    setAdditionalPets(prev => {
+      const updated = [...prev];
+      updated[apIdx] = {
+        ...updated[apIdx],
+        servicos: [...updated[apIdx].servicos, { instanceId: crypto.randomUUID(), nome: "", valor: 0 }]
+      };
+      return updated;
+    });
+  };
+
+  const removerServicoAdditionalPet = (apIdx: number, instanceId: string) => {
+    setAdditionalPets(prev => {
+      const updated = [...prev];
+      if (updated[apIdx].servicos.length > 1) {
+        updated[apIdx] = {
+          ...updated[apIdx],
+          servicos: updated[apIdx].servicos.filter(s => s.instanceId !== instanceId)
+        };
+      }
+      return updated;
+    });
+  };
+
+  const atualizarServicoAdditionalPet = (apIdx: number, instanceId: string, servicoIdOrNome: string) => {
+    const id = servicoIdOrNome.includes("__") ? servicoIdOrNome.split("__").pop() : null;
+    const servicoEncontrado = id ? servicos.find((s) => s.id === id) : servicos.find((s) => s.nome === servicoIdOrNome);
+    setAdditionalPets(prev => {
+      const updated = [...prev];
+      updated[apIdx] = {
+        ...updated[apIdx],
+        servicos: updated[apIdx].servicos.map(s =>
+          s.instanceId === instanceId
+            ? { ...s, nome: servicoEncontrado?.nome || servicoIdOrNome, valor: servicoEncontrado?.valor || 0 }
+            : s
+        )
+      };
+      return updated;
+    });
+    setOpenAdditionalServicoCombobox(null);
   };
 
   // Estados para Gerenciamento de Agendamentos
