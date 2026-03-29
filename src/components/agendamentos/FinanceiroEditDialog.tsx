@@ -182,7 +182,7 @@ export const FinanceiroEditDialog = ({
     const clientePets = clientes.find((c) => c.id === clienteId)?.pets || [];
     const validPetIds = petIds.filter((pId) => clientePets.some((p) => p.id === pId));
     
-    const petPrincipalId = validPetIds[0] || "";
+    
 
     setForm({
       ano: lancamento.ano || "",
