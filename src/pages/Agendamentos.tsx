@@ -64,7 +64,7 @@ import {
 "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos } from "@/hooks/useCriarLancamentoAutomatico";
+import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos, criarLancamentoFinanceiroConsolidado } from "@/hooks/useCriarLancamentoAutomatico";
 import { scheduleWhatsAppMessages, deletePendingMessages } from "@/utils/whatsappScheduler";
 
 
