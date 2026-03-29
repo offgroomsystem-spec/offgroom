@@ -3023,8 +3023,8 @@ const Agendamentos = () => {
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-1.5 overflow-y-auto flex-1 pr-1">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1 relative">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="space-y-0.5 relative">
                     <Label htmlFor="cliente" className="text-xs">
                       Cliente *
                     </Label>
