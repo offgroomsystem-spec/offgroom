@@ -34,25 +34,31 @@ interface Registro {
   observacoes: string | null;
 }
 
+const defaultForm = {
+  comeu: false,
+  bebeu_agua: false,
+  brincou: false,
+  interagiu_bem: false,
+  brigas: false,
+  fez_necessidades: false,
+  sinais_doenca: false,
+  pulgas_carrapatos: false,
+};
+
 const RegistroDiarioModal = ({ open, onOpenChange, estadiaId, petNome, onSuccess }: RegistroDiarioModalProps) => {
-  const { user } = useAuth();
+  const { ownerId } = useAuth();
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [saving, setSaving] = useState(false);
+  const [existingRegistroId, setExistingRegistroId] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    comeu: false,
-    bebeu_agua: false,
-    brincou: false,
-    interagiu_bem: false,
-    brigas: false,
-    fez_necessidades: false,
-    sinais_doenca: false,
-    pulgas_carrapatos: false,
-  });
+  const [form, setForm] = useState({ ...defaultForm });
   const [obs, setObs] = useState("");
 
   useEffect(() => {
-    if (open && estadiaId) loadRegistros();
+    if (open && estadiaId) {
+      loadRegistros();
+      loadTodayRegistro();
+    }
   }, [open, estadiaId]);
 
   const loadRegistros = async () => {
@@ -66,24 +72,66 @@ const RegistroDiarioModal = ({ open, onOpenChange, estadiaId, petNome, onSuccess
     if (data) setRegistros(data as Registro[]);
   };
 
+  const loadTodayRegistro = async () => {
+    if (!estadiaId) return;
+    const hoje = format(new Date(), "yyyy-MM-dd");
+    const { data } = await supabase
+      .from("creche_registros_diarios")
+      .select("*")
+      .eq("estadia_id", estadiaId)
+      .eq("data_registro", hoje)
+      .order("hora_registro", { ascending: false })
+      .limit(1);
+
+    if (data && data.length > 0) {
+      const r = data[0];
+      setExistingRegistroId(r.id);
+      setForm({
+        comeu: r.comeu ?? false,
+        bebeu_agua: r.bebeu_agua ?? false,
+        brincou: r.brincou ?? false,
+        interagiu_bem: r.interagiu_bem ?? false,
+        brigas: r.brigas ?? false,
+        fez_necessidades: r.fez_necessidades ?? false,
+        sinais_doenca: r.sinais_doenca ?? false,
+        pulgas_carrapatos: r.pulgas_carrapatos ?? false,
+      });
+      setObs(r.observacoes || "");
+    } else {
+      setExistingRegistroId(null);
+      setForm({ ...defaultForm });
+      setObs("");
+    }
+  };
+
   const handleSave = async () => {
-    if (!estadiaId || !user) return;
+    if (!estadiaId || !ownerId) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("creche_registros_diarios").insert({
-        estadia_id: estadiaId,
-        user_id: user.id,
-        ...form,
-        observacoes: obs || null,
-      });
-      if (error) throw error;
-      toast.success("Registro adicionado!");
-      setForm({
-        comeu: false, bebeu_agua: false, brincou: false, interagiu_bem: false,
-        brigas: false, fez_necessidades: false, sinais_doenca: false, pulgas_carrapatos: false,
-      });
-      setObs("");
+      if (existingRegistroId) {
+        // Update existing today's registro
+        const { error } = await supabase
+          .from("creche_registros_diarios")
+          .update({
+            ...form,
+            observacoes: obs || null,
+          })
+          .eq("id", existingRegistroId);
+        if (error) throw error;
+        toast.success("Registro atualizado!");
+      } else {
+        // Create new registro for today
+        const { error } = await supabase.from("creche_registros_diarios").insert({
+          estadia_id: estadiaId,
+          user_id: ownerId,
+          ...form,
+          observacoes: obs || null,
+        });
+        if (error) throw error;
+        toast.success("Registro adicionado!");
+      }
       loadRegistros();
+      loadTodayRegistro();
       onSuccess();
     } catch (err: any) {
       toast.error("Erro: " + err.message);
@@ -112,9 +160,11 @@ const RegistroDiarioModal = ({ open, onOpenChange, estadiaId, petNome, onSuccess
         </DialogHeader>
 
         <div className="space-y-3">
-          {/* Novo registro */}
+          {/* Registro de hoje */}
           <div className="border rounded-md p-3 space-y-2">
-            <p className="text-xs font-semibold">Novo Registro</p>
+            <p className="text-xs font-semibold">
+              {existingRegistroId ? "Registro de Hoje (editar)" : "Novo Registro"}
+            </p>
             <div className="grid grid-cols-2 gap-1.5">
               {items.map((item) => (
                 <div key={item.key} className="flex items-center gap-2">
@@ -133,7 +183,7 @@ const RegistroDiarioModal = ({ open, onOpenChange, estadiaId, petNome, onSuccess
               className="min-h-[40px] text-sm"
             />
             <Button onClick={handleSave} disabled={saving} size="sm" className="w-full">
-              {saving ? "Salvando..." : "Adicionar Registro"}
+              {saving ? "Salvando..." : existingRegistroId ? "Atualizar Registro" : "Adicionar Registro"}
             </Button>
           </div>
 

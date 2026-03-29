@@ -29,7 +29,7 @@ interface EstadiaComNomes {
 }
 
 const Creche = () => {
-  const { user } = useAuth();
+  const { user, ownerId } = useAuth();
   const [estadiasAtivas, setEstadiasAtivas] = useState<EstadiaComNomes[]>([]);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
