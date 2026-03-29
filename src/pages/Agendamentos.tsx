@@ -3174,7 +3174,7 @@ const Agendamentos = () => {
 
                   <div className="space-y-1">
                     <Label htmlFor="horario" className="text-xs">
-                      Horário de Início *
+                      {additionalPets.length > 0 ? `${formData.pet}:` : 'Horário de Início *'}
                     </Label>
                     <TimeInput
                       value={formData.horario}
