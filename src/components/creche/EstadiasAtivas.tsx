@@ -94,9 +94,33 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
   const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
   const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, Record<string, boolean>>>({});
 
-  // Clear optimistic overrides when estadias prop updates (real data arrived)
+  // Smart override clearing: remove overrides that match real data (confirmed by DB)
   useEffect(() => {
-    setOptimisticOverrides({});
+    setOptimisticOverrides(prev => {
+      const next: Record<string, Record<string, boolean>> = {};
+      let changed = false;
+      for (const estadiaId of Object.keys(prev)) {
+        const estadia = estadias.find(e => e.id === estadiaId);
+        const reg = estadia?.ultimo_registro;
+        const overrides = prev[estadiaId];
+        const remaining: Record<string, boolean> = {};
+        for (const key of Object.keys(overrides)) {
+          const realValue = reg ? !!(reg as any)[key] : false;
+          if (overrides[key] !== realValue) {
+            // Override still differs from real data — keep it
+            remaining[key] = overrides[key];
+          } else {
+            changed = true;
+          }
+        }
+        if (Object.keys(remaining).length > 0) {
+          next[estadiaId] = remaining;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [estadias]);
 
   const handleQuickToggle = async (estadiaId: string, key: string, currentValue: boolean) => {
