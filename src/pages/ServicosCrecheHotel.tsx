@@ -224,133 +224,146 @@ const ServicosCrecheHotel = () => {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-4">
+          <DialogHeader className="pb-1">
+            <DialogTitle className="text-base">{editingId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Nome do Serviço *</Label>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome do Serviço *</Label>
               <Input
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 placeholder="Ex: Creche Período Integral"
+                className="h-8 text-sm"
               />
             </div>
-            <div>
-              <Label>Descrição</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Descrição</Label>
               <Textarea
                 value={form.descricao || ""}
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                 placeholder="Descrição opcional do serviço"
                 rows={2}
+                className="text-sm min-h-[56px] py-1.5"
               />
             </div>
-            <div>
-              <Label>Tipo do Serviço *</Label>
-              <ToggleGroup
-                type="single"
-                value={form.tipo}
-                onValueChange={(v) => v && setForm({ ...form, tipo: v })}
-                className="justify-start mt-1"
-              >
-                <ToggleGroupItem value="creche" className="gap-1">
-                  <Dog className="h-4 w-4" /> Creche
-                </ToggleGroupItem>
-                <ToggleGroupItem value="hotel" className="gap-1">
-                  <Hotel className="h-4 w-4" /> Hotel
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-            <div>
-              <Label>Modelo de Precificação *</Label>
-              <ToggleGroup
-                type="single"
-                value={form.modelo_preco}
-                onValueChange={(v) => v && setForm({ ...form, modelo_preco: v })}
-                className="justify-start mt-1"
-              >
-                <ToggleGroupItem value="unico">Valor Único</ToggleGroupItem>
-                <ToggleGroupItem value="porte">Por Porte</ToggleGroupItem>
-              </ToggleGroup>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo do Serviço *</Label>
+                <ToggleGroup
+                  type="single"
+                  value={form.tipo}
+                  onValueChange={(v) => v && setForm({ ...form, tipo: v })}
+                  className="justify-start"
+                  size="sm"
+                >
+                  <ToggleGroupItem value="creche" className="gap-1 h-7 px-2.5 text-xs">
+                    <Dog className="h-3 w-3" /> Creche
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="hotel" className="gap-1 h-7 px-2.5 text-xs">
+                    <Hotel className="h-3 w-3" /> Hotel
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Precificação *</Label>
+                <ToggleGroup
+                  type="single"
+                  value={form.modelo_preco}
+                  onValueChange={(v) => v && setForm({ ...form, modelo_preco: v })}
+                  className="justify-start"
+                  size="sm"
+                >
+                  <ToggleGroupItem value="unico" className="h-7 px-2.5 text-xs">Único</ToggleGroupItem>
+                  <ToggleGroupItem value="porte" className="h-7 px-2.5 text-xs">Por Porte</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
 
             {form.modelo_preco === "unico" ? (
-              <div>
-                <Label>Valor (R$) *</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Valor (R$) *</Label>
                 <Input
                   type="number"
                   min="0"
                   step="0.01"
                   value={form.valor_unico || ""}
                   onChange={(e) => setForm({ ...form, valor_unico: parseFloat(e.target.value) || 0 })}
+                  className="h-8 text-sm"
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label>Pequeno (R$) *</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Pequeno (R$) *</Label>
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
                     value={form.valor_pequeno || ""}
                     onChange={(e) => setForm({ ...form, valor_pequeno: parseFloat(e.target.value) || 0 })}
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div>
-                  <Label>Médio (R$) *</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs">Médio (R$) *</Label>
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
                     value={form.valor_medio || ""}
                     onChange={(e) => setForm({ ...form, valor_medio: parseFloat(e.target.value) || 0 })}
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div>
-                  <Label>Grande (R$) *</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs">Grande (R$) *</Label>
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
                     value={form.valor_grande || ""}
                     onChange={(e) => setForm({ ...form, valor_grande: parseFloat(e.target.value) || 0 })}
+                    className="h-8 text-sm"
                   />
                 </div>
               </div>
             )}
 
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-1.5">
                 <Switch
                   checked={form.is_padrao}
                   onCheckedChange={(v) => setForm({ ...form, is_padrao: v })}
+                  className="scale-90"
                 />
-                <Label>Serviço Padrão</Label>
+                <Label className="text-xs">Serviço Padrão</Label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Switch
                   checked={form.is_opcional}
                   onCheckedChange={(v) => setForm({ ...form, is_opcional: v })}
+                  className="scale-90"
                 />
-                <Label>Opcional</Label>
+                <Label className="text-xs">Opcional</Label>
               </div>
             </div>
 
-            <div>
-              <Label>Observações Internas</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Observações Internas</Label>
               <Textarea
                 value={form.observacoes_internas || ""}
                 onChange={(e) => setForm({ ...form, observacoes_internas: e.target.value })}
                 placeholder="Notas internas sobre o serviço"
                 rows={2}
+                className="text-sm min-h-[56px] py-1.5"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave}>{editingId ? "Atualizar" : "Criar Serviço"}</Button>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+              <Button size="sm" onClick={handleSave}>{editingId ? "Atualizar" : "Criar Serviço"}</Button>
             </div>
           </div>
         </DialogContent>
