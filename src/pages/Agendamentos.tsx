@@ -5078,8 +5078,27 @@ const Agendamentos = () => {
             clientes={clientes}
             servicos={servicos}
             ownerId={ownerId || user?.id || ""}
-            onUpdated={async () => {
-              if (editandoAgendamento) {
+            onUpdated={async (lancamentoId?: string) => {
+              if (lancamentoId) {
+                // Reload the specific lancamento by ID to ensure we get the exact updated record
+                try {
+                  const { data: lancamento } = await supabase
+                    .from("lancamentos_financeiros")
+                    .select("*")
+                    .eq("id", lancamentoId)
+                    .maybeSingle();
+                  if (lancamento) {
+                    setLancamentoVinculado(lancamento);
+                    const { data: itens } = await supabase
+                      .from("lancamentos_financeiros_itens")
+                      .select("*")
+                      .eq("lancamento_id", lancamentoId);
+                    setLancamentoItensVinculado(itens || []);
+                  }
+                } catch (e) {
+                  console.error("Erro ao recarregar lançamento:", e);
+                }
+              } else if (editandoAgendamento) {
                 await loadFinanceiroVinculado(editandoAgendamento);
               }
             }}
