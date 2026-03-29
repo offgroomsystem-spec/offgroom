@@ -159,7 +159,7 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
           <DialogDescription>Registrar saída de pet.</DialogDescription>
         </DialogHeader>
 
-        {estadiasAtivas.length === 0 ? (
+        {filteredEstadias.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhum pet ativo no momento.</p>
         ) : (
           <div className="space-y-3">
