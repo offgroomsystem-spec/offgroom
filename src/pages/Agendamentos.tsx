@@ -3053,6 +3053,9 @@ const Agendamentos = () => {
       setEditandoAgendamento(null);
       setServicosExtrasEdicao([]);
       setServicoPrincipalEdicao("");
+      setEditMultiPetGroup([]);
+      setLancamentoVinculado(null);
+      setLancamentoItensVinculado([]);
     } catch (error) {
       console.error("Erro ao atualizar agendamento:", error);
       toast.error("Erro ao atualizar agendamento");
