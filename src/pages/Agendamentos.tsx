@@ -787,7 +787,64 @@ const Agendamentos = () => {
     }
   }, [simplePetSearch, clientes]);
 
-  // Atualizar pets disponíveis quando cliente é selecionado (Pacotes)
+  // Busca inteligente por WhatsApp (Agendamento Simples)
+  useEffect(() => {
+    if (simpleWhatsappJustSelected.current) {
+      simpleWhatsappJustSelected.current = false;
+      return;
+    }
+    if (simpleWhatsappSearch.length >= 2) {
+      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }> = [];
+      clientes.forEach((cliente) => {
+        if (cliente.whatsapp.includes(simpleWhatsappSearch)) {
+          if (cliente.pets.length > 0) {
+            cliente.pets.forEach((pet) => {
+              results.push({
+                whatsapp: cliente.whatsapp,
+                nomeCliente: cliente.nomeCliente,
+                nomePet: pet.nome,
+                raca: pet.raca,
+              });
+            });
+          } else {
+            results.push({
+              whatsapp: cliente.whatsapp,
+              nomeCliente: cliente.nomeCliente,
+              nomePet: "",
+              raca: "",
+            });
+          }
+        }
+      });
+      setSimpleFilteredWhatsapp(results);
+    } else {
+      setSimpleFilteredWhatsapp([]);
+    }
+  }, [simpleWhatsappSearch, clientes]);
+
+  // Handler para seleção por WhatsApp (Agendamento Simples)
+  const handleSimpleWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string }) => {
+    simpleWhatsappJustSelected.current = true;
+    const formatted = item.whatsapp.length >= 11
+      ? `(${item.whatsapp.slice(0, 2)}) ${item.whatsapp.slice(2, 7)}-${item.whatsapp.slice(7)}`
+      : item.whatsapp;
+    setSimpleWhatsappSearch(formatted);
+    setSimpleFilteredWhatsapp([]);
+    setFormData({
+      ...formData,
+      cliente: item.nomeCliente,
+      pet: item.nomePet,
+      raca: item.raca,
+      whatsapp: item.whatsapp,
+    });
+    setSimpleClienteSearch(item.nomeCliente);
+    setSimplePetSearch(item.nomePet);
+    if (item.raca) {
+      setSimpleAvailableRacas([item.raca]);
+    }
+  };
+
+
   const handleClienteSelect = (nomeCliente: string) => {
     clienteJustSelected.current = true;
     setClienteSearch(nomeCliente);
