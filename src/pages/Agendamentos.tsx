@@ -3050,7 +3050,7 @@ const Agendamentos = () => {
                     }
                   </div>
 
-                  <div className="space-y-1 relative">
+                  <div className="space-y-0.5 relative">
                     <div className="flex items-center gap-1">
                       <Label htmlFor="pet" className="text-xs">
                         Pet *
