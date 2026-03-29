@@ -106,10 +106,6 @@ const ServicosCrecheHotel = () => {
   };
 
   const handleSave = async () => {
-    if (!form.nome.trim()) {
-      toast.error("Nome do serviço é obrigatório");
-      return;
-    }
     if (form.modelo_preco === "porte" && (form.valor_pequeno <= 0 || form.valor_medio <= 0 || form.valor_grande <= 0)) {
       toast.error("Defina o valor para todos os portes");
       return;
