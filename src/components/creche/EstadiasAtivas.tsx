@@ -44,6 +44,7 @@ interface EstadiasAtivasProps {
   onCheckoutDireto: (estadiaId: string) => void;
   onVerDetalhes: (estadiaId: string, petNome: string) => void;
   onAdicionarObs: (estadiaId: string, petNome: string) => void;
+  onRefresh?: () => void;
 }
 
 export const indicadores = [
