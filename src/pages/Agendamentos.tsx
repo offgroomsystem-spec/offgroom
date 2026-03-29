@@ -66,6 +66,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos, criarLancamentoFinanceiroConsolidado } from "@/hooks/useCriarLancamentoAutomatico";
 import { scheduleWhatsAppMessages, deletePendingMessages } from "@/utils/whatsappScheduler";
+import { FinanceiroEditDialog } from "@/components/agendamentos/FinanceiroEditDialog";
 
 
 // Interfaces
@@ -4905,74 +4906,20 @@ const Agendamentos = () => {
             </AlertDialogContent>
           </AlertDialog>
 
-          {/* Dialog Financeiro - Editar Lançamento vinculado */}
-          <Dialog open={financeiroDialogOpen} onOpenChange={setFinanceiroDialogOpen}>
-            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-sm">Lançamento Financeiro Vinculado</DialogTitle>
-                <DialogDescription className="text-xs">
-                  Detalhes do lançamento financeiro associado a este agendamento.
-                </DialogDescription>
-              </DialogHeader>
-              {lancamentoVinculado ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <Label className="text-xs font-semibold">Tipo</Label>
-                      <p>{lancamentoVinculado.tipo}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold">Descrição</Label>
-                      <p>{lancamentoVinculado.descricao1}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold">Data Pagamento</Label>
-                      <p>{toDisplayDate(lancamentoVinculado.data_pagamento)}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold">Valor Total</Label>
-                      <p className="font-bold text-green-600">R$ {Number(lancamentoVinculado.valor_total).toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold">Pago</Label>
-                      <p>{lancamentoVinculado.pago ? "Sim" : "Não"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold">Competência</Label>
-                      <p>{lancamentoVinculado.mes_competencia}/{lancamentoVinculado.ano}</p>
-                    </div>
-                  </div>
-                  {lancamentoItensVinculado.length > 0 && (
-                    <div>
-                      <Label className="text-xs font-semibold mb-1 block">Itens</Label>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-xs h-7">Serviço</TableHead>
-                            <TableHead className="text-xs h-7">Categoria</TableHead>
-                            <TableHead className="text-xs h-7 text-right">Qtd</TableHead>
-                            <TableHead className="text-xs h-7 text-right">Valor</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {lancamentoItensVinculado.map((item: any) => (
-                            <TableRow key={item.id}>
-                              <TableCell className="text-xs py-1">{item.produto_servico || '-'}</TableCell>
-                              <TableCell className="text-xs py-1">{item.descricao2}</TableCell>
-                              <TableCell className="text-xs py-1 text-right">{item.quantidade || 1}</TableCell>
-                              <TableCell className="text-xs py-1 text-right">R$ {Number(item.valor).toFixed(2)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Nenhum lançamento financeiro vinculado encontrado.</p>
-              )}
-            </DialogContent>
-          </Dialog>
+          <FinanceiroEditDialog
+            open={financeiroDialogOpen}
+            onOpenChange={setFinanceiroDialogOpen}
+            lancamento={lancamentoVinculado}
+            itens={lancamentoItensVinculado}
+            clientes={clientes}
+            servicos={servicos}
+            ownerId={ownerId || user?.id || ""}
+            onUpdated={async () => {
+              if (editandoAgendamento) {
+                await loadFinanceiroVinculado(editandoAgendamento);
+              }
+            }}
+          />
         </div>
       </div>
 
