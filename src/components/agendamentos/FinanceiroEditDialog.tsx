@@ -317,7 +317,7 @@ export const FinanceiroEditDialog = ({
     try {
       const petIds = form.petIds.filter(Boolean);
 
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from("lancamentos_financeiros")
         .update({
           ano: form.ano,
@@ -336,9 +336,14 @@ export const FinanceiroEditDialog = ({
           tipo_juros: form.modoAjuste === "juros" ? form.tipoJuros || null : null,
           modo_ajuste: form.modoAjuste,
         })
-        .eq("id", lancamento.id);
+        .eq("id", lancamento.id)
+        .select();
 
       if (updateError) throw updateError;
+      
+      if (!updateData || updateData.length === 0) {
+        throw new Error("Nenhum registro foi atualizado. Verifique as permissões.");
+      }
 
       const { error: deleteError } = await supabase
         .from("lancamentos_financeiros_itens")
@@ -359,7 +364,7 @@ export const FinanceiroEditDialog = ({
       if (insertError) throw insertError;
 
       toast.success("Lançamento financeiro atualizado com sucesso!");
-      await onUpdated?.();
+      await onUpdated?.(lancamento.id);
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao atualizar lançamento financeiro:", error);
