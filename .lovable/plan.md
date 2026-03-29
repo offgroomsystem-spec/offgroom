@@ -1,65 +1,53 @@
 
 
-## Plano: Unificar Custos Diretos dentro de Despesas Operacionais
+# Plan: Financial Sync for Package Appointment Edits (Respecting Payment Status)
 
-### Problema
+## Problem
 
-O DRE atual separa "Produtos para Banho" e "Material de Limpeza" numa seção própria ("Deduções e Custos Diretos"), enquanto as demais subcategorias de "Despesa Operacional" ficam em outra seção separada. O usuário quer que TODAS as subcategorias de "Despesa Operacional" fiquem juntas, eliminando a seção de custos diretos.
+When editing a package appointment and adding/removing extra services, the financial entry is **not updated**. The sync logic (full replace strategy) currently only runs for "simples" appointments — the "pacote" branch at line 3080 has no financial sync code.
 
-### Estrutura corrigida
+## Solution
 
-```text
-(+) Receita Operacional Bruta
-    Serviços / Venda / Outras Receitas Operacionais
+Add financial synchronization logic to the **pacote edit branch** (after line 3115, inside `handleSalvarEdicao`), with behavior that depends on the `pago` (paid) status of the linked financial entry.
 
-(=) Lucro Bruto   (= Receita Op Bruta, sem deduções de custos diretos)
+### File to Edit: `src/pages/Agendamentos.tsx`
 
-(-) Despesas Operacionais   ← TODAS juntas
-    Produtos para Banho
-    Material de Limpeza
-    Combustível
-    Contador
-    Freelancer
-    Telefonia e Internet
-    Energia Elétrica
-    Água e Esgoto
-    Publicidade e Marketing
-    Outras Despesas Operacionais
+### Logic to Add (after the pacote `agendamentos_pacotes` update succeeds, ~line 3115):
 
-(-) Despesas Fixas
-    Aluguel / Salários / Impostos Fixos / Financiamentos / Sistemas e Softwares / Outras
+**Step 1 — Determine current services from the edited pacote**
+- Build the full list: the package name (main item) + all `servicosExtrasEdicao` with their values.
 
-(=) Lucro Operacional
+**Step 2 — Check if a linked financial entry exists (`lancamentoVinculado`)**
 
-(+/-) Resultado Não Operacional
-  (+) Receita Não Operacional
-  (-) Despesa Não Operacional
+**Step 3 — Branch by payment status:**
 
-(=) LUCRO LÍQUIDO DO EXERCÍCIO
-```
+#### If `lancamentoVinculado.pago === false`:
+- **Full replace strategy** (same pattern as simples):
+  1. Delete all existing `lancamentos_financeiros_itens` for this `lancamento_id`
+  2. Insert new items: package name + each extra service as individual rows
+  3. Recalculate `valor_total` from all items and update the `lancamentos_financeiros` record
+  4. Refresh via `loadFinanceiroVinculado`
 
-### Alterações em `src/components/relatorios/financeiros/DRE.tsx`
+#### If `lancamentoVinculado.pago === true`:
+- **Do NOT modify** the existing financial entry
+- Compare current extras vs. what was in the original financial entry to find **newly added services only**
+- If new services exist, **create a new `lancamentos_financeiros`** record:
+  - Same `user_id`, `cliente_id`, `pet_ids`, `conta_id`, `tipo`, `descricao1`
+  - `data_pagamento` = appointment date (`editandoAgendamento.data`)
+  - `ano` / `mes_competencia` derived from the appointment date
+  - `pago = false`
+  - `valor_total` = sum of new extras only
+- Insert items for the new extras into `lancamentos_financeiros_itens`
 
-1. **Remover `CUSTOS_OPERACIONAIS`** (linha 56) — constante não mais necessária
+**Step 4 — After the pacote save, call `loadFinanceiroVinculado`** to refresh state (currently missing — also add `await loadFinanceiroVinculado(editandoAgendamento)` after `loadAgendamentosPacotes()`).
 
-2. **Simplificar `useMemo`** (linhas 215-221):
-   - Remover cálculo de `custosOperacionais` e `despesasOperacionaisTotal`
-   - `lucroBruto = receitaOp.total` (sem dedução de custos diretos)
-   - `lucroOperacional = lucroBruto - despesaOp.total - despesaFixa.total`
-   - `despesasTotal = despesaOp.total + despesaFixa.total + despesaNaoOp.total`
+### Also in `useCriarLancamentoAutomatico.ts`
+No changes needed — initial creation logic is correct. The gap is only in the **edit** flow.
 
-3. **Renderização JSX** (linhas 600-622):
-   - Remover bloco "Deduções e Custos Diretos" (linhas 606-610)
-   - Lucro Bruto = Receita Op (sem custos diretos)
-   - Despesas Operacionais: renderizar TODAS as subcategorias (sem filtro `CUSTOS_OPERACIONAIS`)
+### Summary of Changes
 
-4. **PDF** (linhas 303-325):
-   - Remover bloco "Deduções e Custos Diretos"
-   - Despesas Operacionais: iterar sobre todas sem skip
-
-### Técnico
-
-- Apenas reorganização de labels e remoção de lógica de separação
-- Cálculos permanecem corretos (soma total de `despesaOp` usada diretamente)
-- O DRE continua 100% dinâmico via `categoriasDescricao2`
+| What | Where |
+|---|---|
+| Add financial sync for pacote edits (unpaid: full replace, paid: new entry for extras) | `Agendamentos.tsx` ~line 3115-3148 |
+| Add `loadFinanceiroVinculado` call after pacote save | `Agendamentos.tsx` ~line 3148 |
 
