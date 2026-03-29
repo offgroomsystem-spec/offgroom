@@ -87,7 +87,7 @@ interface FinanceiroEditDialogProps {
   clientes: ClienteOption[];
   servicos: ServicoOption[];
   ownerId: string;
-  onUpdated?: () => Promise<void> | void;
+  onUpdated?: (lancamentoId?: string) => Promise<void> | void;
 }
 
 const defaultForm: FormFinanceiro = {
