@@ -1256,6 +1256,7 @@ const Agendamentos = () => {
     }
 
     if (clienteCorreto && petEncontrado) {
+      setSelectedClienteId(clienteCorreto.id);
       setFormData({
         ...formData,
         cliente: clienteCorreto.nomeCliente,
