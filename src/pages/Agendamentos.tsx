@@ -2316,7 +2316,10 @@ const Agendamentos = () => {
         const res = await supabase.functions.invoke("evolution-api", {
           body: { action: "send-message", instanceName: whatsappInstanceName, number: numero, text: mensagem }
         });
-        if (res.error) throw res.error;
+        if (res.error) {
+          const detail = res.data?.error || res.data?.details || res.error?.message || "Erro desconhecido";
+          throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+        }
         toast.success(`✅ Mensagem enviada para ${primeiroNome}!`);
 
         // Mark as "enviado" so scheduler doesn't duplicate
