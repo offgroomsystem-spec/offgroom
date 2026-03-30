@@ -558,6 +558,8 @@ const Agendamentos = () => {
     groomer: "",
     taxiDog: ""
   });
+  // ID do cliente selecionado para garantir vínculo correto
+  const [selectedClienteId, setSelectedClienteId] = useState<string>("");
 
   // Filtrar serviços pelo porte do pet selecionado (agendamento simples)
   const servicosFiltradosPorPorte = useMemo(() => {
