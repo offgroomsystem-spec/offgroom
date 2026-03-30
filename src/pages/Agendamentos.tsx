@@ -879,7 +879,7 @@ const Agendamentos = () => {
     }
   }, [petSearch, clientes]);
 
-  // Busca inteligente por cliente (Agendamento Simples) - retorna objetos com id para desambiguação
+  // Busca inteligente por cliente (Agendamento Simples) - nomes agrupados (sem duplicatas visuais)
   useEffect(() => {
     if (simpleClienteJustSelected.current) {
       simpleClienteJustSelected.current = false;
@@ -887,10 +887,15 @@ const Agendamentos = () => {
     }
     if (simpleClienteSearch.length >= 2) {
       const matches = clientes
-        .filter((c) => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase()))
-        .map((c) => ({ id: c.id, nome: c.nomeCliente, whatsapp: c.whatsapp }));
-      // Verificar se há nomes duplicados para exibir whatsapp como diferenciador
-      setSimpleFilteredClientes(matches);
+        .filter((c) => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase()));
+      // Agrupar por nome — exibir apenas nomes únicos
+      const seen = new Map<string, { id: string; nome: string; whatsapp: string }>();
+      matches.forEach((c) => {
+        if (!seen.has(c.nomeCliente)) {
+          seen.set(c.nomeCliente, { id: c.id, nome: c.nomeCliente, whatsapp: c.whatsapp });
+        }
+      });
+      setSimpleFilteredClientes(Array.from(seen.values()));
     } else {
       setSimpleFilteredClientes([]);
     }
