@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, PawPrint, Calendar, TrendingUp, DollarSign, LogOut, Shield, AlertTriangle, Search, RefreshCw } from 'lucide-react';
+import { Users, PawPrint, Calendar, TrendingUp, DollarSign, LogOut, Shield, AlertTriangle, Search, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const ADMIN_EMAIL = 'offgroom.system@gmail.com';
@@ -27,6 +27,7 @@ const AdminMaster = () => {
   const [pets, setPets] = useState<any[]>([]);
   const [selectedPets, setSelectedPets] = useState<string[]>([]);
   const [petFilters, setPetFilters] = useState({ nome: '', sexo: '', porte: '', raca: '' });
+  const [petSortAsc, setPetSortAsc] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [bulkAction, setBulkAction] = useState<{ field: string; value: string } | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -379,7 +380,14 @@ const AdminMaster = () => {
                             onCheckedChange={c => setSelectedPets(c ? pets.map(p => p.id) : [])}
                           />
                         </TableHead>
-                        <TableHead>Nome</TableHead>
+                        <TableHead>
+                          <div className="flex items-center gap-1">
+                            Nome
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setPetSortAsc(prev => !prev)}>
+                              <ArrowUpDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableHead>
                         <TableHead>Raça</TableHead>
                         <TableHead>Porte</TableHead>
                         <TableHead>Sexo</TableHead>
@@ -387,7 +395,7 @@ const AdminMaster = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pets.map(p => (
+                      {[...pets].sort((a, b) => petSortAsc ? (a.nome_pet || '').localeCompare(b.nome_pet || '') : 0).map(p => (
                         <TableRow key={p.id}>
                           <TableCell>
                             <Checkbox
