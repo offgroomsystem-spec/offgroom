@@ -401,22 +401,53 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       .single();
     if (!config?.evolution_auto_send) continue;
 
-    // Descartar mensagens pendentes antigas (de dias anteriores) para este user
+    // Tratar mensagens pendentes de dias anteriores:
+    // - 2+ dias pendente → descarte definitivo
+    // - 1 dia pendente → manter como carry-over para reaproveitamento
     const inicioHojeUTC = new Date(hojeStr + "T00:00:00.000Z");
-    const { data: antigasPendentes } = await supabase
+    const limite2DiasAtras = new Date(inicioHojeUTC);
+    limite2DiasAtras.setDate(limite2DiasAtras.getDate() - 2);
+
+    // Descartar mensagens pendentes com 2+ dias (created_at <= 2 dias atrás)
+    const { data: antigasPendentes2Dias } = await supabase
       .from("whatsapp_mensagens_risco")
-      .select("id")
+      .select("id, cliente_id")
       .eq("user_id", userId)
       .eq("status", "pendente")
-      .lt("agendado_para", inicioHojeUTC.toISOString());
+      .lt("agendado_para", inicioHojeUTC.toISOString())
+      .lt("created_at", limite2DiasAtras.toISOString());
 
-    if (antigasPendentes && antigasPendentes.length > 0) {
-      const ids = antigasPendentes.map((m: any) => m.id);
+    if (antigasPendentes2Dias && antigasPendentes2Dias.length > 0) {
+      const ids = antigasPendentes2Dias.map((m: any) => m.id);
       await supabase
         .from("whatsapp_mensagens_risco")
-        .update({ status: "descartado", erro: "Descartado - dia anterior não enviado" })
+        .update({ status: "descartado", erro: "Descartado definitivamente - 2 dias consecutivos sem envio" })
         .in("id", ids);
-      console.log(`🗑️ ${ids.length} mensagens antigas descartadas para ${instance.instance_name}`);
+      console.log(`🗑️ ${ids.length} mensagens descartadas definitivamente (2+ dias pendentes) para ${instance.instance_name}`);
+    }
+
+    // Buscar mensagens pendentes de 1 dia atrás (carry-over) para reaproveitamento
+    const { data: carryOverPendentes } = await supabase
+      .from("whatsapp_mensagens_risco")
+      .select("id, cliente_id, tentativa, pets_incluidos, mensagem, numero_whatsapp")
+      .eq("user_id", userId)
+      .eq("status", "pendente")
+      .lt("agendado_para", inicioHojeUTC.toISOString())
+      .gte("created_at", limite2DiasAtras.toISOString());
+
+    // Coletar cliente_ids do carry-over para não duplicar
+    const carryOverClienteIds = new Set<string>();
+    if (carryOverPendentes && carryOverPendentes.length > 0) {
+      for (const m of carryOverPendentes) {
+        carryOverClienteIds.add(m.cliente_id);
+      }
+      // Descartar as mensagens antigas - serão reagendadas com novos slots
+      const carryIds = carryOverPendentes.map((m: any) => m.id);
+      await supabase
+        .from("whatsapp_mensagens_risco")
+        .update({ status: "descartado", erro: "Reagendado para hoje - carry-over" })
+        .in("id", carryIds);
+      console.log(`🔄 ${carryOverPendentes.length} mensagens carry-over serão reaproveitadas para ${instance.instance_name}`);
     }
 
     // Verificar se já existem mensagens pendentes hoje para este user
