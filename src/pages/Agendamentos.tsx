@@ -639,7 +639,6 @@ const Agendamentos = () => {
   const [simpleFilteredPets, setSimpleFilteredPets] = useState<string[]>([]);
   const [simpleAvailableRacas, setSimpleAvailableRacas] = useState<string[]>([]);
   const [simpleSearchStartedWith, setSimpleSearchStartedWith] = useState<"cliente" | "pet" | null>(null);
-  const [selectedClienteId, setSelectedClienteId] = useState<string>("");
   const simpleClienteJustSelected = useRef(false);
   const clienteJustSelected = useRef(false);
   const simplePetJustSelected = useRef(false);
