@@ -121,10 +121,14 @@ function proximoDiaUtil(d: Date): Date {
 }
 
 // ===================== FASE 2: ENVIO =====================
-// Busca 1 mensagem pendente por instância com agendado_para <= agora, envia, atualiza status
-async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<{ enviadas: number; erros: number }> {
+// Busca 1 mensagem pendente por instância com agendado_para <= agora, revalida, envia, atualiza status
+async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<{ enviadas: number; erros: number; canceladas: number }> {
   let totalEnviadas = 0;
   let totalErros = 0;
+  let totalCanceladas = 0;
+
+  const hojeStr = new Date(agora.getTime() - 3 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const hoje = new Date(hojeStr + "T00:00:00");
 
   for (const instance of instances) {
     // Verificar auto_send
@@ -149,6 +153,24 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
 
     const msg = mensagens[0];
 
+    // ========== VALIDAÇÃO EM TEMPO REAL ==========
+    const motivoBloqueio = await validarElegibilidadeEnvio(supabase, msg, instance.user_id, hoje);
+
+    if (motivoBloqueio) {
+      await supabase
+        .from("whatsapp_mensagens_risco")
+        .update({
+          status: "cancelado",
+          erro: motivoBloqueio,
+          enviado_em: agora.toISOString(),
+        })
+        .eq("id", msg.id);
+      totalCanceladas++;
+      console.log(`🚫 Mensagem risco cancelada para cliente ${msg.cliente_id}: ${motivoBloqueio}`);
+      continue;
+    }
+    // ========== FIM VALIDAÇÃO ==========
+
     try {
       await enviarMensagemEvolution(instance.instance_name, msg.numero_whatsapp, msg.mensagem);
       await supabase
@@ -168,7 +190,127 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
     }
   }
 
-  return { enviadas: totalEnviadas, erros: totalErros };
+  return { enviadas: totalEnviadas, erros: totalErros, canceladas: totalCanceladas };
+}
+
+// Valida se o cliente ainda é elegível para receber a mensagem de risco
+// Retorna null se elegível, ou string com motivo do bloqueio
+async function validarElegibilidadeEnvio(
+  supabase: any,
+  msg: any,
+  userId: string,
+  hoje: Date
+): Promise<string | null> {
+  const clienteId = msg.cliente_id;
+
+  // 1. Verificar se o cliente existe e se whatsapp_ativo está ativo
+  const { data: cliente } = await supabase
+    .from("clientes")
+    .select("id, whatsapp_ativo, nome_cliente")
+    .eq("id", clienteId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!cliente) {
+    return "Cliente não encontrado no cadastro";
+  }
+
+  if (!cliente.whatsapp_ativo) {
+    return "Envio bloqueado - WhatsApp automático desativado (cliente)";
+  }
+
+  // 2. Verificar preferências dos pets incluídos na mensagem
+  const petsIncluidos = msg.pets_incluidos || [];
+  const petNames = petsIncluidos.map((p: any) => p.nome_pet);
+
+  if (petNames.length > 0) {
+    const { data: petsDb } = await supabase
+      .from("pets")
+      .select("nome_pet, whatsapp_ativo")
+      .eq("cliente_id", clienteId)
+      .eq("user_id", userId)
+      .in("nome_pet", petNames);
+
+    if (petsDb) {
+      const allPetsDisabled = petsDb.length > 0 && petsDb.every((p: any) => !p.whatsapp_ativo);
+      if (allPetsDisabled) {
+        return "Envio bloqueado - WhatsApp automático desativado (todos os pets)";
+      }
+    }
+  }
+
+  // 3. Verificar agendamentos futuros (cliente já agendou)
+  const { data: agendamentosFuturos } = await supabase
+    .from("agendamentos")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("cliente_id", clienteId)
+    .gte("data", hoje.toISOString().split("T")[0])
+    .limit(1);
+
+  if (agendamentosFuturos && agendamentosFuturos.length > 0) {
+    return "Cliente possui agendamento futuro - não está mais em risco";
+  }
+
+  // 3b. Verificar também por nome do cliente em agendamentos sem cliente_id
+  const { data: agendamentosFuturosNome } = await supabase
+    .from("agendamentos")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("cliente", cliente.nome_cliente)
+    .is("cliente_id", null)
+    .gte("data", hoje.toISOString().split("T")[0])
+    .limit(1);
+
+  if (agendamentosFuturosNome && agendamentosFuturosNome.length > 0) {
+    return "Cliente possui agendamento futuro - não está mais em risco";
+  }
+
+  // 4. Verificar pacotes com serviços futuros
+  const { data: pacotes } = await supabase
+    .from("agendamentos_pacotes")
+    .select("servicos")
+    .eq("user_id", userId)
+    .eq("nome_cliente", cliente.nome_cliente);
+
+  if (pacotes) {
+    for (const p of pacotes) {
+      try {
+        const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+        if (Array.isArray(servicos)) {
+          for (const s of servicos) {
+            if (s.data) {
+              const d = new Date(s.data + "T00:00:00");
+              if (!isNaN(d.getTime()) && d >= hoje) {
+                return "Cliente possui serviço de pacote futuro - não está mais em risco";
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // 5. Verificar atendimento recente (check-out nos últimos MIN_DIAS dias)
+  const limiteRecente = new Date(hoje);
+  limiteRecente.setDate(limiteRecente.getDate() - MIN_DIAS);
+  const limiteRecenteStr = limiteRecente.toISOString().split("T")[0];
+
+  const { data: atendimentoRecente } = await supabase
+    .from("agendamentos")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("cliente_id", clienteId)
+    .gte("data", limiteRecenteStr)
+    .lte("data", hoje.toISOString().split("T")[0])
+    .limit(1);
+
+  if (atendimentoRecente && atendimentoRecente.length > 0) {
+    return "Cliente já atendido recentemente - não está mais em risco";
+  }
+
+  // Todas as validações passaram
+  return null;
 }
 
 // ===================== FASE 1: AGENDAMENTO =====================
