@@ -238,7 +238,10 @@ export const ClientesEmRisco = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const detail = data?.error || data?.details || error?.message || "Erro desconhecido";
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      }
       toast.success(`Mensagem enviada para ${clienteClicado.nomeCliente}!`);
     } catch (err) {
       console.error("Erro ao enviar WhatsApp:", err);
