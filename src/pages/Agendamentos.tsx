@@ -881,20 +881,17 @@ const Agendamentos = () => {
     }
   }, [petSearch, clientes]);
 
-  // Busca inteligente por cliente (Agendamento Simples)
+  // Busca inteligente por cliente (Agendamento Simples) - retorna objetos com id para desambiguação
   useEffect(() => {
     if (simpleClienteJustSelected.current) {
       simpleClienteJustSelected.current = false;
       return;
     }
     if (simpleClienteSearch.length >= 2) {
-      const matches = Array.from(
-        new Set(
-          clientes.
-          filter((c) => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase())).
-          map((c) => c.nomeCliente)
-        )
-      );
+      const matches = clientes
+        .filter((c) => c.nomeCliente.toLowerCase().startsWith(simpleClienteSearch.toLowerCase()))
+        .map((c) => ({ id: c.id, nome: c.nomeCliente, whatsapp: c.whatsapp }));
+      // Verificar se há nomes duplicados para exibir whatsapp como diferenciador
       setSimpleFilteredClientes(matches);
     } else {
       setSimpleFilteredClientes([]);
