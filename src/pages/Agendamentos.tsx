@@ -1159,29 +1159,48 @@ const Agendamentos = () => {
     }
   };
 
-  // Atualizar pets disponíveis quando cliente é selecionado (Agendamento Simples) - por ID
-  const handleSimpleClienteSelect = (clienteId: string) => {
+  // Atualizar pets disponíveis quando cliente é selecionado (Agendamento Simples)
+  // Agora recebe o NOME agrupado e carrega pets de TODOS os clientes com esse nome
+  const handleSimpleClienteSelect = (clienteIdOrName: string) => {
     simpleClienteJustSelected.current = true;
     setSimpleSearchStartedWith("cliente");
 
-    const clienteSelecionado = clientes.find((c) => c.id === clienteId);
-    if (!clienteSelecionado) return;
+    // Tentar encontrar pelo ID primeiro (para seleção via WhatsApp)
+    let clienteSelecionado = clientes.find((c) => c.id === clienteIdOrName);
+    
+    let nomeCliente: string;
+    if (clienteSelecionado) {
+      nomeCliente = clienteSelecionado.nomeCliente;
+    } else {
+      // Foi passado um nome agrupado — buscar todos os clientes com esse nome
+      nomeCliente = clienteIdOrName;
+    }
 
-    setSelectedClienteId(clienteId);
-    setSimpleClienteSearch(clienteSelecionado.nomeCliente);
+    // Buscar TODOS os clientes com esse nome
+    const clientesComEsseNome = clientes.filter((c) => c.nomeCliente === nomeCliente);
+    if (clientesComEsseNome.length === 0) return;
+
+    // NÃO definir selectedClienteId ainda — será resolvido ao selecionar o pet
+    setSelectedClienteId("");
+    setSimpleClienteSearch(nomeCliente);
 
     setFormData({
       ...formData,
-      cliente: clienteSelecionado.nomeCliente,
+      cliente: nomeCliente,
       pet: "",
       raca: "",
-      whatsapp: clienteSelecionado.whatsapp
+      whatsapp: ""
     });
 
-    // Coletar pets APENAS deste cliente específico
-    const petsDoCliente = clienteSelecionado.pets.map((p) => p.nome);
+    // Coletar pets de TODOS os clientes com esse nome
+    const todosOsPets: string[] = [];
+    clientesComEsseNome.forEach((c) => {
+      c.pets.forEach((p) => {
+        todosOsPets.push(p.nome);
+      });
+    });
 
-    setSimpleFilteredPets(petsDoCliente);
+    setSimpleFilteredPets(todosOsPets);
     setSimpleFilteredClientes([]);
     setSimpleAvailableRacas([]);
     setAdditionalPets([]);
