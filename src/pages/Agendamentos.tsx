@@ -926,7 +926,7 @@ const Agendamentos = () => {
       return;
     }
     if (simpleWhatsappSearch.length >= 2) {
-      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }> = [];
+      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }> = [];
       clientes.forEach((cliente) => {
         if (cliente.whatsapp.includes(simpleWhatsappSearch)) {
           if (cliente.pets.length > 0) {
@@ -936,6 +936,7 @@ const Agendamentos = () => {
                 nomeCliente: cliente.nomeCliente,
                 nomePet: pet.nome,
                 raca: pet.raca,
+                clienteId: cliente.id,
               });
             });
           } else {
@@ -944,6 +945,7 @@ const Agendamentos = () => {
               nomeCliente: cliente.nomeCliente,
               nomePet: "",
               raca: "",
+              clienteId: cliente.id,
             });
           }
         }
@@ -955,13 +957,14 @@ const Agendamentos = () => {
   }, [simpleWhatsappSearch, clientes]);
 
   // Handler para seleção por WhatsApp (Agendamento Simples)
-  const handleSimpleWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string }) => {
+  const handleSimpleWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }) => {
     simpleWhatsappJustSelected.current = true;
     const formatted = item.whatsapp.length >= 11
       ? `(${item.whatsapp.slice(0, 2)}) ${item.whatsapp.slice(2, 7)}-${item.whatsapp.slice(7)}`
       : item.whatsapp;
     setSimpleWhatsappSearch(formatted);
     setSimpleFilteredWhatsapp([]);
+    setSelectedClienteId(item.clienteId);
     setFormData({
       ...formData,
       cliente: item.nomeCliente,
