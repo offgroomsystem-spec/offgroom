@@ -3386,15 +3386,25 @@ const Agendamentos = () => {
                     
                     {simpleFilteredClientes.length > 0 &&
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {simpleFilteredClientes.map((nome, idx) =>
-                      <div
-                        key={idx}
-                        className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
-                        onClick={() => handleSimpleClienteSelect(nome)}>
-                        
-                            {nome}
-                          </div>
-                      )}
+                        {(() => {
+                          // Verificar se há nomes duplicados
+                          const nomes = simpleFilteredClientes.map(c => c.nome);
+                          const nomesSet = new Set(nomes);
+                          const hasDuplicates = nomes.length !== nomesSet.size;
+                          return simpleFilteredClientes.map((clienteItem, idx) => (
+                            <div
+                              key={clienteItem.id}
+                              className="px-3 py-2 hover:bg-accent cursor-pointer text-xs"
+                              onClick={() => handleSimpleClienteSelect(clienteItem.id)}>
+                              {clienteItem.nome}
+                              {hasDuplicates && (
+                                <span className="text-muted-foreground ml-1">
+                                  ({clienteItem.whatsapp.slice(0, 2)}...{clienteItem.whatsapp.slice(-4)})
+                                </span>
+                              )}
+                            </div>
+                          ));
+                        })()}
                       </div>
                     }
                   </div>
