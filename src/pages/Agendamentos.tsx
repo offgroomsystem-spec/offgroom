@@ -3426,9 +3426,9 @@ const Agendamentos = () => {
                             <div className="text-xs font-medium mb-1.5">Selecionar pets:</div>
                             <div className="space-y-1 max-h-40 overflow-y-auto">
                               {(() => {
-                                const clientesDoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
-                                const allPets: Pet[] = [];
-                                clientesDoNome.forEach(c => c.pets.forEach(p => allPets.push(p)));
+                                const clienteSelecionado = clientes.find(c => c.id === selectedClienteId);
+                                if (!clienteSelecionado) return null;
+                                const allPets = clienteSelecionado.pets;
                                 const others = allPets.filter(p => !(p.nome === formData.pet && p.raca === formData.raca));
                                 return others.map((pet, idx) => {
                                   const isSelected = additionalPets.some(ap => ap.petName === pet.nome);
