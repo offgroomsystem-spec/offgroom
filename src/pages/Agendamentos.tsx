@@ -636,17 +636,18 @@ const Agendamentos = () => {
   // Estados para busca inteligente (Agendamento Simples)
   const [simpleClienteSearch, setSimpleClienteSearch] = useState("");
   const [simplePetSearch, setSimplePetSearch] = useState("");
-  const [simpleFilteredClientes, setSimpleFilteredClientes] = useState<string[]>([]);
+  const [simpleFilteredClientes, setSimpleFilteredClientes] = useState<Array<{ id: string; nome: string; whatsapp: string }>>([]);
   const [simpleFilteredPets, setSimpleFilteredPets] = useState<string[]>([]);
   const [simpleAvailableRacas, setSimpleAvailableRacas] = useState<string[]>([]);
   const [simpleSearchStartedWith, setSimpleSearchStartedWith] = useState<"cliente" | "pet" | null>(null);
+  const [selectedClienteId, setSelectedClienteId] = useState<string>("");
   const simpleClienteJustSelected = useRef(false);
   const clienteJustSelected = useRef(false);
   const simplePetJustSelected = useRef(false);
 
   // Estados para busca por WhatsApp (Agendamento Simples)
   const [simpleWhatsappSearch, setSimpleWhatsappSearch] = useState("");
-  const [simpleFilteredWhatsapp, setSimpleFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
+  const [simpleFilteredWhatsapp, setSimpleFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }>>([]);
   const simpleWhatsappJustSelected = useRef(false);
   const petJustSelected = useRef(false);
 
