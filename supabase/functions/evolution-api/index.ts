@@ -103,12 +103,38 @@ Deno.serve(async (req) => {
       if (!instanceName || !toNumber || !text) {
         return jsonResponse({ error: "instanceName, number e text são obrigatórios" }, 400);
       }
-      const result = await evolutionFetch(`/message/sendText/${instanceName}`, "POST", {
-        number: toNumber,
-        text,
-      });
-      if (!result.ok) return jsonResponse({ error: "Erro ao enviar mensagem" }, result.status);
-      return jsonResponse(result.data);
+
+      console.log("[SEND-MESSAGE] Enviando:", { instanceName, toNumber, textLength: text.length });
+
+      // Retry up to 2 times
+      let lastResult: { ok: boolean; status: number; data: any } | null = null;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const result = await evolutionFetch(`/message/sendText/${instanceName}`, "POST", {
+          number: toNumber,
+          text,
+        });
+        lastResult = result;
+
+        if (result.ok) {
+          console.log("[SEND-MESSAGE] ✅ Sucesso na tentativa", attempt);
+          return jsonResponse(result.data);
+        }
+
+        console.error(`[SEND-MESSAGE] ❌ Tentativa ${attempt} falhou:`, {
+          status: result.status,
+          data: result.data,
+        });
+
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+
+      const errorMsg =
+        lastResult?.data?.response?.message?.[0] ||
+        lastResult?.data?.message ||
+        "Erro ao enviar mensagem após 2 tentativas";
+      return jsonResponse({ error: errorMsg, details: lastResult?.data }, lastResult?.status || 500);
     }
 
     return jsonResponse({ error: `Ação desconhecida: ${action}` }, 400);
