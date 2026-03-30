@@ -395,7 +395,7 @@ const AdminMaster = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pets.map(p => (
+                      {[...pets].sort((a, b) => petSortAsc ? (a.nome_pet || '').localeCompare(b.nome_pet || '') : 0).map(p => (
                         <TableRow key={p.id}>
                           <TableCell>
                             <Checkbox
