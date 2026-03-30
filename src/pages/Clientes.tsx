@@ -181,6 +181,15 @@ export default function Clientes() {
     }
   };
 
+  const sanitizeWhatsapp = (value: string) => {
+    return value.replace(/\D/g, "").slice(0, 11);
+  };
+
+  const isWhatsappValid = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    return digits.length === 11;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -189,6 +198,12 @@ export default function Clientes() {
     // Validação
     if (!nomeCliente.trim() || !whatsapp.trim()) {
       toast.error("Nome do cliente e WhatsApp são obrigatórios");
+      return;
+    }
+
+    const whatsappSanitized = sanitizeWhatsapp(whatsapp);
+    if (whatsappSanitized.length !== 11) {
+      toast.error("O número de WhatsApp deve conter exatamente 11 dígitos numéricos (DDD + 9 + número), sem espaços ou caracteres especiais.");
       return;
     }
 
