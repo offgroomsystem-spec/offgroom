@@ -1633,6 +1633,7 @@ const Agendamentos = () => {
     setOpenAdditionalServicoCombobox(null);
     setAdditionalPets([]);
     setShowAdditionalPetsPopover(false);
+    setSelectedClienteId("");
     setIsDialogOpen(false);
   };
   const resetPacoteForm = () => {
