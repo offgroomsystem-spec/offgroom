@@ -652,14 +652,14 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
     }
 
     // Preparar lista de envios pendentes
-    const enviosPendentes: { clienteId: string; grupo: { pets: PetInfo[]; whatsapp: string }; tentativa: number; maxDias: number }[] = [];
+    const enviosPendentes: { clienteId: string; grupo: { pets: PetInfo[]; whatsapp: string }; tentativa: number; maxDias: number; isCarryOver: boolean }[] = [];
 
     for (const [clienteId, grupo] of clientesPetsRisco.entries()) {
       const historico = historicoMap.get(clienteId);
       const maxDias = Math.max(...grupo.pets.map((p) => p.dias_sem_agendar));
 
       if (!historico) {
-        enviosPendentes.push({ clienteId, grupo, tentativa: 1, maxDias });
+        enviosPendentes.push({ clienteId, grupo, tentativa: 1, maxDias, isCarryOver: carryOverClienteIds.has(clienteId) });
         continue;
       }
 
@@ -675,19 +675,51 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       const dataPrevistaStr = dataPrevista.toISOString().split("T")[0];
 
       if (hojeStr >= dataPrevistaStr) {
-        enviosPendentes.push({ clienteId, grupo, tentativa: proximaTentativa, maxDias });
+        enviosPendentes.push({ clienteId, grupo, tentativa: proximaTentativa, maxDias, isCarryOver: carryOverClienteIds.has(clienteId) });
+      }
+    }
+
+    // Incluir carry-over clients que NÃO apareceram na lista de risco atual
+    if (carryOverPendentes && carryOverPendentes.length > 0) {
+      for (const co of carryOverPendentes) {
+        if (clientesPetsRisco.has(co.cliente_id)) continue; // já incluído acima
+        const cliente = clienteMap.get(co.cliente_id);
+        if (!cliente || !cliente.whatsapp_ativo) continue;
+        const pets: PetInfo[] = (co.pets_incluidos || []).map((p: any) => ({
+          nome_pet: p.nome_pet,
+          sexo: p.sexo || null,
+          dias_sem_agendar: (p.dias_sem_agendar || MIN_DIAS) + 1, // +1 dia desde ontem
+        }));
+        if (pets.length === 0) continue;
+        const maxDias = Math.max(...pets.map((p) => p.dias_sem_agendar));
+        const numeroLimpo = (co.numero_whatsapp || cliente.whatsapp).replace(/\D/g, "");
+        enviosPendentes.push({
+          clienteId: co.cliente_id,
+          grupo: { pets, whatsapp: numeroLimpo },
+          tentativa: co.tentativa,
+          maxDias,
+          isCarryOver: true,
+        });
       }
     }
 
     // ✅ PRIORIZAÇÃO: Ordenar por dias sem agendar DECRESCENTE (mais críticos primeiro)
-    enviosPendentes.sort((a, b) => b.maxDias - a.maxDias);
+    // Clientes novos (não carry-over) com mesmo maxDias têm prioridade
+    enviosPendentes.sort((a, b) => {
+      if (b.maxDias !== a.maxDias) return b.maxDias - a.maxDias;
+      // Novos primeiro quando empate em dias
+      if (a.isCarryOver !== b.isCarryOver) return a.isCarryOver ? 1 : -1;
+      return 0;
+    });
 
-    // Limitar a LIMITE_DIARIO mensagens
+    // Limitar a LIMITE_DIARIO mensagens - excedentes ficam como pendentes para amanhã
     const enviosLimitados = enviosPendentes.slice(0, LIMITE_DIARIO);
-    const descartados = enviosPendentes.slice(LIMITE_DIARIO);
+    const excedentes = enviosPendentes.slice(LIMITE_DIARIO);
 
-    if (descartados.length > 0) {
-      console.log(`🗑️ ${descartados.length} clientes descartados por exceder limite diário de ${LIMITE_DIARIO}`);
+    if (excedentes.length > 0) {
+      const novos = excedentes.filter(e => !e.isCarryOver).length;
+      const carryOvers = excedentes.filter(e => e.isCarryOver).length;
+      console.log(`⏳ ${excedentes.length} clientes excederam limite diário (${novos} novos, ${carryOvers} carry-over) - ficarão pendentes para amanhã`);
     }
 
     // Gerar slots de horário aleatórios com pausas
