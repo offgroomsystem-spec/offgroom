@@ -198,25 +198,8 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
       .lte("enviado_em", fimHojeUTC.toISOString());
 
     if ((enviadasHoje || 0) >= LIMITE_DIARIO) {
-      console.log(`🚫 Limite diário de ${LIMITE_DIARIO} atingido para ${instance.instance_name}. Descartando restantes.`);
-      // Descartar todas as pendentes de hoje para este user
-      const { data: pendentesDescarte } = await supabase
-        .from("whatsapp_mensagens_risco")
-        .select("id")
-        .eq("user_id", instance.user_id)
-        .eq("status", "pendente")
-        .gte("agendado_para", inicioHojeUTC.toISOString())
-        .lte("agendado_para", fimHojeUTC.toISOString());
-
-      if (pendentesDescarte && pendentesDescarte.length > 0) {
-        const ids = pendentesDescarte.map((m: any) => m.id);
-        await supabase
-          .from("whatsapp_mensagens_risco")
-          .update({ status: "descartado", erro: `Limite diário de ${LIMITE_DIARIO} atingido` })
-          .in("id", ids);
-        totalCanceladas += ids.length;
-        console.log(`🗑️ ${ids.length} mensagens descartadas por limite diário`);
-      }
+      console.log(`🚫 Limite diário de ${LIMITE_DIARIO} atingido para ${instance.instance_name}. Pendentes restantes serão mantidos para carry-over.`);
+      // NÃO descartar - manter como pendente para carry-over no dia seguinte
       continue;
     }
 
@@ -401,22 +384,53 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       .single();
     if (!config?.evolution_auto_send) continue;
 
-    // Descartar mensagens pendentes antigas (de dias anteriores) para este user
+    // Tratar mensagens pendentes de dias anteriores:
+    // - 2+ dias pendente → descarte definitivo
+    // - 1 dia pendente → manter como carry-over para reaproveitamento
     const inicioHojeUTC = new Date(hojeStr + "T00:00:00.000Z");
-    const { data: antigasPendentes } = await supabase
+    const limite2DiasAtras = new Date(inicioHojeUTC);
+    limite2DiasAtras.setDate(limite2DiasAtras.getDate() - 2);
+
+    // Descartar mensagens pendentes com 2+ dias (created_at <= 2 dias atrás)
+    const { data: antigasPendentes2Dias } = await supabase
       .from("whatsapp_mensagens_risco")
-      .select("id")
+      .select("id, cliente_id")
       .eq("user_id", userId)
       .eq("status", "pendente")
-      .lt("agendado_para", inicioHojeUTC.toISOString());
+      .lt("agendado_para", inicioHojeUTC.toISOString())
+      .lt("created_at", limite2DiasAtras.toISOString());
 
-    if (antigasPendentes && antigasPendentes.length > 0) {
-      const ids = antigasPendentes.map((m: any) => m.id);
+    if (antigasPendentes2Dias && antigasPendentes2Dias.length > 0) {
+      const ids = antigasPendentes2Dias.map((m: any) => m.id);
       await supabase
         .from("whatsapp_mensagens_risco")
-        .update({ status: "descartado", erro: "Descartado - dia anterior não enviado" })
+        .update({ status: "descartado", erro: "Descartado definitivamente - 2 dias consecutivos sem envio" })
         .in("id", ids);
-      console.log(`🗑️ ${ids.length} mensagens antigas descartadas para ${instance.instance_name}`);
+      console.log(`🗑️ ${ids.length} mensagens descartadas definitivamente (2+ dias pendentes) para ${instance.instance_name}`);
+    }
+
+    // Buscar mensagens pendentes de 1 dia atrás (carry-over) para reaproveitamento
+    const { data: carryOverPendentes } = await supabase
+      .from("whatsapp_mensagens_risco")
+      .select("id, cliente_id, tentativa, pets_incluidos, mensagem, numero_whatsapp")
+      .eq("user_id", userId)
+      .eq("status", "pendente")
+      .lt("agendado_para", inicioHojeUTC.toISOString())
+      .gte("created_at", limite2DiasAtras.toISOString());
+
+    // Coletar cliente_ids do carry-over para não duplicar
+    const carryOverClienteIds = new Set<string>();
+    if (carryOverPendentes && carryOverPendentes.length > 0) {
+      for (const m of carryOverPendentes) {
+        carryOverClienteIds.add(m.cliente_id);
+      }
+      // Descartar as mensagens antigas - serão reagendadas com novos slots
+      const carryIds = carryOverPendentes.map((m: any) => m.id);
+      await supabase
+        .from("whatsapp_mensagens_risco")
+        .update({ status: "descartado", erro: "Reagendado para hoje - carry-over" })
+        .in("id", carryIds);
+      console.log(`🔄 ${carryOverPendentes.length} mensagens carry-over serão reaproveitadas para ${instance.instance_name}`);
     }
 
     // Verificar se já existem mensagens pendentes hoje para este user
@@ -621,14 +635,14 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
     }
 
     // Preparar lista de envios pendentes
-    const enviosPendentes: { clienteId: string; grupo: { pets: PetInfo[]; whatsapp: string }; tentativa: number; maxDias: number }[] = [];
+    const enviosPendentes: { clienteId: string; grupo: { pets: PetInfo[]; whatsapp: string }; tentativa: number; maxDias: number; isCarryOver: boolean }[] = [];
 
     for (const [clienteId, grupo] of clientesPetsRisco.entries()) {
       const historico = historicoMap.get(clienteId);
       const maxDias = Math.max(...grupo.pets.map((p) => p.dias_sem_agendar));
 
       if (!historico) {
-        enviosPendentes.push({ clienteId, grupo, tentativa: 1, maxDias });
+        enviosPendentes.push({ clienteId, grupo, tentativa: 1, maxDias, isCarryOver: carryOverClienteIds.has(clienteId) });
         continue;
       }
 
@@ -644,19 +658,51 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       const dataPrevistaStr = dataPrevista.toISOString().split("T")[0];
 
       if (hojeStr >= dataPrevistaStr) {
-        enviosPendentes.push({ clienteId, grupo, tentativa: proximaTentativa, maxDias });
+        enviosPendentes.push({ clienteId, grupo, tentativa: proximaTentativa, maxDias, isCarryOver: carryOverClienteIds.has(clienteId) });
+      }
+    }
+
+    // Incluir carry-over clients que NÃO apareceram na lista de risco atual
+    if (carryOverPendentes && carryOverPendentes.length > 0) {
+      for (const co of carryOverPendentes) {
+        if (clientesPetsRisco.has(co.cliente_id)) continue; // já incluído acima
+        const cliente = clienteMap.get(co.cliente_id);
+        if (!cliente || !cliente.whatsapp_ativo) continue;
+        const pets: PetInfo[] = (co.pets_incluidos || []).map((p: any) => ({
+          nome_pet: p.nome_pet,
+          sexo: p.sexo || null,
+          dias_sem_agendar: (p.dias_sem_agendar || MIN_DIAS) + 1, // +1 dia desde ontem
+        }));
+        if (pets.length === 0) continue;
+        const maxDias = Math.max(...pets.map((p) => p.dias_sem_agendar));
+        const numeroLimpo = (co.numero_whatsapp || cliente.whatsapp).replace(/\D/g, "");
+        enviosPendentes.push({
+          clienteId: co.cliente_id,
+          grupo: { pets, whatsapp: numeroLimpo },
+          tentativa: co.tentativa,
+          maxDias,
+          isCarryOver: true,
+        });
       }
     }
 
     // ✅ PRIORIZAÇÃO: Ordenar por dias sem agendar DECRESCENTE (mais críticos primeiro)
-    enviosPendentes.sort((a, b) => b.maxDias - a.maxDias);
+    // Clientes novos (não carry-over) com mesmo maxDias têm prioridade
+    enviosPendentes.sort((a, b) => {
+      if (b.maxDias !== a.maxDias) return b.maxDias - a.maxDias;
+      // Novos primeiro quando empate em dias
+      if (a.isCarryOver !== b.isCarryOver) return a.isCarryOver ? 1 : -1;
+      return 0;
+    });
 
-    // Limitar a LIMITE_DIARIO mensagens
+    // Limitar a LIMITE_DIARIO mensagens - excedentes ficam como pendentes para amanhã
     const enviosLimitados = enviosPendentes.slice(0, LIMITE_DIARIO);
-    const descartados = enviosPendentes.slice(LIMITE_DIARIO);
+    const excedentes = enviosPendentes.slice(LIMITE_DIARIO);
 
-    if (descartados.length > 0) {
-      console.log(`🗑️ ${descartados.length} clientes descartados por exceder limite diário de ${LIMITE_DIARIO}`);
+    if (excedentes.length > 0) {
+      const novos = excedentes.filter(e => !e.isCarryOver).length;
+      const carryOvers = excedentes.filter(e => e.isCarryOver).length;
+      console.log(`⏳ ${excedentes.length} clientes excederam limite diário (${novos} novos, ${carryOvers} carry-over) - ficarão pendentes para amanhã`);
     }
 
     // Gerar slots de horário aleatórios com pausas
