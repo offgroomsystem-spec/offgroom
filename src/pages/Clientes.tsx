@@ -227,7 +227,7 @@ export default function Clientes() {
           .from("clientes")
           .update({
             nome_cliente: nomeCliente,
-            whatsapp,
+            whatsapp: whatsappSanitized,
             endereco,
             observacao: observacaoCliente,
             cpf_cnpj: cpfCnpj || null,
