@@ -319,6 +319,7 @@ const AdminMaster = () => {
                       <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="Macho">Macho</SelectItem>
                       <SelectItem value="Fêmea">Fêmea</SelectItem>
+                      <SelectItem value="sem_sexo">Sem Sexo Definido</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={petFilters.porte} onValueChange={v => setPetFilters(p => ({ ...p, porte: v === 'all' ? '' : v }))}>

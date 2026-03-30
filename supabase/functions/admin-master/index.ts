@@ -153,7 +153,11 @@ serve(async (req) => {
         `);
 
         if (filters?.nome) query = query.ilike('nome_pet', `%${filters.nome}%`);
-        if (filters?.sexo) query = query.eq('sexo', filters.sexo);
+        if (filters?.sexo === 'sem_sexo') {
+          query = query.or('sexo.is.null,sexo.eq.');
+        } else if (filters?.sexo) {
+          query = query.eq('sexo', filters.sexo);
+        }
         if (filters?.porte) query = query.eq('porte', filters.porte);
         if (filters?.raca) query = query.ilike('raca', `%${filters.raca}%`);
 
