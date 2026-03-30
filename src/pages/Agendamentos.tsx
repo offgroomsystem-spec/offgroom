@@ -567,17 +567,14 @@ const Agendamentos = () => {
 
     let portePet = "";
 
-    // Se o cliente está selecionado, buscar apenas nos pets desse cliente
-    if (formData.cliente) {
-      const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
-      for (const cliente of clientesComMesmoNome) {
-        const pet = cliente.pets.find(
+    // Se o cliente está selecionado por ID, buscar apenas nos pets desse cliente
+    if (selectedClienteId) {
+      const clienteSelecionado = clientes.find((c) => c.id === selectedClienteId);
+      if (clienteSelecionado) {
+        const pet = clienteSelecionado.pets.find(
           (p) => p.nome === formData.pet && p.raca === formData.raca
         );
-        if (pet) {
-          portePet = pet.porte;
-          break;
-        }
+        if (pet) portePet = pet.porte;
       }
     }
 
@@ -602,7 +599,7 @@ const Agendamentos = () => {
     return servicos.filter(
       (s) => normalizarPorte(s.porte) === porteNormalizado || normalizarPorte(s.porte) === "todos"
     );
-  }, [formData.pet, formData.raca, formData.cliente, servicos, clientes]);
+  }, [formData.pet, formData.raca, selectedClienteId, servicos, clientes]);
 
   const [isPacoteSelecionado, setIsPacoteSelecionado] = useState(false);
   const [dataVendaManual, setDataVendaManual] = useState(false);
