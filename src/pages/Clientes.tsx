@@ -288,7 +288,7 @@ export default function Clientes() {
           .insert({
             user_id: ownerId,
             nome_cliente: nomeCliente,
-            whatsapp,
+            whatsapp: whatsappSanitized,
             endereco,
             observacao: observacaoCliente,
             cpf_cnpj: cpfCnpj || null,
