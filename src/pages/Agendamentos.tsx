@@ -1455,6 +1455,7 @@ const Agendamentos = () => {
       const { data: agendamentoData, error } = await supabase.from("agendamentos").insert([
       {
         user_id: ownerId,
+        cliente_id: selectedClienteId || null,
         cliente: formData.cliente,
         pet: formData.pet,
         raca: formData.raca,
