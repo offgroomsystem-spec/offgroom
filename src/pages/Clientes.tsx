@@ -157,7 +157,7 @@ export default function Clientes() {
   const handleEdit = (cliente: Cliente) => {
     setEditingId(cliente.id);
     setNomeCliente(cliente.nome_cliente);
-    setWhatsapp(cliente.whatsapp);
+    setWhatsapp((cliente.whatsapp || "").replace(/\D/g, "").slice(0, 11));
     setEndereco(cliente.endereco || "");
     setObservacaoCliente(cliente.observacao || "");
     setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "", whatsapp_ativo: p.whatsapp_ativo !== false })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
@@ -181,6 +181,15 @@ export default function Clientes() {
     }
   };
 
+  const sanitizeWhatsapp = (value: string) => {
+    return value.replace(/\D/g, "").slice(0, 11);
+  };
+
+  const isWhatsappValid = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    return digits.length === 11;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -189,6 +198,12 @@ export default function Clientes() {
     // Validação
     if (!nomeCliente.trim() || !whatsapp.trim()) {
       toast.error("Nome do cliente e WhatsApp são obrigatórios");
+      return;
+    }
+
+    const whatsappSanitized = sanitizeWhatsapp(whatsapp);
+    if (whatsappSanitized.length !== 11) {
+      toast.error("O número de WhatsApp deve conter exatamente 11 dígitos numéricos (DDD + 9 + número), sem espaços ou caracteres especiais.");
       return;
     }
 
@@ -212,7 +227,7 @@ export default function Clientes() {
           .from("clientes")
           .update({
             nome_cliente: nomeCliente,
-            whatsapp,
+            whatsapp: whatsappSanitized,
             endereco,
             observacao: observacaoCliente,
             cpf_cnpj: cpfCnpj || null,
@@ -273,7 +288,7 @@ export default function Clientes() {
           .insert({
             user_id: ownerId,
             nome_cliente: nomeCliente,
-            whatsapp,
+            whatsapp: whatsappSanitized,
             endereco,
             observacao: observacaoCliente,
             cpf_cnpj: cpfCnpj || null,
@@ -416,10 +431,22 @@ export default function Clientes() {
                         <Input
                           id="whatsapp"
                           value={whatsapp}
-                          onChange={(e) => setWhatsapp(e.target.value)}
-                          placeholder="(00) 00000-0000"
+                          onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                          placeholder="61981468122"
+                          maxLength={11}
+                          inputMode="numeric"
                           required
+                          className={cn(
+                            whatsapp.length > 0 && whatsapp.length !== 11 && "border-destructive focus-visible:ring-destructive",
+                            whatsapp.length === 11 && "border-green-500 focus-visible:ring-green-500"
+                          )}
                         />
+                        {whatsapp.length > 0 && whatsapp.length !== 11 && (
+                          <p className="text-xs text-destructive">{whatsapp.length}/11 dígitos</p>
+                        )}
+                        {whatsapp.length === 11 && (
+                          <p className="text-xs text-green-600">✅ Número válido</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
