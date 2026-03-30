@@ -124,6 +124,12 @@ const Login = () => {
       // Redirecionar baseado no tipo de login
       const tipoLogin = roleData?.role;
       
+      // Admin master - redirecionar para painel exclusivo
+      if (data.email === 'offgroom.system@gmail.com') {
+        navigate('/admin-master');
+        return;
+      }
+
       if (tipoLogin === 'taxi_dog') {
         navigate('/agendamentos');
       } else if (tipoLogin === 'recepcionista') {

@@ -53,6 +53,7 @@ const App = () => (
             <Route path="/store" element={<Store />} />
             <Route path="/pagamento" element={<Pagamento />} />
             <Route path="/crmoffgroom" element={<CRMOffgroom />} />
+            <Route path="/admin-master" element={<AdminMaster />} />
             <Route path="/" element={<Navigate to="/store" replace />} />
             
             {/* Rotas protegidas */}
