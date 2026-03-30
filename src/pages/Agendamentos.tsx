@@ -1233,10 +1233,18 @@ const Agendamentos = () => {
     let clienteCorreto: Cliente | undefined;
     let petEncontrado: Pet | undefined;
 
-    if (formData.cliente) {
-      // Buscar TODOS os clientes com esse nome
+    if (selectedClienteId) {
+      // Priorizar busca pelo ID do cliente já selecionado
+      const cliente = clientes.find((c) => c.id === selectedClienteId);
+      if (cliente) {
+        const pet = cliente.pets.find((p) => p.nome === formData.pet && p.raca === raca);
+        if (pet) {
+          clienteCorreto = cliente;
+          petEncontrado = pet;
+        }
+      }
+    } else if (formData.cliente) {
       const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
-
       for (const cliente of clientesComMesmoNome) {
         const pet = cliente.pets.find((p) => p.nome === formData.pet && p.raca === raca);
         if (pet) {
