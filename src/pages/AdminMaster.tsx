@@ -27,6 +27,7 @@ const AdminMaster = () => {
   const [pets, setPets] = useState<any[]>([]);
   const [selectedPets, setSelectedPets] = useState<string[]>([]);
   const [petFilters, setPetFilters] = useState({ nome: '', sexo: '', porte: '', raca: '' });
+  const [petSortAsc, setPetSortAsc] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [bulkAction, setBulkAction] = useState<{ field: string; value: string } | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
