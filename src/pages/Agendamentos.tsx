@@ -1207,31 +1207,51 @@ const Agendamentos = () => {
   };
 
   // Atualizar raças disponíveis quando pet é selecionado (Agendamento Simples)
+  // REGRA CRÍTICA: Ao selecionar o pet, resolver automaticamente o cliente_id real
   const handleSimplePetSelect = (nomePet: string) => {
     simplePetJustSelected.current = true;
     setSimplePetSearch(nomePet);
 
-    if ((simpleSearchStartedWith === "cliente" || formData.cliente) && selectedClienteId) {
-      // Buscar pelo ID do cliente selecionado
-      const clienteSelecionado = clientes.find((c) => c.id === selectedClienteId);
-      const petEncontrado = clienteSelecionado?.pets.find((p) => p.nome === nomePet);
+    if (simpleSearchStartedWith === "cliente" || formData.cliente) {
+      // Cliente (nome) já foi selecionado — resolver qual cliente REAL possui esse pet
+      const clientesComEsseNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
+      
+      let clienteResolvido: typeof clientes[0] | undefined;
+      let petEncontrado: Pet | undefined;
 
-      if (clienteSelecionado && petEncontrado) {
+      for (const c of clientesComEsseNome) {
+        const pet = c.pets.find((p) => p.nome === nomePet);
+        if (pet) {
+          clienteResolvido = c;
+          petEncontrado = pet;
+          break;
+        }
+      }
+
+      if (clienteResolvido && petEncontrado) {
+        // RESOLVER o cliente_id real a partir do pet selecionado
+        setSelectedClienteId(clienteResolvido.id);
         setSimpleAvailableRacas([petEncontrado.raca]);
         setFormData({
           ...formData,
           pet: nomePet,
           raca: petEncontrado.raca,
-          whatsapp: clienteSelecionado.whatsapp
+          whatsapp: clienteResolvido.whatsapp
         });
       }
     } else {
-      // Se começou pelo pet, mostrar clientes que têm esse pet
+      // Se começou pelo pet, mostrar clientes que têm esse pet (agrupados por nome)
       setSimpleSearchStartedWith("pet");
 
       const clientesComEssePet = clientes.filter((c) => c.pets.some((p) => p.nome === nomePet));
-      const clientesParaExibir = clientesComEssePet.map((c) => ({ id: c.id, nome: c.nomeCliente, whatsapp: c.whatsapp }));
-      setSimpleFilteredClientes(clientesParaExibir);
+      // Agrupar por nome
+      const seen = new Map<string, { id: string; nome: string; whatsapp: string }>();
+      clientesComEssePet.forEach((c) => {
+        if (!seen.has(c.nomeCliente)) {
+          seen.set(c.nomeCliente, { id: c.id, nome: c.nomeCliente, whatsapp: c.whatsapp });
+        }
+      });
+      setSimpleFilteredClientes(Array.from(seen.values()));
 
       const racasDisponiveis = new Set<string>();
       clientesComEssePet.forEach((c) => {
