@@ -1156,37 +1156,32 @@ const Agendamentos = () => {
     }
   };
 
-  // Atualizar pets disponíveis quando cliente é selecionado (Agendamento Simples)
-  const handleSimpleClienteSelect = (nomeCliente: string) => {
+  // Atualizar pets disponíveis quando cliente é selecionado (Agendamento Simples) - por ID
+  const handleSimpleClienteSelect = (clienteId: string) => {
     simpleClienteJustSelected.current = true;
-    setSimpleClienteSearch(nomeCliente);
     setSimpleSearchStartedWith("cliente");
 
-    // Buscar TODOS os clientes com esse nome (não apenas o primeiro)
-    const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === nomeCliente);
+    const clienteSelecionado = clientes.find((c) => c.id === clienteId);
+    if (!clienteSelecionado) return;
 
-    if (clientesComMesmoNome.length > 0) {
-      // Pegar o primeiro cliente para definir whatsapp (poderia ser qualquer um)
-      const primeiroCliente = clientesComMesmoNome[0];
+    setSelectedClienteId(clienteId);
+    setSimpleClienteSearch(clienteSelecionado.nomeCliente);
 
-      setFormData({
-        ...formData,
-        cliente: nomeCliente,
-        pet: "",
-        raca: "",
-        whatsapp: primeiroCliente.whatsapp
-      });
+    setFormData({
+      ...formData,
+      cliente: clienteSelecionado.nomeCliente,
+      pet: "",
+      raca: "",
+      whatsapp: clienteSelecionado.whatsapp
+    });
 
-      // Coletar pets de TODOS os clientes com esse nome
-      const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) =>
-      cliente.pets.map((p) => p.nome)
-      );
+    // Coletar pets APENAS deste cliente específico
+    const petsDoCliente = clienteSelecionado.pets.map((p) => p.nome);
 
-      setSimpleFilteredPets(todosPetsDoNome);
-      setSimpleFilteredClientes([]);
-      setSimpleAvailableRacas([]);
-      setAdditionalPets([]);
-    }
+    setSimpleFilteredPets(petsDoCliente);
+    setSimpleFilteredClientes([]);
+    setSimpleAvailableRacas([]);
+    setAdditionalPets([]);
   };
 
   // Atualizar raças disponíveis quando pet é selecionado (Agendamento Simples)
@@ -1194,30 +1189,18 @@ const Agendamentos = () => {
     simplePetJustSelected.current = true;
     setSimplePetSearch(nomePet);
 
-    if (simpleSearchStartedWith === "cliente" || formData.cliente) {
-      // Buscar TODOS os clientes com esse nome
-      const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === formData.cliente);
+    if ((simpleSearchStartedWith === "cliente" || formData.cliente) && selectedClienteId) {
+      // Buscar pelo ID do cliente selecionado
+      const clienteSelecionado = clientes.find((c) => c.id === selectedClienteId);
+      const petEncontrado = clienteSelecionado?.pets.find((p) => p.nome === nomePet);
 
-      // Encontrar qual cliente específico possui esse pet
-      let clienteCorreto: Cliente | undefined;
-      let petEncontrado: Pet | undefined;
-
-      for (const cliente of clientesComMesmoNome) {
-        const pet = cliente.pets.find((p) => p.nome === nomePet);
-        if (pet) {
-          clienteCorreto = cliente;
-          petEncontrado = pet;
-          break;
-        }
-      }
-
-      if (clienteCorreto && petEncontrado) {
+      if (clienteSelecionado && petEncontrado) {
         setSimpleAvailableRacas([petEncontrado.raca]);
         setFormData({
           ...formData,
           pet: nomePet,
           raca: petEncontrado.raca,
-          whatsapp: clienteCorreto.whatsapp
+          whatsapp: clienteSelecionado.whatsapp
         });
       }
     } else {
@@ -1225,8 +1208,8 @@ const Agendamentos = () => {
       setSimpleSearchStartedWith("pet");
 
       const clientesComEssePet = clientes.filter((c) => c.pets.some((p) => p.nome === nomePet));
-      const nomesClientes = clientesComEssePet.map((c) => c.nomeCliente);
-      setSimpleFilteredClientes(nomesClientes);
+      const clientesParaExibir = clientesComEssePet.map((c) => ({ id: c.id, nome: c.nomeCliente, whatsapp: c.whatsapp }));
+      setSimpleFilteredClientes(clientesParaExibir);
 
       const racasDisponiveis = new Set<string>();
       clientesComEssePet.forEach((c) => {
@@ -1235,6 +1218,7 @@ const Agendamentos = () => {
       });
 
       setSimpleAvailableRacas(Array.from(racasDisponiveis));
+      setSelectedClienteId("");
       setFormData({
         ...formData,
         pet: nomePet,
