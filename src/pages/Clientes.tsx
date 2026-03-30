@@ -238,6 +238,51 @@ export default function Clientes() {
 
         if (clienteError) throw clienteError;
 
+        // === SYNC WhatsApp: atualizar agendamentos futuros e mensagens pendentes ===
+        const hoje = new Date().toISOString().split("T")[0];
+        
+        // Atualizar agendamentos futuros vinculados a esse cliente
+        const { error: syncAgError } = await supabase
+          .from("agendamentos")
+          .update({ whatsapp: whatsappSanitized } as any)
+          .eq("cliente_id", editingId)
+          .gte("data", hoje);
+        if (syncAgError) console.error("Erro ao sincronizar WhatsApp nos agendamentos:", syncAgError);
+        
+        // Atualizar agendamentos_pacotes vinculados (por nome do cliente + user_id)
+        const { data: clienteAtual } = await supabase.from("clientes").select("nome_cliente").eq("id", editingId).single();
+        if (clienteAtual) {
+          const { error: syncPacoteError } = await supabase
+            .from("agendamentos_pacotes")
+            .update({ whatsapp: whatsappSanitized } as any)
+            .eq("user_id", ownerId)
+            .eq("nome_cliente", clienteAtual.nome_cliente);
+          if (syncPacoteError) console.error("Erro ao sincronizar WhatsApp nos pacotes:", syncPacoteError);
+        }
+        
+        // Atualizar mensagens WhatsApp pendentes vinculadas a agendamentos desse cliente
+        let numeroFormatado = whatsappSanitized.replace(/\D/g, "");
+        if (!numeroFormatado.startsWith("55")) numeroFormatado = "55" + numeroFormatado;
+        
+        // Buscar IDs dos agendamentos do cliente
+        const { data: agendamentosCliente } = await supabase
+          .from("agendamentos")
+          .select("id")
+          .eq("cliente_id", editingId)
+          .gte("data", hoje);
+        
+        if (agendamentosCliente && agendamentosCliente.length > 0) {
+          const agIds = agendamentosCliente.map(a => a.id);
+          const { error: syncMsgError } = await supabase
+            .from("whatsapp_mensagens_agendadas" as any)
+            .update({ numero_whatsapp: numeroFormatado })
+            .in("agendamento_id", agIds)
+            .eq("status", "pendente");
+          if (syncMsgError) console.error("Erro ao sincronizar WhatsApp nas mensagens:", syncMsgError);
+        }
+        
+        console.log(`[SYNC] WhatsApp sincronizado para cliente ${editingId}: ${whatsappSanitized}`);
+
         // Buscar pets existentes
         const { data: petsExistentes } = await supabase.from("pets").select("id").eq("cliente_id", editingId);
 
