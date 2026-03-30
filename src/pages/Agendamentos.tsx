@@ -680,16 +680,16 @@ const Agendamentos = () => {
     );
   };
 
-  // Pets do mesmo cliente disponíveis para agendamento adicional
+  // Pets do mesmo cliente disponíveis para agendamento adicional (filtrado por ID)
   const otherPetsFromClient = useMemo(() => {
-    if (!formData.cliente || !formData.pet || !formData.raca || !formData.whatsapp) return [];
-    const clientesDoNome = clientes.filter(c => c.nomeCliente === formData.cliente);
-    const allPets: Pet[] = [];
-    clientesDoNome.forEach(c => c.pets.forEach(p => allPets.push(p)));
+    if (!selectedClienteId || !formData.pet || !formData.raca || !formData.whatsapp) return [];
+    const clienteSelecionado = clientes.find(c => c.id === selectedClienteId);
+    if (!clienteSelecionado) return [];
+    const allPets = clienteSelecionado.pets;
     // Excluir o pet principal e os já adicionados
     const addedNames = additionalPets.map(ap => ap.petName);
     return allPets.filter(p => !(p.nome === formData.pet && p.raca === formData.raca) && !addedNames.includes(p.nome));
-  }, [formData.cliente, formData.pet, formData.raca, formData.whatsapp, clientes, additionalPets]);
+  }, [selectedClienteId, formData.pet, formData.raca, formData.whatsapp, clientes, additionalPets]);
 
   const handleToggleAdditionalPet = (pet: Pet) => {
     const exists = additionalPets.find(ap => ap.petName === pet.nome);
