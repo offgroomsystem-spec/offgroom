@@ -11,6 +11,7 @@ import { format, differenceInDays, isValid } from "date-fns";
 import { toast } from "sonner";
 import { FiltrosClientesRisco } from "./FiltrosClientesRisco";
 import { ModalDetalhesCliente } from "./ModalDetalhesCliente";
+import { buildWhatsAppUrl, getInvalidPhoneMessage, normalizeBrazilPhone } from "@/utils/phone";
 
 interface ClienteRisco {
   id: string;
@@ -215,13 +216,16 @@ export const ClientesEmRisco = () => {
     const primeiroNome = clienteClicado.nomeCliente.split(" ")[0];
     const mensagem = gerarMensagemAgrupada(primeiroNome, petsDoCliente);
 
-    const numeroLimpo = clienteClicado.whatsapp.toString().replace(/\D/g, "");
-    const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
+    const numeroCompleto = normalizeBrazilPhone(clienteClicado.whatsapp);
+    if (!numeroCompleto) {
+      return toast.error(getInvalidPhoneMessage(clienteClicado.whatsapp));
+    }
 
     const { name: instanceName, connected } = whatsappInstanceRef.current;
 
     if (!connected || !instanceName) {
-      const link = `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(mensagem)}`;
+      const link = buildWhatsAppUrl(numeroCompleto, mensagem);
+      if (!link) return toast.error(getInvalidPhoneMessage(clienteClicado.whatsapp));
       window.open(link, "_blank");
       return;
     }
@@ -246,8 +250,8 @@ export const ClientesEmRisco = () => {
     } catch (err) {
       console.error("Erro ao enviar WhatsApp:", err);
       toast.error("Erro ao enviar mensagem. Abrindo link manual...");
-      const link = `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(mensagem)}`;
-      window.open(link, "_blank");
+      const link = buildWhatsAppUrl(numeroCompleto, mensagem);
+      if (link) window.open(link, "_blank");
     } finally {
       setEnviandoWhatsApp(null);
     }

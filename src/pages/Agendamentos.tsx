@@ -66,6 +66,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criarLancamentoFinanceiroMultiplosServicos, criarLancamentoFinanceiroConsolidado } from "@/hooks/useCriarLancamentoAutomatico";
 import { scheduleWhatsAppMessages, deletePendingMessages } from "@/utils/whatsappScheduler";
+import { buildWhatsAppUrl, getInvalidPhoneMessage, normalizeBrazilPhone } from "@/utils/phone";
 import { FinanceiroEditDialog } from "@/components/agendamentos/FinanceiroEditDialog";
 
 
@@ -2033,7 +2034,11 @@ const Agendamentos = () => {
     if (empresaConfig.bordao) {
       mensagem += `*${empresaConfig.bordao}*`;
     }
-    const whatsappUrl = `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
+    const whatsappUrl = buildWhatsAppUrl(pacote.whatsapp, mensagem);
+    if (!whatsappUrl) {
+      toast.error(getInvalidPhoneMessage(pacote.whatsapp));
+      return;
+    }
 
     // Criar link dinâmico para evitar bloqueio
     const link = document.createElement("a");
@@ -2069,8 +2074,11 @@ const Agendamentos = () => {
       mensagem += `\n*${empresaConfig.bordao}*`;
     }
 
-    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, "");
-    const urlWhatsApp = `https://wa.me/55${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+    const urlWhatsApp = buildWhatsAppUrl(agendamento.whatsapp, mensagem);
+    if (!urlWhatsApp) {
+      toast.error(getInvalidPhoneMessage(agendamento.whatsapp));
+      return;
+    }
 
     // Criar link dinâmico para evitar bloqueio
     const link = document.createElement("a");
@@ -2141,8 +2149,7 @@ const Agendamentos = () => {
       mensagem += `\n*${empresaConfig.bordao}*`;
     }
 
-    const numeroWhatsApp = agendamento.whatsapp.replace(/\D/g, "");
-    return `https://wa.me/55${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+    return buildWhatsAppUrl(agendamento.whatsapp, mensagem) ?? "";
   };
 
   // Gerar URL do WhatsApp para pacote sem abrir (para uso em links nativos)
@@ -2174,7 +2181,7 @@ const Agendamentos = () => {
       mensagem += `\n*${empresaConfig.bordao}*`;
     }
 
-    return `https://wa.me/55${pacote.whatsapp}?text=${encodeURIComponent(mensagem)}`;
+    return buildWhatsAppUrl(pacote.whatsapp, mensagem) ?? "";
   };
 
   // Copiar link do WhatsApp para clipboard e mostrar notificação
@@ -2299,8 +2306,11 @@ const Agendamentos = () => {
       agendamento.agendamento?.whatsapp ||
       agendamento.agendamentoPacote?.whatsapp ||
       agendamento.pacoteOriginal?.whatsapp || "";
-    let numero = whatsappRaw.replace(/\D/g, "");
-    if (!numero.startsWith("55")) numero = "55" + numero;
+    const numero = normalizeBrazilPhone(whatsappRaw);
+    if (!numero) {
+      toast.error(getInvalidPhoneMessage(whatsappRaw));
+      return;
+    }
 
     // Determine IDs for marking as sent
     const agendamentoId = agendamento.tipo === "simples" 
@@ -2482,15 +2492,24 @@ const Agendamentos = () => {
     const mensagem = buildPetProntoMessage(primeiroNome, pets, taxiDog);
 
     // Obter número do WhatsApp
-    let numeroWhatsApp = agendamentoDia.whatsapp || 
+    const numeroWhatsAppRaw = agendamentoDia.whatsapp || 
       agendamentoDia.agendamentoOriginal?.whatsapp || 
       agendamentoDia.agendamentoPacote?.whatsapp || "";
-    numeroWhatsApp = numeroWhatsApp.replace(/\D/g, "");
-    if (!numeroWhatsApp.startsWith("55")) numeroWhatsApp = "55" + numeroWhatsApp;
+    const numeroWhatsApp = normalizeBrazilPhone(numeroWhatsAppRaw);
+    if (!numeroWhatsApp) {
+      toast.error(getInvalidPhoneMessage(numeroWhatsAppRaw));
+      setPetProntoDialogOpen(false);
+      return;
+    }
 
     if (!whatsappConnected || !whatsappInstanceName) {
       // Fallback wa.me
-      const url = `https://api.whatsapp.com/send/?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`;
+      const url = buildWhatsAppUrl(numeroWhatsApp, mensagem);
+      if (!url) {
+        toast.error(getInvalidPhoneMessage(numeroWhatsAppRaw));
+        setPetProntoDialogOpen(false);
+        return;
+      }
       window.open(url, '_blank');
       setPetProntoDialogOpen(false);
       return;

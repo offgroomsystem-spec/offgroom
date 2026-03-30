@@ -1,5 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function normalizeBrazilPhone(rawPhone: string | null | undefined) {
+  const digits = String(rawPhone ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+
+  let normalized = digits;
+  if (normalized.startsWith("55")) normalized = normalized.slice(2);
+  if (normalized.length === 10) normalized = `${normalized.slice(0, 2)}9${normalized.slice(2)}`;
+  if (normalized.length !== 11) return null;
+
+  return `55${normalized}`;
+}
+
+async function checkWhatsAppNumber(instanceName: string, number: string) {
+  return evolutionFetch(`/chat/whatsappNumbers/${instanceName}`, "POST", {
+    numbers: [number],
+  });
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -47,6 +65,13 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error("JWT validation failed:", claimsError?.message);
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const userId = claimsData.claims.sub;
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
       console.error("JWT validation failed:", userError?.message);
@@ -104,13 +129,35 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "instanceName, number e text são obrigatórios" }, 400);
       }
 
-      console.log("[SEND-MESSAGE] Enviando:", { instanceName, toNumber, textLength: text.length });
+      const normalizedNumber = normalizeBrazilPhone(toNumber);
+      if (!normalizedNumber) {
+        return jsonResponse({ error: "Número inválido. Use DDD + número com 9 dígitos." }, 400);
+      }
+
+      const validationResult = await checkWhatsAppNumber(instanceName, normalizedNumber);
+      const validationEntry = Array.isArray(validationResult.data) ? validationResult.data[0] : null;
+      if (!validationResult.ok) {
+        console.error("[SEND-MESSAGE] Falha na validação do número:", validationResult.data);
+        return jsonResponse({
+          error: "Não foi possível validar o número antes do envio.",
+          details: validationResult.data,
+        }, validationResult.status || 400);
+      }
+
+      if (!validationEntry?.exists) {
+        return jsonResponse({
+          error: "Número inválido ou não encontrado no WhatsApp.",
+          details: validationResult.data,
+        }, 400);
+      }
+
+      console.log("[SEND-MESSAGE] Enviando:", { userId, instanceName, toNumber, normalizedNumber, textLength: text.length });
 
       // Retry up to 2 times
       let lastResult: { ok: boolean; status: number; data: any } | null = null;
       for (let attempt = 1; attempt <= 2; attempt++) {
         const result = await evolutionFetch(`/message/sendText/${instanceName}`, "POST", {
-          number: toNumber,
+          number: normalizedNumber,
           text,
         });
         lastResult = result;
