@@ -380,7 +380,14 @@ const AdminMaster = () => {
                             onCheckedChange={c => setSelectedPets(c ? pets.map(p => p.id) : [])}
                           />
                         </TableHead>
-                        <TableHead>Nome</TableHead>
+                        <TableHead>
+                          <div className="flex items-center gap-1">
+                            Nome
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setPetSortAsc(prev => !prev)}>
+                              <ArrowUpDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableHead>
                         <TableHead>Raça</TableHead>
                         <TableHead>Porte</TableHead>
                         <TableHead>Sexo</TableHead>
