@@ -32,6 +32,7 @@ import CRMOffgroom from "./pages/CRMOffgroom";
 import NotasFiscais from "./pages/NotasFiscais";
 import Creche from "./pages/Creche";
 import ServicosCrecheHotel from "./pages/ServicosCrecheHotel";
+import AdminMaster from "./pages/AdminMaster";
 
 const queryClient = new QueryClient();
 
