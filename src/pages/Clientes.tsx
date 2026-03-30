@@ -157,7 +157,7 @@ export default function Clientes() {
   const handleEdit = (cliente: Cliente) => {
     setEditingId(cliente.id);
     setNomeCliente(cliente.nome_cliente);
-    setWhatsapp(cliente.whatsapp);
+    setWhatsapp((cliente.whatsapp || "").replace(/\D/g, "").slice(0, 11));
     setEndereco(cliente.endereco || "");
     setObservacaoCliente(cliente.observacao || "");
     setPets(cliente.pets.length > 0 ? cliente.pets.map(p => ({ ...p, sexo: p.sexo || "", whatsapp_ativo: p.whatsapp_ativo !== false })) : [{ nome_pet: "", porte: "", raca: "", sexo: "", observacao: "", whatsapp_ativo: true }]);
