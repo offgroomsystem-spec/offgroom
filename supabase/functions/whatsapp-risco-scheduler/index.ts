@@ -10,7 +10,7 @@ const INTERVALOS_TENTATIVAS = [0, 10, 12, 14, 16, 18, 20];
 const MAX_TENTATIVAS = 7;
 const MIN_DIAS = 9;
 const MAX_DIAS = 110;
-const INTERVALO_ENTRE_CLIENTES_MS = 5 * 60 * 1000; // 5 minutos entre clientes
+const LIMITE_DIARIO = 45;
 const OFFSET_ENTRE_INSTANCIAS_MS = 5 * 1000; // 5 segundos entre instâncias
 
 async function enviarMensagemEvolution(instanceName: string, number: string, text: string) {
@@ -120,8 +120,55 @@ function proximoDiaUtil(d: Date): Date {
   return result;
 }
 
+// Gera número aleatório entre min e max (inclusive)
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Gera slots de horário com intervalos aleatórios de 10-15min e 2-3 pausas de 20-30min
+// Janela: 08:00 a 18:00 BRT, max LIMITE_DIARIO slots
+function gerarSlotsHorarios(hojeStr: string): Date[] {
+  // Base: 08:00 BRT = 11:00 UTC
+  const baseUTC = new Date(hojeStr + "T11:00:00.000Z");
+  // Fim: 18:00 BRT = 21:00 UTC
+  const fimUTC = new Date(hojeStr + "T21:00:00.000Z");
+
+  // Decidir quantas pausas (2 ou 3)
+  const numPausas = randInt(2, 3);
+
+  // Decidir em quais índices de mensagem inserir pausas (distribuídas aleatoriamente)
+  // Vamos inserir pausas em posições aleatórias entre as mensagens
+  const pauseAfterIndices = new Set<number>();
+  while (pauseAfterIndices.size < numPausas) {
+    // Pausas após mensagens 5-40 (distribuídas ao longo do dia)
+    pauseAfterIndices.add(randInt(5, Math.min(40, LIMITE_DIARIO - 2)));
+  }
+
+  const slots: Date[] = [];
+  let currentTime = baseUTC.getTime();
+
+  for (let i = 0; i < LIMITE_DIARIO; i++) {
+    if (currentTime >= fimUTC.getTime()) break;
+
+    slots.push(new Date(currentTime));
+
+    // Intervalo aleatório 10-15 minutos para a próxima mensagem
+    let intervaloMs = randInt(10, 15) * 60 * 1000;
+
+    // Verificar se devemos inserir uma pausa estratégica após esta mensagem
+    if (pauseAfterIndices.has(i)) {
+      const pausaMs = randInt(20, 30) * 60 * 1000;
+      intervaloMs += pausaMs;
+      console.log(`⏸️ Pausa estratégica de ${Math.round(pausaMs / 60000)}min após mensagem #${i + 1}`);
+    }
+
+    currentTime += intervaloMs;
+  }
+
+  return slots;
+}
+
 // ===================== FASE 2: ENVIO =====================
-// Busca 1 mensagem pendente por instância com agendado_para <= agora, revalida, envia, atualiza status
 async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<{ enviadas: number; erros: number; canceladas: number }> {
   let totalEnviadas = 0;
   let totalErros = 0;
@@ -129,6 +176,8 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
 
   const hojeStr = new Date(agora.getTime() - 3 * 60 * 60 * 1000).toISOString().split("T")[0];
   const hoje = new Date(hojeStr + "T00:00:00");
+  const inicioHojeUTC = new Date(hojeStr + "T00:00:00.000Z");
+  const fimHojeUTC = new Date(hojeStr + "T23:59:59.999Z");
 
   for (const instance of instances) {
     // Verificar auto_send
@@ -138,6 +187,38 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
       .eq("user_id", instance.user_id)
       .single();
     if (!config?.evolution_auto_send) continue;
+
+    // Verificar limite diário: contar mensagens já enviadas hoje para este user
+    const { count: enviadasHoje } = await supabase
+      .from("whatsapp_mensagens_risco")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", instance.user_id)
+      .eq("status", "enviado")
+      .gte("enviado_em", inicioHojeUTC.toISOString())
+      .lte("enviado_em", fimHojeUTC.toISOString());
+
+    if ((enviadasHoje || 0) >= LIMITE_DIARIO) {
+      console.log(`🚫 Limite diário de ${LIMITE_DIARIO} atingido para ${instance.instance_name}. Descartando restantes.`);
+      // Descartar todas as pendentes de hoje para este user
+      const { data: pendentesDescarte } = await supabase
+        .from("whatsapp_mensagens_risco")
+        .select("id")
+        .eq("user_id", instance.user_id)
+        .eq("status", "pendente")
+        .gte("agendado_para", inicioHojeUTC.toISOString())
+        .lte("agendado_para", fimHojeUTC.toISOString());
+
+      if (pendentesDescarte && pendentesDescarte.length > 0) {
+        const ids = pendentesDescarte.map((m: any) => m.id);
+        await supabase
+          .from("whatsapp_mensagens_risco")
+          .update({ status: "descartado", erro: `Limite diário de ${LIMITE_DIARIO} atingido` })
+          .in("id", ids);
+        totalCanceladas += ids.length;
+        console.log(`🗑️ ${ids.length} mensagens descartadas por limite diário`);
+      }
+      continue;
+    }
 
     // Buscar a mensagem pendente mais antiga com agendado_para <= agora
     const { data: mensagens } = await supabase
@@ -194,7 +275,6 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
 }
 
 // Valida se o cliente ainda é elegível para receber a mensagem de risco
-// Retorna null se elegível, ou string com motivo do bloqueio
 async function validarElegibilidadeEnvio(
   supabase: any,
   msg: any,
@@ -211,13 +291,8 @@ async function validarElegibilidadeEnvio(
     .eq("user_id", userId)
     .single();
 
-  if (!cliente) {
-    return "Cliente não encontrado no cadastro";
-  }
-
-  if (!cliente.whatsapp_ativo) {
-    return "Envio bloqueado - WhatsApp automático desativado (cliente)";
-  }
+  if (!cliente) return "Cliente não encontrado no cadastro";
+  if (!cliente.whatsapp_ativo) return "Envio bloqueado - WhatsApp automático desativado (cliente)";
 
   // 2. Verificar preferências dos pets incluídos na mensagem
   const petsIncluidos = msg.pets_incluidos || [];
@@ -233,13 +308,11 @@ async function validarElegibilidadeEnvio(
 
     if (petsDb) {
       const allPetsDisabled = petsDb.length > 0 && petsDb.every((p: any) => !p.whatsapp_ativo);
-      if (allPetsDisabled) {
-        return "Envio bloqueado - WhatsApp automático desativado (todos os pets)";
-      }
+      if (allPetsDisabled) return "Envio bloqueado - WhatsApp automático desativado (todos os pets)";
     }
   }
 
-  // 3. Verificar agendamentos futuros (cliente já agendou)
+  // 3. Verificar agendamentos futuros
   const { data: agendamentosFuturos } = await supabase
     .from("agendamentos")
     .select("id")
@@ -252,7 +325,7 @@ async function validarElegibilidadeEnvio(
     return "Cliente possui agendamento futuro - não está mais em risco";
   }
 
-  // 3b. Verificar também por nome do cliente em agendamentos sem cliente_id
+  // 3b. Por nome do cliente sem cliente_id
   const { data: agendamentosFuturosNome } = await supabase
     .from("agendamentos")
     .select("id")
@@ -291,7 +364,7 @@ async function validarElegibilidadeEnvio(
     }
   }
 
-  // 5. Verificar atendimento recente (check-out nos últimos MIN_DIAS dias)
+  // 5. Verificar atendimento recente
   const limiteRecente = new Date(hoje);
   limiteRecente.setDate(limiteRecente.getDate() - MIN_DIAS);
   const limiteRecenteStr = limiteRecente.toISOString().split("T")[0];
@@ -309,17 +382,12 @@ async function validarElegibilidadeEnvio(
     return "Cliente já atendido recentemente - não está mais em risco";
   }
 
-  // Todas as validações passaram
   return null;
 }
 
 // ===================== FASE 1: AGENDAMENTO =====================
-// Identifica clientes elegíveis e insere registros com agendado_para escalonado
 async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hojeStr: string): Promise<{ agendadas: number }> {
   let totalAgendadas = 0;
-
-  // Base UTC para 08:00 BRT = 11:00 UTC
-  const baseUTC = new Date(hojeStr + "T11:00:00.000Z");
 
   for (let instIdx = 0; instIdx < instances.length; instIdx++) {
     const instance = instances[instIdx];
@@ -333,8 +401,25 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       .single();
     if (!config?.evolution_auto_send) continue;
 
-    // Verificar se já existem mensagens pendentes hoje para este user
+    // Descartar mensagens pendentes antigas (de dias anteriores) para este user
     const inicioHojeUTC = new Date(hojeStr + "T00:00:00.000Z");
+    const { data: antigasPendentes } = await supabase
+      .from("whatsapp_mensagens_risco")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "pendente")
+      .lt("agendado_para", inicioHojeUTC.toISOString());
+
+    if (antigasPendentes && antigasPendentes.length > 0) {
+      const ids = antigasPendentes.map((m: any) => m.id);
+      await supabase
+        .from("whatsapp_mensagens_risco")
+        .update({ status: "descartado", erro: "Descartado - dia anterior não enviado" })
+        .in("id", ids);
+      console.log(`🗑️ ${ids.length} mensagens antigas descartadas para ${instance.instance_name}`);
+    }
+
+    // Verificar se já existem mensagens pendentes hoje para este user
     const fimHojeUTC = new Date(hojeStr + "T23:59:59.999Z");
     const { data: existentes } = await supabase
       .from("whatsapp_mensagens_risco")
@@ -397,13 +482,10 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
 
     const clienteMap = new Map(clientes.map((c: any) => [c.id, c]));
 
-    // Mapa auxiliar para resolver cliente quando cliente_id é NULL
-    // Chave: "nome_cliente|whatsapp" → cliente.id
     const clienteByNomeWhatsapp = new Map<string, string>();
     for (const c of clientes) {
       const whatsLimpo = c.whatsapp.replace(/\D/g, "");
       clienteByNomeWhatsapp.set(`${c.nome_cliente}|${whatsLimpo}`, c.id);
-      // Também mapear apenas por whatsapp para fallback
       if (!clienteByNomeWhatsapp.has(`|${whatsLimpo}`)) {
         clienteByNomeWhatsapp.set(`|${whatsLimpo}`, c.id);
       }
@@ -411,14 +493,11 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
 
     function resolverClienteId(a: any): string | null {
       if (a.cliente_id) return a.cliente_id;
-      // Tentar por nome + whatsapp
       const whatsLimpo = (a.whatsapp || "").replace(/\D/g, "");
       const byNome = clienteByNomeWhatsapp.get(`${a.cliente}|${whatsLimpo}`);
       if (byNome) return byNome;
-      // Fallback: apenas por whatsapp
       const byWhats = clienteByNomeWhatsapp.get(`|${whatsLimpo}`);
       if (byWhats) return byWhats;
-      // Fallback: por nome_cliente apenas
       const byNomeOnly = clientes.find((c: any) => c.nome_cliente === a.cliente);
       return byNomeOnly?.id || null;
     }
@@ -515,7 +594,7 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       }
     }
 
-    // Buscar histórico de tentativas já enviadas para cada cliente
+    // Buscar histórico de tentativas
     const clienteIds = Array.from(clientesPetsRisco.keys());
     if (clienteIds.length === 0) {
       console.log(`📋 Instância ${instance.instance_name}: nenhum cliente em risco elegível`);
@@ -530,7 +609,6 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       .in("status", ["enviado", "pendente"])
       .order("tentativa", { ascending: false });
 
-    // Mapa: cliente_id → { maxTentativa, dataUltimoEnvio }
     const historicoMap = new Map<string, { maxTentativa: number; dataUltimoEnvio: Date }>();
     for (const h of (historicoRisco || [])) {
       const existing = historicoMap.get(h.cliente_id);
@@ -543,13 +621,14 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
     }
 
     // Preparar lista de envios pendentes
-    const enviosPendentes: { clienteId: string; grupo: { pets: PetInfo[]; whatsapp: string }; tentativa: number }[] = [];
+    const enviosPendentes: { clienteId: string; grupo: { pets: PetInfo[]; whatsapp: string }; tentativa: number; maxDias: number }[] = [];
 
     for (const [clienteId, grupo] of clientesPetsRisco.entries()) {
       const historico = historicoMap.get(clienteId);
+      const maxDias = Math.max(...grupo.pets.map((p) => p.dias_sem_agendar));
 
       if (!historico) {
-        enviosPendentes.push({ clienteId, grupo, tentativa: 1 });
+        enviosPendentes.push({ clienteId, grupo, tentativa: 1, maxDias });
         continue;
       }
 
@@ -565,25 +644,29 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       const dataPrevistaStr = dataPrevista.toISOString().split("T")[0];
 
       if (hojeStr >= dataPrevistaStr) {
-        enviosPendentes.push({ clienteId, grupo, tentativa: proximaTentativa });
+        enviosPendentes.push({ clienteId, grupo, tentativa: proximaTentativa, maxDias });
       }
     }
 
-    // Ordenar: dos mais recentes (menor dias_sem_agendar) para os mais antigos
-    enviosPendentes.sort((a, b) => {
-      const maxA = Math.max(...a.grupo.pets.map((p) => p.dias_sem_agendar));
-      const maxB = Math.max(...b.grupo.pets.map((p) => p.dias_sem_agendar));
-      return maxA - maxB;
-    });
+    // ✅ PRIORIZAÇÃO: Ordenar por dias sem agendar DECRESCENTE (mais críticos primeiro)
+    enviosPendentes.sort((a, b) => b.maxDias - a.maxDias);
 
-    // Inserir registros com agendado_para escalonado
-    // Instância 0: 08:00:00, 08:05:00, 08:10:00...
-    // Instância 1: 08:00:05, 08:05:05, 08:10:05...
-    // Instância 2: 08:00:10, 08:05:10, 08:10:10...
+    // Limitar a LIMITE_DIARIO mensagens
+    const enviosLimitados = enviosPendentes.slice(0, LIMITE_DIARIO);
+    const descartados = enviosPendentes.slice(LIMITE_DIARIO);
+
+    if (descartados.length > 0) {
+      console.log(`🗑️ ${descartados.length} clientes descartados por exceder limite diário de ${LIMITE_DIARIO}`);
+    }
+
+    // Gerar slots de horário aleatórios com pausas
+    const slots = gerarSlotsHorarios(hojeStr);
     const instanceOffset = instIdx * OFFSET_ENTRE_INSTANCIAS_MS;
 
-    for (let clienteIdx = 0; clienteIdx < enviosPendentes.length; clienteIdx++) {
-      const envio = enviosPendentes[clienteIdx];
+    console.log(`📊 Instância ${instance.instance_name}: ${enviosLimitados.length} mensagens a agendar, ${slots.length} slots gerados`);
+
+    for (let i = 0; i < enviosLimitados.length && i < slots.length; i++) {
+      const envio = enviosLimitados[i];
       const cliente = clienteMap.get(envio.clienteId);
       if (!cliente) continue;
 
@@ -593,8 +676,8 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
       const numeroLimpo = envio.grupo.whatsapp.replace(/\D/g, "");
       const numeroCompleto = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
 
-      // Calcular agendado_para escalonado
-      const agendadoPara = new Date(baseUTC.getTime() + instanceOffset + (clienteIdx * INTERVALO_ENTRE_CLIENTES_MS));
+      // Usar slot + offset da instância
+      const agendadoPara = new Date(slots[i].getTime() + instanceOffset);
 
       const { error: insertErr } = await supabase
         .from("whatsapp_mensagens_risco")
@@ -613,7 +696,9 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
         console.error(`Erro ao inserir registro risco para ${envio.clienteId}:`, insertErr);
       } else {
         totalAgendadas++;
-        console.log(`📋 Agendada risco #${envio.tentativa} para ${cliente.nome_cliente} às ${agendadoPara.toISOString()} via ${instance.instance_name}`);
+        const horaBRT = new Date(agendadoPara.getTime() - 3 * 60 * 60 * 1000);
+        const horaFmt = `${String(horaBRT.getUTCHours()).padStart(2, "0")}:${String(horaBRT.getUTCMinutes()).padStart(2, "0")}`;
+        console.log(`📋 Agendada risco #${envio.tentativa} para ${cliente.nome_cliente} (${envio.maxDias}d) às ${horaFmt} BRT via ${instance.instance_name}`);
       }
     }
   }
@@ -674,7 +759,7 @@ Deno.serve(async (req) => {
     const temPendentes = pendentesHoje && pendentesHoje.length > 0;
 
     if (temPendentes) {
-      // FASE 2: Enviar mensagens pendentes (1 por instância)
+      // FASE 2: Enviar mensagens pendentes
       console.log(`📤 Fase Envio: processando mensagens pendentes...`);
       const resultado = await faseEnvio(supabase, instances, agora);
       return new Response(
@@ -685,10 +770,10 @@ Deno.serve(async (req) => {
 
     // Sem pendentes: verificar se é hora de agendar (08h BRT)
     if (horaBRT === 8) {
-      console.log(`📋 Fase Agendamento: criando fila de mensagens escalonadas...`);
+      console.log(`📋 Fase Agendamento: criando fila com intervalos aleatórios e pausas...`);
       const resultado = await faseAgendamento(supabase, instances, hoje, hojeStr);
-      
-      // Se agendou mensagens, já tentar enviar as primeiras (agendado_para <= agora)
+
+      // Se agendou, tentar enviar as primeiras
       if (resultado.agendadas > 0) {
         const envioResult = await faseEnvio(supabase, instances, agora);
         return new Response(
