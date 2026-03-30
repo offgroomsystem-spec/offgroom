@@ -314,13 +314,22 @@ Deno.serve(async (req) => {
             if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
           }
 
-          // Cross-validate client name against cadastro (source of truth)
+          // Cross-validate client name AND WhatsApp against cadastro (source of truth)
           let nomeClienteValidado = agAtual.cliente;
+          let numeroWhatsappAtualizado = msg.numero_whatsapp;
           if (agAtual.cliente_id) {
-            const { data: clienteReal } = await supabase.from("clientes").select("nome_cliente").eq("id", agAtual.cliente_id).single();
-            if (clienteReal && clienteReal.nome_cliente.trim() !== agAtual.cliente.trim()) {
-              console.log(`Client name mismatch (avulso): agendamento="${agAtual.cliente}" cadastro="${clienteReal.nome_cliente}". Using cadastro.`);
-              nomeClienteValidado = clienteReal.nome_cliente;
+            const { data: clienteReal } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("id", agAtual.cliente_id).single();
+            if (clienteReal) {
+              if (clienteReal.nome_cliente.trim() !== agAtual.cliente.trim()) {
+                console.log(`Client name mismatch (avulso): agendamento="${agAtual.cliente}" cadastro="${clienteReal.nome_cliente}". Using cadastro.`);
+                nomeClienteValidado = clienteReal.nome_cliente;
+              }
+              // Always use latest WhatsApp from client record
+              const latestWhatsapp = formatNumero(clienteReal.whatsapp);
+              if (latestWhatsapp && latestWhatsapp !== msg.numero_whatsapp) {
+                console.log(`WhatsApp updated (avulso): msg stored="${msg.numero_whatsapp}" cadastro="${latestWhatsapp}". Using cadastro.`);
+                numeroWhatsappAtualizado = latestWhatsapp;
+              }
             }
           } else {
             // No cliente_id — try to find by whatsapp number
@@ -340,7 +349,7 @@ Deno.serve(async (req) => {
             taxiDog: agAtual.taxi_dog, isPacote: !!agAtual.numero_servico_pacote,
             servicoNumero: agAtual.numero_servico_pacote,
             isUltimo: !!agAtual.numero_servico_pacote && isUltimoServicoPacote(agAtual.numero_servico_pacote),
-            tipoMensagem: msg.tipo_mensagem, numeroWhatsapp: msg.numero_whatsapp,
+            tipoMensagem: msg.tipo_mensagem, numeroWhatsapp: numeroWhatsappAtualizado,
             bordao, hasFallback: false,
           };
         } else if (msg.agendamento_pacote_id) {
@@ -382,14 +391,27 @@ Deno.serve(async (req) => {
           const servicoNumero = svAtual.numero || msg.servico_numero;
           const servicoNome = svAtual.nomeServico || svAtual.servico || svAtual.nome || "Banho";
 
-          // Cross-validate client name against cadastro (source of truth)
+          // Cross-validate client name AND WhatsApp against cadastro (source of truth)
           let nomeClientePacoteValidado = pacoteAtual.nome_cliente;
+          let numeroWhatsappPacoteAtualizado = msg.numero_whatsapp;
           const numNormPacote = formatNumero(pacoteAtual.whatsapp);
           const { data: clientesByNumPacote } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("user_id", msg.user_id);
-          const clienteRealPacote = (clientesByNumPacote || []).find(c => formatNumero(c.whatsapp) === numNormPacote);
-          if (clienteRealPacote && clienteRealPacote.nome_cliente.trim() !== pacoteAtual.nome_cliente.trim()) {
-            console.log(`Client name mismatch (pacote): pacote="${pacoteAtual.nome_cliente}" cadastro="${clienteRealPacote.nome_cliente}". Using cadastro.`);
-            nomeClientePacoteValidado = clienteRealPacote.nome_cliente;
+          // Try matching by name first (more reliable for pacotes), then by number
+          const clienteRealPacote = (clientesByNumPacote || []).find(c => 
+            c.nome_cliente.trim() === pacoteAtual.nome_cliente.trim()
+          ) || (clientesByNumPacote || []).find(c => formatNumero(c.whatsapp) === numNormPacote);
+          
+          if (clienteRealPacote) {
+            if (clienteRealPacote.nome_cliente.trim() !== pacoteAtual.nome_cliente.trim()) {
+              console.log(`Client name mismatch (pacote): pacote="${pacoteAtual.nome_cliente}" cadastro="${clienteRealPacote.nome_cliente}". Using cadastro.`);
+              nomeClientePacoteValidado = clienteRealPacote.nome_cliente;
+            }
+            // Always use latest WhatsApp from client record
+            const latestWhatsapp = formatNumero(clienteRealPacote.whatsapp);
+            if (latestWhatsapp && latestWhatsapp !== msg.numero_whatsapp) {
+              console.log(`WhatsApp updated (pacote): msg stored="${msg.numero_whatsapp}" cadastro="${latestWhatsapp}". Using cadastro.`);
+              numeroWhatsappPacoteAtualizado = latestWhatsapp;
+            }
           }
 
           extracted = {
@@ -398,7 +420,7 @@ Deno.serve(async (req) => {
             data: svAtual.data, horario: svAtual.horarioInicio, servico: servicoNome,
             taxiDog: pacoteAtual.taxi_dog, isPacote: true,
             servicoNumero, isUltimo: isUltimoServicoPacote(servicoNumero || ""),
-            tipoMensagem: msg.tipo_mensagem, numeroWhatsapp: msg.numero_whatsapp,
+            tipoMensagem: msg.tipo_mensagem, numeroWhatsapp: numeroWhatsappPacoteAtualizado,
             bordao, hasFallback: false,
           };
         }
