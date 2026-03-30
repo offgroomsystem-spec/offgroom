@@ -198,25 +198,8 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
       .lte("enviado_em", fimHojeUTC.toISOString());
 
     if ((enviadasHoje || 0) >= LIMITE_DIARIO) {
-      console.log(`🚫 Limite diário de ${LIMITE_DIARIO} atingido para ${instance.instance_name}. Descartando restantes.`);
-      // Descartar todas as pendentes de hoje para este user
-      const { data: pendentesDescarte } = await supabase
-        .from("whatsapp_mensagens_risco")
-        .select("id")
-        .eq("user_id", instance.user_id)
-        .eq("status", "pendente")
-        .gte("agendado_para", inicioHojeUTC.toISOString())
-        .lte("agendado_para", fimHojeUTC.toISOString());
-
-      if (pendentesDescarte && pendentesDescarte.length > 0) {
-        const ids = pendentesDescarte.map((m: any) => m.id);
-        await supabase
-          .from("whatsapp_mensagens_risco")
-          .update({ status: "descartado", erro: `Limite diário de ${LIMITE_DIARIO} atingido` })
-          .in("id", ids);
-        totalCanceladas += ids.length;
-        console.log(`🗑️ ${ids.length} mensagens descartadas por limite diário`);
-      }
+      console.log(`🚫 Limite diário de ${LIMITE_DIARIO} atingido para ${instance.instance_name}. Pendentes restantes serão mantidos para carry-over.`);
+      // NÃO descartar - manter como pendente para carry-over no dia seguinte
       continue;
     }
 
