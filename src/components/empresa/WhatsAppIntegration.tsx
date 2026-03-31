@@ -132,17 +132,6 @@ export function WhatsAppIntegration() {
   }
 
   async function handleConfirmacaoOptionChange(field: string, checked: boolean) {
-    // Prevent unchecking all options
-    const newValues = {
-      confirmacao_24h: field === "confirmacao_24h" ? checked : confirmacao24h,
-      confirmacao_15h: field === "confirmacao_15h" ? checked : confirmacao15h,
-      confirmacao_3h: field === "confirmacao_3h" ? checked : confirmacao3h,
-    };
-    if (!newValues.confirmacao_24h && !newValues.confirmacao_15h && !newValues.confirmacao_3h) {
-      toast.error("Selecione pelo menos uma opção de envio");
-      return;
-    }
-
     setConfirmacaoLoading(true);
     try {
       const { error } = await supabase
