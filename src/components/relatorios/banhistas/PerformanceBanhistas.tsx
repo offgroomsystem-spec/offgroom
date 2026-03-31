@@ -161,12 +161,21 @@ export const PerformanceBanhistas = () => {
     const totalHoras = Math.round((totalMinutos / 60) * 10) / 10;
     const mediaMinutos = totalPets > 0 ? Math.round(totalMinutos / totalPets) : 0;
 
-    // Banhista mais produtivo
+    // Banhista mais produtivo (exclui "Não atribuído", suporta empate)
     const countPerGroomer = new Map<string, number>();
-    concluidos.forEach((a) => countPerGroomer.set(a.groomer, (countPerGroomer.get(a.groomer) || 0) + 1));
+    concluidos.forEach((a) => {
+      if (a.groomer && a.groomer.trim() && a.groomer !== "Não atribuído") {
+        countPerGroomer.set(a.groomer, (countPerGroomer.get(a.groomer) || 0) + 1);
+      }
+    });
     let topGroomer = "-";
     let topCount = 0;
-    countPerGroomer.forEach((c, g) => { if (c > topCount) { topCount = c; topGroomer = g; } });
+    const topGroomers: string[] = [];
+    countPerGroomer.forEach((c, g) => {
+      if (c > topCount) { topCount = c; topGroomers.length = 0; topGroomers.push(g); }
+      else if (c === topCount && topCount > 0) { topGroomers.push(g); }
+    });
+    topGroomer = topGroomers.length > 0 ? topGroomers.join(" e ") : "-";
 
     // Receita total
     const receitaTotal = concluidos.reduce((s, a) => s + (receitaMap.get(a.id) || 0), 0);
