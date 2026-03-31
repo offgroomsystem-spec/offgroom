@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
     // =============================================
     // ETAPA A: Auto-criar mensagens para agendamentos sem mensagens
     // =============================================
-    await autoCreateMissingMessages(supabase, activeUserIds, bordaoMap, now);
+    await autoCreateMissingMessages(supabase, activeUserIds, bordaoMap, confirmConfigMap, now);
 
     // =============================================
     // ETAPA B: Processar mensagens pendentes
