@@ -470,6 +470,7 @@ export const PerformanceBanhistas = () => {
                     <p>• Capacidade: {kpis.capacidadeTotal}h</p>
                     <p>• Horas trabalhadas: {kpis.totalHoras}h</p>
                     <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacao}%</p>
+                    <p className="mt-1 italic">Ou seja, apenas {kpis.taxaOcupacao}% da capacidade total dos groomers cadastrados foi utilizada no período.</p>
                   </TooltipContent>
                 </UITooltip>
               </TooltipProvider>
