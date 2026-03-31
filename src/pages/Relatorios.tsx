@@ -99,6 +99,7 @@ const Relatorios = () => {
         {relatorioAtivo === "pacotes-ativos" && <PacotesAtivos />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
         {relatorioAtivo === "produtos-vencimento" && <ProdutosProximosVencimento />}
+        {relatorioAtivo === "performance-banhistas" && <PerformanceBanhistas />}
 
       {![
         "graficos-financeiros",
