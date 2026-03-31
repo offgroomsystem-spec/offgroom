@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     const userIds = instances.map((i: WhatsAppInstance) => i.user_id);
     const { data: empresaConfigs } = await supabase
       .from("empresa_config")
-      .select("user_id, evolution_auto_send, bordao")
+      .select("user_id, evolution_auto_send, bordao, confirmacao_periodo_ativo, confirmacao_24h, confirmacao_15h, confirmacao_3h")
       .in("user_id", userIds);
 
     const autoSendEnabled = new Set(
