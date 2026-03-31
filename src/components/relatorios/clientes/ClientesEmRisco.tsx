@@ -416,6 +416,33 @@ export const ClientesEmRisco = () => {
     carregarClientesEmRisco();
   }, [user]);
 
+  // Realtime: recarregar lista quando agendamentos mudam
+  useEffect(() => {
+    if (!ownerId) return;
+
+    const channel = supabase
+      .channel('risk-list-agendamentos')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'agendamentos' },
+        () => {
+          carregarClientesEmRisco();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'agendamentos_pacotes' },
+        () => {
+          carregarClientesEmRisco();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ownerId]);
+
   // aplica filtros e atualiza clientesFiltrados
   const aplicarFiltros = (base: ClienteRisco[] = clientes) => {
     let resultado = [...base];
