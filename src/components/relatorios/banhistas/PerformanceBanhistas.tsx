@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, differenceInMinutes, eachDayOfInterval, getDay, getHours } from "date-fns";
@@ -13,7 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
-import { Users, Clock, Star, DollarSign, TrendingUp, Activity } from "lucide-react";
+import { Users, Clock, Star, DollarSign, TrendingUp, Activity, Info } from "lucide-react";
 
 const COLORS = [
   "hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
@@ -42,6 +43,7 @@ export const PerformanceBanhistas = () => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [groomers, setGroomers] = useState<string[]>([]);
   const [lancamentos, setLancamentos] = useState<any[]>([]);
+  const [empresaConfig, setEmpresaConfig] = useState<any>(null);
 
   // Filters
   const [periodo, setPeriodo] = useState("mes");
@@ -68,7 +70,7 @@ export const PerformanceBanhistas = () => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [agRes, grRes, lnRes] = await Promise.all([
+      const [agRes, grRes, lnRes, empRes] = await Promise.all([
         supabase
           .from("agendamentos")
           .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
@@ -83,7 +85,9 @@ export const PerformanceBanhistas = () => {
           .eq("user_id", ownerId)
           .eq("tipo", "receita")
           .not("agendamento_id", "is", null),
+        supabase.from("empresa_config").select("dias_funcionamento, horario_inicio, horario_fim").eq("user_id", ownerId).maybeSingle(),
       ]);
+      setEmpresaConfig(empRes.data);
 
       const agData = agRes.data || [];
       setAgendamentos(agData);
@@ -180,15 +184,29 @@ export const PerformanceBanhistas = () => {
     // Receita total
     const receitaTotal = concluidos.reduce((s, a) => s + (receitaMap.get(a.id) || 0), 0);
 
-    // Taxa ocupação: horas trabalhadas / (8h * dias úteis * nº banhistas)
+    // Taxa ocupação baseada nos dias/horários de funcionamento da empresa
+    const diasFunc = empresaConfig?.dias_funcionamento as Record<string, boolean> | null;
+    const dayNameMap: Record<number, string> = { 0: "domingo", 1: "segunda", 2: "terca", 3: "quarta", 4: "quinta", 5: "sexta", 6: "sabado" };
     const diasNoIntervalo = eachDayOfInterval({ start: parseISO(dataInicio), end: parseISO(dataFim) })
-      .filter((d) => getDay(d) !== 0); // excluir domingo
-    const numBanhistas = groomers.length || 1;
-    const capacidadeTotal = diasNoIntervalo.length * 8 * numBanhistas;
+      .filter((d) => {
+        const nome = dayNameMap[getDay(d)];
+        return diasFunc ? diasFunc[nome] === true : getDay(d) !== 0;
+      });
+
+    // Calcular horas de funcionamento diário
+    const hInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[0], 10) : 8;
+    const mInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[1] || "0", 10) : 0;
+    const hFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[0], 10) : 18;
+    const mFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[1] || "0", 10) : 0;
+    const horasDiarias = (hFim * 60 + mFim - hInicio * 60 - mInicio) / 60 || 8;
+
+    // Apenas groomers cadastrados (exclui "Não atribuído")
+    const numBanhistasCadastrados = groomers.filter((g) => g !== "Não atribuído").length || 1;
+    const capacidadeTotal = diasNoIntervalo.length * horasDiarias * numBanhistasCadastrados;
     const taxaOcupacao = capacidadeTotal > 0 ? Math.round((totalHoras / capacidadeTotal) * 100) : 0;
 
-    return { totalPets, totalHoras, mediaMinutos, topGroomer, topCount, receitaTotal, taxaOcupacao };
-  }, [concluidos, receitaMap, groomers, dataInicio, dataFim]);
+    return { totalPets, totalHoras, mediaMinutos, topGroomer, topCount, receitaTotal, taxaOcupacao, capacidadeTotal: Math.round(capacidadeTotal * 10) / 10, numBanhistasCadastrados, diasUteis: diasNoIntervalo.length, horasDiarias: Math.round(horasDiarias * 10) / 10 };
+  }, [concluidos, receitaMap, groomers, dataInicio, dataFim, empresaConfig]);
 
   // === Charts data ===
 
@@ -418,20 +436,47 @@ export const PerformanceBanhistas = () => {
           { label: "Horas Trabalhadas", value: `${kpis.totalHoras}h`, icon: Clock, color: "text-green-500" },
           { label: "Média/Atend.", value: `${kpis.mediaMinutos}min`, icon: Activity, color: "text-orange-500" },
           { label: "Mais Produtivo", value: kpis.topGroomer, sub: `${kpis.topCount} ${kpis.topCount === 1 ? "pet" : "pets"}`, icon: Star, color: "text-yellow-500" },
-          { label: "Taxa Ocupação", value: `${kpis.taxaOcupacao}%`, icon: TrendingUp, color: "text-purple-500" },
+          { label: "Taxa Ocupação", value: `${kpis.taxaOcupacao}%`, icon: TrendingUp, color: "text-purple-500", hasTooltip: true },
           { label: "Receita Total", value: formatCurrency(kpis.receitaTotal), icon: DollarSign, color: "text-emerald-500" },
-        ].map((k) => (
-          <Card key={k.label} className="p-0">
-            <CardContent className="flex items-center gap-2 p-2">
-              <k.icon className={`h-5 w-5 ${k.color} shrink-0`} />
-              <div className="min-w-0">
-                <p className="text-sm font-bold leading-none truncate">{k.value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{k.label}</p>
-                {k.sub && <p className="text-[9px] text-muted-foreground">{k.sub}</p>}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        ].map((k) => {
+          const cardContent = (
+            <Card key={k.label} className="p-0 relative">
+              <CardContent className="flex items-center gap-2 p-2">
+                <k.icon className={`h-5 w-5 ${k.color} shrink-0`} />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold leading-none truncate">{k.value}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{k.label}</p>
+                  {k.sub && <p className="text-[9px] text-muted-foreground">{k.sub}</p>}
+                </div>
+                {k.hasTooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-1 right-1" />}
+              </CardContent>
+            </Card>
+          );
+
+          if (k.hasTooltip) {
+            return (
+              <TooltipProvider key={k.label}>
+                <UITooltip delayDuration={200}>
+                  <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
+                    <p className="font-semibold">📊 Taxa de Ocupação</p>
+                    <p>Mede quanto da capacidade total dos groomers cadastrados foi utilizada no período.</p>
+                    <p className="font-medium mt-1">Fórmula:</p>
+                    <p className="italic">Horas Trabalhadas ÷ Capacidade Total × 100</p>
+                    <p className="font-medium mt-1">Cálculo atual:</p>
+                    <p>• {kpis.numBanhistasCadastrados} groomer(s) cadastrado(s)</p>
+                    <p>• {kpis.diasUteis} dias de funcionamento no período</p>
+                    <p>• {kpis.horasDiarias}h de jornada diária</p>
+                    <p>• Capacidade: {kpis.capacidadeTotal}h</p>
+                    <p>• Horas trabalhadas: {kpis.totalHoras}h</p>
+                    <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacao}%</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            );
+          }
+          return cardContent;
+        })}
       </div>
 
       {/* Main Charts */}
