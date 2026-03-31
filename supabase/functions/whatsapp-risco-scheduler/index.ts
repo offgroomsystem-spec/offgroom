@@ -380,13 +380,17 @@ async function faseAgendamento(supabase: any, instances: any[], hoje: Date, hoje
     const instance = instances[instIdx];
     const userId = instance.user_id;
 
-    // Verificar auto_send
+    // Verificar auto_send e risco_auto_send
     const { data: config } = await supabase
       .from("empresa_config")
-      .select("evolution_auto_send")
+      .select("evolution_auto_send, risco_auto_send")
       .eq("user_id", userId)
       .single();
     if (!config?.evolution_auto_send) continue;
+    if (config?.risco_auto_send === false) {
+      console.log(`⏭️ Risco auto send desativado para ${instance.instance_name}, pulando agendamento`);
+      continue;
+    }
 
     // Tratar mensagens pendentes de dias anteriores:
     // - 2+ dias pendente → descarte definitivo
