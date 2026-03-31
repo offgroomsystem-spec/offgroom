@@ -702,9 +702,9 @@ async function autoCreateMissingMessages(
       // === 3h message ===
       if (diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
         let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
-        const horaAgBRT = ((agDateTime.getUTCHours() - 3 + 24) % 24);
-        if (horaAgBRT < 10) {
-          agendadoPara3h = new Date(agDateTime);
+        // Garantir que não envie antes das 07:00 BRT (10:00 UTC)
+        const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
+        if (brtHour3h < 7) {
           agendadoPara3h.setUTCHours(10, 0, 0, 0); // 7h BRT
         }
         if (agendadoPara3h.getTime() > now.getTime()) {
