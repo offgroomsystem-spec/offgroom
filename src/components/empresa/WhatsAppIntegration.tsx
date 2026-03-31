@@ -49,6 +49,13 @@ export function WhatsAppIntegration() {
   const [riscoAutoSend, setRiscoAutoSend] = useState(true);
   const [riscoLoading, setRiscoLoading] = useState(false);
 
+  // Confirmação período config
+  const [confirmacaoPeriodoAtivo, setConfirmacaoPeriodoAtivo] = useState(false);
+  const [confirmacao24h, setConfirmacao24h] = useState(false);
+  const [confirmacao15h, setConfirmacao15h] = useState(false);
+  const [confirmacao3h, setConfirmacao3h] = useState(true);
+  const [confirmacaoLoading, setConfirmacaoLoading] = useState(false);
+
   const effectiveUserId = ownerId || user?.id;
 
   const callEvolution = useCallback(async (body: Record<string, unknown>) => {
