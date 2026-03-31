@@ -76,11 +76,15 @@ export function WhatsAppIntegration() {
     try {
       const { data } = await supabase
         .from("empresa_config")
-        .select("risco_auto_send")
+        .select("risco_auto_send, confirmacao_periodo_ativo, confirmacao_24h, confirmacao_15h, confirmacao_3h")
         .eq("user_id", effectiveUserId!)
         .maybeSingle();
       if (data) {
         setRiscoAutoSend((data as any).risco_auto_send ?? true);
+        setConfirmacaoPeriodoAtivo((data as any).confirmacao_periodo_ativo ?? false);
+        setConfirmacao24h((data as any).confirmacao_24h ?? false);
+        setConfirmacao15h((data as any).confirmacao_15h ?? false);
+        setConfirmacao3h((data as any).confirmacao_3h ?? true);
       }
     } catch (err) {
       console.error("Erro ao carregar config risco:", err);
