@@ -4611,6 +4611,7 @@ const Agendamentos = () => {
                         return (
                           <div key={svcIdx} className="space-y-1">
                             <div className="flex gap-1.5 items-center">
+                              <div className="w-10"></div>
                               <div className="w-12">
                                 <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
                               </div>
