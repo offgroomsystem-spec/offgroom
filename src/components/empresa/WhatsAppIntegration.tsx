@@ -44,6 +44,10 @@ export function WhatsAppIntegration() {
   // Disconnecting
   const [disconnecting, setDisconnecting] = useState(false);
 
+  // Risco auto send toggle
+  const [riscoAutoSend, setRiscoAutoSend] = useState(true);
+  const [riscoLoading, setRiscoLoading] = useState(false);
+
   const effectiveUserId = ownerId || user?.id;
 
   const callEvolution = useCallback(async (body: Record<string, unknown>) => {

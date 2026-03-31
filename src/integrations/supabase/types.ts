@@ -668,6 +668,7 @@ export type Database = {
           numero_endereco_fiscal: string | null
           razao_social: string | null
           regime_tributario: string | null
+          risco_auto_send: boolean
           telefone: string | null
           uf_fiscal: string | null
           updated_at: string | null
@@ -701,6 +702,7 @@ export type Database = {
           numero_endereco_fiscal?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          risco_auto_send?: boolean
           telefone?: string | null
           uf_fiscal?: string | null
           updated_at?: string | null
@@ -734,6 +736,7 @@ export type Database = {
           numero_endereco_fiscal?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          risco_auto_send?: boolean
           telefone?: string | null
           uf_fiscal?: string | null
           updated_at?: string | null
