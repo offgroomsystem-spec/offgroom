@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Loader2, MessageSquare, Wifi, WifiOff, QrCode, Unplug } from "lucide-react";
@@ -43,6 +44,10 @@ export function WhatsAppIntegration() {
   // Disconnecting
   const [disconnecting, setDisconnecting] = useState(false);
 
+  // Risco auto send toggle
+  const [riscoAutoSend, setRiscoAutoSend] = useState(true);
+  const [riscoLoading, setRiscoLoading] = useState(false);
+
   const effectiveUserId = ownerId || user?.id;
 
   const callEvolution = useCallback(async (body: Record<string, unknown>) => {
@@ -56,7 +61,40 @@ export function WhatsAppIntegration() {
   useEffect(() => {
     if (!effectiveUserId) return;
     loadInstance();
+    loadRiscoConfig();
   }, [effectiveUserId]);
+
+  async function loadRiscoConfig() {
+    try {
+      const { data } = await supabase
+        .from("empresa_config")
+        .select("risco_auto_send")
+        .eq("user_id", effectiveUserId!)
+        .maybeSingle();
+      if (data) {
+        setRiscoAutoSend((data as any).risco_auto_send ?? true);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar config risco:", err);
+    }
+  }
+
+  async function handleRiscoToggle(checked: boolean) {
+    setRiscoLoading(true);
+    try {
+      const { error } = await supabase
+        .from("empresa_config")
+        .update({ risco_auto_send: checked } as any)
+        .eq("user_id", effectiveUserId!);
+      if (error) throw error;
+      setRiscoAutoSend(checked);
+      toast.success(checked ? "Mensagens para Clientes em Risco ativadas" : "Mensagens para Clientes em Risco desativadas");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar configuração");
+    } finally {
+      setRiscoLoading(false);
+    }
+  }
 
   async function loadInstance() {
     try {
@@ -353,6 +391,21 @@ export function WhatsAppIntegration() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Toggle Clientes em Risco */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Enviar mensagens automáticas para Clientes em Risco</Label>
+              <p className="text-xs text-muted-foreground">
+                {riscoAutoSend ? "Mensagens serão geradas, agendadas e enviadas automaticamente" : "Nenhuma mensagem será gerada ou enviada para clientes em risco"}
+              </p>
+            </div>
+            <Switch
+              checked={riscoAutoSend}
+              onCheckedChange={handleRiscoToggle}
+              disabled={riscoLoading}
+            />
+          </div>
+
           {/* Status indicator */}
           <div className="flex items-center gap-3">
             {currentStatus.icon}
