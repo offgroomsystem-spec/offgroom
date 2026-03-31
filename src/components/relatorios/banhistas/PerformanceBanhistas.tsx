@@ -184,15 +184,29 @@ export const PerformanceBanhistas = () => {
     // Receita total
     const receitaTotal = concluidos.reduce((s, a) => s + (receitaMap.get(a.id) || 0), 0);
 
-    // Taxa ocupação: horas trabalhadas / (8h * dias úteis * nº banhistas)
+    // Taxa ocupação baseada nos dias/horários de funcionamento da empresa
+    const diasFunc = empresaConfig?.dias_funcionamento as Record<string, boolean> | null;
+    const dayNameMap: Record<number, string> = { 0: "domingo", 1: "segunda", 2: "terca", 3: "quarta", 4: "quinta", 5: "sexta", 6: "sabado" };
     const diasNoIntervalo = eachDayOfInterval({ start: parseISO(dataInicio), end: parseISO(dataFim) })
-      .filter((d) => getDay(d) !== 0); // excluir domingo
-    const numBanhistas = groomers.length || 1;
-    const capacidadeTotal = diasNoIntervalo.length * 8 * numBanhistas;
+      .filter((d) => {
+        const nome = dayNameMap[getDay(d)];
+        return diasFunc ? diasFunc[nome] === true : getDay(d) !== 0;
+      });
+
+    // Calcular horas de funcionamento diário
+    const hInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[0], 10) : 8;
+    const mInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[1] || "0", 10) : 0;
+    const hFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[0], 10) : 18;
+    const mFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[1] || "0", 10) : 0;
+    const horasDiarias = (hFim * 60 + mFim - hInicio * 60 - mInicio) / 60 || 8;
+
+    // Apenas groomers cadastrados (exclui "Não atribuído")
+    const numBanhistasCadastrados = groomers.filter((g) => g !== "Não atribuído").length || 1;
+    const capacidadeTotal = diasNoIntervalo.length * horasDiarias * numBanhistasCadastrados;
     const taxaOcupacao = capacidadeTotal > 0 ? Math.round((totalHoras / capacidadeTotal) * 100) : 0;
 
-    return { totalPets, totalHoras, mediaMinutos, topGroomer, topCount, receitaTotal, taxaOcupacao };
-  }, [concluidos, receitaMap, groomers, dataInicio, dataFim]);
+    return { totalPets, totalHoras, mediaMinutos, topGroomer, topCount, receitaTotal, taxaOcupacao, capacidadeTotal: Math.round(capacidadeTotal * 10) / 10, numBanhistasCadastrados, diasUteis: diasNoIntervalo.length, horasDiarias: Math.round(horasDiarias * 10) / 10 };
+  }, [concluidos, receitaMap, groomers, dataInicio, dataFim, empresaConfig]);
 
   // === Charts data ===
 
