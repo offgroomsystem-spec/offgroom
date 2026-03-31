@@ -4419,16 +4419,15 @@ const Agendamentos = () => {
                 </div>
 
                 {servicosAgendamento.length > 0 &&
-                <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                <div className="space-y-1.5 border rounded-md p-2 bg-secondary/20">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold">
-                        {pacoteAdditionalPets.length > 0 ? `🐶 ${pacoteFormData.nomePet} (${pacoteFormData.raca}) — Agendamentos dos Serviços do Pacote` : "Agendamentos dos Serviços do Pacote"}
+                        {pacoteAdditionalPets.length > 0 ? `🐶 ${pacoteFormData.nomePet} (${pacoteFormData.raca})` : "Agendamentos dos Serviços do Pacote"}
                       </Label>
                     </div>
 
                     {/* Header com títulos das colunas */}
-                    <div className="flex gap-1.5 items-center pb-1">
-                      <div className="w-10"></div>
+                    <div className="flex gap-1.5 items-center">
                       <div className="w-12"></div>
                       <div className="flex-1 min-w-[80px]"></div>
                       <div className="w-28">
