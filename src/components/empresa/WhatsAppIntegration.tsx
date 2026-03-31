@@ -391,6 +391,21 @@ export function WhatsAppIntegration() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Toggle Clientes em Risco */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Enviar mensagens automáticas para Clientes em Risco</Label>
+              <p className="text-xs text-muted-foreground">
+                {riscoAutoSend ? "Mensagens serão geradas, agendadas e enviadas automaticamente" : "Nenhuma mensagem será gerada ou enviada para clientes em risco"}
+              </p>
+            </div>
+            <Switch
+              checked={riscoAutoSend}
+              onCheckedChange={handleRiscoToggle}
+              disabled={riscoLoading}
+            />
+          </div>
+
           {/* Status indicator */}
           <div className="flex items-center gap-3">
             {currentStatus.icon}
