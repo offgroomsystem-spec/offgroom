@@ -4453,15 +4453,6 @@ const Agendamentos = () => {
                         return (
                         <div key={index} className="space-y-1">
                           <div className="flex gap-1.5 items-center">
-                            <div className="flex flex-col gap-0.5 w-10">
-                              <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, "up")} disabled={index === 0} className="h-5 w-5 p-0">
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, "down")} disabled={index === servicosAgendamento.length - 1} className="h-5 w-5 p-0">
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </div>
-
                             <div className="w-12">
                               <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
                             </div>
