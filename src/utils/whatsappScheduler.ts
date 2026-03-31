@@ -50,7 +50,7 @@ function buildConfirmationMessage(params: ScheduleParams): string {
 
   if (params.isUltimoServicoPacote) {
     // Pacote - último serviço
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*N° do Pacote:* ${params.servicoNumero}\n*Taxi Dog:* ${params.taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${params.nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*N° do Pacote:* ${params.servicoNumero}\n*Taxi Dog:* ${params.taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Que tal já renovar para manter a frequência ideal dos banhos ${doDa} ${params.nomePet}. Assim, você também garante os próximos horários com mais tranquilidade. 😊${bordaoLine}`;
   }
 
   // Pacote - não último
