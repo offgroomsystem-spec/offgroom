@@ -48,7 +48,7 @@ export const PerformanceBanhistas = () => {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [groomerFilter, setGroomerFilter] = useState("todos");
-  const [statusFilter, setStatusFilter] = useState("todos");
+  
 
   useEffect(() => {
     if (periodo === "mes") {
