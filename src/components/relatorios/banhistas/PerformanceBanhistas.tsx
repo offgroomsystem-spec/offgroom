@@ -85,8 +85,12 @@ export const PerformanceBanhistas = () => {
           .not("agendamento_id", "is", null),
       ]);
 
-      setAgendamentos(agRes.data || []);
+      const agData = agRes.data || [];
+      setAgendamentos(agData);
       const nomes = [...new Set((grRes.data || []).map((g) => g.nome))].sort();
+      // Add "Não atribuído" if any appointment has empty groomer
+      const hasEmpty = agData.some((a: any) => !a.groomer || !a.groomer.trim());
+      if (hasEmpty) nomes.push("Não atribuído");
       setGroomers(nomes);
       setLancamentos(lnRes.data || []);
       setLoading(false);
