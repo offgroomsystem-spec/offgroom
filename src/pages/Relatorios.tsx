@@ -24,6 +24,7 @@ import { AtendimentosRealizados } from "@/components/relatorios/servicos/Atendim
 import { ProdutosProximosVencimento } from "@/components/relatorios/estoque/ProdutosProximosVencimento";
 import GraficosFinanceiros from "@/components/relatorios/financeiros/GraficosFinanceiros";
 import { CentralInteligenciaFinanceira } from "@/components/relatorios/financeiros/CentralInteligenciaFinanceira";
+import { PerformanceBanhistas } from "@/components/relatorios/banhistas/PerformanceBanhistas";
 
 const Relatorios = () => {
   const location = useLocation();
