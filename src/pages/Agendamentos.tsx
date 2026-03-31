@@ -624,6 +624,18 @@ const Agendamentos = () => {
   });
   const [servicosAgendamento, setServicosAgendamento] = useState<ServicoAgendamento[]>([]);
 
+  // Estado para múltiplos pets no pacote
+  const [selectedPacoteClienteId, setSelectedPacoteClienteId] = useState<string>("");
+  interface PacoteAdditionalPet {
+    petName: string;
+    raca: string;
+    porte: string;
+    servicosAgendamento: ServicoAgendamento[];
+  }
+  const [pacoteAdditionalPets, setPacoteAdditionalPets] = useState<PacoteAdditionalPet[]>([]);
+  const [showPacoteAdditionalPetsPopover, setShowPacoteAdditionalPetsPopover] = useState(false);
+  const [pacoteAdditionalCalendarIndex, setPacoteAdditionalCalendarIndex] = useState<string | null>(null); // "petIdx-svcIdx"
+
   // Estados para busca inteligente (Pacotes)
   const [clienteSearch, setClienteSearch] = useState("");
   const [petSearch, setPetSearch] = useState("");
