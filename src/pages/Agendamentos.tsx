@@ -4228,9 +4228,34 @@ const Agendamentos = () => {
                   </div>
 
                   <div className="space-y-1 relative">
-                    <Label htmlFor="nomePet" className="text-xs">
-                      Nome do Pet *
-                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="nomePet" className="text-xs">
+                        Nome do Pet *
+                      </Label>
+                      {pacoteFormData.nomePet && pacoteFormData.nomePacote && servicosAgendamento.length > 0 && otherPetsFromClientPacote.length > 0 && (
+                        <Popover open={showPacoteAdditionalPetsPopover} onOpenChange={setShowPacoteAdditionalPetsPopover}>
+                          <PopoverTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-primary hover:text-primary/80">
+                              + Agendar demais pets
+                              {pacoteAdditionalPets.length > 0 && ` (${pacoteAdditionalPets.length})`}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[220px] p-2 z-50 bg-popover" align="start">
+                            <p className="text-xs font-medium mb-2">Selecione os pets:</p>
+                            {otherPetsFromClientPacote.map((pet) => (
+                              <div
+                                key={pet.id}
+                                className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-xs"
+                                onClick={() => handleTogglePacoteAdditionalPet(pet)}
+                              >
+                                <Check className={cn("h-3 w-3", pacoteAdditionalPets.some(ap => ap.petName === pet.nome) ? "opacity-100" : "opacity-0")} />
+                                {pet.nome} ({pet.raca})
+                              </div>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                     <Input
                       id="nomePet"
                       value={petSearch}
