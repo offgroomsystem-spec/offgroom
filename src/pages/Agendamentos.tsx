@@ -786,6 +786,82 @@ const Agendamentos = () => {
     setOpenAdditionalServicoCombobox(null);
   };
 
+  // Pets do mesmo cliente disponíveis para agendamento adicional no pacote
+  const otherPetsFromClientPacote = useMemo(() => {
+    if (!selectedPacoteClienteId || !pacoteFormData.nomePet || !pacoteFormData.raca) return [];
+    const clienteSelecionado = clientes.find(c => c.id === selectedPacoteClienteId);
+    if (!clienteSelecionado) return [];
+    const addedNames = pacoteAdditionalPets.map(ap => ap.petName);
+    return clienteSelecionado.pets.filter(
+      p => !(p.nome === pacoteFormData.nomePet && p.raca === pacoteFormData.raca) && !addedNames.includes(p.nome)
+    );
+  }, [selectedPacoteClienteId, pacoteFormData.nomePet, pacoteFormData.raca, clientes, pacoteAdditionalPets]);
+
+  const handleTogglePacoteAdditionalPet = (pet: Pet) => {
+    const exists = pacoteAdditionalPets.find(ap => ap.petName === pet.nome);
+    if (exists) {
+      setPacoteAdditionalPets(pacoteAdditionalPets.filter(ap => ap.petName !== pet.nome));
+    } else {
+      // Clone servicosAgendamento with empty dates/times for this pet
+      const servicosCopy: ServicoAgendamento[] = servicosAgendamento.map(s => ({
+        ...s,
+        data: "",
+        horarioInicio: "",
+        tempoServico: "",
+        horarioTermino: "",
+        servicosExtras: (s.servicosExtras || []).filter(e => e.nativo).map(e => ({ ...e })),
+      }));
+      setPacoteAdditionalPets([...pacoteAdditionalPets, {
+        petName: pet.nome,
+        raca: pet.raca,
+        porte: pet.porte,
+        servicosAgendamento: servicosCopy,
+      }]);
+    }
+  };
+
+  const handlePacoteAdditionalServicoChange = (petIdx: number, svcIdx: number, field: keyof ServicoAgendamento, value: string) => {
+    setPacoteAdditionalPets(prev => {
+      const updated = [...prev];
+      const svcs = [...updated[petIdx].servicosAgendamento];
+      svcs[svcIdx] = { ...svcs[svcIdx], [field]: value };
+      if (field === "horarioInicio" || field === "tempoServico") {
+        const hi = field === "horarioInicio" ? value : svcs[svcIdx].horarioInicio;
+        const ts = field === "tempoServico" ? value : svcs[svcIdx].tempoServico;
+        if (hi && ts) svcs[svcIdx].horarioTermino = calcularHorarioTermino(hi, ts);
+      }
+      updated[petIdx] = { ...updated[petIdx], servicosAgendamento: svcs };
+      return updated;
+    });
+  };
+
+  const handleAddPacoteAdditionalExtra = (petIdx: number, svcIdx: number, servicoId: string) => {
+    const servicoExtra = servicos.find(s => s.id === servicoId);
+    if (!servicoExtra) return;
+    setPacoteAdditionalPets(prev => {
+      const updated = [...prev];
+      const svcs = [...updated[petIdx].servicosAgendamento];
+      const extras = svcs[svcIdx].servicosExtras || [];
+      if (extras.some(e => e.id === servicoId)) {
+        toast.error("Este serviço extra já foi adicionado");
+        return prev;
+      }
+      svcs[svcIdx] = { ...svcs[svcIdx], servicosExtras: [...extras, { id: servicoExtra.id, nome: servicoExtra.nome, valor: servicoExtra.valor }] };
+      updated[petIdx] = { ...updated[petIdx], servicosAgendamento: svcs };
+      return updated;
+    });
+  };
+
+  const handleRemovePacoteAdditionalExtra = (petIdx: number, svcIdx: number, extraId: string) => {
+    setPacoteAdditionalPets(prev => {
+      const updated = [...prev];
+      const svcs = [...updated[petIdx].servicosAgendamento];
+      svcs[svcIdx] = { ...svcs[svcIdx], servicosExtras: (svcs[svcIdx].servicosExtras || []).filter(e => e.id !== extraId) };
+      updated[petIdx] = { ...updated[petIdx], servicosAgendamento: svcs };
+      return updated;
+    });
+  };
+
   // Estados para Gerenciamento de Agendamentos
   const [gerenciamentoOpen, setGerenciamentoOpen] = useState(false);
   const [filtros, setFiltros] = useState({
