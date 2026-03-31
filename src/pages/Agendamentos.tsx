@@ -624,6 +624,18 @@ const Agendamentos = () => {
   });
   const [servicosAgendamento, setServicosAgendamento] = useState<ServicoAgendamento[]>([]);
 
+  // Estado para múltiplos pets no pacote
+  const [selectedPacoteClienteId, setSelectedPacoteClienteId] = useState<string>("");
+  interface PacoteAdditionalPet {
+    petName: string;
+    raca: string;
+    porte: string;
+    servicosAgendamento: ServicoAgendamento[];
+  }
+  const [pacoteAdditionalPets, setPacoteAdditionalPets] = useState<PacoteAdditionalPet[]>([]);
+  const [showPacoteAdditionalPetsPopover, setShowPacoteAdditionalPetsPopover] = useState(false);
+  const [pacoteAdditionalCalendarIndex, setPacoteAdditionalCalendarIndex] = useState<string | null>(null); // "petIdx-svcIdx"
+
   // Estados para busca inteligente (Pacotes)
   const [clienteSearch, setClienteSearch] = useState("");
   const [petSearch, setPetSearch] = useState("");
@@ -651,7 +663,7 @@ const Agendamentos = () => {
 
   // Estados para busca por WhatsApp (Pacotes)
   const [pacoteWhatsappSearch, setPacoteWhatsappSearch] = useState("");
-  const [pacoteFilteredWhatsapp, setPacoteFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
+  const [pacoteFilteredWhatsapp, setPacoteFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }>>([]);
   const pacoteWhatsappJustSelected = useRef(false);
 
   // Estados para agendamento de múltiplos pets
@@ -772,6 +784,82 @@ const Agendamentos = () => {
       return updated;
     });
     setOpenAdditionalServicoCombobox(null);
+  };
+
+  // Pets do mesmo cliente disponíveis para agendamento adicional no pacote
+  const otherPetsFromClientPacote = useMemo(() => {
+    if (!selectedPacoteClienteId || !pacoteFormData.nomePet || !pacoteFormData.raca) return [];
+    const clienteSelecionado = clientes.find(c => c.id === selectedPacoteClienteId);
+    if (!clienteSelecionado) return [];
+    const addedNames = pacoteAdditionalPets.map(ap => ap.petName);
+    return clienteSelecionado.pets.filter(
+      p => !(p.nome === pacoteFormData.nomePet && p.raca === pacoteFormData.raca) && !addedNames.includes(p.nome)
+    );
+  }, [selectedPacoteClienteId, pacoteFormData.nomePet, pacoteFormData.raca, clientes, pacoteAdditionalPets]);
+
+  const handleTogglePacoteAdditionalPet = (pet: Pet) => {
+    const exists = pacoteAdditionalPets.find(ap => ap.petName === pet.nome);
+    if (exists) {
+      setPacoteAdditionalPets(pacoteAdditionalPets.filter(ap => ap.petName !== pet.nome));
+    } else {
+      // Clone servicosAgendamento with empty dates/times for this pet
+      const servicosCopy: ServicoAgendamento[] = servicosAgendamento.map(s => ({
+        ...s,
+        data: "",
+        horarioInicio: "",
+        tempoServico: "",
+        horarioTermino: "",
+        servicosExtras: (s.servicosExtras || []).filter(e => e.nativo).map(e => ({ ...e })),
+      }));
+      setPacoteAdditionalPets([...pacoteAdditionalPets, {
+        petName: pet.nome,
+        raca: pet.raca,
+        porte: pet.porte,
+        servicosAgendamento: servicosCopy,
+      }]);
+    }
+  };
+
+  const handlePacoteAdditionalServicoChange = (petIdx: number, svcIdx: number, field: keyof ServicoAgendamento, value: string) => {
+    setPacoteAdditionalPets(prev => {
+      const updated = [...prev];
+      const svcs = [...updated[petIdx].servicosAgendamento];
+      svcs[svcIdx] = { ...svcs[svcIdx], [field]: value };
+      if (field === "horarioInicio" || field === "tempoServico") {
+        const hi = field === "horarioInicio" ? value : svcs[svcIdx].horarioInicio;
+        const ts = field === "tempoServico" ? value : svcs[svcIdx].tempoServico;
+        if (hi && ts) svcs[svcIdx].horarioTermino = calcularHorarioTermino(hi, ts);
+      }
+      updated[petIdx] = { ...updated[petIdx], servicosAgendamento: svcs };
+      return updated;
+    });
+  };
+
+  const handleAddPacoteAdditionalExtra = (petIdx: number, svcIdx: number, servicoId: string) => {
+    const servicoExtra = servicos.find(s => s.id === servicoId);
+    if (!servicoExtra) return;
+    setPacoteAdditionalPets(prev => {
+      const updated = [...prev];
+      const svcs = [...updated[petIdx].servicosAgendamento];
+      const extras = svcs[svcIdx].servicosExtras || [];
+      if (extras.some(e => e.id === servicoId)) {
+        toast.error("Este serviço extra já foi adicionado");
+        return prev;
+      }
+      svcs[svcIdx] = { ...svcs[svcIdx], servicosExtras: [...extras, { id: servicoExtra.id, nome: servicoExtra.nome, valor: servicoExtra.valor }] };
+      updated[petIdx] = { ...updated[petIdx], servicosAgendamento: svcs };
+      return updated;
+    });
+  };
+
+  const handleRemovePacoteAdditionalExtra = (petIdx: number, svcIdx: number, extraId: string) => {
+    setPacoteAdditionalPets(prev => {
+      const updated = [...prev];
+      const svcs = [...updated[petIdx].servicosAgendamento];
+      svcs[svcIdx] = { ...svcs[svcIdx], servicosExtras: (svcs[svcIdx].servicosExtras || []).filter(e => e.id !== extraId) };
+      updated[petIdx] = { ...updated[petIdx], servicosAgendamento: svcs };
+      return updated;
+    });
   };
 
   // Estados para Gerenciamento de Agendamentos
@@ -989,15 +1077,15 @@ const Agendamentos = () => {
       return;
     }
     if (pacoteWhatsappSearch.length >= 2) {
-      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }> = [];
+      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }> = [];
       clientes.forEach((cliente) => {
         if (cliente.whatsapp.includes(pacoteWhatsappSearch)) {
           if (cliente.pets.length > 0) {
             cliente.pets.forEach((pet) => {
-              results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: pet.nome, raca: pet.raca });
+              results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: pet.nome, raca: pet.raca, clienteId: cliente.id });
             });
           } else {
-            results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: "", raca: "" });
+            results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: "", raca: "", clienteId: cliente.id });
           }
         }
       });
@@ -1007,13 +1095,15 @@ const Agendamentos = () => {
     }
   }, [pacoteWhatsappSearch, clientes]);
 
-  const handlePacoteWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string }) => {
+  const handlePacoteWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }) => {
     pacoteWhatsappJustSelected.current = true;
     const formatted = item.whatsapp.length >= 11
       ? `(${item.whatsapp.slice(0, 2)}) ${item.whatsapp.slice(2, 7)}-${item.whatsapp.slice(7)}`
       : item.whatsapp;
     setPacoteWhatsappSearch(formatted);
     setPacoteFilteredWhatsapp([]);
+    setSelectedPacoteClienteId(item.clienteId);
+    setPacoteAdditionalPets([]);
     setPacoteFormData({
       ...pacoteFormData,
       nomeCliente: item.nomeCliente,
@@ -1033,12 +1123,13 @@ const Agendamentos = () => {
     clienteJustSelected.current = true;
     setClienteSearch(nomeCliente);
     setSearchStartedWith("cliente");
+    setSelectedPacoteClienteId("");
+    setPacoteAdditionalPets([]);
 
     // Buscar TODOS os clientes com esse nome (não apenas o primeiro)
     const clientesComMesmoNome = clientes.filter((c) => c.nomeCliente === nomeCliente);
 
     if (clientesComMesmoNome.length > 0) {
-      // Pegar o primeiro cliente para definir whatsapp (poderia ser qualquer um)
       const primeiroCliente = clientesComMesmoNome[0];
 
       setPacoteFormData({
@@ -1049,7 +1140,6 @@ const Agendamentos = () => {
         whatsapp: primeiroCliente.whatsapp
       });
 
-      // Coletar pets de TODOS os clientes com esse nome
       const todosPetsDoNome = clientesComMesmoNome.flatMap((cliente) =>
       cliente.pets.map((p) => p.nome)
       );
@@ -1083,6 +1173,8 @@ const Agendamentos = () => {
       }
 
       if (clienteCorreto && petEncontrado) {
+        setSelectedPacoteClienteId(clienteCorreto.id);
+        setPacoteAdditionalPets([]);
         setAvailableRacas([petEncontrado.raca]);
         setPacoteFormData({
           ...pacoteFormData,
@@ -1145,6 +1237,8 @@ const Agendamentos = () => {
     }
 
     if (clienteCorreto && petEncontrado) {
+      setSelectedPacoteClienteId(clienteCorreto.id);
+      setPacoteAdditionalPets([]);
       setPacoteFormData({
         ...pacoteFormData,
         nomeCliente: clienteCorreto.nomeCliente,
@@ -1707,6 +1801,10 @@ const Agendamentos = () => {
     setSearchStartedWith(null);
     setPacoteWhatsappSearch("");
     setPacoteFilteredWhatsapp([]);
+    setSelectedPacoteClienteId("");
+    setPacoteAdditionalPets([]);
+    setShowPacoteAdditionalPetsPopover(false);
+    setPacoteAdditionalCalendarIndex(null);
     setIsPacoteDialogOpen(false);
   };
 
@@ -1885,20 +1983,39 @@ const Agendamentos = () => {
       return;
     }
 
-    // Validar todos os serviços
+    // Validar serviços do pet principal
     for (let i = 0; i < servicosAgendamento.length; i++) {
       const servico = servicosAgendamento[i];
       if (!servico.data) {
-        toast.error(`Favor preencher a Data do serviço ${servico.numero}`);
+        toast.error(`Favor preencher a Data do serviço ${servico.numero} (${pacoteFormData.nomePet})`);
         return;
       }
       if (!servico.horarioInicio) {
-        toast.error(`Favor preencher o Horário de Início do serviço ${servico.numero}`);
+        toast.error(`Favor preencher o Horário de Início do serviço ${servico.numero} (${pacoteFormData.nomePet})`);
         return;
       }
       if (!servico.tempoServico) {
-        toast.error(`Favor preencher o Tempo de Serviço do serviço ${servico.numero}`);
+        toast.error(`Favor preencher o Tempo de Serviço do serviço ${servico.numero} (${pacoteFormData.nomePet})`);
         return;
+      }
+    }
+
+    // Validar serviços dos pets adicionais
+    for (const addPet of pacoteAdditionalPets) {
+      for (let i = 0; i < addPet.servicosAgendamento.length; i++) {
+        const servico = addPet.servicosAgendamento[i];
+        if (!servico.data) {
+          toast.error(`Favor preencher a Data do serviço ${servico.numero} (${addPet.petName})`);
+          return;
+        }
+        if (!servico.horarioInicio) {
+          toast.error(`Favor preencher o Horário de Início do serviço ${servico.numero} (${addPet.petName})`);
+          return;
+        }
+        if (!servico.tempoServico) {
+          toast.error(`Favor preencher o Tempo de Serviço do serviço ${servico.numero} (${addPet.petName})`);
+          return;
+        }
       }
     }
 
@@ -1912,95 +2029,100 @@ const Agendamentos = () => {
 
     setSalvando(true);
     try {
-      const { error } = await supabase.from("agendamentos_pacotes").insert([
-      {
-        user_id: ownerId,
-        nome_cliente: pacoteFormData.nomeCliente,
-        nome_pet: pacoteFormData.nomePet,
-        raca: pacoteFormData.raca,
-        whatsapp: pacoteFormData.whatsapp,
-        nome_pacote: pacoteFormData.nomePacote,
-        taxi_dog: pacoteFormData.taxiDog,
-        data_venda: pacoteFormData.dataVenda,
-        servicos: servicosAgendamento as any
-      }]
-      );
+      // Montar lista de todos os pets a criar (principal + adicionais)
+      const allPetsToCreate = [
+        { petName: pacoteFormData.nomePet, raca: pacoteFormData.raca, servicosAgendamento },
+        ...pacoteAdditionalPets,
+      ];
 
-      if (error) throw error;
+      for (const petData of allPetsToCreate) {
+        // Inserir registro de pacote para este pet
+        const { error } = await supabase.from("agendamentos_pacotes").insert([{
+          user_id: ownerId,
+          nome_cliente: pacoteFormData.nomeCliente,
+          nome_pet: petData.petName,
+          raca: petData.raca,
+          whatsapp: pacoteFormData.whatsapp,
+          nome_pacote: pacoteFormData.nomePacote,
+          taxi_dog: pacoteFormData.taxiDog,
+          data_venda: pacoteFormData.dataVenda,
+          servicos: petData.servicosAgendamento as any
+        }]);
 
-      // Automação: criar lançamento financeiro automaticamente
-      const primeiraDataServico = servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
+        if (error) throw error;
 
-      // Coletar apenas os serviços extras adicionados MANUALMENTE (não nativos do pacote)
-      const todosExtras = servicosAgendamento.flatMap(s => 
-        (s.servicosExtras || []).filter(e => !e.nativo).map(e => ({ nome: e.nome, valor: e.valor }))
-      );
+        // Criar lançamento financeiro para este pet
+        const primeiraDataServico = petData.servicosAgendamento[0]?.data || pacoteFormData.dataVenda;
+        const todosExtras = petData.servicosAgendamento.flatMap(s => 
+          (s.servicosExtras || []).filter(e => !e.nativo).map(e => ({ nome: e.nome, valor: e.valor }))
+        );
 
-      criarLancamentoFinanceiroPacote({
-        nomeCliente: pacoteFormData.nomeCliente,
-        nomePet: pacoteFormData.nomePet,
-        nomePacote: pacoteFormData.nomePacote,
-        dataVenda: pacoteFormData.dataVenda,
-        primeiraDataServico: primeiraDataServico,
-        ownerId: ownerId || "",
-        servicosExtras: todosExtras.length > 0 ? todosExtras : undefined,
-      });
+        criarLancamentoFinanceiroPacote({
+          nomeCliente: pacoteFormData.nomeCliente,
+          nomePet: petData.petName,
+          nomePacote: pacoteFormData.nomePacote,
+          dataVenda: pacoteFormData.dataVenda,
+          primeiraDataServico,
+          ownerId: ownerId || "",
+          servicosExtras: todosExtras.length > 0 ? todosExtras : undefined,
+        });
 
-      // Agendar mensagens WhatsApp para cada serviço do pacote
-      try {
-        let sexoPet = "";
-        for (const cliente of clientes) {
-          const pet = cliente.pets.find(p => p.nome === pacoteFormData.nomePet && p.raca === pacoteFormData.raca);
-          if (pet) { sexoPet = pet.sexo || ""; break; }
+        // Agendar mensagens WhatsApp para cada serviço deste pet
+        try {
+          let sexoPet = "";
+          for (const cliente of clientes) {
+            const pet = cliente.pets.find(p => p.nome === petData.petName && p.raca === petData.raca);
+            if (pet) { sexoPet = pet.sexo || ""; break; }
+          }
+
+          // Buscar o ID do pacote recém-criado para este pet
+          const { data: pacoteCriado } = await supabase
+            .from("agendamentos_pacotes")
+            .select("id")
+            .eq("user_id", ownerId)
+            .eq("nome_cliente", pacoteFormData.nomeCliente)
+            .eq("nome_pet", petData.petName)
+            .eq("nome_pacote", pacoteFormData.nomePacote)
+            .eq("data_venda", pacoteFormData.dataVenda)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          const pacoteId = pacoteCriado?.id;
+
+          for (const servico of petData.servicosAgendamento) {
+            if (!servico.data || !servico.horarioInicio) continue;
+
+            const parts = servico.numero.split("/");
+            const isUltimo = parts.length === 2 && parts[0] === parts[1];
+
+            const servicoNomes = [servico.nomeServico, ...(servico.servicosExtras?.map(e => e.nome) || [])].filter(Boolean).join(" + ");
+
+            await scheduleWhatsAppMessages({
+              userId: ownerId || user.id,
+              agendamentoPacoteId: pacoteId || undefined,
+              servicoNumero: servico.numero,
+              nomeCliente: pacoteFormData.nomeCliente,
+              nomePet: petData.petName,
+              sexoPet,
+              raca: petData.raca,
+              whatsapp: pacoteFormData.whatsapp,
+              dataAgendamento: servico.data,
+              horarioInicio: servico.horarioInicio,
+              servicos: servicoNomes || pacoteFormData.nomePacote,
+              taxiDog: pacoteFormData.taxiDog,
+              bordao: empresaConfig.bordao,
+              isPacote: true,
+              isUltimoServicoPacote: isUltimo,
+            });
+          }
+        } catch (schedErr) {
+          console.error(`Erro ao agendar mensagens WhatsApp pacote (${petData.petName}):`, schedErr);
         }
-
-        // Buscar o ID do pacote recém-criado
-        const { data: pacoteCriado } = await supabase
-          .from("agendamentos_pacotes")
-          .select("id")
-          .eq("user_id", ownerId)
-          .eq("nome_cliente", pacoteFormData.nomeCliente)
-          .eq("nome_pet", pacoteFormData.nomePet)
-          .eq("nome_pacote", pacoteFormData.nomePacote)
-          .eq("data_venda", pacoteFormData.dataVenda)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        const pacoteId = pacoteCriado?.id;
-
-        for (const servico of servicosAgendamento) {
-          if (!servico.data || !servico.horarioInicio) continue;
-
-          const parts = servico.numero.split("/");
-          const isUltimo = parts.length === 2 && parts[0] === parts[1];
-
-          // Montar nomes dos serviços incluindo extras
-          const servicoNomes = [servico.nomeServico, ...(servico.servicosExtras?.map(e => e.nome) || [])].filter(Boolean).join(" + ");
-
-          await scheduleWhatsAppMessages({
-            userId: ownerId || user.id,
-            agendamentoPacoteId: pacoteId || undefined,
-            servicoNumero: servico.numero,
-            nomeCliente: pacoteFormData.nomeCliente,
-            nomePet: pacoteFormData.nomePet,
-            sexoPet,
-            raca: pacoteFormData.raca,
-            whatsapp: pacoteFormData.whatsapp,
-            dataAgendamento: servico.data,
-            horarioInicio: servico.horarioInicio,
-            servicos: servicoNomes || pacoteFormData.nomePacote,
-            taxiDog: pacoteFormData.taxiDog,
-            bordao: empresaConfig.bordao,
-            isPacote: true,
-            isUltimoServicoPacote: isUltimo,
-          });
-        }
-      } catch (schedErr) {
-        console.error("Erro ao agendar mensagens WhatsApp pacote:", schedErr);
       }
 
-      toast.success("Pacote agendado com sucesso!");
+      const totalPets = allPetsToCreate.length;
+      toast.success(`Pacote agendado com sucesso para ${totalPets} pet(s)!`);
       await loadAgendamentosPacotes();
       resetPacoteForm();
     } catch (error) {
@@ -4261,7 +4383,11 @@ const Agendamentos = () => {
 
                 {servicosAgendamento.length > 0 &&
                 <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
-                    <Label className="text-xs font-semibold">Agendamentos dos Serviços do Pacote</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold">
+                        {pacoteAdditionalPets.length > 0 ? `🐶 ${pacoteFormData.nomePet} (${pacoteFormData.raca}) — Agendamentos dos Serviços do Pacote` : "Agendamentos dos Serviços do Pacote"}
+                      </Label>
+                    </div>
 
                     {/* Header com títulos das colunas */}
                     <div className="flex gap-1.5 items-center pb-1">
@@ -4401,6 +4527,182 @@ const Agendamentos = () => {
                     </div>
                   </div>
                 }
+
+                {/* Botão + Agendar demais pets (pacote) */}
+                {pacoteFormData.nomePet && pacoteFormData.nomePacote && servicosAgendamento.length > 0 && otherPetsFromClientPacote.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Popover open={showPacoteAdditionalPetsPopover} onOpenChange={setShowPacoteAdditionalPetsPopover}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] gap-1">
+                          <Plus className="h-3 w-3" />
+                          Agendar demais pets
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[220px] p-2 z-50 bg-popover" align="start">
+                        <p className="text-xs font-medium mb-2">Selecione os pets:</p>
+                        {otherPetsFromClientPacote.map((pet) => (
+                          <div
+                            key={pet.id}
+                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-xs"
+                            onClick={() => handleTogglePacoteAdditionalPet(pet)}
+                          >
+                            <Check className={cn("h-3 w-3", pacoteAdditionalPets.some(ap => ap.petName === pet.nome) ? "opacity-100" : "opacity-0")} />
+                            {pet.nome} ({pet.raca})
+                          </div>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
+                    {pacoteAdditionalPets.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        +{pacoteAdditionalPets.length} pet(s) adicionado(s)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Blocos de serviços para pets adicionais do pacote */}
+                {pacoteAdditionalPets.map((addPet, petIdx) => (
+                  <div key={petIdx} className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold">
+                        🐶 {addPet.petName} ({addPet.raca})
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        onClick={() => setPacoteAdditionalPets(prev => prev.filter((_, i) => i !== petIdx))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Header */}
+                    <div className="flex gap-1.5 items-center pb-1">
+                      <div className="w-12"></div>
+                      <div className="flex-1 min-w-[80px]"></div>
+                      <div className="w-28">
+                        <Label className="text-muted-foreground text-[10px] font-bold">Dia Agendamento</Label>
+                      </div>
+                      <div className="w-[72px]">
+                        <Label className="text-muted-foreground font-bold text-[10px]">Hora Início</Label>
+                      </div>
+                      <div className="w-[72px]">
+                        <Label className="text-muted-foreground font-bold text-[10px]">Tempo Serviço*</Label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {addPet.servicosAgendamento.map((servico, svcIdx) => {
+                        const extrasLabel = servico.servicosExtras?.length
+                          ? ` + ${servico.servicosExtras.map(e => e.nome).join(" + ")}`
+                          : "";
+                        const calKey = `${petIdx}-${svcIdx}`;
+                        return (
+                          <div key={svcIdx} className="space-y-1">
+                            <div className="flex gap-1.5 items-center">
+                              <div className="w-12">
+                                <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
+                              </div>
+
+                              <div className="flex-1 min-w-[80px] flex items-center gap-1">
+                                <Label className="text-[10px] text-left truncate" title={`${servico.nomeServico}${extrasLabel}`}>
+                                  {servico.nomeServico}{extrasLabel}
+                                </Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button type="button" variant="outline" size="sm" className="h-5 px-1.5 text-[9px] shrink-0 whitespace-nowrap">
+                                      + Serviços
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-[280px] p-2 z-50 bg-popover" align="start">
+                                    <div className="space-y-2">
+                                      <p className="text-xs font-medium">Adicionar serviço extra</p>
+                                      {(() => {
+                                        const pacoteAtual = pacotes.find(p => p.nome === pacoteFormData.nomePacote);
+                                        const portePacote = pacoteAtual?.porte || "";
+                                        const servicosSemPacotes = servicos.filter(s => !s.nome.toLowerCase().startsWith("pacote"));
+                                        const servicosFiltrados = portePacote
+                                          ? servicosSemPacotes.filter(s => normalizarPorte(s.porte) === normalizarPorte(portePacote) || normalizarPorte(s.porte) === "todos")
+                                          : servicosSemPacotes;
+                                        return (
+                                          <Command className="rounded-md border">
+                                            <CommandInput placeholder="Buscar serviço..." className="h-7 text-xs" />
+                                            <CommandEmpty className="py-2 text-xs text-center">Nenhum serviço encontrado</CommandEmpty>
+                                            <CommandGroup className="max-h-[200px] overflow-y-auto">
+                                              {servicosFiltrados.map((s) => (
+                                                <CommandItem
+                                                  key={s.id}
+                                                  value={`${s.nome} - R$ ${s.valor?.toFixed(2)}`}
+                                                  onSelect={() => handleAddPacoteAdditionalExtra(petIdx, svcIdx, s.id)}
+                                                  className="text-xs cursor-pointer"
+                                                >
+                                                  <Search className="mr-1.5 h-3 w-3 opacity-50" />
+                                                  {s.nome} - R$ {s.valor?.toFixed(2)}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </Command>
+                                        );
+                                      })()}
+                                      {(servico.servicosExtras || []).length > 0 && (
+                                        <div className="space-y-1">
+                                          <p className="text-[10px] text-muted-foreground">Extras adicionados:</p>
+                                          {servico.servicosExtras!.map((extra) => (
+                                            <div key={extra.id} className="flex items-center justify-between bg-secondary/50 rounded px-1.5 py-0.5">
+                                              <span className="text-[10px]">{extra.nome} - R$ {extra.valor?.toFixed(2)}</span>
+                                              <Button type="button" variant="ghost" size="sm" onClick={() => handleRemovePacoteAdditionalExtra(petIdx, svcIdx, extra.id)} className="h-4 w-4 p-0 text-destructive hover:text-destructive">
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+
+                              <div className="w-28">
+                                <Popover open={pacoteAdditionalCalendarIndex === calKey} onOpenChange={(open) => setPacoteAdditionalCalendarIndex(open ? calKey : null)}>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("h-7 w-full justify-start text-left font-normal text-[10px] px-1.5", !servico.data && "text-muted-foreground")}>
+                                      {servico.data ? toDisplayDate(servico.data) : "Data"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={servico.data ? parse(servico.data, "yyyy-MM-dd", new Date()) : undefined}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          handlePacoteAdditionalServicoChange(petIdx, svcIdx, "data", format(date, "yyyy-MM-dd"));
+                                        }
+                                        setPacoteAdditionalCalendarIndex(null);
+                                      }}
+                                      locale={ptBR}
+                                      initialFocus
+                                      className="p-3 pointer-events-auto"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+
+                              <div className="w-[72px]">
+                                <TimeInput value={servico.horarioInicio} onChange={(value) => handlePacoteAdditionalServicoChange(petIdx, svcIdx, "horarioInicio", value)} placeholder="00:00" className="h-7 text-[10px]" />
+                              </div>
+
+                              <div className="w-[72px]">
+                                <TimeInput value={servico.tempoServico} onChange={(value) => handlePacoteAdditionalServicoChange(petIdx, svcIdx, "tempoServico", value)} placeholder="0:00" className="h-7 text-[10px]" allowSingleDigitHour={true} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={resetPacoteForm} className="h-8 text-xs">
