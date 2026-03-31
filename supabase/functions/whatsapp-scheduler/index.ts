@@ -720,6 +720,9 @@ async function autoCreateMissingMessages(
       // === 30min message (only if Taxi Dog = Não) ===
       if (ag.taxi_dog === "Não" && diffMinutes > 30 && !existingSet.has(`${ag.id}_30min`)) {
         const agendadoPara30min = new Date(agDateTime.getTime() - 30 * 60 * 1000);
+        // Garantir que não envie antes das 07:00 BRT
+        const brtH30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
+        if (brtH30 < 7) agendadoPara30min.setUTCHours(10, 0, 0, 0);
         if (agendadoPara30min.getTime() > now.getTime()) {
           const reminderMsg = buildReminderMessage(ag.cliente, ag.pet, sexoPet, ag.horario);
           mensagensParaInserir.push({
