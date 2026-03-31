@@ -779,7 +779,7 @@ async function autoCreateMissingMessages(
     }
 
     // Also handle pacotes
-    await autoCreatePacoteMessages(supabase, activeUserIds, bordaoMap, now, todayBRT, tomorrowBRT);
+    await autoCreatePacoteMessages(supabase, activeUserIds, bordaoMap, confirmConfigMap, now, todayBRT, tomorrowBRT);
 
     if (mensagensParaInserir.length > 0) {
       const { error } = await supabase
