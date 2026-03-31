@@ -1844,10 +1844,9 @@ const Agendamentos = () => {
     });
     const pacoteSelecionado = pacotes.find((p) => p.nome === nomePacote);
     if (pacoteSelecionado) {
-      const servicosInit: ServicoAgendamento[] = pacoteSelecionado.servicos.map((servico, index) => {
+      const buildServicosInit = (): ServicoAgendamento[] => pacoteSelecionado.servicos.map((servico, index) => {
         const total = pacoteSelecionado.servicos.length;
         const numero = `${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`;
-        // Preservar servicosExtras do pacote e marcá-los como nativos
         const extras = ((servico as any).servicosExtras || []).map((e: any) => ({
           ...e,
           nativo: true,
@@ -1862,7 +1861,14 @@ const Agendamentos = () => {
           servicosExtras: extras
         };
       });
-      setServicosAgendamento(servicosInit);
+      setServicosAgendamento(buildServicosInit());
+      // Sincronizar todos os pets adicionais com o novo pacote
+      if (pacoteAdditionalPets.length > 0) {
+        setPacoteAdditionalPets(prev => prev.map(ap => ({
+          ...ap,
+          servicosAgendamento: buildServicosInit(),
+        })));
+      }
     }
   };
 
