@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     const userIds = instances.map((i: WhatsAppInstance) => i.user_id);
     const { data: empresaConfigs } = await supabase
       .from("empresa_config")
-      .select("user_id, evolution_auto_send, bordao")
+      .select("user_id, evolution_auto_send, bordao, confirmacao_periodo_ativo, confirmacao_24h, confirmacao_15h, confirmacao_3h")
       .in("user_id", userIds);
 
     const autoSendEnabled = new Set(
@@ -213,8 +213,15 @@ Deno.serve(async (req) => {
     );
 
     const bordaoMap = new Map<string, string>();
+    const confirmConfigMap = new Map<string, { ativo: boolean; h24: boolean; h15: boolean; h3: boolean }>();
     for (const ec of (empresaConfigs || [])) {
       bordaoMap.set(ec.user_id, ec.bordao || "");
+      confirmConfigMap.set(ec.user_id, {
+        ativo: ec.confirmacao_periodo_ativo ?? true,
+        h24: ec.confirmacao_24h ?? false,
+        h15: ec.confirmacao_15h ?? false,
+        h3: ec.confirmacao_3h ?? true,
+      });
     }
 
     // Filter only instances with auto_send enabled
@@ -233,7 +240,7 @@ Deno.serve(async (req) => {
     // =============================================
     // ETAPA A: Auto-criar mensagens para agendamentos sem mensagens
     // =============================================
-    await autoCreateMissingMessages(supabase, activeUserIds, bordaoMap, now);
+    await autoCreateMissingMessages(supabase, activeUserIds, bordaoMap, confirmConfigMap, now);
 
     // =============================================
     // ETAPA B: Processar mensagens pendentes
@@ -593,6 +600,7 @@ async function autoCreateMissingMessages(
   supabase: any,
   activeUserIds: string[],
   bordaoMap: Map<string, string>,
+  confirmConfigMap: Map<string, { ativo: boolean; h24: boolean; h15: boolean; h3: boolean }>,
   now: Date
 ) {
   try {
@@ -697,55 +705,81 @@ async function autoCreateMissingMessages(
         status: "pendente",
       };
 
-      // === 3h message ===
-      if (diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
-        let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
-        // Garantir que não envie antes das 07:00 BRT (10:00 UTC)
-        const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
-        if (brtHour3h < 7) {
-          agendadoPara3h.setUTCHours(10, 0, 0, 0); // 7h BRT
+      // Get confirmation config for this user
+      const cc = confirmConfigMap.get(ag.user_id) || { ativo: true, h24: false, h15: false, h3: true };
+      
+      if (cc.ativo) {
+        // === MODO PERSONALIZADO ===
+
+        // 24h antes
+        if (cc.h24 && diffMinutes > 24 * 60 && !existingSet.has(`${ag.id}_24h`)) {
+          const ag24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
+          if (ag24h.getTime() > now.getTime()) {
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "24h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
+          }
         }
-        if (agendadoPara3h.getTime() > now.getTime()) {
-          mensagensParaInserir.push({
-            ...baseRecord,
-            tipo_mensagem: "3h",
-            mensagem: confirmMsg,
-            agendado_para: agendadoPara3h.toISOString(),
-          });
+
+        // 15h antes (máximo 18h BRT)
+        if (cc.h15 && diffMinutes > 15 * 60 && !existingSet.has(`${ag.id}_15h`)) {
+          let ag15h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
+          const brtHour15 = (ag15h.getUTCHours() - 3 + 24) % 24;
+          if (brtHour15 > 18) {
+            ag15h.setUTCHours(21, 0, 0, 0); // 18h BRT = 21h UTC
+          }
+          if (ag15h.getTime() > now.getTime()) {
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "15h", mensagem: confirmMsg, agendado_para: ag15h.toISOString() });
+          }
+        }
+
+        // 3h antes (mínimo 07h BRT)
+        if (cc.h3 && diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
+          let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
+          const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
+          if (brtHour3h < 7) {
+            agendadoPara3h.setUTCHours(10, 0, 0, 0);
+          }
+          if (agendadoPara3h.getTime() > now.getTime()) {
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: agendadoPara3h.toISOString() });
+          }
+        }
+
+        // Confirmação imediata (entre 61min e o menor período selecionado)
+        const menorPeriodoMinutos = cc.h3 ? 3 * 60 : cc.h15 ? 15 * 60 : cc.h24 ? 24 * 60 : 0;
+        if (menorPeriodoMinutos > 0 && diffMinutes > 61 && diffMinutes <= menorPeriodoMinutos && !existingSet.has(`${ag.id}_imediata`) && !existingSet.has(`${ag.id}_3h`)) {
+          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "imediata", mensagem: confirmMsg, agendado_para: now.toISOString() });
+        }
+      } else {
+        // === MODO PADRÃO (3h fixo) ===
+        if (diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
+          let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
+          const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
+          if (brtHour3h < 7) {
+            agendadoPara3h.setUTCHours(10, 0, 0, 0);
+          }
+          if (agendadoPara3h.getTime() > now.getTime()) {
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: agendadoPara3h.toISOString() });
+          }
+        }
+
+        if (diffMinutes > 61 && diffMinutes <= 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
+          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: now.toISOString() });
         }
       }
 
-      // === 30min message (only if Taxi Dog = Não) ===
+      // === 30min message (always active, only if Taxi Dog = "Não") ===
       if (ag.taxi_dog === "Não" && diffMinutes > 30 && !existingSet.has(`${ag.id}_30min`)) {
         const agendadoPara30min = new Date(agDateTime.getTime() - 30 * 60 * 1000);
-        // Garantir que não envie antes das 07:00 BRT
         const brtH30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
         if (brtH30 < 7) agendadoPara30min.setUTCHours(10, 0, 0, 0);
         if (agendadoPara30min.getTime() > now.getTime()) {
           const reminderMsg = buildReminderMessage(ag.cliente, ag.pet, sexoPet, ag.horario);
-          mensagensParaInserir.push({
-            ...baseRecord,
-            tipo_mensagem: "30min",
-            mensagem: reminderMsg,
-            agendado_para: agendadoPara30min.toISOString(),
-          });
+          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "30min", mensagem: reminderMsg, agendado_para: agendadoPara30min.toISOString() });
         }
-      }
-
-      // === Confirmation for appointments between 61min-3h (auto-create only creates confirmation, NOT imediata) ===
-      // "imediata" messages are only created by the frontend when a NEW appointment is saved
-      if (diffMinutes > 61 && diffMinutes <= 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
-        mensagensParaInserir.push({
-          ...baseRecord,
-          tipo_mensagem: "3h",
-          mensagem: confirmMsg,
-          agendado_para: now.toISOString(),
-        });
       }
     }
 
     // Also handle pacotes
-    await autoCreatePacoteMessages(supabase, activeUserIds, bordaoMap, now, todayBRT, tomorrowBRT);
+    await autoCreatePacoteMessages(supabase, activeUserIds, bordaoMap, confirmConfigMap, now, todayBRT, tomorrowBRT);
 
     if (mensagensParaInserir.length > 0) {
       const { error } = await supabase
@@ -767,6 +801,7 @@ async function autoCreatePacoteMessages(
   supabase: any,
   activeUserIds: string[],
   bordaoMap: Map<string, string>,
+  confirmConfigMap: Map<string, { ativo: boolean; h24: boolean; h15: boolean; h3: boolean }>,
   now: Date,
   todayBRT: string,
   tomorrowBRT: string
@@ -868,33 +903,66 @@ async function autoCreatePacoteMessages(
         };
 
         const key = `${pacote.id}_${servicoNumero}`;
+        const cc = confirmConfigMap.get(pacote.user_id) || { ativo: true, h24: false, h15: false, h3: true };
 
-        // === 3h ===
-        if (diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
-          let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
-          // Garantir que não envie antes das 07:00 BRT
-          const brtH3 = (ag3h.getUTCHours() - 3 + 24) % 24;
-          if (brtH3 < 7) ag3h.setUTCHours(10, 0, 0, 0);
-          if (ag3h.getTime() > now.getTime()) {
-            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: ag3h.toISOString() });
+        if (cc.ativo) {
+          // 24h antes
+          if (cc.h24 && diffMinutes > 24 * 60 && !existingPacoteSet.has(`${key}_24h`)) {
+            const ag24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
+            if (ag24h.getTime() > now.getTime()) {
+              mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "24h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
+            }
+          }
+
+          // 15h antes (máximo 18h BRT)
+          if (cc.h15 && diffMinutes > 15 * 60 && !existingPacoteSet.has(`${key}_15h`)) {
+            let ag15h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
+            const brtH15 = (ag15h.getUTCHours() - 3 + 24) % 24;
+            if (brtH15 > 18) ag15h.setUTCHours(21, 0, 0, 0);
+            if (ag15h.getTime() > now.getTime()) {
+              mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "15h", mensagem: confirmMsg, agendado_para: ag15h.toISOString() });
+            }
+          }
+
+          // 3h antes (mínimo 07h BRT)
+          if (cc.h3 && diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
+            let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
+            const brtH3 = (ag3h.getUTCHours() - 3 + 24) % 24;
+            if (brtH3 < 7) ag3h.setUTCHours(10, 0, 0, 0);
+            if (ag3h.getTime() > now.getTime()) {
+              mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: ag3h.toISOString() });
+            }
+          }
+
+          // Confirmação imediata
+          const menorPeriodoMinutos = cc.h3 ? 3 * 60 : cc.h15 ? 15 * 60 : cc.h24 ? 24 * 60 : 0;
+          if (menorPeriodoMinutos > 0 && diffMinutes > 61 && diffMinutes <= menorPeriodoMinutos && !existingPacoteSet.has(`${key}_imediata`) && !existingPacoteSet.has(`${key}_3h`)) {
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "imediata", mensagem: confirmMsg, agendado_para: now.toISOString() });
+          }
+        } else {
+          // Modo padrão (3h fixo)
+          if (diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
+            let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
+            const brtH3 = (ag3h.getUTCHours() - 3 + 24) % 24;
+            if (brtH3 < 7) ag3h.setUTCHours(10, 0, 0, 0);
+            if (ag3h.getTime() > now.getTime()) {
+              mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: ag3h.toISOString() });
+            }
+          }
+          if (diffMinutes > 61 && diffMinutes <= 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
+            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: now.toISOString() });
           }
         }
 
-        // === 30min ===
+        // === 30min (sempre ativo, independente da config, apenas se Taxi Dog = "Não") ===
         if (pacote.taxi_dog === "Não" && diffMinutes > 30 && !existingPacoteSet.has(`${key}_30min`)) {
           const ag30 = new Date(agDateTime.getTime() - 30 * 60 * 1000);
-          // Garantir que não envie antes das 07:00 BRT
           const brtH30p = (ag30.getUTCHours() - 3 + 24) % 24;
           if (brtH30p < 7) ag30.setUTCHours(10, 0, 0, 0);
           if (ag30.getTime() > now.getTime()) {
             const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horarioInicio);
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "30min", mensagem: reminderMsg, agendado_para: ag30.toISOString() });
           }
-        }
-
-        // === Confirmation for 61min-3h (auto-create only, NOT imediata) ===
-        if (diffMinutes > 61 && diffMinutes <= 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
-          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: now.toISOString() });
         }
       }
     }

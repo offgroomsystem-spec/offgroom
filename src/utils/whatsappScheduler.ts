@@ -156,15 +156,12 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     .maybeSingle();
 
   if (empresaConfig) {
-    usarPeriodoCustom = (empresaConfig as any).confirmacao_periodo_ativo ?? false;
+    usarPeriodoCustom = (empresaConfig as any).confirmacao_periodo_ativo ?? true;
     if (usarPeriodoCustom) {
       conf24h = (empresaConfig as any).confirmacao_24h ?? false;
       conf15h = (empresaConfig as any).confirmacao_15h ?? false;
       conf3h = (empresaConfig as any).confirmacao_3h ?? true;
-      // Fallback: se nenhuma selecionada, usar 3h
-      if (!conf24h && !conf15h && !conf3h) {
-        conf3h = true;
-      }
+      // Se nenhuma opção selecionada, nenhuma confirmação será enviada (exceto 30min)
     }
   }
 
