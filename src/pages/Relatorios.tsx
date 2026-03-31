@@ -121,6 +121,7 @@ const Relatorios = () => {
         "produtos-vencimento",
         "atendimentos-realizados",
         "pacotes-ativos",
+        "performance-banhistas",
       ].includes(relatorioAtivo) && (
           <Card>
             <CardHeader>
