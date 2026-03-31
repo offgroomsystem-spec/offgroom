@@ -4588,6 +4588,7 @@ const Agendamentos = () => {
 
                     {/* Header */}
                     <div className="flex gap-1.5 items-center pb-1">
+                      <div className="w-10"></div>
                       <div className="w-12"></div>
                       <div className="flex-1 min-w-[80px]"></div>
                       <div className="w-28">
