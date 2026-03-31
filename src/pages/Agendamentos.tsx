@@ -4232,7 +4232,7 @@ const Agendamentos = () => {
                       <Label htmlFor="nomePet" className="text-xs">
                         Nome do Pet *
                       </Label>
-                      {pacoteFormData.nomePet && pacoteFormData.nomePacote && servicosAgendamento.length > 0 && otherPetsFromClientPacote.length > 0 && (
+                      {pacoteFormData.nomePet && otherPetsFromClientPacote.length > 0 && (
                         <Popover open={showPacoteAdditionalPetsPopover} onOpenChange={setShowPacoteAdditionalPetsPopover}>
                           <PopoverTrigger asChild>
                             <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-primary hover:text-primary/80">
