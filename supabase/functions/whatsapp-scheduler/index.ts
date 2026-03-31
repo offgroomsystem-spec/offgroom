@@ -871,16 +871,6 @@ async function autoCreatePacoteMessages(
 
         const key = `${pacote.id}_${servicoNumero}`;
 
-        // === 15h ===
-        if (diffMinutes > 15 * 60 && !existingPacoteSet.has(`${key}_15h`)) {
-          const ag24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
-          const brtH = (ag24h.getUTCHours() - 3 + 24) % 24;
-          if (brtH < 7) ag24h.setUTCHours(10, 0, 0, 0);
-          if (ag24h.getTime() > now.getTime()) {
-            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "15h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
-          }
-        }
-
         // === 3h ===
         if (diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
           let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
