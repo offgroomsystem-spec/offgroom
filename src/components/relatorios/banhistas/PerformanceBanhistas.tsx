@@ -138,7 +138,7 @@ export const PerformanceBanhistas = () => {
     return list;
   }, [normalizedAgendamentos, groomerFilter, statusFilter]);
 
-  const concluidos = useMemo(() => filtered.filter((a) => a.status === "concluido"), [filtered]);
+  const concluidos = useMemo(() => filtered.filter((a) => a.status === "concluido" || a.status === "confirmado"), [filtered]);
 
   // Helper: parse tempo_servico "01:30" to minutes
   const parseMinutos = (t: string) => {
