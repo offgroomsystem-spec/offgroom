@@ -424,14 +424,14 @@ export const ClientesEmRisco = () => {
       .channel('risk-list-agendamentos')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'agendamentos' },
+        { event: '*', schema: 'public', table: 'agendamentos' },
         () => {
           carregarClientesEmRisco();
         }
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'agendamentos_pacotes' },
+        { event: '*', schema: 'public', table: 'agendamentos_pacotes' },
         () => {
           carregarClientesEmRisco();
         }
