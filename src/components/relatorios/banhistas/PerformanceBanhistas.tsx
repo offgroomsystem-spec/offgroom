@@ -120,12 +120,19 @@ export const PerformanceBanhistas = () => {
     return m;
   }, [lancamentos]);
 
+  // Normalize groomer name: treat empty/blank as "Não atribuído"
+  const normalizeGroomer = (g: string) => (g && g.trim() ? g.trim() : "Não atribuído");
+
+  const normalizedAgendamentos = useMemo(() =>
+    agendamentos.map((a) => ({ ...a, groomer: normalizeGroomer(a.groomer) })),
+  [agendamentos]);
+
   const filtered = useMemo(() => {
-    let list = agendamentos;
+    let list = normalizedAgendamentos;
     if (groomerFilter !== "todos") list = list.filter((a) => a.groomer === groomerFilter);
     if (statusFilter !== "todos") list = list.filter((a) => a.status === statusFilter);
     return list;
-  }, [agendamentos, groomerFilter, statusFilter]);
+  }, [normalizedAgendamentos, groomerFilter, statusFilter]);
 
   const concluidos = useMemo(() => filtered.filter((a) => a.status === "concluido"), [filtered]);
 
