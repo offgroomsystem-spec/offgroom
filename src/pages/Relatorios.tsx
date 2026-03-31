@@ -24,6 +24,7 @@ import { AtendimentosRealizados } from "@/components/relatorios/servicos/Atendim
 import { ProdutosProximosVencimento } from "@/components/relatorios/estoque/ProdutosProximosVencimento";
 import GraficosFinanceiros from "@/components/relatorios/financeiros/GraficosFinanceiros";
 import { CentralInteligenciaFinanceira } from "@/components/relatorios/financeiros/CentralInteligenciaFinanceira";
+import { PerformanceBanhistas } from "@/components/relatorios/banhistas/PerformanceBanhistas";
 
 const Relatorios = () => {
   const location = useLocation();
@@ -98,6 +99,7 @@ const Relatorios = () => {
         {relatorioAtivo === "pacotes-ativos" && <PacotesAtivos />}
         {relatorioAtivo === "clientes-risco" && <ClientesEmRisco />}
         {relatorioAtivo === "produtos-vencimento" && <ProdutosProximosVencimento />}
+        {relatorioAtivo === "performance-banhistas" && <PerformanceBanhistas />}
 
       {![
         "graficos-financeiros",
@@ -119,6 +121,7 @@ const Relatorios = () => {
         "produtos-vencimento",
         "atendimentos-realizados",
         "pacotes-ativos",
+        "performance-banhistas",
       ].includes(relatorioAtivo) && (
           <Card>
             <CardHeader>
@@ -167,23 +170,42 @@ const Relatorios = () => {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-4">
-          <Card
-            className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
-            onClick={() => handleCardClick("dashboard")}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Dashboard Principal - Visão Rápida
-              </CardTitle>
-              <CardDescription>Visão 360° da saúde do negócio em uma única tela</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Clique para visualizar KPIs, alertas importantes e gráficos de tendência
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("dashboard")}
+            >
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Dashboard Principal - Visão Rápida
+                </CardTitle>
+                <CardDescription>Visão 360° da saúde do negócio em uma única tela</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Clique para visualizar KPIs, alertas importantes e gráficos de tendência
+                </p>
+              </CardContent>
+            </Card>
+            <Card
+              className="cursor-pointer hover:shadow-lg transition-shadow hover:border-primary"
+              onClick={() => handleCardClick("performance-banhistas")}
+            >
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Performance dos Banhistas
+                </CardTitle>
+                <CardDescription>Produtividade, eficiência e rentabilidade da equipe</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Ranking, gráficos avançados e indicadores em tempo real
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="financeiro" className="mt-4">
