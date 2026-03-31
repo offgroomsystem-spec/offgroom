@@ -801,6 +801,7 @@ async function autoCreatePacoteMessages(
   supabase: any,
   activeUserIds: string[],
   bordaoMap: Map<string, string>,
+  confirmConfigMap: Map<string, { ativo: boolean; h24: boolean; h15: boolean; h3: boolean }>,
   now: Date,
   todayBRT: string,
   tomorrowBRT: string
