@@ -470,7 +470,68 @@ export function WhatsAppIntegration() {
             />
           </div>
 
-          {/* Status indicator */}
+          {/* Toggle Período de confirmação */}
+          <div className="rounded-lg border p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Período de envio das mensagens de confirmação de agendamentos de serviço</Label>
+                <p className="text-xs text-muted-foreground">
+                  {confirmacaoPeriodoAtivo
+                    ? "Configure quando as mensagens de confirmação serão enviadas"
+                    : "Usando período padrão (3 horas antes, a partir das 07h)"}
+                </p>
+              </div>
+              <Switch
+                checked={confirmacaoPeriodoAtivo}
+                onCheckedChange={handleConfirmacaoPeriodoToggle}
+                disabled={confirmacaoLoading}
+              />
+            </div>
+
+            {confirmacaoPeriodoAtivo && (
+              <div className="space-y-2 pl-1 pt-1">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="conf-24h"
+                    checked={confirmacao24h}
+                    onCheckedChange={(checked) => handleConfirmacaoOptionChange("confirmacao_24h", !!checked)}
+                    disabled={confirmacaoLoading}
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <Label htmlFor="conf-24h" className="text-sm font-medium cursor-pointer">24 horas antes</Label>
+                    <p className="text-xs text-muted-foreground">Sem restrição de horário</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="conf-15h"
+                    checked={confirmacao15h}
+                    onCheckedChange={(checked) => handleConfirmacaoOptionChange("confirmacao_15h", !!checked)}
+                    disabled={confirmacaoLoading}
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <Label htmlFor="conf-15h" className="text-sm font-medium cursor-pointer">15 horas antes</Label>
+                    <p className="text-xs text-muted-foreground">Envio no máximo até às 18h00</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="conf-3h"
+                    checked={confirmacao3h}
+                    onCheckedChange={(checked) => handleConfirmacaoOptionChange("confirmacao_3h", !!checked)}
+                    disabled={confirmacaoLoading}
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <Label htmlFor="conf-3h" className="text-sm font-medium cursor-pointer">3 horas antes</Label>
+                    <p className="text-xs text-muted-foreground">Envio a partir das 07h00</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-3">
             {currentStatus.icon}
             <span className={`font-medium ${currentStatus.color}`}>{currentStatus.label}</span>
