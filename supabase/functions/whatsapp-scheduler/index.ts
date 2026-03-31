@@ -699,23 +699,6 @@ async function autoCreateMissingMessages(
         status: "pendente",
       };
 
-      // === 15h message ===
-      if (diffMinutes > 15 * 60 && !existingSet.has(`${ag.id}_15h`)) {
-        const agendadoPara24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
-        const brtHour24 = (agendadoPara24h.getUTCHours() - 3 + 24) % 24;
-        if (brtHour24 < 7) {
-          agendadoPara24h.setUTCHours(10, 0, 0, 0); // 7h BRT
-        }
-        if (agendadoPara24h.getTime() > now.getTime()) {
-          mensagensParaInserir.push({
-            ...baseRecord,
-            tipo_mensagem: "15h",
-            mensagem: confirmMsg,
-            agendado_para: agendadoPara24h.toISOString(),
-          });
-        }
-      }
-
       // === 3h message ===
       if (diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
         let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
