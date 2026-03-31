@@ -143,6 +143,31 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     }
   }
 
+  // Carregar config de período de confirmação
+  let usarPeriodoCustom = false;
+  let conf24h = false;
+  let conf15h = false;
+  let conf3h = true; // fallback padrão
+  
+  const { data: empresaConfig } = await supabase
+    .from("empresa_config")
+    .select("confirmacao_periodo_ativo, confirmacao_24h, confirmacao_15h, confirmacao_3h")
+    .eq("user_id", params.userId)
+    .maybeSingle();
+
+  if (empresaConfig) {
+    usarPeriodoCustom = (empresaConfig as any).confirmacao_periodo_ativo ?? false;
+    if (usarPeriodoCustom) {
+      conf24h = (empresaConfig as any).confirmacao_24h ?? false;
+      conf15h = (empresaConfig as any).confirmacao_15h ?? false;
+      conf3h = (empresaConfig as any).confirmacao_3h ?? true;
+      // Fallback: se nenhuma selecionada, usar 3h
+      if (!conf24h && !conf15h && !conf3h) {
+        conf3h = true;
+      }
+    }
+  }
+
   const agendamentoDateTime = parseDateTime(params.dataAgendamento, params.horarioInicio);
   
   // Diferença em minutos entre agora e o agendamento
@@ -171,60 +196,104 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     status: "pendente",
   };
 
-  // === MENSAGEM 3H ANTES ===
-  if (diffMinutes > 3 * 60) {
-    let agendadoPara3h = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
-    
-    // Garantir que não envie antes das 07:00 BRT (10:00 UTC)
-    const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
-    if (brtHour3h < 7) {
-      agendadoPara3h.setUTCHours(10, 0, 0, 0); // 7h Brasília = 10h UTC
+  // Set para evitar duplicidade de horários
+  const horariosAgendados = new Set<string>();
+
+  function addMensagem(tipoMsg: string, agendadoPara: Date) {
+    const key = agendadoPara.toISOString().substring(0, 16); // minuto
+    if (horariosAgendados.has(key)) return; // evitar duplicidade
+    horariosAgendados.add(key);
+    mensagensParaInserir.push({
+      ...baseRecord,
+      tipo_mensagem: tipoMsg,
+      mensagem: confirmationMsg,
+      agendado_para: agendadoPara.toISOString(),
+    });
+  }
+
+  if (usarPeriodoCustom) {
+    // === MODO PERSONALIZADO ===
+
+    // 24h antes
+    if (conf24h && diffMinutes > 24 * 60) {
+      const agendadoPara = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000);
+      if (agendadoPara.getTime() > now.getTime()) {
+        addMensagem("24h", agendadoPara);
+      }
     }
 
-    // Não agendar se horário já passou
-    if (agendadoPara3h.getTime() > now.getTime()) {
-      mensagensParaInserir.push({
-        ...baseRecord,
-        tipo_mensagem: "3h",
-        mensagem: confirmationMsg,
-        agendado_para: agendadoPara3h.toISOString(),
-      });
+    // 15h antes (máximo 18h BRT)
+    if (conf15h && diffMinutes > 15 * 60) {
+      let agendadoPara = new Date(agendamentoDateTime.getTime() - 15 * 60 * 60 * 1000);
+      const brtHour = (agendadoPara.getUTCHours() - 3 + 24) % 24;
+      if (brtHour > 18) {
+        agendadoPara.setUTCHours(21, 0, 0, 0); // 18h BRT = 21h UTC
+      }
+      if (agendadoPara.getTime() > now.getTime()) {
+        addMensagem("15h", agendadoPara);
+      }
+    }
+
+    // 3h antes (mínimo 07h BRT)
+    if (conf3h && diffMinutes > 3 * 60) {
+      let agendadoPara = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
+      const brtHour = (agendadoPara.getUTCHours() - 3 + 24) % 24;
+      if (brtHour < 7) {
+        agendadoPara.setUTCHours(10, 0, 0, 0); // 7h BRT = 10h UTC
+      }
+      if (agendadoPara.getTime() > now.getTime()) {
+        addMensagem("3h", agendadoPara);
+      }
+    }
+
+    // Confirmação imediata quando está entre 61min e o menor período selecionado
+    const menorPeriodoMinutos = conf3h ? 3 * 60 : conf15h ? 15 * 60 : conf24h ? 24 * 60 : 3 * 60;
+    if (diffMinutes > 61 && diffMinutes <= menorPeriodoMinutos) {
+      addMensagem("imediata", now);
+    }
+
+  } else {
+    // === MODO PADRÃO (comportamento original) ===
+
+    // MENSAGEM 3H ANTES
+    if (diffMinutes > 3 * 60) {
+      let agendadoPara3h = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
+      const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
+      if (brtHour3h < 7) {
+        agendadoPara3h.setUTCHours(10, 0, 0, 0);
+      }
+      if (agendadoPara3h.getTime() > now.getTime()) {
+        addMensagem("3h", agendadoPara3h);
+      }
+    }
+
+    // MENSAGEM DE CONFIRMAÇÃO IMEDIATA (entre 61min e 3h)
+    if (diffMinutes > 61 && diffMinutes <= 3 * 60) {
+      addMensagem("3h", now);
     }
   }
 
-  // === MENSAGEM 30MIN ANTES (Apenas Taxi Dog = "Não") ===
+  // === MENSAGEM 30MIN ANTES (Apenas Taxi Dog = "Não") — sempre ativa ===
   if (params.taxiDog === "Não" && diffMinutes > 30) {
     const agendadoPara30min = new Date(agendamentoDateTime.getTime() - 30 * 60 * 1000);
-    
-    // Garantir que não envie antes das 07:00 BRT (10:00 UTC)
     const brtHour30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
     if (brtHour30 < 7) {
       agendadoPara30min.setUTCHours(10, 0, 0, 0);
     }
-    
     if (agendadoPara30min.getTime() > now.getTime()) {
       const reminderMsg = buildReminderMessage(params);
-      mensagensParaInserir.push({
-        ...baseRecord,
-        tipo_mensagem: "30min",
-        mensagem: reminderMsg,
-        agendado_para: agendadoPara30min.toISOString(),
-      });
+      const key30 = agendadoPara30min.toISOString().substring(0, 16);
+      if (!horariosAgendados.has(key30)) {
+        horariosAgendados.add(key30);
+        mensagensParaInserir.push({
+          ...baseRecord,
+          tipo_mensagem: "30min",
+          mensagem: reminderMsg,
+          agendado_para: agendadoPara30min.toISOString(),
+        });
+      }
     }
   }
-
-  // === MENSAGEM DE CONFIRMAÇÃO IMEDIATA (agendamento entre 61min e 3h) ===
-  if (diffMinutes > 61 && diffMinutes <= 3 * 60) {
-    mensagensParaInserir.push({
-      ...baseRecord,
-      tipo_mensagem: "3h",
-      mensagem: confirmationMsg,
-      agendado_para: now.toISOString(),
-    });
-  }
-
-  // Bloco "imediata" removido — o lembrete "hoje" só faz sentido 30min antes,
-  // e já é coberto pelo bloco de 30min acima.
 
   // Inserir todas as mensagens agendadas
   if (mensagensParaInserir.length > 0) {

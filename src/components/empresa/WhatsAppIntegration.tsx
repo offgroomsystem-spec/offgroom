@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Loader2, MessageSquare, Wifi, WifiOff, QrCode, Unplug } from "lucide-react";
@@ -48,6 +49,13 @@ export function WhatsAppIntegration() {
   const [riscoAutoSend, setRiscoAutoSend] = useState(true);
   const [riscoLoading, setRiscoLoading] = useState(false);
 
+  // Confirmação período config
+  const [confirmacaoPeriodoAtivo, setConfirmacaoPeriodoAtivo] = useState(false);
+  const [confirmacao24h, setConfirmacao24h] = useState(false);
+  const [confirmacao15h, setConfirmacao15h] = useState(false);
+  const [confirmacao3h, setConfirmacao3h] = useState(true);
+  const [confirmacaoLoading, setConfirmacaoLoading] = useState(false);
+
   const effectiveUserId = ownerId || user?.id;
 
   const callEvolution = useCallback(async (body: Record<string, unknown>) => {
@@ -68,11 +76,15 @@ export function WhatsAppIntegration() {
     try {
       const { data } = await supabase
         .from("empresa_config")
-        .select("risco_auto_send")
+        .select("risco_auto_send, confirmacao_periodo_ativo, confirmacao_24h, confirmacao_15h, confirmacao_3h")
         .eq("user_id", effectiveUserId!)
         .maybeSingle();
       if (data) {
         setRiscoAutoSend((data as any).risco_auto_send ?? true);
+        setConfirmacaoPeriodoAtivo((data as any).confirmacao_periodo_ativo ?? false);
+        setConfirmacao24h((data as any).confirmacao_24h ?? false);
+        setConfirmacao15h((data as any).confirmacao_15h ?? false);
+        setConfirmacao3h((data as any).confirmacao_3h ?? true);
       }
     } catch (err) {
       console.error("Erro ao carregar config risco:", err);
@@ -93,6 +105,58 @@ export function WhatsAppIntegration() {
       toast.error(err.message || "Erro ao atualizar configuração");
     } finally {
       setRiscoLoading(false);
+    }
+  }
+
+  async function handleConfirmacaoPeriodoToggle(checked: boolean) {
+    setConfirmacaoLoading(true);
+    try {
+      const updateData: any = { confirmacao_periodo_ativo: checked };
+      // If turning on without any option selected, default to 3h
+      if (checked && !confirmacao24h && !confirmacao15h && !confirmacao3h) {
+        updateData.confirmacao_3h = true;
+        setConfirmacao3h(true);
+      }
+      const { error } = await supabase
+        .from("empresa_config")
+        .update(updateData)
+        .eq("user_id", effectiveUserId!);
+      if (error) throw error;
+      setConfirmacaoPeriodoAtivo(checked);
+      toast.success(checked ? "Período personalizado de confirmação ativado" : "Período personalizado desativado (padrão 3h será usado)");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar configuração");
+    } finally {
+      setConfirmacaoLoading(false);
+    }
+  }
+
+  async function handleConfirmacaoOptionChange(field: string, checked: boolean) {
+    // Prevent unchecking all options
+    const newValues = {
+      confirmacao_24h: field === "confirmacao_24h" ? checked : confirmacao24h,
+      confirmacao_15h: field === "confirmacao_15h" ? checked : confirmacao15h,
+      confirmacao_3h: field === "confirmacao_3h" ? checked : confirmacao3h,
+    };
+    if (!newValues.confirmacao_24h && !newValues.confirmacao_15h && !newValues.confirmacao_3h) {
+      toast.error("Selecione pelo menos uma opção de envio");
+      return;
+    }
+
+    setConfirmacaoLoading(true);
+    try {
+      const { error } = await supabase
+        .from("empresa_config")
+        .update({ [field]: checked } as any)
+        .eq("user_id", effectiveUserId!);
+      if (error) throw error;
+      if (field === "confirmacao_24h") setConfirmacao24h(checked);
+      if (field === "confirmacao_15h") setConfirmacao15h(checked);
+      if (field === "confirmacao_3h") setConfirmacao3h(checked);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar configuração");
+    } finally {
+      setConfirmacaoLoading(false);
     }
   }
 
@@ -406,7 +470,68 @@ export function WhatsAppIntegration() {
             />
           </div>
 
-          {/* Status indicator */}
+          {/* Toggle Período de confirmação */}
+          <div className="rounded-lg border p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Período de envio das mensagens de confirmação de agendamentos de serviço</Label>
+                <p className="text-xs text-muted-foreground">
+                  {confirmacaoPeriodoAtivo
+                    ? "Configure quando as mensagens de confirmação serão enviadas"
+                    : "Usando período padrão (3 horas antes, a partir das 07h)"}
+                </p>
+              </div>
+              <Switch
+                checked={confirmacaoPeriodoAtivo}
+                onCheckedChange={handleConfirmacaoPeriodoToggle}
+                disabled={confirmacaoLoading}
+              />
+            </div>
+
+            {confirmacaoPeriodoAtivo && (
+              <div className="space-y-2 pl-1 pt-1">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="conf-24h"
+                    checked={confirmacao24h}
+                    onCheckedChange={(checked) => handleConfirmacaoOptionChange("confirmacao_24h", !!checked)}
+                    disabled={confirmacaoLoading}
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <Label htmlFor="conf-24h" className="text-sm font-medium cursor-pointer">24 horas antes</Label>
+                    <p className="text-xs text-muted-foreground">Sem restrição de horário</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="conf-15h"
+                    checked={confirmacao15h}
+                    onCheckedChange={(checked) => handleConfirmacaoOptionChange("confirmacao_15h", !!checked)}
+                    disabled={confirmacaoLoading}
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <Label htmlFor="conf-15h" className="text-sm font-medium cursor-pointer">15 horas antes</Label>
+                    <p className="text-xs text-muted-foreground">Envio no máximo até às 18h00</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="conf-3h"
+                    checked={confirmacao3h}
+                    onCheckedChange={(checked) => handleConfirmacaoOptionChange("confirmacao_3h", !!checked)}
+                    disabled={confirmacaoLoading}
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <Label htmlFor="conf-3h" className="text-sm font-medium cursor-pointer">3 horas antes</Label>
+                    <p className="text-xs text-muted-foreground">Envio a partir das 07h00</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-3">
             {currentStatus.icon}
             <span className={`font-medium ${currentStatus.color}`}>{currentStatus.label}</span>
