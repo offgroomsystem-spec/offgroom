@@ -150,6 +150,24 @@ export const PerformanceBanhistas = () => {
     return (h || 0) * 60 + (m || 0);
   };
 
+  const formatOccupancyRate = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return "0%";
+
+    if (value < 1) {
+      return `${value.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}%`;
+    }
+
+    const hasFraction = Math.abs(value - Math.round(value)) >= 0.05;
+
+    return `${value.toLocaleString("pt-BR", {
+      minimumFractionDigits: hasFraction ? 1 : 0,
+      maximumFractionDigits: hasFraction ? 1 : 0,
+    })}%`;
+  };
+
   // Helper: get porte from raca text (simplified)
   const getPorte = (raca: string) => {
     const r = raca?.toLowerCase() || "";
@@ -200,13 +218,32 @@ export const PerformanceBanhistas = () => {
     const mFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[1] || "0", 10) : 0;
     const horasDiarias = (hFim * 60 + mFim - hInicio * 60 - mInicio) / 60 || 8;
 
-    // Quando filtro por groomer específico, considerar apenas 1 groomer na capacidade
+    // Quando há filtro, a capacidade deve refletir apenas os groomers no contexto atual
     const allBanhistasCadastrados = groomers.filter((g) => g !== "Não atribuído").length || 1;
-    const numBanhistasCadastrados = groomerFilter !== "todos" && groomerFilter !== "Não atribuído" ? 1 : allBanhistasCadastrados;
+    const numBanhistasCadastrados =
+      groomerFilter === "todos"
+        ? allBanhistasCadastrados
+        : groomerFilter === "Não atribuído"
+          ? 0
+          : 1;
     const capacidadeTotal = diasNoIntervalo.length * horasDiarias * numBanhistasCadastrados;
-    const taxaOcupacao = capacidadeTotal > 0 ? Math.round((totalHoras / capacidadeTotal) * 100) : 0;
+    const taxaOcupacao = capacidadeTotal > 0 ? (totalHoras / capacidadeTotal) * 100 : 0;
+    const taxaOcupacaoFormatada = formatOccupancyRate(taxaOcupacao);
 
-    return { totalPets, totalHoras, mediaMinutos, topGroomer, topCount, receitaTotal, taxaOcupacao, capacidadeTotal: Math.round(capacidadeTotal * 10) / 10, numBanhistasCadastrados, diasUteis: diasNoIntervalo.length, horasDiarias: Math.round(horasDiarias * 10) / 10 };
+    return {
+      totalPets,
+      totalHoras,
+      mediaMinutos,
+      topGroomer,
+      topCount,
+      receitaTotal,
+      taxaOcupacao,
+      taxaOcupacaoFormatada,
+      capacidadeTotal: Math.round(capacidadeTotal * 10) / 10,
+      numBanhistasCadastrados,
+      diasUteis: diasNoIntervalo.length,
+      horasDiarias: Math.round(horasDiarias * 10) / 10,
+    };
   }, [concluidos, receitaMap, groomers, dataInicio, dataFim, empresaConfig, groomerFilter]);
 
   // === Charts data ===
@@ -437,7 +474,7 @@ export const PerformanceBanhistas = () => {
           { label: "Horas Trabalhadas", value: `${kpis.totalHoras}h`, icon: Clock, color: "text-green-500" },
           { label: "Média/Atend.", value: `${kpis.mediaMinutos}min`, icon: Activity, color: "text-orange-500" },
           { label: "Mais Produtivo", value: kpis.topGroomer, sub: `${kpis.topCount} ${kpis.topCount === 1 ? "pet" : "pets"}`, icon: Star, color: "text-yellow-500" },
-          { label: "Taxa Ocupação", value: `${kpis.taxaOcupacao}%`, icon: TrendingUp, color: "text-purple-500", hasTooltip: true },
+          { label: "Taxa Ocupação", value: kpis.taxaOcupacaoFormatada, icon: TrendingUp, color: "text-purple-500", hasTooltip: true },
           { label: "Receita Total", value: formatCurrency(kpis.receitaTotal), icon: DollarSign, color: "text-emerald-500" },
         ].map((k) => {
           const cardContent = (
@@ -470,8 +507,8 @@ export const PerformanceBanhistas = () => {
                     <p>• {kpis.horasDiarias}h de jornada diária</p>
                     <p>• Capacidade: {kpis.capacidadeTotal}h</p>
                     <p>• Horas trabalhadas: {kpis.totalHoras}h</p>
-                    <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacao}%</p>
-                    <p className="mt-1 italic">Ou seja, apenas {kpis.taxaOcupacao}% da capacidade total dos groomers cadastrados foi utilizada no período.</p>
+                    <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacaoFormatada}</p>
+                    <p className="mt-1 italic">Ou seja, apenas {kpis.taxaOcupacaoFormatada} da capacidade total dos groomers cadastrados foi utilizada no período.</p>
                   </TooltipContent>
                 </UITooltip>
               </TooltipProvider>
