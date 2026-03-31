@@ -213,8 +213,15 @@ Deno.serve(async (req) => {
     );
 
     const bordaoMap = new Map<string, string>();
+    const confirmConfigMap = new Map<string, { ativo: boolean; h24: boolean; h15: boolean; h3: boolean }>();
     for (const ec of (empresaConfigs || [])) {
       bordaoMap.set(ec.user_id, ec.bordao || "");
+      confirmConfigMap.set(ec.user_id, {
+        ativo: ec.confirmacao_periodo_ativo ?? true,
+        h24: ec.confirmacao_24h ?? false,
+        h15: ec.confirmacao_15h ?? false,
+        h3: ec.confirmacao_3h ?? true,
+      });
     }
 
     // Filter only instances with auto_send enabled
