@@ -70,7 +70,7 @@ export const PerformanceBanhistas = () => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [agRes, grRes, lnRes] = await Promise.all([
+      const [agRes, grRes, lnRes, empRes] = await Promise.all([
         supabase
           .from("agendamentos")
           .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
@@ -85,7 +85,9 @@ export const PerformanceBanhistas = () => {
           .eq("user_id", ownerId)
           .eq("tipo", "receita")
           .not("agendamento_id", "is", null),
+        supabase.from("empresa_config").select("dias_funcionamento, horario_inicio, horario_fim").eq("user_id", ownerId).maybeSingle(),
       ]);
+      setEmpresaConfig(empRes.data);
 
       const agData = agRes.data || [];
       setAgendamentos(agData);
