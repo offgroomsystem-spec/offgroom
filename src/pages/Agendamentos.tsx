@@ -1844,10 +1844,9 @@ const Agendamentos = () => {
     });
     const pacoteSelecionado = pacotes.find((p) => p.nome === nomePacote);
     if (pacoteSelecionado) {
-      const servicosInit: ServicoAgendamento[] = pacoteSelecionado.servicos.map((servico, index) => {
+      const buildServicosInit = (): ServicoAgendamento[] => pacoteSelecionado.servicos.map((servico, index) => {
         const total = pacoteSelecionado.servicos.length;
         const numero = `${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`;
-        // Preservar servicosExtras do pacote e marcá-los como nativos
         const extras = ((servico as any).servicosExtras || []).map((e: any) => ({
           ...e,
           nativo: true,
@@ -1862,7 +1861,14 @@ const Agendamentos = () => {
           servicosExtras: extras
         };
       });
-      setServicosAgendamento(servicosInit);
+      setServicosAgendamento(buildServicosInit());
+      // Sincronizar todos os pets adicionais com o novo pacote
+      if (pacoteAdditionalPets.length > 0) {
+        setPacoteAdditionalPets(prev => prev.map(ap => ({
+          ...ap,
+          servicosAgendamento: buildServicosInit(),
+        })));
+      }
     }
   };
 
@@ -4172,7 +4178,13 @@ const Agendamentos = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isPacoteDialogOpen} onOpenChange={setIsPacoteDialogOpen}>
+          <Dialog open={isPacoteDialogOpen} onOpenChange={(open) => {
+              if (!open) {
+                resetPacoteForm();
+              } else {
+                setIsPacoteDialogOpen(true);
+              }
+            }}>
             <DialogTrigger asChild>
               <Button className="gap-2 h-8 text-xs" variant="outline">
                 <Package className="h-3 w-3" />
@@ -4216,9 +4228,34 @@ const Agendamentos = () => {
                   </div>
 
                   <div className="space-y-1 relative">
-                    <Label htmlFor="nomePet" className="text-xs">
-                      Nome do Pet *
-                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="nomePet" className="text-xs">
+                        Nome do Pet *
+                      </Label>
+                      {pacoteFormData.nomePet && pacoteFormData.nomePacote && servicosAgendamento.length > 0 && otherPetsFromClientPacote.length > 0 && (
+                        <Popover open={showPacoteAdditionalPetsPopover} onOpenChange={setShowPacoteAdditionalPetsPopover}>
+                          <PopoverTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-primary hover:text-primary/80">
+                              + Agendar demais pets
+                              {pacoteAdditionalPets.length > 0 && ` (${pacoteAdditionalPets.length})`}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[220px] p-2 z-50 bg-popover" align="start">
+                            <p className="text-xs font-medium mb-2">Selecione os pets:</p>
+                            {otherPetsFromClientPacote.map((pet) => (
+                              <div
+                                key={pet.id}
+                                className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-xs"
+                                onClick={() => handleTogglePacoteAdditionalPet(pet)}
+                              >
+                                <Check className={cn("h-3 w-3", pacoteAdditionalPets.some(ap => ap.petName === pet.nome) ? "opacity-100" : "opacity-0")} />
+                                {pet.nome} ({pet.raca})
+                              </div>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                     <Input
                       id="nomePet"
                       value={petSearch}
@@ -4528,37 +4565,8 @@ const Agendamentos = () => {
                   </div>
                 }
 
-                {/* Botão + Agendar demais pets (pacote) */}
-                {pacoteFormData.nomePet && pacoteFormData.nomePacote && servicosAgendamento.length > 0 && otherPetsFromClientPacote.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Popover open={showPacoteAdditionalPetsPopover} onOpenChange={setShowPacoteAdditionalPetsPopover}>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] gap-1">
-                          <Plus className="h-3 w-3" />
-                          Agendar demais pets
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[220px] p-2 z-50 bg-popover" align="start">
-                        <p className="text-xs font-medium mb-2">Selecione os pets:</p>
-                        {otherPetsFromClientPacote.map((pet) => (
-                          <div
-                            key={pet.id}
-                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-xs"
-                            onClick={() => handleTogglePacoteAdditionalPet(pet)}
-                          >
-                            <Check className={cn("h-3 w-3", pacoteAdditionalPets.some(ap => ap.petName === pet.nome) ? "opacity-100" : "opacity-0")} />
-                            {pet.nome} ({pet.raca})
-                          </div>
-                        ))}
-                      </PopoverContent>
-                    </Popover>
-                    {pacoteAdditionalPets.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground">
-                        +{pacoteAdditionalPets.length} pet(s) adicionado(s)
-                      </span>
-                    )}
-                  </div>
-                )}
+
+
 
                 {/* Blocos de serviços para pets adicionais do pacote */}
                 {pacoteAdditionalPets.map((addPet, petIdx) => (
