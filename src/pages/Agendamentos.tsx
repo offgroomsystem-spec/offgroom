@@ -4178,7 +4178,13 @@ const Agendamentos = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isPacoteDialogOpen} onOpenChange={setIsPacoteDialogOpen}>
+          <Dialog open={isPacoteDialogOpen} onOpenChange={(open) => {
+              if (!open) {
+                resetPacoteForm();
+              } else {
+                setIsPacoteDialogOpen(true);
+              }
+            }}>
             <DialogTrigger asChild>
               <Button className="gap-2 h-8 text-xs" variant="outline">
                 <Package className="h-3 w-3" />
