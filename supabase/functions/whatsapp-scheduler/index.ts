@@ -431,15 +431,13 @@ Deno.serve(async (req) => {
       if (extracted) {
         // === SYNC VALIDATION: check if agendado_para matches actual appointment time ===
         if (extracted.data && extracted.horario && 
-            (msg.tipo_mensagem === "30min" || msg.tipo_mensagem === "3h" || msg.tipo_mensagem === "15h")) {
+            (msg.tipo_mensagem === "30min" || msg.tipo_mensagem === "3h")) {
           const agDateTimeReal = parseDateTimeBRT(extracted.data, extracted.horario);
           let bufferMs: number;
           if (msg.tipo_mensagem === "30min") {
             bufferMs = 30 * 60 * 1000;
-          } else if (msg.tipo_mensagem === "3h") {
-            bufferMs = 3 * 60 * 60 * 1000;
           } else {
-            bufferMs = 15 * 60 * 60 * 1000;
+            bufferMs = 3 * 60 * 60 * 1000;
           }
           const expectedAgendadoPara = new Date(agDateTimeReal.getTime() - bufferMs);
           const msgAgendadoPara = new Date(msg.agendado_para);
@@ -699,29 +697,12 @@ async function autoCreateMissingMessages(
         status: "pendente",
       };
 
-      // === 15h message ===
-      if (diffMinutes > 15 * 60 && !existingSet.has(`${ag.id}_15h`)) {
-        const agendadoPara24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
-        const brtHour24 = (agendadoPara24h.getUTCHours() - 3 + 24) % 24;
-        if (brtHour24 < 7) {
-          agendadoPara24h.setUTCHours(10, 0, 0, 0); // 7h BRT
-        }
-        if (agendadoPara24h.getTime() > now.getTime()) {
-          mensagensParaInserir.push({
-            ...baseRecord,
-            tipo_mensagem: "15h",
-            mensagem: confirmMsg,
-            agendado_para: agendadoPara24h.toISOString(),
-          });
-        }
-      }
-
       // === 3h message ===
       if (diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
         let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
-        const horaAgBRT = ((agDateTime.getUTCHours() - 3 + 24) % 24);
-        if (horaAgBRT < 10) {
-          agendadoPara3h = new Date(agDateTime);
+        // Garantir que não envie antes das 07:00 BRT (10:00 UTC)
+        const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
+        if (brtHour3h < 7) {
           agendadoPara3h.setUTCHours(10, 0, 0, 0); // 7h BRT
         }
         if (agendadoPara3h.getTime() > now.getTime()) {
@@ -737,6 +718,9 @@ async function autoCreateMissingMessages(
       // === 30min message (only if Taxi Dog = Não) ===
       if (ag.taxi_dog === "Não" && diffMinutes > 30 && !existingSet.has(`${ag.id}_30min`)) {
         const agendadoPara30min = new Date(agDateTime.getTime() - 30 * 60 * 1000);
+        // Garantir que não envie antes das 07:00 BRT
+        const brtH30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
+        if (brtH30 < 7) agendadoPara30min.setUTCHours(10, 0, 0, 0);
         if (agendadoPara30min.getTime() > now.getTime()) {
           const reminderMsg = buildReminderMessage(ag.cliente, ag.pet, sexoPet, ag.horario);
           mensagensParaInserir.push({
@@ -885,24 +869,12 @@ async function autoCreatePacoteMessages(
 
         const key = `${pacote.id}_${servicoNumero}`;
 
-        // === 15h ===
-        if (diffMinutes > 15 * 60 && !existingPacoteSet.has(`${key}_15h`)) {
-          const ag24h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
-          const brtH = (ag24h.getUTCHours() - 3 + 24) % 24;
-          if (brtH < 7) ag24h.setUTCHours(10, 0, 0, 0);
-          if (ag24h.getTime() > now.getTime()) {
-            mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "15h", mensagem: confirmMsg, agendado_para: ag24h.toISOString() });
-          }
-        }
-
         // === 3h ===
         if (diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
           let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
-          const horaAgBRT = ((agDateTime.getUTCHours() - 3 + 24) % 24);
-          if (horaAgBRT < 10) {
-            ag3h = new Date(agDateTime);
-            ag3h.setUTCHours(10, 0, 0, 0);
-          }
+          // Garantir que não envie antes das 07:00 BRT
+          const brtH3 = (ag3h.getUTCHours() - 3 + 24) % 24;
+          if (brtH3 < 7) ag3h.setUTCHours(10, 0, 0, 0);
           if (ag3h.getTime() > now.getTime()) {
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: ag3h.toISOString() });
           }
@@ -911,6 +883,9 @@ async function autoCreatePacoteMessages(
         // === 30min ===
         if (pacote.taxi_dog === "Não" && diffMinutes > 30 && !existingPacoteSet.has(`${key}_30min`)) {
           const ag30 = new Date(agDateTime.getTime() - 30 * 60 * 1000);
+          // Garantir que não envie antes das 07:00 BRT
+          const brtH30p = (ag30.getUTCHours() - 3 + 24) % 24;
+          if (brtH30p < 7) ag30.setUTCHours(10, 0, 0, 0);
           if (ag30.getTime() > now.getTime()) {
             const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horarioInicio);
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "30min", mensagem: reminderMsg, agendado_para: ag30.toISOString() });
