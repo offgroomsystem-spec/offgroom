@@ -48,7 +48,7 @@ export const PerformanceBanhistas = () => {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [groomerFilter, setGroomerFilter] = useState("todos");
-  const [statusFilter, setStatusFilter] = useState("todos");
+  
 
   useEffect(() => {
     if (periodo === "mes") {
@@ -134,11 +134,10 @@ export const PerformanceBanhistas = () => {
   const filtered = useMemo(() => {
     let list = normalizedAgendamentos;
     if (groomerFilter !== "todos") list = list.filter((a) => a.groomer === groomerFilter);
-    if (statusFilter !== "todos") list = list.filter((a) => a.status === statusFilter);
     return list;
-  }, [normalizedAgendamentos, groomerFilter, statusFilter]);
+  }, [normalizedAgendamentos, groomerFilter]);
 
-  const concluidos = useMemo(() => filtered.filter((a) => a.status === "concluido" || a.status === "confirmado"), [filtered]);
+  const concluidos = filtered;
 
   // Helper: parse tempo_servico "01:30" to minutes
   const parseMinutos = (t: string) => {
@@ -397,21 +396,6 @@ export const PerformanceBanhistas = () => {
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 {groomers.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-0.5">
-            <Label className="text-[10px]">Status</Label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-7 text-xs w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="concluido">Concluído</SelectItem>
-                <SelectItem value="confirmado">Confirmado</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
           </div>
