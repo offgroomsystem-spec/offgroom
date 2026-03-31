@@ -4419,16 +4419,15 @@ const Agendamentos = () => {
                 </div>
 
                 {servicosAgendamento.length > 0 &&
-                <div className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                <div className="space-y-1.5 border rounded-md p-2 bg-secondary/20">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold">
-                        {pacoteAdditionalPets.length > 0 ? `🐶 ${pacoteFormData.nomePet} (${pacoteFormData.raca}) — Agendamentos dos Serviços do Pacote` : "Agendamentos dos Serviços do Pacote"}
+                        {pacoteAdditionalPets.length > 0 ? `🐶 ${pacoteFormData.nomePet} (${pacoteFormData.raca})` : "Agendamentos dos Serviços do Pacote"}
                       </Label>
                     </div>
 
                     {/* Header com títulos das colunas */}
-                    <div className="flex gap-1.5 items-center pb-1">
-                      <div className="w-10"></div>
+                    <div className="flex gap-1.5 items-center">
                       <div className="w-12"></div>
                       <div className="flex-1 min-w-[80px]"></div>
                       <div className="w-28">
@@ -4454,15 +4453,6 @@ const Agendamentos = () => {
                         return (
                         <div key={index} className="space-y-1">
                           <div className="flex gap-1.5 items-center">
-                            <div className="flex flex-col gap-0.5 w-10">
-                              <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, "up")} disabled={index === 0} className="h-5 w-5 p-0">
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button type="button" variant="ghost" size="sm" onClick={() => moveServico(index, "down")} disabled={index === servicosAgendamento.length - 1} className="h-5 w-5 p-0">
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </div>
-
                             <div className="w-12">
                               <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
                             </div>
@@ -4570,7 +4560,7 @@ const Agendamentos = () => {
 
                 {/* Blocos de serviços para pets adicionais do pacote */}
                 {pacoteAdditionalPets.map((addPet, petIdx) => (
-                  <div key={petIdx} className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                  <div key={petIdx} className="space-y-1.5 border rounded-md p-2 bg-secondary/20">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold">
                         🐶 {addPet.petName} ({addPet.raca})
@@ -4587,8 +4577,7 @@ const Agendamentos = () => {
                     </div>
 
                     {/* Header */}
-                    <div className="flex gap-1.5 items-center pb-1">
-                      <div className="w-10"></div>
+                    <div className="flex gap-1.5 items-center">
                       <div className="w-12"></div>
                       <div className="flex-1 min-w-[80px]"></div>
                       <div className="w-28">
@@ -4611,7 +4600,6 @@ const Agendamentos = () => {
                         return (
                           <div key={svcIdx} className="space-y-1">
                             <div className="flex gap-1.5 items-center">
-                              <div className="w-10"></div>
                               <div className="w-12">
                                 <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
                               </div>
