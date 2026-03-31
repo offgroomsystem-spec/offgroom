@@ -44,6 +44,7 @@ export const PerformanceBanhistas = () => {
   const [groomers, setGroomers] = useState<string[]>([]);
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [empresaConfig, setEmpresaConfig] = useState<any>(null);
+  const [pacotes, setPacotes] = useState<any[]>([]);
 
   // Filters
   const [periodo, setPeriodo] = useState("mes");
@@ -66,11 +67,40 @@ export const PerformanceBanhistas = () => {
     }
   }, [periodo]);
 
+  // Helper: flatten agendamentos_pacotes into individual service entries within date range
+  const flattenPacotes = (pacotesData: any[], inicio: string, fim: string): Agendamento[] => {
+    const result: Agendamento[] = [];
+    (pacotesData || []).forEach((p: any) => {
+      const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+      servicos.forEach((s: any) => {
+        if (!s.data) return;
+        if (s.data >= inicio && s.data <= fim) {
+          result.push({
+            id: `${p.id}_${s.numero || s.data}`,
+            groomer: s.groomer || "",
+            data: s.data,
+            horario: s.horarioInicio || "",
+            horario_termino: s.horarioTermino || "",
+            tempo_servico: s.tempoServico || "",
+            servico: s.nomeServico || "",
+            servicos: s.servicosExtras || null,
+            status: "",
+            pet: p.nome_pet || "",
+            raca: p.raca || "",
+            taxi_dog: p.taxi_dog || "",
+            cliente: p.nome_cliente || "",
+          });
+        }
+      });
+    });
+    return result;
+  };
+
   useEffect(() => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [agRes, grRes, lnRes, empRes] = await Promise.all([
+      const [agRes, grRes, lnRes, empRes, pacRes] = await Promise.all([
         supabase
           .from("agendamentos")
           .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
@@ -86,14 +116,22 @@ export const PerformanceBanhistas = () => {
           .eq("tipo", "receita")
           .not("agendamento_id", "is", null),
         supabase.from("empresa_config").select("dias_funcionamento, horario_inicio, horario_fim").eq("user_id", ownerId).maybeSingle(),
+        supabase
+          .from("agendamentos_pacotes")
+          .select("id, nome_cliente, nome_pet, raca, taxi_dog, servicos")
+          .eq("user_id", ownerId),
       ]);
       setEmpresaConfig(empRes.data);
 
       const agData = agRes.data || [];
-      setAgendamentos(agData);
+      const pacData = pacRes.data || [];
+      setPacotes(pacData);
+      const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
+      const allAgendamentos = [...agData, ...pacoteEntries];
+      setAgendamentos(allAgendamentos);
       const nomes = [...new Set((grRes.data || []).map((g) => g.nome))].sort();
       // Add "Não atribuído" if any appointment has empty groomer
-      const hasEmpty = agData.some((a: any) => !a.groomer || !a.groomer.trim());
+      const hasEmpty = allAgendamentos.some((a: any) => !a.groomer || !a.groomer.trim());
       if (hasEmpty) nomes.push("Não atribuído");
       setGroomers(nomes);
       setLancamentos(lnRes.data || []);
@@ -107,16 +145,46 @@ export const PerformanceBanhistas = () => {
     const channel = supabase
       .channel("perf-banhistas")
       .on("postgres_changes", { event: "*", schema: "public", table: "agendamentos" }, () => {
-        // Reload
         if (!user) return;
-        supabase
-          .from("agendamentos")
-          .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
-          .eq("user_id", ownerId)
-          .gte("data", dataInicio)
-          .lte("data", dataFim)
-          .order("data", { ascending: true })
-          .then(({ data }) => setAgendamentos(data || []));
+        Promise.all([
+          supabase
+            .from("agendamentos")
+            .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
+            .eq("user_id", ownerId)
+            .gte("data", dataInicio)
+            .lte("data", dataFim)
+            .order("data", { ascending: true }),
+          supabase
+            .from("agendamentos_pacotes")
+            .select("id, nome_cliente, nome_pet, raca, taxi_dog, servicos")
+            .eq("user_id", ownerId),
+        ]).then(([agRes, pacRes]) => {
+          const pacData = pacRes.data || [];
+          setPacotes(pacData);
+          const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
+          setAgendamentos([...(agRes.data || []), ...pacoteEntries]);
+        });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "agendamentos_pacotes" }, () => {
+        if (!user) return;
+        Promise.all([
+          supabase
+            .from("agendamentos")
+            .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
+            .eq("user_id", ownerId)
+            .gte("data", dataInicio)
+            .lte("data", dataFim)
+            .order("data", { ascending: true }),
+          supabase
+            .from("agendamentos_pacotes")
+            .select("id, nome_cliente, nome_pet, raca, taxi_dog, servicos")
+            .eq("user_id", ownerId),
+        ]).then(([agRes, pacRes]) => {
+          const pacData = pacRes.data || [];
+          setPacotes(pacData);
+          const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
+          setAgendamentos([...(agRes.data || []), ...pacoteEntries]);
+        });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
