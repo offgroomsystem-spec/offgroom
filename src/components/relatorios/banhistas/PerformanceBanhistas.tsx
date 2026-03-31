@@ -436,20 +436,47 @@ export const PerformanceBanhistas = () => {
           { label: "Horas Trabalhadas", value: `${kpis.totalHoras}h`, icon: Clock, color: "text-green-500" },
           { label: "Média/Atend.", value: `${kpis.mediaMinutos}min`, icon: Activity, color: "text-orange-500" },
           { label: "Mais Produtivo", value: kpis.topGroomer, sub: `${kpis.topCount} ${kpis.topCount === 1 ? "pet" : "pets"}`, icon: Star, color: "text-yellow-500" },
-          { label: "Taxa Ocupação", value: `${kpis.taxaOcupacao}%`, icon: TrendingUp, color: "text-purple-500" },
+          { label: "Taxa Ocupação", value: `${kpis.taxaOcupacao}%`, icon: TrendingUp, color: "text-purple-500", hasTooltip: true },
           { label: "Receita Total", value: formatCurrency(kpis.receitaTotal), icon: DollarSign, color: "text-emerald-500" },
-        ].map((k) => (
-          <Card key={k.label} className="p-0">
-            <CardContent className="flex items-center gap-2 p-2">
-              <k.icon className={`h-5 w-5 ${k.color} shrink-0`} />
-              <div className="min-w-0">
-                <p className="text-sm font-bold leading-none truncate">{k.value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{k.label}</p>
-                {k.sub && <p className="text-[9px] text-muted-foreground">{k.sub}</p>}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        ].map((k) => {
+          const cardContent = (
+            <Card key={k.label} className="p-0 relative">
+              <CardContent className="flex items-center gap-2 p-2">
+                <k.icon className={`h-5 w-5 ${k.color} shrink-0`} />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold leading-none truncate">{k.value}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{k.label}</p>
+                  {k.sub && <p className="text-[9px] text-muted-foreground">{k.sub}</p>}
+                </div>
+                {k.hasTooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-1 right-1" />}
+              </CardContent>
+            </Card>
+          );
+
+          if (k.hasTooltip) {
+            return (
+              <TooltipProvider key={k.label}>
+                <UITooltip delayDuration={200}>
+                  <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
+                    <p className="font-semibold">📊 Taxa de Ocupação</p>
+                    <p>Mede quanto da capacidade total dos groomers cadastrados foi utilizada no período.</p>
+                    <p className="font-medium mt-1">Fórmula:</p>
+                    <p className="italic">Horas Trabalhadas ÷ Capacidade Total × 100</p>
+                    <p className="font-medium mt-1">Cálculo atual:</p>
+                    <p>• {kpis.numBanhistasCadastrados} groomer(s) cadastrado(s)</p>
+                    <p>• {kpis.diasUteis} dias de funcionamento no período</p>
+                    <p>• {kpis.horasDiarias}h de jornada diária</p>
+                    <p>• Capacidade: {kpis.capacidadeTotal}h</p>
+                    <p>• Horas trabalhadas: {kpis.totalHoras}h</p>
+                    <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacao}%</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            );
+          }
+          return cardContent;
+        })}
       </div>
 
       {/* Main Charts */}
