@@ -4565,37 +4565,8 @@ const Agendamentos = () => {
                   </div>
                 }
 
-                {/* Botão + Agendar demais pets (pacote) */}
-                {pacoteFormData.nomePet && pacoteFormData.nomePacote && servicosAgendamento.length > 0 && otherPetsFromClientPacote.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Popover open={showPacoteAdditionalPetsPopover} onOpenChange={setShowPacoteAdditionalPetsPopover}>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] gap-1">
-                          <Plus className="h-3 w-3" />
-                          Agendar demais pets
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[220px] p-2 z-50 bg-popover" align="start">
-                        <p className="text-xs font-medium mb-2">Selecione os pets:</p>
-                        {otherPetsFromClientPacote.map((pet) => (
-                          <div
-                            key={pet.id}
-                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-xs"
-                            onClick={() => handleTogglePacoteAdditionalPet(pet)}
-                          >
-                            <Check className={cn("h-3 w-3", pacoteAdditionalPets.some(ap => ap.petName === pet.nome) ? "opacity-100" : "opacity-0")} />
-                            {pet.nome} ({pet.raca})
-                          </div>
-                        ))}
-                      </PopoverContent>
-                    </Popover>
-                    {pacoteAdditionalPets.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground">
-                        +{pacoteAdditionalPets.length} pet(s) adicionado(s)
-                      </span>
-                    )}
-                  </div>
-                )}
+
+
 
                 {/* Blocos de serviços para pets adicionais do pacote */}
                 {pacoteAdditionalPets.map((addPet, petIdx) => (
