@@ -108,6 +108,58 @@ export function WhatsAppIntegration() {
     }
   }
 
+  async function handleConfirmacaoPeriodoToggle(checked: boolean) {
+    setConfirmacaoLoading(true);
+    try {
+      const updateData: any = { confirmacao_periodo_ativo: checked };
+      // If turning on without any option selected, default to 3h
+      if (checked && !confirmacao24h && !confirmacao15h && !confirmacao3h) {
+        updateData.confirmacao_3h = true;
+        setConfirmacao3h(true);
+      }
+      const { error } = await supabase
+        .from("empresa_config")
+        .update(updateData)
+        .eq("user_id", effectiveUserId!);
+      if (error) throw error;
+      setConfirmacaoPeriodoAtivo(checked);
+      toast.success(checked ? "Período personalizado de confirmação ativado" : "Período personalizado desativado (padrão 3h será usado)");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar configuração");
+    } finally {
+      setConfirmacaoLoading(false);
+    }
+  }
+
+  async function handleConfirmacaoOptionChange(field: string, checked: boolean) {
+    // Prevent unchecking all options
+    const newValues = {
+      confirmacao_24h: field === "confirmacao_24h" ? checked : confirmacao24h,
+      confirmacao_15h: field === "confirmacao_15h" ? checked : confirmacao15h,
+      confirmacao_3h: field === "confirmacao_3h" ? checked : confirmacao3h,
+    };
+    if (!newValues.confirmacao_24h && !newValues.confirmacao_15h && !newValues.confirmacao_3h) {
+      toast.error("Selecione pelo menos uma opção de envio");
+      return;
+    }
+
+    setConfirmacaoLoading(true);
+    try {
+      const { error } = await supabase
+        .from("empresa_config")
+        .update({ [field]: checked } as any)
+        .eq("user_id", effectiveUserId!);
+      if (error) throw error;
+      if (field === "confirmacao_24h") setConfirmacao24h(checked);
+      if (field === "confirmacao_15h") setConfirmacao15h(checked);
+      if (field === "confirmacao_3h") setConfirmacao3h(checked);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar configuração");
+    } finally {
+      setConfirmacaoLoading(false);
+    }
+  }
+
   async function loadInstance() {
     try {
       const { data, error } = await supabase
