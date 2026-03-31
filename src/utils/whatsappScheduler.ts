@@ -196,6 +196,12 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
   if (params.taxiDog === "Não" && diffMinutes > 30) {
     const agendadoPara30min = new Date(agendamentoDateTime.getTime() - 30 * 60 * 1000);
     
+    // Garantir que não envie antes das 07:00 BRT (10:00 UTC)
+    const brtHour30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
+    if (brtHour30 < 7) {
+      agendadoPara30min.setUTCHours(10, 0, 0, 0);
+    }
+    
     if (agendadoPara30min.getTime() > now.getTime()) {
       const reminderMsg = buildReminderMessage(params);
       mensagensParaInserir.push({

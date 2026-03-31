@@ -431,15 +431,13 @@ Deno.serve(async (req) => {
       if (extracted) {
         // === SYNC VALIDATION: check if agendado_para matches actual appointment time ===
         if (extracted.data && extracted.horario && 
-            (msg.tipo_mensagem === "30min" || msg.tipo_mensagem === "3h" || msg.tipo_mensagem === "15h")) {
+            (msg.tipo_mensagem === "30min" || msg.tipo_mensagem === "3h")) {
           const agDateTimeReal = parseDateTimeBRT(extracted.data, extracted.horario);
           let bufferMs: number;
           if (msg.tipo_mensagem === "30min") {
             bufferMs = 30 * 60 * 1000;
-          } else if (msg.tipo_mensagem === "3h") {
-            bufferMs = 3 * 60 * 60 * 1000;
           } else {
-            bufferMs = 15 * 60 * 60 * 1000;
+            bufferMs = 3 * 60 * 60 * 1000;
           }
           const expectedAgendadoPara = new Date(agDateTimeReal.getTime() - bufferMs);
           const msgAgendadoPara = new Date(msg.agendado_para);
