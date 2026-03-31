@@ -1077,15 +1077,15 @@ const Agendamentos = () => {
       return;
     }
     if (pacoteWhatsappSearch.length >= 2) {
-      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }> = [];
+      const results: Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }> = [];
       clientes.forEach((cliente) => {
         if (cliente.whatsapp.includes(pacoteWhatsappSearch)) {
           if (cliente.pets.length > 0) {
             cliente.pets.forEach((pet) => {
-              results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: pet.nome, raca: pet.raca });
+              results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: pet.nome, raca: pet.raca, clienteId: cliente.id });
             });
           } else {
-            results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: "", raca: "" });
+            results.push({ whatsapp: cliente.whatsapp, nomeCliente: cliente.nomeCliente, nomePet: "", raca: "", clienteId: cliente.id });
           }
         }
       });
@@ -1095,13 +1095,15 @@ const Agendamentos = () => {
     }
   }, [pacoteWhatsappSearch, clientes]);
 
-  const handlePacoteWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string }) => {
+  const handlePacoteWhatsappSelect = (item: { whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }) => {
     pacoteWhatsappJustSelected.current = true;
     const formatted = item.whatsapp.length >= 11
       ? `(${item.whatsapp.slice(0, 2)}) ${item.whatsapp.slice(2, 7)}-${item.whatsapp.slice(7)}`
       : item.whatsapp;
     setPacoteWhatsappSearch(formatted);
     setPacoteFilteredWhatsapp([]);
+    setSelectedPacoteClienteId(item.clienteId);
+    setPacoteAdditionalPets([]);
     setPacoteFormData({
       ...pacoteFormData,
       nomeCliente: item.nomeCliente,
