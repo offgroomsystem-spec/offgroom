@@ -207,7 +207,7 @@ export const PerformanceBanhistas = () => {
     const taxaOcupacao = capacidadeTotal > 0 ? Math.round((totalHoras / capacidadeTotal) * 100) : 0;
 
     return { totalPets, totalHoras, mediaMinutos, topGroomer, topCount, receitaTotal, taxaOcupacao, capacidadeTotal: Math.round(capacidadeTotal * 10) / 10, numBanhistasCadastrados, diasUteis: diasNoIntervalo.length, horasDiarias: Math.round(horasDiarias * 10) / 10 };
-  }, [concluidos, receitaMap, groomers, dataInicio, dataFim, empresaConfig]);
+  }, [concluidos, receitaMap, groomers, dataInicio, dataFim, empresaConfig, groomerFilter]);
 
   // === Charts data ===
 
