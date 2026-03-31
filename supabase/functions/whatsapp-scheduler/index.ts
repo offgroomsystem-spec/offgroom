@@ -874,11 +874,9 @@ async function autoCreatePacoteMessages(
         // === 3h ===
         if (diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
           let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
-          const horaAgBRT = ((agDateTime.getUTCHours() - 3 + 24) % 24);
-          if (horaAgBRT < 10) {
-            ag3h = new Date(agDateTime);
-            ag3h.setUTCHours(10, 0, 0, 0);
-          }
+          // Garantir que não envie antes das 07:00 BRT
+          const brtH3 = (ag3h.getUTCHours() - 3 + 24) % 24;
+          if (brtH3 < 7) ag3h.setUTCHours(10, 0, 0, 0);
           if (ag3h.getTime() > now.getTime()) {
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: ag3h.toISOString() });
           }
