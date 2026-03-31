@@ -4500,6 +4500,182 @@ const Agendamentos = () => {
                   </div>
                 }
 
+                {/* Botão + Agendar demais pets (pacote) */}
+                {pacoteFormData.nomePet && pacoteFormData.nomePacote && servicosAgendamento.length > 0 && otherPetsFromClientPacote.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Popover open={showPacoteAdditionalPetsPopover} onOpenChange={setShowPacoteAdditionalPetsPopover}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] gap-1">
+                          <Plus className="h-3 w-3" />
+                          Agendar demais pets
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[220px] p-2 z-50 bg-popover" align="start">
+                        <p className="text-xs font-medium mb-2">Selecione os pets:</p>
+                        {otherPetsFromClientPacote.map((pet) => (
+                          <div
+                            key={pet.id}
+                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-xs"
+                            onClick={() => handleTogglePacoteAdditionalPet(pet)}
+                          >
+                            <Check className={cn("h-3 w-3", pacoteAdditionalPets.some(ap => ap.petName === pet.nome) ? "opacity-100" : "opacity-0")} />
+                            {pet.nome} ({pet.raca})
+                          </div>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
+                    {pacoteAdditionalPets.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        +{pacoteAdditionalPets.length} pet(s) adicionado(s)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Blocos de serviços para pets adicionais do pacote */}
+                {pacoteAdditionalPets.map((addPet, petIdx) => (
+                  <div key={petIdx} className="space-y-2 border rounded-md p-3 bg-secondary/20">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold">
+                        🐶 {addPet.petName} ({addPet.raca})
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        onClick={() => setPacoteAdditionalPets(prev => prev.filter((_, i) => i !== petIdx))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Header */}
+                    <div className="flex gap-1.5 items-center pb-1">
+                      <div className="w-12"></div>
+                      <div className="flex-1 min-w-[80px]"></div>
+                      <div className="w-28">
+                        <Label className="text-muted-foreground text-[10px] font-bold">Dia Agendamento</Label>
+                      </div>
+                      <div className="w-[72px]">
+                        <Label className="text-muted-foreground font-bold text-[10px]">Hora Início</Label>
+                      </div>
+                      <div className="w-[72px]">
+                        <Label className="text-muted-foreground font-bold text-[10px]">Tempo Serviço*</Label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {addPet.servicosAgendamento.map((servico, svcIdx) => {
+                        const extrasLabel = servico.servicosExtras?.length
+                          ? ` + ${servico.servicosExtras.map(e => e.nome).join(" + ")}`
+                          : "";
+                        const calKey = `${petIdx}-${svcIdx}`;
+                        return (
+                          <div key={svcIdx} className="space-y-1">
+                            <div className="flex gap-1.5 items-center">
+                              <div className="w-12">
+                                <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
+                              </div>
+
+                              <div className="flex-1 min-w-[80px] flex items-center gap-1">
+                                <Label className="text-[10px] text-left truncate" title={`${servico.nomeServico}${extrasLabel}`}>
+                                  {servico.nomeServico}{extrasLabel}
+                                </Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button type="button" variant="outline" size="sm" className="h-5 px-1.5 text-[9px] shrink-0 whitespace-nowrap">
+                                      + Serviços
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-[280px] p-2 z-50 bg-popover" align="start">
+                                    <div className="space-y-2">
+                                      <p className="text-xs font-medium">Adicionar serviço extra</p>
+                                      {(() => {
+                                        const pacoteAtual = pacotes.find(p => p.nome === pacoteFormData.nomePacote);
+                                        const portePacote = pacoteAtual?.porte || "";
+                                        const servicosSemPacotes = servicos.filter(s => !s.nome.toLowerCase().startsWith("pacote"));
+                                        const servicosFiltrados = portePacote
+                                          ? servicosSemPacotes.filter(s => normalizarPorte(s.porte) === normalizarPorte(portePacote) || normalizarPorte(s.porte) === "todos")
+                                          : servicosSemPacotes;
+                                        return (
+                                          <Command className="rounded-md border">
+                                            <CommandInput placeholder="Buscar serviço..." className="h-7 text-xs" />
+                                            <CommandEmpty className="py-2 text-xs text-center">Nenhum serviço encontrado</CommandEmpty>
+                                            <CommandGroup className="max-h-[200px] overflow-y-auto">
+                                              {servicosFiltrados.map((s) => (
+                                                <CommandItem
+                                                  key={s.id}
+                                                  value={`${s.nome} - R$ ${s.valor?.toFixed(2)}`}
+                                                  onSelect={() => handleAddPacoteAdditionalExtra(petIdx, svcIdx, s.id)}
+                                                  className="text-xs cursor-pointer"
+                                                >
+                                                  <Search className="mr-1.5 h-3 w-3 opacity-50" />
+                                                  {s.nome} - R$ {s.valor?.toFixed(2)}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </Command>
+                                        );
+                                      })()}
+                                      {(servico.servicosExtras || []).length > 0 && (
+                                        <div className="space-y-1">
+                                          <p className="text-[10px] text-muted-foreground">Extras adicionados:</p>
+                                          {servico.servicosExtras!.map((extra) => (
+                                            <div key={extra.id} className="flex items-center justify-between bg-secondary/50 rounded px-1.5 py-0.5">
+                                              <span className="text-[10px]">{extra.nome} - R$ {extra.valor?.toFixed(2)}</span>
+                                              <Button type="button" variant="ghost" size="sm" onClick={() => handleRemovePacoteAdditionalExtra(petIdx, svcIdx, extra.id)} className="h-4 w-4 p-0 text-destructive hover:text-destructive">
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+
+                              <div className="w-28">
+                                <Popover open={pacoteAdditionalCalendarIndex === calKey} onOpenChange={(open) => setPacoteAdditionalCalendarIndex(open ? calKey : null)}>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("h-7 w-full justify-start text-left font-normal text-[10px] px-1.5", !servico.data && "text-muted-foreground")}>
+                                      {servico.data ? toDisplayDate(servico.data) : "Data"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={servico.data ? parse(servico.data, "yyyy-MM-dd", new Date()) : undefined}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          handlePacoteAdditionalServicoChange(petIdx, svcIdx, "data", format(date, "yyyy-MM-dd"));
+                                        }
+                                        setPacoteAdditionalCalendarIndex(null);
+                                      }}
+                                      locale={ptBR}
+                                      initialFocus
+                                      className="p-3 pointer-events-auto"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+
+                              <div className="w-[72px]">
+                                <TimeInput value={servico.horarioInicio} onChange={(value) => handlePacoteAdditionalServicoChange(petIdx, svcIdx, "horarioInicio", value)} placeholder="00:00" className="h-7 text-[10px]" />
+                              </div>
+
+                              <div className="w-[72px]">
+                                <TimeInput value={servico.tempoServico} onChange={(value) => handlePacoteAdditionalServicoChange(petIdx, svcIdx, "tempoServico", value)} placeholder="0:00" className="h-7 text-[10px]" allowSingleDigitHour={true} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={resetPacoteForm} className="h-8 text-xs">
                     Cancelar
