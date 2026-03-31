@@ -1801,6 +1801,10 @@ const Agendamentos = () => {
     setSearchStartedWith(null);
     setPacoteWhatsappSearch("");
     setPacoteFilteredWhatsapp([]);
+    setSelectedPacoteClienteId("");
+    setPacoteAdditionalPets([]);
+    setShowPacoteAdditionalPetsPopover(false);
+    setPacoteAdditionalCalendarIndex(null);
     setIsPacoteDialogOpen(false);
   };
 
