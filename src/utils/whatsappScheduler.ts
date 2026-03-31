@@ -175,10 +175,9 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
   if (diffMinutes > 3 * 60) {
     let agendadoPara3h = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
     
-    // Se o agendamento é antes das 10h Brasília, a mensagem "3h" é enviada às 7h Brasília (10h UTC)
-    const horaAgendamentoBRT = ((agendamentoDateTime.getUTCHours() - 3 + 24) % 24);
-    if (horaAgendamentoBRT < 10) {
-      agendadoPara3h = new Date(agendamentoDateTime);
+    // Garantir que não envie antes das 07:00 BRT (10:00 UTC)
+    const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
+    if (brtHour3h < 7) {
       agendadoPara3h.setUTCHours(10, 0, 0, 0); // 7h Brasília = 10h UTC
     }
 
