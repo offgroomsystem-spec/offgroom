@@ -663,7 +663,7 @@ const Agendamentos = () => {
 
   // Estados para busca por WhatsApp (Pacotes)
   const [pacoteWhatsappSearch, setPacoteWhatsappSearch] = useState("");
-  const [pacoteFilteredWhatsapp, setPacoteFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string }>>([]);
+  const [pacoteFilteredWhatsapp, setPacoteFilteredWhatsapp] = useState<Array<{ whatsapp: string; nomeCliente: string; nomePet: string; raca: string; clienteId: string }>>([]);
   const pacoteWhatsappJustSelected = useRef(false);
 
   // Estados para agendamento de múltiplos pets
