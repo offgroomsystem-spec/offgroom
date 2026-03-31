@@ -650,6 +650,10 @@ export type Database = {
           codigo_cnae: string | null
           codigo_ibge_cidade: string | null
           complemento_fiscal: string | null
+          confirmacao_15h: boolean
+          confirmacao_24h: boolean
+          confirmacao_3h: boolean
+          confirmacao_periodo_ativo: boolean
           created_at: string | null
           creche_ativa: boolean
           dias_funcionamento: Json | null
@@ -684,6 +688,10 @@ export type Database = {
           codigo_cnae?: string | null
           codigo_ibge_cidade?: string | null
           complemento_fiscal?: string | null
+          confirmacao_15h?: boolean
+          confirmacao_24h?: boolean
+          confirmacao_3h?: boolean
+          confirmacao_periodo_ativo?: boolean
           created_at?: string | null
           creche_ativa?: boolean
           dias_funcionamento?: Json | null
@@ -718,6 +726,10 @@ export type Database = {
           codigo_cnae?: string | null
           codigo_ibge_cidade?: string | null
           complemento_fiscal?: string | null
+          confirmacao_15h?: boolean
+          confirmacao_24h?: boolean
+          confirmacao_3h?: boolean
+          confirmacao_periodo_ativo?: boolean
           created_at?: string | null
           creche_ativa?: boolean
           dias_funcionamento?: Json | null
