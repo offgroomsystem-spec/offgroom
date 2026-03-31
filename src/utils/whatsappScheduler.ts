@@ -171,25 +171,6 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     status: "pendente",
   };
 
-  // === MENSAGEM 15H ANTES ===
-  if (diffMinutes > 15 * 60) {
-    const agendadoPara24h = new Date(agendamentoDateTime.getTime() - 15 * 60 * 60 * 1000);
-    // Se a hora em Brasília (UTC-3) for antes das 7h, agendar para 7h Brasília (10h UTC)
-    if (agendadoPara24h.getUTCHours() < 10 || (agendadoPara24h.getUTCHours() === 10 && agendadoPara24h.getUTCMinutes() === 0)) {
-      // Check if actually before 7h BRT
-      const brtHour = (agendadoPara24h.getUTCHours() - 3 + 24) % 24;
-      if (brtHour < 7) {
-        agendadoPara24h.setUTCHours(10, 0, 0, 0);
-      }
-    }
-    mensagensParaInserir.push({
-      ...baseRecord,
-      tipo_mensagem: "15h",
-      mensagem: confirmationMsg,
-      agendado_para: agendadoPara24h.toISOString(),
-    });
-  }
-
   // === MENSAGEM 3H ANTES ===
   if (diffMinutes > 3 * 60) {
     let agendadoPara3h = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
