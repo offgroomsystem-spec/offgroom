@@ -61,7 +61,40 @@ export function WhatsAppIntegration() {
   useEffect(() => {
     if (!effectiveUserId) return;
     loadInstance();
+    loadRiscoConfig();
   }, [effectiveUserId]);
+
+  async function loadRiscoConfig() {
+    try {
+      const { data } = await supabase
+        .from("empresa_config")
+        .select("risco_auto_send")
+        .eq("user_id", effectiveUserId!)
+        .maybeSingle();
+      if (data) {
+        setRiscoAutoSend((data as any).risco_auto_send ?? true);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar config risco:", err);
+    }
+  }
+
+  async function handleRiscoToggle(checked: boolean) {
+    setRiscoLoading(true);
+    try {
+      const { error } = await supabase
+        .from("empresa_config")
+        .update({ risco_auto_send: checked } as any)
+        .eq("user_id", effectiveUserId!);
+      if (error) throw error;
+      setRiscoAutoSend(checked);
+      toast.success(checked ? "Mensagens para Clientes em Risco ativadas" : "Mensagens para Clientes em Risco desativadas");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar configuração");
+    } finally {
+      setRiscoLoading(false);
+    }
+  }
 
   async function loadInstance() {
     try {
