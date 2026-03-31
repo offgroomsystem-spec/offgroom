@@ -765,6 +765,17 @@ async function autoCreateMissingMessages(
           mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "3h", mensagem: confirmMsg, agendado_para: now.toISOString() });
         }
       }
+
+      // === 30min message (always active, only if Taxi Dog = "Não") ===
+      if (ag.taxi_dog === "Não" && diffMinutes > 30 && !existingSet.has(`${ag.id}_30min`)) {
+        const agendadoPara30min = new Date(agDateTime.getTime() - 30 * 60 * 1000);
+        const brtH30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
+        if (brtH30 < 7) agendadoPara30min.setUTCHours(10, 0, 0, 0);
+        if (agendadoPara30min.getTime() > now.getTime()) {
+          const reminderMsg = buildReminderMessage(ag.cliente, ag.pet, sexoPet, ag.horario);
+          mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "30min", mensagem: reminderMsg, agendado_para: agendadoPara30min.toISOString() });
+        }
+      }
     }
 
     // Also handle pacotes
