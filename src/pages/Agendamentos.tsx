@@ -1171,6 +1171,8 @@ const Agendamentos = () => {
       }
 
       if (clienteCorreto && petEncontrado) {
+        setSelectedPacoteClienteId(clienteCorreto.id);
+        setPacoteAdditionalPets([]);
         setAvailableRacas([petEncontrado.raca]);
         setPacoteFormData({
           ...pacoteFormData,
