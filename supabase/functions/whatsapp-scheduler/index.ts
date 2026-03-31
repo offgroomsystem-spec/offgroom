@@ -885,6 +885,9 @@ async function autoCreatePacoteMessages(
         // === 30min ===
         if (pacote.taxi_dog === "Não" && diffMinutes > 30 && !existingPacoteSet.has(`${key}_30min`)) {
           const ag30 = new Date(agDateTime.getTime() - 30 * 60 * 1000);
+          // Garantir que não envie antes das 07:00 BRT
+          const brtH30p = (ag30.getUTCHours() - 3 + 24) % 24;
+          if (brtH30p < 7) ag30.setUTCHours(10, 0, 0, 0);
           if (ag30.getTime() > now.getTime()) {
             const reminderMsg = buildReminderMessage(pacote.nome_cliente, pacote.nome_pet, sexoPet, sv.horarioInicio);
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "30min", mensagem: reminderMsg, agendado_para: ag30.toISOString() });
