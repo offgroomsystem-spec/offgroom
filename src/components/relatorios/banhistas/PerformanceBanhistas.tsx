@@ -601,7 +601,7 @@ export const PerformanceBanhistas = () => {
               <TooltipProvider key={k.label}>
                 <UITooltip delayDuration={200}>
                   <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
+                  <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3 z-[100]">
                     {k.tooltipType === "comissao" ? (
                       <p className="font-semibold">🚧 Em desenvolvimento</p>
                     ) : (
@@ -806,7 +806,7 @@ export const PerformanceBanhistas = () => {
                       const d = payload[0].payload;
                       const taxaFormatada = formatOccupancyRate(d.taxa);
                       return (
-                        <div className="bg-background border border-border/50 rounded-lg shadow-xl p-3 max-w-xs text-xs space-y-1">
+                        <div className="bg-background border border-border/50 rounded-lg shadow-xl p-3 max-w-xs text-xs space-y-1 z-[100]">
                           <p className="font-semibold">📊 Taxa de Ocupação – {d.nome}</p>
                           <p>Mede quanto da capacidade individual deste profissional foi utilizada no período selecionado.</p>
                           <p className="font-medium mt-1">Fórmula:</p>
@@ -823,7 +823,11 @@ export const PerformanceBanhistas = () => {
                       );
                     }}
                   />
-                  <Bar dataKey="taxa" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="taxa" fill="#8b5cf6" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                    <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={10} fontWeight="bold" fill="#fff">
+                      {formatOccupancyRate(value)}
+                    </text>
+                  )}>
                     {ocupacaoPerGroomer.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
