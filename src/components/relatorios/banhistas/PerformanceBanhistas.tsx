@@ -354,6 +354,7 @@ export const PerformanceBanhistas = () => {
     const mapMins = new Map<string, number>();
     const mapCount = new Map<string, number>();
     concluidos.forEach((a) => {
+      if (a.groomer === "Não atribuído") return;
       const mins = parseMinutos(a.tempo_servico);
       mapMins.set(a.groomer, (mapMins.get(a.groomer) || 0) + mins);
       mapCount.set(a.groomer, (mapCount.get(a.groomer) || 0) + 1);
