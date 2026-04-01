@@ -906,8 +906,12 @@ export const PerformanceBanhistas = () => {
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Bar dataKey="total" name="Qtd" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="mediaMin" name="Média (min)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name="Qtd" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} label={({ x, y, width, height, value }: any) => value > 0 ? (
+                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}</text>
+                  ) : null} />
+                  <Bar dataKey="mediaMin" name="Média (min)" fill="#f59e0b" radius={[4, 4, 0, 0]} label={({ x, y, width, height, value }: any) => value > 0 ? (
+                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}</text>
+                  ) : null} />
                 </BarChart>
               </ResponsiveContainer>
             )}
