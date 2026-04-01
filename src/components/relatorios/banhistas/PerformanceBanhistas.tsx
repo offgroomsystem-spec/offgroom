@@ -218,6 +218,15 @@ export const PerformanceBanhistas = () => {
     return (h || 0) * 60 + (m || 0);
   };
 
+  const formatHorasMinutos = (horas: number) => {
+    if (!horas || horas <= 0) return "0min";
+    const h = Math.floor(horas);
+    const m = Math.round((horas - h) * 60);
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  };
+
   const formatOccupancyRate = (value: number) => {
     if (!Number.isFinite(value) || value <= 0) return "0%";
 
@@ -661,10 +670,14 @@ export const PerformanceBanhistas = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={horasPerGroomer} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => formatHorasMinutos(v)} />
                   <YAxis dataKey="nome" type="category" width={70} tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="horas" fill="#10b981" radius={[0, 4, 4, 0]} />
+                  <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number) => formatHorasMinutos(v)} />
+                  <Bar dataKey="horas" fill="#10b981" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                    <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">
+                      {formatHorasMinutos(value)}
+                    </text>
+                  )} />
                 </BarChart>
               </ResponsiveContainer>
             )}
