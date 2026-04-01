@@ -354,6 +354,7 @@ export const PerformanceBanhistas = () => {
     const mapMins = new Map<string, number>();
     const mapCount = new Map<string, number>();
     concluidos.forEach((a) => {
+      if (a.groomer === "Não atribuído") return;
       const mins = parseMinutos(a.tempo_servico);
       mapMins.set(a.groomer, (mapMins.get(a.groomer) || 0) + mins);
       mapCount.set(a.groomer, (mapCount.get(a.groomer) || 0) + 1);
@@ -368,6 +369,7 @@ export const PerformanceBanhistas = () => {
   const receitaPerGroomer = useMemo(() => {
     const map = new Map<string, number>();
     concluidos.forEach((a) => {
+      if (a.groomer === "Não atribuído") return;
       map.set(a.groomer, (map.get(a.groomer) || 0) + (receitaMap.get(a.id) || 0));
     });
     return [...map.entries()].map(([nome, receita]) => ({ nome, receita: Math.round(receita * 100) / 100 })).sort((a, b) => b.receita - a.receita);
@@ -401,7 +403,7 @@ export const PerformanceBanhistas = () => {
 
   // Ranking de performance (score combinado)
   const ranking = useMemo(() => {
-    const groomerSet = new Set(concluidos.map((a) => a.groomer));
+    const groomerSet = new Set(concluidos.map((a) => a.groomer).filter((g) => g !== "Não atribuído"));
     const results: { nome: string; pets: number; receita: number; mediaMin: number; score: number }[] = [];
     groomerSet.forEach((g) => {
       const ga = concluidos.filter((a) => a.groomer === g);
