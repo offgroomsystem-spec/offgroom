@@ -421,6 +421,7 @@ export const PerformanceBanhistas = () => {
   const servicoPerGroomer = useMemo(() => {
     const map = new Map<string, Map<string, number>>();
     concluidos.forEach((a) => {
+      if (a.groomer === "Não atribuído") return;
       if (!map.has(a.groomer)) map.set(a.groomer, new Map());
       const sMap = map.get(a.groomer)!;
       const servico = a.servico || "Outros";
