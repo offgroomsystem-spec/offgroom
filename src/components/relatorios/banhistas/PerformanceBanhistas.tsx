@@ -422,13 +422,50 @@ export const PerformanceBanhistas = () => {
     return { data: result, servicos: [...allServicos] };
   }, [concluidos]);
 
-  // Cancelamentos por banhista
-  const cancelamentos = useMemo(() => {
-    const cancelados = filtered.filter((a) => a.status === "cancelado");
-    const map = new Map<string, number>();
-    cancelados.forEach((a) => map.set(a.groomer, (map.get(a.groomer) || 0) + 1));
-    return [...map.entries()].map(([nome, total]) => ({ nome, cancelamentos: total })).sort((a, b) => b.cancelamentos - a.cancelamentos);
-  }, [filtered]);
+  // Taxa de ocupação por banhista (individual)
+  const ocupacaoPerGroomer = useMemo(() => {
+    const diasFunc = empresaConfig?.dias_funcionamento as Record<string, boolean> | null;
+    const dayNameMap: Record<number, string> = { 0: "domingo", 1: "segunda", 2: "terca", 3: "quarta", 4: "quinta", 5: "sexta", 6: "sabado" };
+    const diasNoIntervalo = eachDayOfInterval({ start: parseISO(dataInicio), end: parseISO(dataFim) })
+      .filter((d) => {
+        const nome = dayNameMap[getDay(d)];
+        return diasFunc ? diasFunc[nome] === true : getDay(d) !== 0;
+      });
+    const hInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[0], 10) : 8;
+    const mInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[1] || "0", 10) : 0;
+    const hFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[0], 10) : 18;
+    const mFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[1] || "0", 10) : 0;
+    const horasDiarias = (hFim * 60 + mFim - hInicio * 60 - mInicio) / 60 || 8;
+    const capacidadeIndividual = diasNoIntervalo.length * horasDiarias;
+
+    // Accumulate hours per registered groomer
+    const horasMap = new Map<string, number>();
+    const registeredGroomers = groomers.filter((g) => g !== "Não atribuído");
+    registeredGroomers.forEach((g) => horasMap.set(g, 0));
+
+    // Use filtered data to respect groomer filter
+    concluidos.forEach((a) => {
+      if (a.groomer && a.groomer !== "Não atribuído" && horasMap.has(a.groomer)) {
+        horasMap.set(a.groomer, (horasMap.get(a.groomer) || 0) + parseMinutos(a.tempo_servico));
+      }
+    });
+
+    return registeredGroomers
+      .filter((g) => groomerFilter === "todos" || groomerFilter === g)
+      .map((g) => {
+        const horasTrabalhadas = Math.round(((horasMap.get(g) || 0) / 60) * 100) / 100;
+        const taxa = capacidadeIndividual > 0 ? (horasTrabalhadas / capacidadeIndividual) * 100 : 0;
+        return {
+          nome: g,
+          taxa: Math.round(taxa * 100) / 100,
+          horasTrabalhadas: Math.round(horasTrabalhadas * 10) / 10,
+          capacidade: Math.round(capacidadeIndividual * 10) / 10,
+          diasUteis: diasNoIntervalo.length,
+          horasDiarias: Math.round(horasDiarias * 10) / 10,
+        };
+      })
+      .sort((a, b) => b.taxa - a.taxa);
+  }, [concluidos, groomers, dataInicio, dataFim, empresaConfig, groomerFilter]);
 
   // Performance por porte
   const porteData = useMemo(() => {
@@ -746,24 +783,51 @@ export const PerformanceBanhistas = () => {
           </CardContent>
         </Card>
 
-        {/* Cancelamentos */}
+        {/* Taxa de Ocupação por Banhista */}
         <Card>
           <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">❌ Cancelamentos por Banhista</CardTitle>
+            <CardTitle className="text-xs">📊 Taxa de Ocupação por Banhista</CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 h-48">
-            {cancelamentos.length === 0 ? (
+            {ocupacaoPerGroomer.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <p className="text-xs text-muted-foreground">Nenhum cancelamento 🎉</p>
+                <p className="text-xs text-muted-foreground">Nenhum banhista cadastrado</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cancelamentos} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
+                <BarChart data={ocupacaoPerGroomer} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
                   <YAxis dataKey="nome" type="category" width={70} tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="cancelamentos" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                  <Tooltip
+                    contentStyle={{ fontSize: 11 }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      const taxaFormatada = formatOccupancyRate(d.taxa);
+                      return (
+                        <div className="bg-background border border-border/50 rounded-lg shadow-xl p-3 max-w-xs text-xs space-y-1">
+                          <p className="font-semibold">📊 Taxa de Ocupação – {d.nome}</p>
+                          <p>Mede quanto da capacidade individual deste profissional foi utilizada no período selecionado.</p>
+                          <p className="font-medium mt-1">Fórmula:</p>
+                          <p className="italic">Horas Trabalhadas ÷ Capacidade Individual × 100</p>
+                          <p className="font-medium mt-1">Cálculo:</p>
+                          <p>• 1 groomer (individual)</p>
+                          <p>• {d.diasUteis} dias de funcionamento no período</p>
+                          <p>• {d.horasDiarias}h de jornada diária</p>
+                          <p>• Capacidade: {d.capacidade}h</p>
+                          <p>• Horas trabalhadas: {d.horasTrabalhadas}h</p>
+                          <p className="font-semibold mt-1">Resultado: {taxaFormatada}</p>
+                          <p className="mt-1 italic">Ou seja, {taxaFormatada} da capacidade total deste banhista foi utilizada no período.</p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="taxa" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
+                    {ocupacaoPerGroomer.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
