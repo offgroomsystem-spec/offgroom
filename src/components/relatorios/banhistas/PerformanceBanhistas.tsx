@@ -675,12 +675,12 @@ export const PerformanceBanhistas = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={horasPerGroomer} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => formatHorasMinutos(v)} />
+                  <XAxis type="number" dataKey="minutos" tick={{ fontSize: 10 }} tickFormatter={(v) => formatMinutosDisplay(v)} />
                   <YAxis dataKey="nome" type="category" width={70} tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number) => formatHorasMinutos(v)} />
-                  <Bar dataKey="horas" fill="#10b981" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                  <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number, name: string) => [formatMinutosDisplay(name === "minutos" ? v : v * 60), "Tempo"]} />
+                  <Bar dataKey="minutos" fill="#10b981" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
                     <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">
-                      {formatHorasMinutos(value)}
+                      {formatMinutosDisplay(value)}
                     </text>
                   )} />
                 </BarChart>
