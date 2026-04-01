@@ -630,7 +630,7 @@ export const PerformanceBanhistas = () => {
                         <p>• {kpis.diasUteis} dias de funcionamento no período</p>
                         <p>• {kpis.horasDiarias}h de jornada diária</p>
                         <p>• Capacidade: {kpis.capacidadeTotal}h</p>
-                        <p>• Horas trabalhadas: {kpis.totalHoras}h</p>
+                        <p>• Horas trabalhadas: {formatMinutosDisplay(kpis.totalMinutos)}</p>
                         <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacaoFormatada}</p>
                         <p className="mt-1 italic">Ou seja, apenas {kpis.taxaOcupacaoFormatada} da capacidade total dos groomers cadastrados foi utilizada no período.</p>
                       </>
