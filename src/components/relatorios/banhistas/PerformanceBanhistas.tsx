@@ -422,13 +422,50 @@ export const PerformanceBanhistas = () => {
     return { data: result, servicos: [...allServicos] };
   }, [concluidos]);
 
-  // Cancelamentos por banhista
-  const cancelamentos = useMemo(() => {
-    const cancelados = filtered.filter((a) => a.status === "cancelado");
-    const map = new Map<string, number>();
-    cancelados.forEach((a) => map.set(a.groomer, (map.get(a.groomer) || 0) + 1));
-    return [...map.entries()].map(([nome, total]) => ({ nome, cancelamentos: total })).sort((a, b) => b.cancelamentos - a.cancelamentos);
-  }, [filtered]);
+  // Taxa de ocupação por banhista (individual)
+  const ocupacaoPerGroomer = useMemo(() => {
+    const diasFunc = empresaConfig?.dias_funcionamento as Record<string, boolean> | null;
+    const dayNameMap: Record<number, string> = { 0: "domingo", 1: "segunda", 2: "terca", 3: "quarta", 4: "quinta", 5: "sexta", 6: "sabado" };
+    const diasNoIntervalo = eachDayOfInterval({ start: parseISO(dataInicio), end: parseISO(dataFim) })
+      .filter((d) => {
+        const nome = dayNameMap[getDay(d)];
+        return diasFunc ? diasFunc[nome] === true : getDay(d) !== 0;
+      });
+    const hInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[0], 10) : 8;
+    const mInicio = empresaConfig?.horario_inicio ? parseInt(empresaConfig.horario_inicio.split(":")[1] || "0", 10) : 0;
+    const hFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[0], 10) : 18;
+    const mFim = empresaConfig?.horario_fim ? parseInt(empresaConfig.horario_fim.split(":")[1] || "0", 10) : 0;
+    const horasDiarias = (hFim * 60 + mFim - hInicio * 60 - mInicio) / 60 || 8;
+    const capacidadeIndividual = diasNoIntervalo.length * horasDiarias;
+
+    // Accumulate hours per registered groomer
+    const horasMap = new Map<string, number>();
+    const registeredGroomers = groomers.filter((g) => g !== "Não atribuído");
+    registeredGroomers.forEach((g) => horasMap.set(g, 0));
+
+    // Use filtered data to respect groomer filter
+    concluidos.forEach((a) => {
+      if (a.groomer && a.groomer !== "Não atribuído" && horasMap.has(a.groomer)) {
+        horasMap.set(a.groomer, (horasMap.get(a.groomer) || 0) + parseMinutos(a.tempo_servico));
+      }
+    });
+
+    return registeredGroomers
+      .filter((g) => groomerFilter === "todos" || groomerFilter === g)
+      .map((g) => {
+        const horasTrabalhadas = Math.round(((horasMap.get(g) || 0) / 60) * 100) / 100;
+        const taxa = capacidadeIndividual > 0 ? (horasTrabalhadas / capacidadeIndividual) * 100 : 0;
+        return {
+          nome: g,
+          taxa: Math.round(taxa * 100) / 100,
+          horasTrabalhadas: Math.round(horasTrabalhadas * 10) / 10,
+          capacidade: Math.round(capacidadeIndividual * 10) / 10,
+          diasUteis: diasNoIntervalo.length,
+          horasDiarias: Math.round(horasDiarias * 10) / 10,
+        };
+      })
+      .sort((a, b) => b.taxa - a.taxa);
+  }, [concluidos, groomers, dataInicio, dataFim, empresaConfig, groomerFilter]);
 
   // Performance por porte
   const porteData = useMemo(() => {
