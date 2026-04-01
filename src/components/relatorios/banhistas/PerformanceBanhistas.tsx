@@ -543,7 +543,7 @@ export const PerformanceBanhistas = () => {
           { label: "Média/Atend.", value: `${kpis.mediaMinutos}min`, icon: Activity, color: "text-orange-500" },
           { label: "Mais Produtivo", value: kpis.topGroomer, sub: `${kpis.topCount} ${kpis.topCount === 1 ? "pet" : "pets"}`, icon: Star, color: "text-yellow-500" },
           { label: "Taxa Ocupação", value: kpis.taxaOcupacaoFormatada, icon: TrendingUp, color: "text-purple-500", hasTooltip: true },
-          { label: "Receita Total", value: formatCurrency(kpis.receitaTotal), icon: DollarSign, color: "text-emerald-500" },
+          { label: "Total Comissão", value: formatCurrency(kpis.receitaTotal), icon: DollarSign, color: "text-emerald-500", hasTooltip: true, tooltipType: "comissao" },
         ].map((k) => {
           const cardContent = (
             <Card key={k.label} className="p-0 relative">
