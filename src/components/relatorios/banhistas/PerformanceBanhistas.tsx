@@ -843,14 +843,14 @@ export const PerformanceBanhistas = () => {
         </Card>
       </div>
 
-      {/* Ranking + Porte + Serviços */}
-      <div className="grid md:grid-cols-3 gap-2">
+      {/* Ranking + Porte */}
+      <div className="grid md:grid-cols-2 gap-2">
         {/* Ranking */}
         <Card>
           <CardHeader className="py-2 px-3">
             <CardTitle className="text-xs">🏆 Ranking de Performance</CardTitle>
           </CardHeader>
-          <CardContent className="px-3 pb-2 pt-0">
+          <CardContent className="px-3 pb-2 pt-0 h-48">
             {ranking.length === 0 ? <EmptyState /> : (
               <div className="space-y-1">
                 {ranking.map((r, i) => (
