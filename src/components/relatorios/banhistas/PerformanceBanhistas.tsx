@@ -770,7 +770,9 @@ export const PerformanceBanhistas = () => {
                   <XAxis dataKey="hora" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="total" radius={[4, 4, 0, 0]} label={({ x, y, width, height, value }: any) => value > 0 ? (
+                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}</text>
+                  ) : null}>
                     {heatmapData.map((entry, i) => {
                       const max = Math.max(...heatmapData.map((d) => d.total), 1);
                       const intensity = entry.total / max;
