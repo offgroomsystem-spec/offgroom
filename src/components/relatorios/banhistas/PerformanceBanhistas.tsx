@@ -786,22 +786,23 @@ export const PerformanceBanhistas = () => {
           </CardContent>
         </Card>
 
-        {/* Eficiência: Previsto vs Real */}
+        {/* Serviços por Banhista */}
         <Card>
           <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">⚡ Eficiência (Previsto vs Real)</CardTitle>
+            <CardTitle className="text-xs">✂️ Serviços por Banhista</CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 h-48">
-            {eficienciaData.length === 0 ? <EmptyState /> : (
+            {servicoPerGroomer.data.length === 0 ? <EmptyState /> : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={eficienciaData} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
+                <BarChart data={servicoPerGroomer.data} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="nome" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Bar dataKey="previsto" name="Previsto" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="real" name="Real" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: 9 }} />
+                  {servicoPerGroomer.servicos.slice(0, 5).map((s, i) => (
+                    <Bar key={s} dataKey={s} stackId="a" fill={COLORS[i % COLORS.length]} />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             )}
