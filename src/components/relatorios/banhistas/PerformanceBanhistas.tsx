@@ -344,7 +344,7 @@ export const PerformanceBanhistas = () => {
       const mins = parseMinutos(a.tempo_servico);
       map.set(a.groomer, (map.get(a.groomer) || 0) + mins);
     });
-    return [...map.entries()].map(([nome, mins]) => ({ nome, horas: Math.round((mins / 60) * 10) / 10 })).sort((a, b) => b.horas - a.horas);
+    return [...map.entries()].map(([nome, mins]) => ({ nome, minutos: mins, horas: mins / 60 })).sort((a, b) => b.minutos - a.minutos);
   }, [concluidos]);
 
   // Tempo médio por atendimento por banhista
