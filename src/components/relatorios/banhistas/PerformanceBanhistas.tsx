@@ -499,28 +499,6 @@ export const PerformanceBanhistas = () => {
     }));
   }, [concluidos]);
 
-  // Eficiência: tempo previsto vs real (usando tempo_servico como previsto, horario/horario_termino como real)
-  const eficienciaData = useMemo(() => {
-    const map = new Map<string, { previsto: number; real: number; count: number }>();
-    concluidos.forEach((a) => {
-      if (!a.horario || !a.horario_termino) return;
-      const previsto = parseMinutos(a.tempo_servico);
-      const inicio = new Date(`2000-01-01T${a.horario}`);
-      const fim = new Date(`2000-01-01T${a.horario_termino}`);
-      const real = differenceInMinutes(fim, inicio);
-      if (real <= 0) return;
-      const existing = map.get(a.groomer) || { previsto: 0, real: 0, count: 0 };
-      existing.previsto += previsto;
-      existing.real += real;
-      existing.count += 1;
-      map.set(a.groomer, existing);
-    });
-    return [...map.entries()].map(([nome, d]) => ({
-      nome,
-      previsto: d.count > 0 ? Math.round(d.previsto / d.count) : 0,
-      real: d.count > 0 ? Math.round(d.real / d.count) : 0,
-    }));
-  }, [concluidos]);
 
   if (loading) {
     return (
