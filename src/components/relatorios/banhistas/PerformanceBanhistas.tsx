@@ -851,8 +851,27 @@ export const PerformanceBanhistas = () => {
       <div className="grid md:grid-cols-2 gap-2">
         {/* Ranking */}
         <Card>
-          <CardHeader className="py-2 px-3">
+          <CardHeader className="py-2 px-3 flex flex-row items-center gap-1">
             <CardTitle className="text-xs">🏆 Ranking de Performance</CardTitle>
+            <TooltipProvider>
+              <UITooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3 z-[100]">
+                  <p className="font-semibold">📊 Como é calculado o Ranking?</p>
+                  <p>A pontuação (score) de cada banhista é composta por 3 critérios:</p>
+                  <p className="font-medium mt-1">1️⃣ Quantidade de Pets (50% do score)</p>
+                  <p className="italic">Pets do banhista ÷ Máximo de pets entre todos × 50</p>
+                  <p className="font-medium mt-1">2️⃣ Receita Gerada (30% do score)</p>
+                  <p className="italic">Receita do banhista ÷ Maior receita entre todos × 30</p>
+                  <p className="font-medium mt-1">3️⃣ Eficiência de Tempo (20% do score)</p>
+                  <p className="italic">60 ÷ Tempo médio por atendimento (min) × 20</p>
+                  <p className="text-muted-foreground mt-1">Quanto menor o tempo médio, maior a pontuação de eficiência.</p>
+                  <p className="font-semibold mt-1">Score final = critério 1 + critério 2 + critério 3 (máx. 100pts)</p>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
           </CardHeader>
           <CardContent className="px-3 pb-2 pt-0 h-48">
             {ranking.length === 0 ? <EmptyState /> : (
