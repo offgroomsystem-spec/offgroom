@@ -659,7 +659,9 @@ export const PerformanceBanhistas = () => {
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis dataKey="nome" type="category" width={70} tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                    <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}</text>
+                  )} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -703,7 +705,9 @@ export const PerformanceBanhistas = () => {
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis dataKey="nome" type="category" width={70} tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="media" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="media" fill="#f59e0b" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                    <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}min</text>
+                  )} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -766,7 +770,9 @@ export const PerformanceBanhistas = () => {
                   <XAxis dataKey="hora" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="total" radius={[4, 4, 0, 0]} label={({ x, y, width, height, value }: any) => value > 0 ? (
+                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}</text>
+                  ) : null}>
                     {heatmapData.map((entry, i) => {
                       const max = Math.max(...heatmapData.map((d) => d.total), 1);
                       const intensity = entry.total / max;
@@ -900,8 +906,12 @@ export const PerformanceBanhistas = () => {
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Bar dataKey="total" name="Qtd" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="mediaMin" name="Média (min)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name="Qtd" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} label={({ x, y, width, height, value }: any) => value > 0 ? (
+                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}</text>
+                  ) : null} />
+                  <Bar dataKey="mediaMin" name="Média (min)" fill="#f59e0b" radius={[4, 4, 0, 0]} label={({ x, y, width, height, value }: any) => value > 0 ? (
+                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}</text>
+                  ) : null} />
                 </BarChart>
               </ResponsiveContainer>
             )}
