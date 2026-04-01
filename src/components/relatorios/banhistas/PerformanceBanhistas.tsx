@@ -717,7 +717,7 @@ export const PerformanceBanhistas = () => {
         {/* Receita por Banhista */}
         <Card>
           <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">💰 Receita por Banhista</CardTitle>
+            <CardTitle className="text-xs">💰 Comissões por Banhista (em desenvolvimento)</CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 h-48">
             {receitaPerGroomer.length === 0 ? <EmptyState /> : (
