@@ -1,5 +1,5 @@
 // src/components/relatorios/clientes/ClientesEmRisco.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { buildWhatsAppUrl, getInvalidPhoneMessage, normalizeBrazilPhone } from "
 interface ClienteRisco {
   id: string;
   clienteId: string;
+  petId: string;
   nomeCliente: string;
   nomePet: string;
   sexoPet: string | null;
@@ -76,7 +77,6 @@ const obterCorCard = (faixa: string) => {
   }
 };
 
-// Monta a lista de pets com artigo de gênero: "o Theo, a Amora, a Meg"
 const montarListaPets = (pets: { nomePet: string; sexoPet: string | null }[]): string => {
   return pets
     .map((p) => {
@@ -100,7 +100,6 @@ const gFe = (pets: { sexoPet: string | null }[], ms: string, fs: string, mp: str
   return todosFemeaFe(pets) ? fp : mp;
 };
 
-// Gera mensagem agrupada para todos os pets do mesmo cliente
 const gerarMensagemAgrupada = (
   primeiroNome: string,
   pets: { nomePet: string; sexoPet: string | null; diasSemAgendar: number }[]
@@ -134,7 +133,6 @@ const gerarMensagemAgrupada = (
     return `Oi, ${primeiroNome}!\nEstamos abrindo alguns horários especiais pra clientes que queremos muito receber de volta… e ${art_l} ${p.nomePet} está nessa lista 🐶✨\nQue tal aproveitar e agendar um banho pra deixar ${ele} ${cheiroso} novamente? 🛁😊`;
   }
 
-  // PLURAL (2+ pets)
   const eles = gFe(pets, "ele", "ela", "eles", "elas");
   const deles = gFe(pets, "dele", "dela", "deles", "delas");
   const cheirosos = gFe(pets, "cheiroso", "cheirosa", "cheirosos", "cheirosas");
@@ -171,6 +169,8 @@ export const ClientesEmRisco = () => {
   const [filtrosVisiveis, setFiltrosVisiveis] = useState(false);
   const [enviandoWhatsApp, setEnviandoWhatsApp] = useState<string | null>(null);
   const whatsappInstanceRef = useRef<{ name: string; connected: boolean }>({ name: "", connected: false });
+  const filtrosRef = useRef(filtros);
+  filtrosRef.current = filtros;
 
   // Carregar instância WhatsApp
   useEffect(() => {
@@ -257,16 +257,63 @@ export const ClientesEmRisco = () => {
     }
   };
 
-  // carregar clientes (mantive sua lógica que já funcionava)
-  const carregarClientesEmRisco = async () => {
-    if (!user) return;
+  // Apply filters helper
+  const aplicarFiltrosInterno = useCallback((base: ClienteRisco[], f: typeof filtros) => {
+    let resultado = [...base];
+
+    if (f.faixaDias !== "todos") resultado = resultado.filter((c) => c.faixaRisco === f.faixaDias);
+
+    if (f.busca.trim()) {
+      const termo = f.busca.toLowerCase();
+      resultado = resultado.filter(
+        (c) => c.nomeCliente.toLowerCase().includes(termo) || c.nomePet.toLowerCase().includes(termo),
+      );
+    }
+
+    if (f.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= new Date(f.dataInicio + "T00:00:00"));
+    if (f.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= new Date(f.dataFim + "T00:00:00"));
+
+    return resultado;
+  }, []);
+
+  // Main data loading function — uses IDs exclusively
+  const carregarClientesEmRisco = useCallback(async () => {
+    if (!ownerId) return;
     setLoading(true);
 
     try {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
-      // Paginação para buscar TODOS os agendamentos (sem limite de 1000)
+      // 1. Fetch ALL pets with their client info (source of truth for identity)
+      const { data: petsData } = await supabase
+        .from("pets")
+        .select("id, cliente_id, nome_pet, sexo")
+        .eq("user_id", ownerId);
+
+      // 2. Fetch ALL clients (for names and whatsapp — always fresh from cadastro)
+      const { data: clientesData } = await supabase
+        .from("clientes")
+        .select("id, nome_cliente, whatsapp")
+        .eq("user_id", ownerId);
+
+      const clienteMap = new Map<string, { nome: string; whatsapp: string }>();
+      (clientesData || []).forEach((c) => {
+        clienteMap.set(c.id, { nome: c.nome_cliente, whatsapp: c.whatsapp });
+      });
+
+      const petMap = new Map<string, { nome: string; sexo: string | null; clienteId: string }>();
+      (petsData || []).forEach((p) => {
+        petMap.set(p.id, { nome: p.nome_pet, sexo: p.sexo, clienteId: p.cliente_id });
+      });
+
+      // Build a reverse lookup: cliente_id + pet_name → pet_id (for agendamentos that don't have pet_id)
+      const clientePetNameToId = new Map<string, string>();
+      (petsData || []).forEach((p) => {
+        clientePetNameToId.set(`${p.cliente_id}_${p.nome_pet}`, p.id);
+      });
+
+      // 3. Fetch ALL agendamentos with pagination
       const allAgendamentos: any[] = [];
       let page = 0;
       while (true) {
@@ -282,19 +329,7 @@ export const ClientesEmRisco = () => {
         page++;
       }
 
-      // Buscar sexo dos pets
-      const { data: petsData } = await supabase
-        .from("pets")
-        .select("cliente_id, nome_pet, sexo")
-        .eq("user_id", ownerId);
-
-      const petSexoMap = new Map<string, string | null>();
-      (petsData || []).forEach((p: any) => {
-        petSexoMap.set(`${p.cliente_id}_${p.nome_pet}`, p.sexo);
-      });
-      const agendamentos = allAgendamentos;
-
-      // Paginação para buscar TODOS os pacotes
+      // 4. Fetch ALL pacotes with pagination
       const allPacotes: any[] = [];
       page = 0;
       while (true) {
@@ -308,169 +343,185 @@ export const ClientesEmRisco = () => {
         if (!data || data.length < 1000) break;
         page++;
       }
-      const pacotes = allPacotes;
 
-      const mapa = new Map<string, ClienteRisco>();
+      // Build a lookup: nome_cliente → cliente_id (for pacotes that don't have cliente_id)
+      const nomeToClienteId = new Map<string, string>();
+      (clientesData || []).forEach((c) => {
+        // Use first match (if duplicate names, the ID-based matching via pets will be more accurate)
+        if (!nomeToClienteId.has(c.nome_cliente)) {
+          nomeToClienteId.set(c.nome_cliente, c.id);
+        }
+      });
 
-      const adicionarOuAtualizar = (
-        chave: string,
-        nomeCliente: string,
-        nomePet: string,
-        whatsapp: any,
-        dataStr: string,
-        clienteId: string,
-      ) => {
-        if (!dataStr) return;
+      // 5. Build the risk map using pet_id as the unique key (immutable)
+      // Key: petId (uuid) → ensures no duplicates, no orphans
+      const riskMap = new Map<string, {
+        petId: string;
+        clienteId: string;
+        ultimoAgendamento: Date;
+      }>();
+
+      const updateRiskEntry = (petId: string, clienteId: string, dataStr: string) => {
+        if (!dataStr || !petId || !clienteId) return;
         const data = new Date(dataStr + "T00:00:00");
         if (!isValid(data)) return;
 
-        if (!mapa.has(chave)) {
-          mapa.set(chave, {
-            id: chave,
-            clienteId,
-            nomeCliente,
-            nomePet,
-            sexoPet: petSexoMap.get(`${clienteId}_${nomePet}`) || null,
-            whatsapp: whatsapp ? whatsapp.toString() : "",
-            ultimoAgendamento: data,
-            diasSemAgendar: 0,
-            faixaRisco: "sem-risco",
-          });
-        } else {
-          const existente = mapa.get(chave)!;
-          if (data > existente.ultimoAgendamento) {
-            existente.ultimoAgendamento = data;
-          }
+        const existing = riskMap.get(petId);
+        if (!existing) {
+          riskMap.set(petId, { petId, clienteId, ultimoAgendamento: data });
+        } else if (data > existing.ultimoAgendamento) {
+          existing.ultimoAgendamento = data;
         }
       };
 
-      agendamentos?.forEach((a) => {
-        const clienteId = a.cliente_id || a.cliente;
-        const chave = `${clienteId}_${a.pet}`;
-        adicionarOuAtualizar(chave, a.cliente, a.pet, a.whatsapp, a.data, clienteId);
+      // Process agendamentos — resolve pet_id via cliente_id + pet name
+      allAgendamentos.forEach((a) => {
+        const clienteId = a.cliente_id;
+        if (!clienteId) return; // Skip records without cliente_id
+
+        const petId = clientePetNameToId.get(`${clienteId}_${a.pet}`);
+        if (!petId) return; // Skip if pet not found in cadastro
+
+        updateRiskEntry(petId, clienteId, a.data);
       });
 
-      pacotes?.forEach((p) => {
-        // Tentar encontrar o cliente_id pelo nome
-        const clienteMatch = (petsData || []).find((pd: any) => {
-          // fallback: match by nome_cliente from clientes query would be better
-          return false;
-        });
-        const chave = `${p.nome_cliente}_${p.nome_pet}`;
-        let ultimaDataServico: Date | null = null;
+      // Process pacotes — resolve cliente_id via name lookup, then pet_id
+      allPacotes.forEach((p) => {
+        const clienteId = nomeToClienteId.get(p.nome_cliente);
+        if (!clienteId) return;
 
+        const petId = clientePetNameToId.get(`${clienteId}_${p.nome_pet}`);
+        if (!petId) return;
+
+        let ultimaDataServico: string | null = null;
         try {
           const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
           if (Array.isArray(servicos)) {
-            const datasValidas = servicos.map((s: any) => new Date(s.data + "T00:00:00")).filter((d: Date) => isValid(d));
+            const datasValidas = servicos
+              .map((s: any) => new Date(s.data + "T00:00:00"))
+              .filter((d: Date) => isValid(d));
             if (datasValidas.length > 0) {
-              ultimaDataServico = new Date(Math.max(...datasValidas.map((d: Date) => d.getTime())));
+              const maxDate = new Date(Math.max(...datasValidas.map((d: Date) => d.getTime())));
+              ultimaDataServico = maxDate.toISOString().split("T")[0];
             }
           }
         } catch {}
 
-        const dataFinal = ultimaDataServico ? ultimaDataServico.toISOString().split("T")[0] : p.data_venda;
-        adicionarOuAtualizar(chave, p.nome_cliente, p.nome_pet, p.whatsapp, dataFinal, p.nome_cliente);
+        updateRiskEntry(petId, clienteId, ultimaDataServico || p.data_venda);
       });
 
+      // 6. Check for future appointments (using IDs)
+      const hasFutureAppointment = (petId: string, clienteId: string): boolean => {
+        // Check agendamentos
+        const hasAgendamento = allAgendamentos.some((a) => {
+          if (a.cliente_id !== clienteId) return false;
+          const aPetId = clientePetNameToId.get(`${a.cliente_id}_${a.pet}`);
+          return aPetId === petId && new Date(a.data + "T00:00:00") >= hoje;
+        });
+        if (hasAgendamento) return true;
+
+        // Check pacotes
+        const hasPacote = allPacotes.some((p) => {
+          const pClienteId = nomeToClienteId.get(p.nome_cliente);
+          if (pClienteId !== clienteId) return false;
+          const pPetId = clientePetNameToId.get(`${pClienteId}_${p.nome_pet}`);
+          if (pPetId !== petId) return false;
+
+          try {
+            const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
+            if (Array.isArray(servicos)) {
+              return servicos.some((s: any) => {
+                const d = new Date(s.data + "T00:00:00");
+                return isValid(d) && d >= hoje;
+              });
+            }
+          } catch {}
+          return new Date(p.data_venda + "T00:00:00") >= hoje;
+        });
+
+        return hasPacote;
+      };
+
+      // 7. Build the risk list
       const listaRisco: ClienteRisco[] = [];
 
-      mapa.forEach((cli) => {
-        const dias = differenceInDays(hoje, cli.ultimoAgendamento);
-        const temAgendamentoFuturo =
-          agendamentos?.some(
-            (a) => `${a.cliente_id || a.cliente}_${a.pet}` === cli.id && new Date(a.data + "T00:00:00") >= hoje,
-          ) ||
-          pacotes?.some((p) => {
-            if (`${p.nome_cliente}_${p.nome_pet}` !== cli.id) return false;
-            try {
-              const servicos = typeof p.servicos === "string" ? JSON.parse(p.servicos) : p.servicos;
-              if (Array.isArray(servicos)) {
-                return servicos.some((s) => isValid(new Date(s.data + "T00:00:00")) && new Date(s.data + "T00:00:00") >= hoje);
-              }
-            } catch {
-              return false;
-            }
-            return new Date(p.data_venda + "T00:00:00") >= hoje;
-          });
+      riskMap.forEach((entry) => {
+        const dias = differenceInDays(hoje, entry.ultimoAgendamento);
 
-        if (!temAgendamentoFuturo && dias >= 7) {
-          cli.diasSemAgendar = dias;
-          cli.faixaRisco = classificarFaixaRisco(dias);
-          listaRisco.push(cli);
-        }
+        if (dias < 7) return; // Not at risk yet
+        if (hasFutureAppointment(entry.petId, entry.clienteId)) return; // Has future appointment
+
+        const pet = petMap.get(entry.petId);
+        const cliente = clienteMap.get(entry.clienteId);
+        if (!pet || !cliente) return; // Skip orphans
+
+        const faixa = classificarFaixaRisco(dias);
+
+        listaRisco.push({
+          id: entry.petId, // Use petId as unique key
+          clienteId: entry.clienteId,
+          petId: entry.petId,
+          nomeCliente: cliente.nome, // Always from cadastro (fresh)
+          nomePet: pet.nome, // Always from cadastro (fresh)
+          sexoPet: pet.sexo,
+          whatsapp: cliente.whatsapp, // Always from cadastro (fresh)
+          ultimoAgendamento: entry.ultimoAgendamento,
+          diasSemAgendar: dias,
+          faixaRisco: faixa,
+        });
       });
 
       listaRisco.sort((a, b) => b.diasSemAgendar - a.diasSemAgendar);
       setClientes(listaRisco);
-      aplicarFiltros(listaRisco);
+      setClientesFiltrados(aplicarFiltrosInterno(listaRisco, filtrosRef.current));
     } catch (err) {
       console.error("Erro ao carregar clientes em risco:", err);
       toast.error("Erro ao carregar dados dos clientes");
     } finally {
       setLoading(false);
     }
-  };
+  }, [ownerId, aplicarFiltrosInterno]);
 
+  // Initial load
   useEffect(() => {
     carregarClientesEmRisco();
-  }, [user]);
+  }, [carregarClientesEmRisco]);
 
-  // Realtime: recarregar lista quando agendamentos mudam
+  // Realtime: reload on any relevant table change
   useEffect(() => {
     if (!ownerId) return;
 
     const channel = supabase
-      .channel('risk-list-agendamentos')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'agendamentos' },
-        () => {
-          carregarClientesEmRisco();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'agendamentos_pacotes' },
-        () => {
-          carregarClientesEmRisco();
-        }
-      )
+      .channel('risk-list-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
+        carregarClientesEmRisco();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos_pacotes' }, () => {
+        carregarClientesEmRisco();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => {
+        carregarClientesEmRisco();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pets' }, () => {
+        carregarClientesEmRisco();
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [ownerId]);
+  }, [ownerId, carregarClientesEmRisco]);
 
-  // aplica filtros e atualiza clientesFiltrados
-  const aplicarFiltros = (base: ClienteRisco[] = clientes) => {
-    let resultado = [...base];
+  // Apply filters on filter change
+  const aplicarFiltros = useCallback((base: ClienteRisco[] = clientes) => {
+    setClientesFiltrados(aplicarFiltrosInterno(base, filtros));
+  }, [clientes, filtros, aplicarFiltrosInterno]);
 
-    if (filtros.faixaDias !== "todos") resultado = resultado.filter((c) => c.faixaRisco === filtros.faixaDias);
-
-    if (filtros.busca.trim()) {
-      const termo = filtros.busca.toLowerCase();
-      resultado = resultado.filter(
-        (c) => c.nomeCliente.toLowerCase().includes(termo) || c.nomePet.toLowerCase().includes(termo),
-      );
-    }
-
-    if (filtros.dataInicio) resultado = resultado.filter((c) => c.ultimoAgendamento >= new Date(filtros.dataInicio + "T00:00:00"));
-
-    if (filtros.dataFim) resultado = resultado.filter((c) => c.ultimoAgendamento <= new Date(filtros.dataFim + "T00:00:00"));
-
-    setClientesFiltrados(resultado);
-  };
-
-  // quando usuário clica em Filtrar (passado para o componente filho),
-  // recolhemos a área de filtros também.
   const handleFiltrar = () => {
     aplicarFiltros();
     setFiltrosVisiveis(false);
   };
 
-  // detecta quando o filho limpou os filtros (estado padrão) e recolhe automaticamente
   useEffect(() => {
     const padrao =
       filtros.faixaDias === "todos" &&
@@ -480,8 +531,8 @@ export const ClientesEmRisco = () => {
 
     if (padrao) {
       setFiltrosVisiveis(false);
-      aplicarFiltros();
     }
+    aplicarFiltros();
   }, [filtros]); // eslint-disable-line
 
   const abrirModalDetalhes = (c: ClienteRisco) => {
@@ -489,7 +540,6 @@ export const ClientesEmRisco = () => {
     setModalAberto(true);
   };
 
-  // contadores (mantidos iguais)
   const contadores = {
     "7-10": clientes.filter((c) => c.faixaRisco === "7-10").length,
     "11-15": clientes.filter((c) => c.faixaRisco === "11-15").length,
@@ -520,7 +570,6 @@ export const ClientesEmRisco = () => {
         ))}
       </div>
 
-      {/* botão que exibe / recolhe o painel de filtros */}
       <div className="flex justify-end">
         <Button
           variant="outline"
@@ -533,7 +582,6 @@ export const ClientesEmRisco = () => {
         </Button>
       </div>
 
-      {/* painel de filtros (recolhido por padrão) */}
       {filtrosVisiveis && (
         <div>
           <FiltrosClientesRisco filtros={filtros} setFiltros={setFiltros} onFiltrar={handleFiltrar} />
@@ -543,7 +591,6 @@ export const ClientesEmRisco = () => {
       <Card>
         <CardHeader className="flex items-center justify-between">
           <CardTitle>Clientes em Risco ({clientesFiltrados.length})</CardTitle>
-          {/* Removi ExportButton conforme pedido */}
         </CardHeader>
 
         <CardContent>
