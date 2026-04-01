@@ -312,7 +312,7 @@ export const PerformanceBanhistas = () => {
       diasUteis: diasNoIntervalo.length,
       horasDiarias: Math.round(horasDiarias * 10) / 10,
     };
-  }, [concluidos, receitaMap, groomers, dataInicio, dataFim, empresaConfig, groomerFilter]);
+  }, [concluidos, receitaMap, groomers, dataInicio, dataFim, empresaConfig, groomerFilter, normalizedAgendamentos]);
 
   // === Charts data ===
 
