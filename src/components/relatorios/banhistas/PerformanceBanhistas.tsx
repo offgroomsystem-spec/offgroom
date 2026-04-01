@@ -218,13 +218,18 @@ export const PerformanceBanhistas = () => {
     return (h || 0) * 60 + (m || 0);
   };
 
-  const formatHorasMinutos = (horas: number) => {
-    if (!horas || horas <= 0) return "0min";
-    const h = Math.floor(horas);
-    const m = Math.round((horas - h) * 60);
+  // Format raw minutes into "Xh Ymin" display
+  const formatMinutosDisplay = (minutos: number) => {
+    if (!minutos || minutos <= 0) return "0min";
+    const h = Math.floor(minutos / 60);
+    const m = Math.round(minutos % 60);
     if (h === 0) return `${m}min`;
     if (m === 0) return `${h}h`;
     return `${h}h ${m}min`;
+  };
+
+  const formatHorasMinutos = (horas: number) => {
+    return formatMinutosDisplay(horas * 60);
   };
 
   const formatOccupancyRate = (value: number) => {
