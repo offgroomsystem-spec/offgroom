@@ -823,7 +823,11 @@ export const PerformanceBanhistas = () => {
                       );
                     }}
                   />
-                  <Bar dataKey="taxa" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="taxa" fill="#8b5cf6" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                    <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={10} fontWeight="bold" fill="#fff">
+                      {formatOccupancyRate(value)}
+                    </text>
+                  )}>
                     {ocupacaoPerGroomer.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
