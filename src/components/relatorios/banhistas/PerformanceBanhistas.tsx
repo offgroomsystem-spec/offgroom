@@ -262,7 +262,7 @@ export const PerformanceBanhistas = () => {
   const kpis = useMemo(() => {
     const totalPets = concluidos.length;
     const totalMinutos = concluidos.reduce((s, a) => s + parseMinutos(a.tempo_servico), 0);
-    const totalHoras = Math.round((totalMinutos / 60) * 10) / 10;
+    const totalHoras = totalMinutos / 60;
     const mediaMinutos = totalPets > 0 ? Math.round(totalMinutos / totalPets) : 0;
 
     // Banhista mais produtivo — SEMPRE usa dados gerais do período (ignora filtro de groomer)
