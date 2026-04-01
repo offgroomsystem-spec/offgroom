@@ -705,7 +705,9 @@ export const PerformanceBanhistas = () => {
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis dataKey="nome" type="category" width={70} tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="media" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="media" fill="#f59e0b" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                    <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">{value}min</text>
+                  )} />
                 </BarChart>
               </ResponsiveContainer>
             )}
