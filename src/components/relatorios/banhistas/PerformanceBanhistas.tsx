@@ -369,6 +369,7 @@ export const PerformanceBanhistas = () => {
   const receitaPerGroomer = useMemo(() => {
     const map = new Map<string, number>();
     concluidos.forEach((a) => {
+      if (a.groomer === "Não atribuído") return;
       map.set(a.groomer, (map.get(a.groomer) || 0) + (receitaMap.get(a.id) || 0));
     });
     return [...map.entries()].map(([nome, receita]) => ({ nome, receita: Math.round(receita * 100) / 100 })).sort((a, b) => b.receita - a.receita);
