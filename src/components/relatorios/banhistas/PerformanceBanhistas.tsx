@@ -251,9 +251,9 @@ export const PerformanceBanhistas = () => {
     const totalHoras = Math.round((totalMinutos / 60) * 10) / 10;
     const mediaMinutos = totalPets > 0 ? Math.round(totalMinutos / totalPets) : 0;
 
-    // Banhista mais produtivo (exclui "Não atribuído", suporta empate)
+    // Banhista mais produtivo — SEMPRE usa dados gerais do período (ignora filtro de groomer)
     const countPerGroomer = new Map<string, number>();
-    concluidos.forEach((a) => {
+    normalizedAgendamentos.forEach((a) => {
       if (a.groomer && a.groomer.trim() && a.groomer !== "Não atribuído") {
         countPerGroomer.set(a.groomer, (countPerGroomer.get(a.groomer) || 0) + 1);
       }
