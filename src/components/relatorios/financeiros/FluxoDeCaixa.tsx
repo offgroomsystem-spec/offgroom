@@ -1582,11 +1582,13 @@ const FluxoDeCaixa = () => {
   const nomesMeses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
   // Função auxiliar para calcular métricas de um mês/ano específico a partir dos lancamentos carregados
+  // IMPORTANTE: Usa data_pagamento (não mes_competencia/ano) para garantir paridade com useFinancialData e gráficos
   const calcularMetricasMes = (mes: number, ano: number) => {
-    const mesStr = String(mes).padStart(2, "0");
-    const anoStr = String(ano);
+    const inicioStr = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const lastDay = new Date(ano, mes, 0).getDate();
+    const fimStr = `${ano}-${String(mes).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     const filtrados = lancamentos.filter(
-      (l) => l.pago && l.ano === anoStr && l.mesCompetencia === mesStr && l.observacao !== "Transferência entre contas"
+      (l) => l.pago && l.dataPagamento && l.dataPagamento >= inicioStr && l.dataPagamento <= fimStr && l.observacao !== "Transferência entre contas"
     );
     const receitas = filtrados.filter(l => l.tipo === "Receita").reduce((a, l) => a + l.valorTotal, 0);
     const despesas = filtrados.filter(l => l.tipo === "Despesa").reduce((a, l) => a + l.valorTotal, 0);
