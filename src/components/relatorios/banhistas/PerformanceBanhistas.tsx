@@ -806,7 +806,7 @@ export const PerformanceBanhistas = () => {
                       const d = payload[0].payload;
                       const taxaFormatada = formatOccupancyRate(d.taxa);
                       return (
-                        <div className="bg-background border border-border/50 rounded-lg shadow-xl p-3 max-w-xs text-xs space-y-1">
+                        <div className="bg-background border border-border/50 rounded-lg shadow-xl p-3 max-w-xs text-xs space-y-1 z-[100]">
                           <p className="font-semibold">📊 Taxa de Ocupação – {d.nome}</p>
                           <p>Mede quanto da capacidade individual deste profissional foi utilizada no período selecionado.</p>
                           <p className="font-medium mt-1">Fórmula:</p>
