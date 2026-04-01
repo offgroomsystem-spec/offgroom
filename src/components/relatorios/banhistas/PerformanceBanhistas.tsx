@@ -601,7 +601,7 @@ export const PerformanceBanhistas = () => {
               <TooltipProvider key={k.label}>
                 <UITooltip delayDuration={200}>
                   <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
+                  <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3 z-[100]">
                     {k.tooltipType === "comissao" ? (
                       <p className="font-semibold">🚧 Em desenvolvimento</p>
                     ) : (
