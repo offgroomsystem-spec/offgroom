@@ -403,7 +403,7 @@ export const PerformanceBanhistas = () => {
 
   // Ranking de performance (score combinado)
   const ranking = useMemo(() => {
-    const groomerSet = new Set(concluidos.map((a) => a.groomer));
+    const groomerSet = new Set(concluidos.map((a) => a.groomer).filter((g) => g !== "Não atribuído"));
     const results: { nome: string; pets: number; receita: number; mediaMin: number; score: number }[] = [];
     groomerSet.forEach((g) => {
       const ga = concluidos.filter((a) => a.groomer === g);
