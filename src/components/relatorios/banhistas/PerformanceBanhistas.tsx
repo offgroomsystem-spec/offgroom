@@ -314,6 +314,7 @@ export const PerformanceBanhistas = () => {
 
     return {
       totalPets,
+      totalMinutos,
       totalHoras,
       mediaMinutos,
       topGroomer,
