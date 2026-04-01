@@ -590,7 +590,7 @@ export const PerformanceBanhistas = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1.5">
         {[
           { label: "Pets Atendidos", value: kpis.totalPets, icon: Users, color: "text-blue-500" },
-          { label: "Horas Trabalhadas", value: `${kpis.totalHoras}h`, icon: Clock, color: "text-green-500" },
+          { label: "Horas Trabalhadas", value: formatMinutosDisplay(kpis.totalMinutos), icon: Clock, color: "text-green-500" },
           { label: "Média/Atend.", value: `${kpis.mediaMinutos}min`, icon: Activity, color: "text-orange-500" },
           { label: "Mais Produtivo", value: kpis.topGroomer, sub: `${kpis.topCount} ${kpis.topCount === 1 ? "pet" : "pets"}`, icon: Star, color: "text-yellow-500" },
           { label: "Taxa Ocupação", value: kpis.taxaOcupacaoFormatada, icon: TrendingUp, color: "text-purple-500", hasTooltip: true },
