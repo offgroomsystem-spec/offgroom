@@ -543,7 +543,7 @@ export const PerformanceBanhistas = () => {
           { label: "Média/Atend.", value: `${kpis.mediaMinutos}min`, icon: Activity, color: "text-orange-500" },
           { label: "Mais Produtivo", value: kpis.topGroomer, sub: `${kpis.topCount} ${kpis.topCount === 1 ? "pet" : "pets"}`, icon: Star, color: "text-yellow-500" },
           { label: "Taxa Ocupação", value: kpis.taxaOcupacaoFormatada, icon: TrendingUp, color: "text-purple-500", hasTooltip: true },
-          { label: "Receita Total", value: formatCurrency(kpis.receitaTotal), icon: DollarSign, color: "text-emerald-500" },
+          { label: "Total Comissão", value: formatCurrency(kpis.receitaTotal), icon: DollarSign, color: "text-emerald-500", hasTooltip: true, tooltipType: "comissao" },
         ].map((k) => {
           const cardContent = (
             <Card key={k.label} className="p-0 relative">
@@ -565,18 +565,24 @@ export const PerformanceBanhistas = () => {
                 <UITooltip delayDuration={200}>
                   <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
-                    <p className="font-semibold">📊 Taxa de Ocupação</p>
-                    <p>Mede quanto da capacidade total dos groomers cadastrados foi utilizada no período.</p>
-                    <p className="font-medium mt-1">Fórmula:</p>
-                    <p className="italic">Horas Trabalhadas ÷ Capacidade Total × 100</p>
-                    <p className="font-medium mt-1">Cálculo atual:</p>
-                    <p>• {kpis.numBanhistasCadastrados} groomer(s) cadastrado(s)</p>
-                    <p>• {kpis.diasUteis} dias de funcionamento no período</p>
-                    <p>• {kpis.horasDiarias}h de jornada diária</p>
-                    <p>• Capacidade: {kpis.capacidadeTotal}h</p>
-                    <p>• Horas trabalhadas: {kpis.totalHoras}h</p>
-                    <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacaoFormatada}</p>
-                    <p className="mt-1 italic">Ou seja, apenas {kpis.taxaOcupacaoFormatada} da capacidade total dos groomers cadastrados foi utilizada no período.</p>
+                    {k.tooltipType === "comissao" ? (
+                      <p className="font-semibold">🚧 Em desenvolvimento</p>
+                    ) : (
+                      <>
+                        <p className="font-semibold">📊 Taxa de Ocupação</p>
+                        <p>Mede quanto da capacidade total dos groomers cadastrados foi utilizada no período.</p>
+                        <p className="font-medium mt-1">Fórmula:</p>
+                        <p className="italic">Horas Trabalhadas ÷ Capacidade Total × 100</p>
+                        <p className="font-medium mt-1">Cálculo atual:</p>
+                        <p>• {kpis.numBanhistasCadastrados} groomer(s) cadastrado(s)</p>
+                        <p>• {kpis.diasUteis} dias de funcionamento no período</p>
+                        <p>• {kpis.horasDiarias}h de jornada diária</p>
+                        <p>• Capacidade: {kpis.capacidadeTotal}h</p>
+                        <p>• Horas trabalhadas: {kpis.totalHoras}h</p>
+                        <p className="font-semibold mt-1">Resultado: {kpis.taxaOcupacaoFormatada}</p>
+                        <p className="mt-1 italic">Ou seja, apenas {kpis.taxaOcupacaoFormatada} da capacidade total dos groomers cadastrados foi utilizada no período.</p>
+                      </>
+                    )}
                   </TooltipContent>
                 </UITooltip>
               </TooltipProvider>
