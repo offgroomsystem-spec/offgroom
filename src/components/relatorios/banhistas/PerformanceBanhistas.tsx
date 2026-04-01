@@ -342,6 +342,7 @@ export const PerformanceBanhistas = () => {
   const horasPerGroomer = useMemo(() => {
     const map = new Map<string, number>();
     concluidos.forEach((a) => {
+      if (a.groomer === "Não atribuído") return;
       const mins = parseMinutos(a.tempo_servico);
       map.set(a.groomer, (map.get(a.groomer) || 0) + mins);
     });
