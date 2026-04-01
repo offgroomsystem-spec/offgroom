@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { format, startOfMonth, endOfMonth, subMonths, parseISO, differenceInMinutes, eachDayOfInterval, getDay, getHours } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, parseISO, eachDayOfInterval, getDay, getHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -499,28 +499,6 @@ export const PerformanceBanhistas = () => {
     }));
   }, [concluidos]);
 
-  // Eficiência: tempo previsto vs real (usando tempo_servico como previsto, horario/horario_termino como real)
-  const eficienciaData = useMemo(() => {
-    const map = new Map<string, { previsto: number; real: number; count: number }>();
-    concluidos.forEach((a) => {
-      if (!a.horario || !a.horario_termino) return;
-      const previsto = parseMinutos(a.tempo_servico);
-      const inicio = new Date(`2000-01-01T${a.horario}`);
-      const fim = new Date(`2000-01-01T${a.horario_termino}`);
-      const real = differenceInMinutes(fim, inicio);
-      if (real <= 0) return;
-      const existing = map.get(a.groomer) || { previsto: 0, real: 0, count: 0 };
-      existing.previsto += previsto;
-      existing.real += real;
-      existing.count += 1;
-      map.set(a.groomer, existing);
-    });
-    return [...map.entries()].map(([nome, d]) => ({
-      nome,
-      previsto: d.count > 0 ? Math.round(d.previsto / d.count) : 0,
-      real: d.count > 0 ? Math.round(d.real / d.count) : 0,
-    }));
-  }, [concluidos]);
 
   if (loading) {
     return (
@@ -786,22 +764,23 @@ export const PerformanceBanhistas = () => {
           </CardContent>
         </Card>
 
-        {/* Eficiência: Previsto vs Real */}
+        {/* Serviços por Banhista */}
         <Card>
           <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">⚡ Eficiência (Previsto vs Real)</CardTitle>
+            <CardTitle className="text-xs">✂️ Serviços por Banhista</CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 h-48">
-            {eficienciaData.length === 0 ? <EmptyState /> : (
+            {servicoPerGroomer.data.length === 0 ? <EmptyState /> : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={eficienciaData} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
+                <BarChart data={servicoPerGroomer.data} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="nome" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Bar dataKey="previsto" name="Previsto" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="real" name="Real" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: 9 }} />
+                  {servicoPerGroomer.servicos.slice(0, 5).map((s, i) => (
+                    <Bar key={s} dataKey={s} stackId="a" fill={COLORS[i % COLORS.length]} />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -918,28 +897,6 @@ export const PerformanceBanhistas = () => {
           </CardContent>
         </Card>
 
-        {/* Tipos de serviço */}
-        <Card>
-          <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">✂️ Serviços por Banhista</CardTitle>
-          </CardHeader>
-          <CardContent className="px-2 pb-2 pt-0 h-48">
-            {servicoPerGroomer.data.length === 0 ? <EmptyState /> : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={servicoPerGroomer.data} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="nome" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Legend wrapperStyle={{ fontSize: 9 }} />
-                  {servicoPerGroomer.servicos.slice(0, 5).map((s, i) => (
-                    <Bar key={s} dataKey={s} stackId="a" fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
