@@ -313,6 +313,18 @@ export const ClientesEmRisco = () => {
         clientePetNameToId.set(`${p.cliente_id}_${p.nome_pet}`, p.id);
       });
 
+      // Build whatsapp → cliente_id lookup (for agendamentos without cliente_id)
+      const whatsappToClienteId = new Map<string, string>();
+      (clientesData || []).forEach((c) => {
+        const normalized = c.whatsapp?.replace(/\D/g, "");
+        if (normalized && !whatsappToClienteId.has(normalized)) {
+          whatsappToClienteId.set(normalized, c.id);
+        }
+      });
+
+      // Valid statuses for counting activity
+      const statusInvalidos = ["cancelado", "Cancelado", "cancelada", "Cancelada"];
+
       // 3. Fetch ALL agendamentos with pagination
       const allAgendamentos: any[] = [];
       let page = 0;
