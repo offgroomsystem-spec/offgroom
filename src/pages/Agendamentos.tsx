@@ -5820,8 +5820,8 @@ const Agendamentos = () => {
                         </td>
                         <td className="p-1 border">{agendamento.cliente}</td>
                         <td className="p-1 border">{agendamento.pet}</td>
-                        <td className="p-1 border">{agendamento.raca || "-"}</td>
-                        <td className="p-1 border">{agendamento.servico}</td>
+                        <td className="p-1 border break-words">{agendamento.raca || "-"}</td>
+                        <td className="p-1 border break-words">{agendamento.servico}</td>
                         <td className="p-1 border whitespace-nowrap">{agendamento.numeroPacote || ""}</td>
                         <td className="p-1 border whitespace-nowrap">
                           {agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ""}
@@ -5848,7 +5848,7 @@ const Agendamentos = () => {
                             <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
                           </Button>
                         </td>
-                        <td className="p-1 border whitespace-nowrap">{agendamento.groomer || "—"}</td>
+                        <td className="p-1 border whitespace-nowrap">{agendamento.groomer || ""}</td>
                       </tr>
                   )}
                   </tbody>
