@@ -432,10 +432,17 @@ export const ClientesEmRisco = () => {
 
       // 6. Check for future appointments (using IDs)
       const hasFutureAppointment = (petId: string, clienteId: string): boolean => {
-        // Check agendamentos
+        // Check agendamentos (excluding cancelled)
         const hasAgendamento = allAgendamentos.some((a) => {
-          if (a.cliente_id !== clienteId) return false;
-          const aPetId = clientePetNameToId.get(`${a.cliente_id}_${a.pet}`);
+          if (statusInvalidos.includes(a.status)) return false;
+          // Resolve cliente_id with fallback
+          let aClienteId = a.cliente_id;
+          if (!aClienteId && a.whatsapp) {
+            const normalizedWa = a.whatsapp.replace(/\D/g, "");
+            aClienteId = whatsappToClienteId.get(normalizedWa);
+          }
+          if (aClienteId !== clienteId) return false;
+          const aPetId = clientePetNameToId.get(`${aClienteId}_${a.pet}`);
           return aPetId === petId && new Date(a.data + "T00:00:00") >= hoje;
         });
         if (hasAgendamento) return true;
