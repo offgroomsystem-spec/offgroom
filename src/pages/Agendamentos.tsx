@@ -5546,6 +5546,24 @@ const Agendamentos = () => {
                     </PopoverContent>
                   </Popover>
                 }
+                {viewMode === "dia" &&
+                <div className="flex items-center gap-1 ml-2 border rounded-md p-0.5">
+                    <Button
+                      variant={diaViewMode === "relatorio" ? "default" : "ghost"}
+                      onClick={() => handleDiaViewModeChange("relatorio")}
+                      className="h-6 text-xs px-2 gap-1">
+                      <LayoutList className="h-3 w-3" />
+                      Relatório
+                    </Button>
+                    <Button
+                      variant={diaViewMode === "cards" ? "default" : "ghost"}
+                      onClick={() => handleDiaViewModeChange("cards")}
+                      className="h-6 text-xs px-2 gap-1">
+                      <LayoutGrid className="h-3 w-3" />
+                      Cards
+                    </Button>
+                  </div>
+                }
               </div>
 
               {viewMode === "semana" ?
