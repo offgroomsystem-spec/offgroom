@@ -126,6 +126,9 @@ const ServicosCrecheHotel = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIds, setEditingIds] = useState<string[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [pacoteModalOpen, setPacoteModalOpen] = useState(false);
+  const [pacotes, setPacotes] = useState<any[]>([]);
+  const [editingPacote, setEditingPacote] = useState<any>(null);
 
   const loadServicos = async () => {
     if (!user) return;
