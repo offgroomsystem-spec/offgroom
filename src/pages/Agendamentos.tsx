@@ -2805,6 +2805,7 @@ const Agendamentos = () => {
         pacote: p.nomePacote,
         numeroPacote: s.numero,
         taxiDog: p.taxiDog,
+        groomer: (s as any).groomer || "",
         agendamentoPacote: p,
         servicoAgendamento: s
       };
