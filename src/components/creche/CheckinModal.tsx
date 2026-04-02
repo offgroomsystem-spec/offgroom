@@ -129,7 +129,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
         checklist_entrada: { ...checklist, observacoes_adicionais: checklistObs },
         status: "ativo",
         modelo_preco: tipo === "creche" ? modeloPreco : "unico",
-        modelo_cobranca: tipo === "creche" && modeloPreco === "porte" ? modeloCobranca : null,
+        modelo_cobranca: tipo === "creche" ? modeloCobranca : "dia",
       };
 
       const { error } = await supabase.from("creche_estadias").insert(insertData);
