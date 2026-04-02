@@ -199,7 +199,7 @@ const ServicosCrecheHotel = () => {
       descricao: null as string | null,
       tipo: form.tipo,
       modelo_preco: form.modelo_preco,
-      modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "periodo",
+      modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "dia",
       is_padrao: false,
       is_opcional: true,
       observacoes_internas: form.observacoes_internas?.trim() || null,
