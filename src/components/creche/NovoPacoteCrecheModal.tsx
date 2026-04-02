@@ -6,9 +6,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dog, Hotel, Plus, X, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +22,13 @@ interface ServicoCreche {
   valor_pequeno: number;
   valor_medio: number;
   valor_grande: number;
+}
+
+interface ServicoBanhoTosa {
+  id: string;
+  nome: string;
+  porte: string;
+  valor: number;
 }
 
 interface ServicoExtra {
@@ -63,16 +70,21 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
   const [servicoAtual, setServicoAtual] = useState("");
   const [servicoSearchOpen, setServicoSearchOpen] = useState(false);
-  const [servicoSearch, setServicoSearch] = useState("");
   const [descontoPct, setDescontoPct] = useState("");
   const [descontoVal, setDescontoVal] = useState("");
   const [lastEdited, setLastEdited] = useState<"pct" | "val">("pct");
   const [servicos, setServicos] = useState<ServicoCreche[]>([]);
+  const [servicosExtrasBase, setServicosExtrasBase] = useState<ServicoBanhoTosa[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Per-instance extras popover state
+  const [extrasOpenId, setExtrasOpenId] = useState<string | null>(null);
+  const [extrasPorteFilter, setExtrasPorteFilter] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
     loadServicos();
+    loadServicosExtras();
     if (editingPacote) {
       setNome(editingPacote.nome);
       setTipo(editingPacote.tipo);
@@ -88,7 +100,6 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
     }
   }, [open, editingPacote]);
 
-  // When editing, rebuild servicosSelecionados from servicos_ids once servicos are loaded
   useEffect(() => {
     if (!open || !editingPacote || servicos.length === 0) return;
     const rebuilt = (editingPacote.servicos_ids || []).map((id, idx) => {
@@ -109,6 +120,11 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
     if (data) setServicos(data as any[]);
   };
 
+  const loadServicosExtras = async () => {
+    const { data } = await supabase.from("servicos").select("id, nome, porte, valor").order("nome");
+    if (data) setServicosExtrasBase(data);
+  };
+
   const filteredServicos = useMemo(() => servicos.filter((s) => s.tipo === tipo), [servicos, tipo]);
 
   const getServicoValor = (s: ServicoCreche) => {
@@ -123,7 +139,6 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
     }, 0);
   }, [servicosSelecionados]);
 
-  // Sync desconto bidirecional
   useEffect(() => {
     if (valorTotalServicos <= 0) return;
     if (lastEdited === "pct") {
@@ -168,15 +183,12 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
     setServicosSelecionados((prev) => prev.filter((s) => s.instanceId !== instanceId));
   };
 
-  const handleAddServicoExtra = (instanceId: string, servicoExtraId: string) => {
-    const servicoExtra = servicos.find((s) => s.id === servicoExtraId);
-    if (!servicoExtra) return;
-
+  const handleAddServicoExtra = (instanceId: string, servicoExtra: ServicoBanhoTosa) => {
     setServicosSelecionados((prev) =>
       prev.map((servico) => {
         if (servico.instanceId === instanceId) {
           const extras = servico.servicosExtras || [];
-          if (extras.some((e) => e.id === servicoExtraId)) {
+          if (extras.some((e) => e.id === servicoExtra.id)) {
             toast.error("Este serviço extra já foi adicionado");
             return servico;
           }
@@ -184,7 +196,7 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
             ...servico,
             servicosExtras: [
               ...extras,
-              { id: servicoExtra.id, nome: servicoExtra.nome, valor: getServicoValor(servicoExtra) },
+              { id: servicoExtra.id, nome: servicoExtra.nome, valor: servicoExtra.valor },
             ],
           };
         }
@@ -207,13 +219,42 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
     );
   };
 
-  // When tipo changes, clear selected services that don't match
   useEffect(() => {
     setServicosSelecionados((prev) =>
       prev.filter((sel) => servicos.find((s) => s.id === sel.id && s.tipo === tipo))
     );
     setServicoAtual("");
   }, [tipo, servicos]);
+
+  const normalizePorte = (porte: string) => {
+    const p = porte?.toLowerCase().trim() || "";
+    if (p.includes("pequeno") || p === "p") return "pequeno";
+    if (p.includes("medio") || p.includes("médio") || p === "m") return "medio";
+    if (p.includes("grande") || p === "g") return "grande";
+    if (p.includes("todos") || p.includes("all")) return "todos";
+    return p;
+  };
+
+  const getFilteredExtras = (instanceId: string) => {
+    const servico = servicosSelecionados.find((s) => s.instanceId === instanceId);
+    const alreadyAddedIds = (servico?.servicosExtras || []).map((e) => e.id);
+
+    return servicosExtrasBase.filter((s) => {
+      // Exclude already added
+      if (alreadyAddedIds.includes(s.id)) return false;
+      // Exclude items starting with "Pacote"
+      if (s.nome.toLowerCase().startsWith("pacote")) return false;
+      // Apply porte filter
+      if (extrasPorteFilter) {
+        const normalized = normalizePorte(s.porte);
+        if (extrasPorteFilter === "todos") {
+          return normalized === "todos";
+        }
+        return normalized === extrasPorteFilter;
+      }
+      return true;
+    });
+  };
 
   const handleSave = async () => {
     if (!nome.trim()) {
@@ -362,6 +403,7 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
                   const totalFormatado = String(total).padStart(2, "0");
                   const valorExtras = (servico.servicosExtras || []).reduce((sum, e) => sum + e.valor, 0);
                   const valorTotalItem = servico.valor + valorExtras;
+                  const isExtrasOpen = extrasOpenId === servico.instanceId;
 
                   return (
                     <div key={servico.instanceId} className="bg-secondary/50 p-2 rounded text-xs space-y-1">
@@ -373,28 +415,77 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
                           - {servico.nome} - {formatCurrency(servico.valor)}
                         </span>
                         <div className="flex items-center gap-1">
-                          <Popover>
+                          <Popover
+                            open={isExtrasOpen}
+                            onOpenChange={(open) => {
+                              setExtrasOpenId(open ? servico.instanceId : null);
+                              if (open) setExtrasPorteFilter("");
+                            }}
+                          >
                             <PopoverTrigger asChild>
                               <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2">
                                 + Serviço Extra
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2" align="end">
-                              <div className="space-y-2">
+                            <PopoverContent className="w-72 p-0" align="end">
+                              <div className="p-2 pb-1 space-y-2">
                                 <p className="text-xs font-medium">Selecione um serviço extra:</p>
-                                <Select onValueChange={(value) => handleAddServicoExtra(servico.instanceId, value)}>
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Selecione..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {filteredServicos.map((s) => (
-                                      <SelectItem key={s.id} value={s.id}>
-                                        {s.nome} - {formatCurrency(getServicoValor(s))}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                {/* Porte filter radio */}
+                                <RadioGroup
+                                  value={extrasPorteFilter}
+                                  onValueChange={(v) => setExtrasPorteFilter(v === extrasPorteFilter ? "" : v)}
+                                  className="flex flex-wrap gap-x-3 gap-y-1"
+                                >
+                                  {[
+                                    { value: "pequeno", label: "Pequeno" },
+                                    { value: "medio", label: "Médio" },
+                                    { value: "grande", label: "Grande" },
+                                    { value: "todos", label: "Para todos" },
+                                  ].map((opt) => (
+                                    <div key={opt.value} className="flex items-center gap-1">
+                                      <RadioGroupItem
+                                        value={opt.value}
+                                        id={`porte-extra-${servico.instanceId}-${opt.value}`}
+                                        className="h-3 w-3"
+                                        onClick={() => {
+                                          if (extrasPorteFilter === opt.value) {
+                                            setExtrasPorteFilter("");
+                                          }
+                                        }}
+                                      />
+                                      <Label
+                                        htmlFor={`porte-extra-${servico.instanceId}-${opt.value}`}
+                                        className="text-[10px] cursor-pointer"
+                                      >
+                                        {opt.label}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </RadioGroup>
                               </div>
+                              <Command>
+                                <CommandInput placeholder="Buscar serviço extra..." className="h-8 text-xs" />
+                                <CommandList className="max-h-48">
+                                  <CommandEmpty className="text-xs p-2">Nenhum serviço encontrado</CommandEmpty>
+                                  <CommandGroup>
+                                    {getFilteredExtras(servico.instanceId).map((s) => (
+                                      <CommandItem
+                                        key={s.id}
+                                        value={s.nome}
+                                        onSelect={() => {
+                                          handleAddServicoExtra(servico.instanceId, s);
+                                        }}
+                                        className="text-xs cursor-pointer"
+                                      >
+                                        <span className="flex-1 truncate">{s.nome}</span>
+                                        <span className="text-muted-foreground ml-2 shrink-0">
+                                          {formatCurrency(s.valor)}
+                                        </span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
                             </PopoverContent>
                           </Popover>
                           <Button
