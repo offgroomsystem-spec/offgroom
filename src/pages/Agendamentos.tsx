@@ -5762,37 +5762,57 @@ const Agendamentos = () => {
                   return { item, startMin, endMin: startMin + duration };
                 }).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 
-                // Assign columns using greedy interval-graph colouring
-                // Each item gets the first column where it doesn't clash with an already-placed item
+                // Build independent conflict groups (connected components of overlapping intervals)
                 const colMap = new Map<typeof positioned[0], { col: number; total: number }>();
-                const columns: (typeof positioned[0])[][] = [];
-                positioned.forEach(p => {
-                  let placed = false;
-                  for (let c = 0; c < columns.length; c++) {
-                    const lastInCol = columns[c][columns[c].length - 1];
-                    if (p.startMin >= lastInCol.endMin) {
-                      columns[c].push(p);
-                      colMap.set(p, { col: c, total: 0 }); // total filled later
-                      placed = true;
-                      break;
+                const visited = new Set<number>();
+                
+                for (let i = 0; i < positioned.length; i++) {
+                  if (visited.has(i)) continue;
+                  // BFS to find all transitively overlapping items
+                  const group: number[] = [];
+                  const queue = [i];
+                  visited.add(i);
+                  while (queue.length > 0) {
+                    const cur = queue.shift()!;
+                    group.push(cur);
+                    for (let j = 0; j < positioned.length; j++) {
+                      if (visited.has(j)) continue;
+                      if (positioned[j].startMin < positioned[cur].endMin && positioned[j].endMin > positioned[cur].startMin) {
+                        visited.add(j);
+                        queue.push(j);
+                      }
                     }
                   }
-                  if (!placed) {
-                    colMap.set(p, { col: columns.length, total: 0 });
-                    columns.push([p]);
-                  }
-                });
-
-                // For each item, compute the max concurrency at its time range
-                // so its width = 1/maxConcurrent, not 1/totalColumns
-                positioned.forEach(p => {
-                  const concurrent = positioned.filter(
-                    q => q.startMin < p.endMin && q.endMin > p.startMin
-                  );
-                  const maxCol = Math.max(...concurrent.map(q => colMap.get(q)!.col)) + 1;
-                  const entry = colMap.get(p)!;
-                  entry.total = maxCol;
-                });
+                  
+                  // Assign columns within this isolated group using greedy colouring
+                  const groupItems = group.map(idx => positioned[idx]).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+                  const groupCols: (typeof positioned[0])[][] = [];
+                  groupItems.forEach(p => {
+                    let placed = false;
+                    for (let c = 0; c < groupCols.length; c++) {
+                      const lastInCol = groupCols[c][groupCols[c].length - 1];
+                      if (p.startMin >= lastInCol.endMin) {
+                        groupCols[c].push(p);
+                        colMap.set(p, { col: c, total: 0 });
+                        placed = true;
+                        break;
+                      }
+                    }
+                    if (!placed) {
+                      colMap.set(p, { col: groupCols.length, total: 0 });
+                      groupCols.push([p]);
+                    }
+                  });
+                  
+                  // Set total columns for each item based on its local concurrency
+                  groupItems.forEach(p => {
+                    const concurrent = groupItems.filter(
+                      q => q.startMin < p.endMin && q.endMin > p.startMin
+                    );
+                    const maxCol = Math.max(...concurrent.map(q => colMap.get(q)!.col)) + 1;
+                    colMap.get(p)!.total = maxCol;
+                  });
+                }
 
                 // Determine which slots have events (for adaptive height)
                 const gridStartMin = timeToMinutes(horarios[0]);
