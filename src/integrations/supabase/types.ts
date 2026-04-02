@@ -1147,6 +1147,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pacotes_creche: {
+        Row: {
+          created_at: string
+          desconto_percentual: number
+          desconto_valor: number
+          id: string
+          nome: string
+          servicos_ids: Json
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor_final: number
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          desconto_percentual?: number
+          desconto_valor?: number
+          id?: string
+          nome: string
+          servicos_ids?: Json
+          tipo?: string
+          updated_at?: string
+          user_id: string
+          valor_final?: number
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          desconto_percentual?: number
+          desconto_valor?: number
+          id?: string
+          nome?: string
+          servicos_ids?: Json
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_final?: number
+          valor_total?: number
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           codigo: string
