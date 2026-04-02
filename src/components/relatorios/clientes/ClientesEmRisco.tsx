@@ -388,8 +388,16 @@ export const ClientesEmRisco = () => {
 
       // Process agendamentos — resolve pet_id via cliente_id + pet name
       allAgendamentos.forEach((a) => {
-        const clienteId = a.cliente_id;
-        if (!clienteId) return; // Skip records without cliente_id
+        // Skip cancelled/invalid agendamentos
+        if (statusInvalidos.includes(a.status)) return;
+
+        // Resolve cliente_id: use directly if available, fallback to whatsapp lookup
+        let clienteId = a.cliente_id;
+        if (!clienteId && a.whatsapp) {
+          const normalizedWa = a.whatsapp.replace(/\D/g, "");
+          clienteId = whatsappToClienteId.get(normalizedWa);
+        }
+        if (!clienteId) return; // Skip records we can't resolve
 
         const petId = clientePetNameToId.get(`${clienteId}_${a.pet}`);
         if (!petId) return; // Skip if pet not found in cadastro
