@@ -2779,6 +2779,7 @@ const Agendamentos = () => {
       pacote: null,
       numeroPacote: null,
       taxiDog: a.taxiDog,
+      groomer: a.groomer || "",
       agendamento: a,
       agendamentoOriginal: a
     }));
@@ -2804,6 +2805,7 @@ const Agendamentos = () => {
         pacote: p.nomePacote,
         numeroPacote: s.numero,
         taxiDog: p.taxiDog,
+        groomer: (s as any).groomer || "",
         agendamentoPacote: p,
         servicoAgendamento: s
       };
@@ -5792,40 +5794,39 @@ const Agendamentos = () => {
                   <thead className="bg-secondary sticky top-0">
                     <tr>
                       {/* Colunas A e B (Início e Fim) - Mais estreitas */}
-                      <th className="p-1.5 border text-left w-[35px]">Início</th>
-                      <th className="p-1.5 border text-left w-[35px]">Fim</th>
+                      <th className="p-1 border text-left w-[32px] whitespace-nowrap">Início</th>
+                      <th className="p-1 border text-left w-[32px] whitespace-nowrap">Fim</th>
 
-                      {/* Colunas C, D, E, F (Tutor, Pet, Raça, Serviço) - Deixe o navegador ajustar ou defina larguras maiores */}
-                      <th className="p-1.5 border text-left">Tutor</th>
-                      <th className="p-1.5 border text-left">Pet</th>
-                      <th className="p-1.5 border text-left">Raça</th>
-                      <th className="p-1.5 border text-left">Serviço</th>
+                      <th className="p-1 border text-left">Tutor</th>
+                      <th className="p-1 border text-left">Pet</th>
+                      <th className="p-1 border text-left">Raça</th>
+                      <th className="p-1 border text-left">Serviço</th>
 
-                      {/* Colunas G, H, I (N° PCT, Taxi Dog, Whatsapp) - Mais estreitas */}
-                      <th className="p-1.5 border text-left w-[50px]">N° PCT</th>
-                      <th className="p-1.5 border text-left w-[30px]">Taxi Dog</th>
-                      <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
-                      <th className="p-1.5 border text-center w-[45px]">Pet Pronto</th>
+                      <th className="p-1 border text-left w-[40px] whitespace-nowrap">N° PCT</th>
+                      <th className="p-1 border text-left w-[28px] whitespace-nowrap">Taxi</th>
+                      <th className="p-1 border text-left w-[32px] whitespace-nowrap">Whats</th>
+                      <th className="p-1 border text-center w-[38px] whitespace-nowrap">Pronto</th>
+                      <th className="p-1 border text-left whitespace-nowrap">Groomer</th>
                     </tr>
                   </thead>
                   <tbody>
                     {agendamentosDia.map((agendamento, index) =>
                   <tr key={index} className="hover:bg-cyan-500/20 transition-colors cursor-pointer" onClick={() => handleEditarClick(convertDiaItemToUnificado(agendamento))}>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border whitespace-nowrap">
                           {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
                         </td>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border whitespace-nowrap">
                           {agendamento.horarioFim ? agendamento.horarioFim.substring(0, 5) : "-"}
                         </td>
-                        <td className="p-1.5 border">{agendamento.cliente}</td>
-                        <td className="p-1.5 border">{agendamento.pet}</td>
-                        <td className="p-1.5 border">{agendamento.raca || "-"}</td>
-                        <td className="p-1.5 border">{agendamento.servico}</td>
-                        <td className="p-1.5 border">{agendamento.numeroPacote || ""}</td>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border">{agendamento.cliente}</td>
+                        <td className="p-1 border">{agendamento.pet}</td>
+                        <td className="p-1 border">{agendamento.raca || "-"}</td>
+                        <td className="p-1 border">{agendamento.servico}</td>
+                        <td className="p-1 border whitespace-nowrap">{agendamento.numeroPacote || ""}</td>
+                        <td className="p-1 border whitespace-nowrap">
                           {agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ""}
                         </td>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border">
                           {(agendamento.tipo === "pacote" && agendamento.agendamentoPacote && agendamento.servicoAgendamento) ||
                       (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) ?
                       <Button
@@ -5837,7 +5838,7 @@ const Agendamentos = () => {
                       </Button> :
                       null}
                         </td>
-                        <td className="p-1.5 border text-center">
+                        <td className="p-1 border text-center">
                           <Button
                         variant="ghost"
                         size="sm"
@@ -5847,6 +5848,7 @@ const Agendamentos = () => {
                             <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
                           </Button>
                         </td>
+                        <td className="p-1 border whitespace-nowrap">{agendamento.groomer || "—"}</td>
                       </tr>
                   )}
                   </tbody>
