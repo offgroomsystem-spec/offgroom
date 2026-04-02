@@ -5812,21 +5812,21 @@ const Agendamentos = () => {
                   <tbody>
                     {agendamentosDia.map((agendamento, index) =>
                   <tr key={index} className="hover:bg-cyan-500/20 transition-colors cursor-pointer" onClick={() => handleEditarClick(convertDiaItemToUnificado(agendamento))}>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border whitespace-nowrap">
                           {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
                         </td>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border whitespace-nowrap">
                           {agendamento.horarioFim ? agendamento.horarioFim.substring(0, 5) : "-"}
                         </td>
-                        <td className="p-1.5 border">{agendamento.cliente}</td>
-                        <td className="p-1.5 border">{agendamento.pet}</td>
-                        <td className="p-1.5 border">{agendamento.raca || "-"}</td>
-                        <td className="p-1.5 border">{agendamento.servico}</td>
-                        <td className="p-1.5 border">{agendamento.numeroPacote || ""}</td>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border">{agendamento.cliente}</td>
+                        <td className="p-1 border">{agendamento.pet}</td>
+                        <td className="p-1 border">{agendamento.raca || "-"}</td>
+                        <td className="p-1 border">{agendamento.servico}</td>
+                        <td className="p-1 border whitespace-nowrap">{agendamento.numeroPacote || ""}</td>
+                        <td className="p-1 border whitespace-nowrap">
                           {agendamento.taxiDog === "Sim" ? "Sim" : agendamento.taxiDog === "Não" ? "Não" : ""}
                         </td>
-                        <td className="p-1.5 border">
+                        <td className="p-1 border">
                           {(agendamento.tipo === "pacote" && agendamento.agendamentoPacote && agendamento.servicoAgendamento) ||
                       (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) ?
                       <Button
@@ -5838,7 +5838,7 @@ const Agendamentos = () => {
                       </Button> :
                       null}
                         </td>
-                        <td className="p-1.5 border text-center">
+                        <td className="p-1 border text-center">
                           <Button
                         variant="ghost"
                         size="sm"
