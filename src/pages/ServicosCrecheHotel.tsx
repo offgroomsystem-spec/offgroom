@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Pencil, Trash2, Dog, Hotel, Clock, CalendarDays, Sun, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Dog, Hotel, Clock, CalendarDays, Package } from "lucide-react";
 import { toast } from "sonner";
 import NovoPacoteCrecheModal from "@/components/creche/NovoPacoteCrecheModal";
 
@@ -36,7 +36,7 @@ const emptyForm: Omit<ServicoCreche, "id"> = {
   descricao: "",
   tipo: "creche",
   modelo_preco: "unico",
-  modelo_cobranca: "periodo",
+  modelo_cobranca: "hora",
   valor_unico: 0,
   valor_pequeno: 0,
   valor_medio: 0,
@@ -50,7 +50,7 @@ const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: strin
   const tipoLabel = tipo === "creche" ? "Serviço de Creche" : "Serviço de Hotel";
   const precoLabel = modelo_preco === "unico" ? "Único" : "Por Porte";
   const cobrancaLabel = tipo === "creche"
-    ? modelo_cobranca === "hora" ? "Por Hora" : modelo_cobranca === "dia" ? "Por Dia" : "Por Período"
+    ? modelo_cobranca === "hora" ? "Por Hora" : "Por Dia"
     : "";
   const porteLabel = porte ? `Porte ${porte}` : "";
   return [tipoLabel, precoLabel, cobrancaLabel, porteLabel].filter(Boolean).join(", ");
@@ -173,7 +173,7 @@ const ServicosCrecheHotel = () => {
       descricao: "",
       tipo: g.tipo,
       modelo_preco: g.modelo_preco,
-      modelo_cobranca: g.modelo_cobranca || "periodo",
+      modelo_cobranca: g.modelo_cobranca || "hora",
       valor_unico: g.valor_unico,
       valor_pequeno: g.valor_pequeno,
       valor_medio: g.valor_medio,
@@ -199,7 +199,7 @@ const ServicosCrecheHotel = () => {
       descricao: null as string | null,
       tipo: form.tipo,
       modelo_preco: form.modelo_preco,
-      modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "periodo",
+      modelo_cobranca: form.tipo === "creche" ? form.modelo_cobranca : "dia",
       is_padrao: false,
       is_opcional: true,
       observacoes_internas: form.observacoes_internas?.trim() || null,
@@ -302,22 +302,20 @@ const ServicosCrecheHotel = () => {
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const getDisplayPrice = (g: GroupedServico) => {
-    const suffix = g.tipo === "creche" ? (g.modelo_cobranca === "hora" ? "/h" : g.modelo_cobranca === "dia" ? "/dia" : "/período") : "";
+    const suffix = g.tipo === "creche" ? (g.modelo_cobranca === "hora" ? "/h" : "/dia") : "";
     if (g.modelo_preco === "unico") return formatCurrency(g.valor_unico) + suffix;
     return `P: ${formatCurrency(g.valor_pequeno)} | M: ${formatCurrency(g.valor_medio)} | G: ${formatCurrency(g.valor_grande)}${suffix ? ` ${suffix}` : ""}`;
   };
 
   const getModeloCobrancaLabel = (mc: string) => {
     if (mc === "hora") return "Por Hora";
-    if (mc === "dia") return "Por Dia";
-    return "Por Período";
+    return "Por Dia";
   };
 
   const getValorLabel = () => {
     if (form.tipo === "creche") {
       if (form.modelo_cobranca === "hora") return "Valor/Hora (R$) *";
-      if (form.modelo_cobranca === "dia") return "Valor/Dia (R$) *";
-      return "Valor/Período (R$) *";
+      return "Valor/Dia (R$) *";
     }
     return "Valor (R$) *";
   };
@@ -437,9 +435,6 @@ const ServicosCrecheHotel = () => {
                 >
                   <ToggleGroupItem value="hora" className="gap-1 h-7 px-2.5 text-xs">
                     <Clock className="h-3 w-3" /> Por Hora
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="periodo" className="gap-1 h-7 px-2.5 text-xs">
-                    <Sun className="h-3 w-3" /> Por Período
                   </ToggleGroupItem>
                   <ToggleGroupItem value="dia" className="gap-1 h-7 px-2.5 text-xs">
                     <CalendarDays className="h-3 w-3" /> Por Dia
