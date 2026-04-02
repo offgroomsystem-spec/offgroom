@@ -5888,9 +5888,10 @@ const Agendamentos = () => {
                           );
                         })}
                         {positioned.map((p) => {
-                          const col = colMap.get(p) || { col: 0, total: 1 };
-                          const widthPct = 100 / col.total;
-                          const leftPct = col.col * widthPct;
+                          const col = colMap.get(p) || { col: 0, total: 1, span: 1 };
+                          const colWidthPct = 100 / col.total;
+                          const leftPct = col.col * colWidthPct;
+                          const widthPct = colWidthPct * col.span;
                           const top = minToY(p.startMin) + 1;
                           const height = Math.max(minToY(p.endMin) - minToY(p.startMin) - 2, 50);
                           const hasTaxiDog = p.item.taxiDog?.toLowerCase() === "sim";
