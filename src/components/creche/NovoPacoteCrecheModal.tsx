@@ -312,7 +312,7 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
                     }
                   />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60 overflow-y-auto" position="popper" sideOffset={4}>
                   {filteredServicos.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.nome} - {formatCurrency(getServicoValor(s))}
