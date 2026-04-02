@@ -301,28 +301,54 @@ const NovoPacoteCrecheModal = ({ open, onOpenChange, editingPacote, onSaved }: P
             </ToggleGroup>
           </div>
 
-          {/* Serviços - Layout igual ao Pacotes de Banho e Tosa */}
+          {/* Serviços - Com busca por lupa */}
           <div className="space-y-1">
             <Label className="text-xs">Serviços do Pacote *</Label>
             <div className="flex gap-2">
-              <Select value={servicoAtual} onValueChange={setServicoAtual}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue
-                    placeholder={
-                      filteredServicos.length === 0
-                        ? "Nenhum serviço disponível"
-                        : "Selecione um serviço"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto" position="popper" sideOffset={4}>
-                  {filteredServicos.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.nome} - {formatCurrency(getServicoValor(s))}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={servicoSearchOpen} onOpenChange={setServicoSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    className="h-8 text-xs flex-1 justify-between font-normal"
+                  >
+                    {servicoAtual
+                      ? (() => {
+                          const s = servicos.find((sv) => sv.id === servicoAtual);
+                          return s ? `${s.nome} - ${formatCurrency(getServicoValor(s))}` : "Selecione um serviço";
+                        })()
+                      : filteredServicos.length === 0
+                      ? "Nenhum serviço disponível"
+                      : "Selecione um serviço"}
+                    <Search className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar serviço..." className="h-8 text-xs" />
+                    <CommandList className="max-h-60">
+                      <CommandEmpty className="text-xs p-2">Nenhum serviço encontrado</CommandEmpty>
+                      <CommandGroup>
+                        {filteredServicos.map((s) => (
+                          <CommandItem
+                            key={s.id}
+                            value={`${s.nome}`}
+                            onSelect={() => {
+                              setServicoAtual(s.id);
+                              setServicoSearchOpen(false);
+                            }}
+                            className="text-xs cursor-pointer"
+                          >
+                            <span className="flex-1">{s.nome}</span>
+                            <span className="text-muted-foreground ml-2">{formatCurrency(getServicoValor(s))}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <Button type="button" onClick={handleAddServico} size="sm" className="h-8 w-8 p-0">
                 <Plus className="h-3 w-3" />
               </Button>
