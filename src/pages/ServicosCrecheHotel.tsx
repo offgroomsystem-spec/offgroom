@@ -327,11 +327,16 @@ const ServicosCrecheHotel = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Serviços Creche & Hotel</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os serviços disponíveis para Creche e Hotel Pet</p>
+          <p className="text-sm text-muted-foreground">Gerencie os serviços e pacotes disponíveis para Creche e Hotel Pet</p>
         </div>
-        <Button onClick={openNew} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Serviço
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => { setEditingPacote(null); setPacoteModalOpen(true); }} variant="outline" className="gap-2">
+            <Package className="h-4 w-4" /> Novo Pacote
+          </Button>
+          <Button onClick={openNew} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Serviço
+          </Button>
+        </div>
       </div>
 
       <Card>
