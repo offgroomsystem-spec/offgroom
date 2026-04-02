@@ -129,7 +129,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
         checklist_entrada: { ...checklist, observacoes_adicionais: checklistObs },
         status: "ativo",
         modelo_preco: tipo === "creche" ? modeloPreco : "unico",
-        modelo_cobranca: tipo === "creche" && modeloPreco === "porte" ? modeloCobranca : null,
+        modelo_cobranca: tipo === "creche" ? modeloCobranca : "dia",
       };
 
       const { error } = await supabase.from("creche_estadias").insert(insertData);
@@ -265,8 +265,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
             )}
           </div>
 
-          {/* Modelo de Cobrança - only when Creche + Por Porte */}
-          {tipo === "creche" && modeloPreco === "porte" && (
+          {/* Modelo de Cobrança - always visible for Creche */}
+          {tipo === "creche" && (
             <div>
               <Label className="text-[11px] text-muted-foreground">Modelo de Cobrança</Label>
               <ToggleGroup
@@ -277,9 +277,6 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               >
                 <ToggleGroupItem value="hora" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                   Por Hora
-                </ToggleGroupItem>
-                <ToggleGroupItem value="periodo" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                  Por Período
                 </ToggleGroupItem>
                 <ToggleGroupItem value="dia" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                   Por Dia
