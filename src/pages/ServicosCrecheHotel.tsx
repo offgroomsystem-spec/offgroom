@@ -505,6 +505,80 @@ const ServicosCrecheHotel = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pacotes Section */}
+      {pacotes.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Package className="h-4 w-4" /> Pacotes Cadastrados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Serviços</TableHead>
+                  <TableHead>Desconto</TableHead>
+                  <TableHead>Valor Final</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pacotes.map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium text-sm">{p.nome}</TableCell>
+                    <TableCell>
+                      <Badge variant={p.tipo === "creche" ? "default" : "secondary"} className="gap-1">
+                        {p.tipo === "creche" ? <Dog className="h-3 w-3" /> : <Hotel className="h-3 w-3" />}
+                        {p.tipo === "creche" ? "Creche" : "Hotel"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {(p.servicos_ids as string[])?.length || 0} serviço(s)
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {p.desconto_percentual > 0 ? `${p.desconto_percentual}%` : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">
+                      {formatCurrency(p.valor_final)}
+                    </TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        setEditingPacote({
+                          ...p,
+                          servicos_ids: p.servicos_ids || [],
+                        });
+                        setPacoteModalOpen(true);
+                      }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={async () => {
+                        if (!confirm("Tem certeza que deseja excluir este pacote?")) return;
+                        const { error } = await supabase.from("pacotes_creche" as any).delete().eq("id", p.id);
+                        if (error) { toast.error("Erro ao excluir"); return; }
+                        toast.success("Pacote excluído");
+                        loadPacotes();
+                      }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <NovoPacoteCrecheModal
+        open={pacoteModalOpen}
+        onOpenChange={setPacoteModalOpen}
+        editingPacote={editingPacote}
+        onSaved={loadPacotes}
+      />
     </div>
   );
 };
