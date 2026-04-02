@@ -313,13 +313,25 @@ export const ClientesEmRisco = () => {
         clientePetNameToId.set(`${p.cliente_id}_${p.nome_pet}`, p.id);
       });
 
+      // Build whatsapp → cliente_id lookup (for agendamentos without cliente_id)
+      const whatsappToClienteId = new Map<string, string>();
+      (clientesData || []).forEach((c) => {
+        const normalized = c.whatsapp?.replace(/\D/g, "");
+        if (normalized && !whatsappToClienteId.has(normalized)) {
+          whatsappToClienteId.set(normalized, c.id);
+        }
+      });
+
+      // Valid statuses for counting activity
+      const statusInvalidos = ["cancelado", "Cancelado", "cancelada", "Cancelada"];
+
       // 3. Fetch ALL agendamentos with pagination
       const allAgendamentos: any[] = [];
       let page = 0;
       while (true) {
         const { data, error } = await supabase
           .from("agendamentos")
-          .select("cliente_id, cliente, data, pet, whatsapp")
+          .select("cliente_id, cliente, data, pet, whatsapp, status")
           .eq("user_id", ownerId)
           .order("data", { ascending: false })
           .range(page * 1000, (page + 1) * 1000 - 1);
@@ -376,8 +388,16 @@ export const ClientesEmRisco = () => {
 
       // Process agendamentos — resolve pet_id via cliente_id + pet name
       allAgendamentos.forEach((a) => {
-        const clienteId = a.cliente_id;
-        if (!clienteId) return; // Skip records without cliente_id
+        // Skip cancelled/invalid agendamentos
+        if (statusInvalidos.includes(a.status)) return;
+
+        // Resolve cliente_id: use directly if available, fallback to whatsapp lookup
+        let clienteId = a.cliente_id;
+        if (!clienteId && a.whatsapp) {
+          const normalizedWa = a.whatsapp.replace(/\D/g, "");
+          clienteId = whatsappToClienteId.get(normalizedWa);
+        }
+        if (!clienteId) return; // Skip records we can't resolve
 
         const petId = clientePetNameToId.get(`${clienteId}_${a.pet}`);
         if (!petId) return; // Skip if pet not found in cadastro
@@ -412,10 +432,17 @@ export const ClientesEmRisco = () => {
 
       // 6. Check for future appointments (using IDs)
       const hasFutureAppointment = (petId: string, clienteId: string): boolean => {
-        // Check agendamentos
+        // Check agendamentos (excluding cancelled)
         const hasAgendamento = allAgendamentos.some((a) => {
-          if (a.cliente_id !== clienteId) return false;
-          const aPetId = clientePetNameToId.get(`${a.cliente_id}_${a.pet}`);
+          if (statusInvalidos.includes(a.status)) return false;
+          // Resolve cliente_id with fallback
+          let aClienteId = a.cliente_id;
+          if (!aClienteId && a.whatsapp) {
+            const normalizedWa = a.whatsapp.replace(/\D/g, "");
+            aClienteId = whatsappToClienteId.get(normalizedWa);
+          }
+          if (aClienteId !== clienteId) return false;
+          const aPetId = clientePetNameToId.get(`${aClienteId}_${a.pet}`);
           return aPetId === petId && new Date(a.data + "T00:00:00") >= hoje;
         });
         if (hasAgendamento) return true;
