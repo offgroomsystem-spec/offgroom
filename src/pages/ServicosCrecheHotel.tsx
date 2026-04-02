@@ -144,8 +144,18 @@ const ServicosCrecheHotel = () => {
     setLoading(false);
   };
 
+  const loadPacotes = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("pacotes_creche" as any)
+      .select("*")
+      .order("nome");
+    setPacotes((data as any[]) || []);
+  };
+
   useEffect(() => {
     loadServicos();
+    loadPacotes();
   }, [user]);
 
   const grouped = groupServicos(servicos);
