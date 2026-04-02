@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     const { data: riscoRemovidas, error: errRisco } = await supabase
       .from("whatsapp_mensagens_risco")
       .delete()
-      .in("status", ["enviado", "cancelado"])
+      .in("status", ["enviado", "cancelado", "erro"])
       .lt("agendado_para", cutoffDate)
       .select("id");
 
