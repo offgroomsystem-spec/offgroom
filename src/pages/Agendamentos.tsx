@@ -5848,7 +5848,7 @@ const Agendamentos = () => {
                             <i className="fi fi-tr-comment-alt-check" style={{ fontSize: '14px', color: '#2d6a1e' }}></i>
                           </Button>
                         </td>
-                        <td className="p-1 border whitespace-nowrap">{agendamento.groomer || "—"}</td>
+                        <td className="p-1 border whitespace-nowrap">{agendamento.groomer || ""}</td>
                       </tr>
                   )}
                   </tbody>
