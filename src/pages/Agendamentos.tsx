@@ -5892,8 +5892,8 @@ const Agendamentos = () => {
                                 backgroundColor: '#1976D2',
                                 top,
                                 height,
-                                left: `calc(${leftPct}% + 2px)`,
-                                width: `calc(${widthPct}% - 6px)`,
+                                left: `calc(${leftPct}% + 4px)`,
+                                width: `calc(${widthPct}% - 10px)`,
                                 zIndex: 10
                               }}
                               onClick={() => handleEditarClick(p.item)}
