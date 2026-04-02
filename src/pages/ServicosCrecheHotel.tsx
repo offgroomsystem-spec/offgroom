@@ -50,7 +50,7 @@ const generateNome = (tipo: string, modelo_cobranca: string, modelo_preco: strin
   const tipoLabel = tipo === "creche" ? "Serviço de Creche" : "Serviço de Hotel";
   const precoLabel = modelo_preco === "unico" ? "Único" : "Por Porte";
   const cobrancaLabel = tipo === "creche"
-    ? modelo_cobranca === "hora" ? "Por Hora" : modelo_cobranca === "dia" ? "Por Dia" : "Por Período"
+    ? modelo_cobranca === "hora" ? "Por Hora" : "Por Dia"
     : "";
   const porteLabel = porte ? `Porte ${porte}` : "";
   return [tipoLabel, precoLabel, cobrancaLabel, porteLabel].filter(Boolean).join(", ");
