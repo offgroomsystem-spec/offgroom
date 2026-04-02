@@ -436,9 +436,6 @@ const ServicosCrecheHotel = () => {
                   <ToggleGroupItem value="hora" className="gap-1 h-7 px-2.5 text-xs">
                     <Clock className="h-3 w-3" /> Por Hora
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="periodo" className="gap-1 h-7 px-2.5 text-xs">
-                    <Sun className="h-3 w-3" /> Por Período
-                  </ToggleGroupItem>
                   <ToggleGroupItem value="dia" className="gap-1 h-7 px-2.5 text-xs">
                     <CalendarDays className="h-3 w-3" /> Por Dia
                   </ToggleGroupItem>
