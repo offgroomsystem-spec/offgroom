@@ -168,8 +168,10 @@ function gerarSlotsHorarios(hojeStr: string): Date[] {
   return slots;
 }
 
+const TOLERANCIA_RISCO_MS = 10 * 60 * 1000; // 10 minutos de tolerância
+
 // ===================== FASE 2: ENVIO =====================
-async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<{ enviadas: number; erros: number; canceladas: number }> {
+async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<{ enviadas: number; erros: number; canceladas: number; expiradas: number }> {
   let totalEnviadas = 0;
   let totalErros = 0;
   let totalCanceladas = 0;
