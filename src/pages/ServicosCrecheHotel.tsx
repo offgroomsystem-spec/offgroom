@@ -302,7 +302,7 @@ const ServicosCrecheHotel = () => {
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const getDisplayPrice = (g: GroupedServico) => {
-    const suffix = g.tipo === "creche" ? (g.modelo_cobranca === "hora" ? "/h" : g.modelo_cobranca === "dia" ? "/dia" : "/período") : "";
+    const suffix = g.tipo === "creche" ? (g.modelo_cobranca === "hora" ? "/h" : "/dia") : "";
     if (g.modelo_preco === "unico") return formatCurrency(g.valor_unico) + suffix;
     return `P: ${formatCurrency(g.valor_pequeno)} | M: ${formatCurrency(g.valor_medio)} | G: ${formatCurrency(g.valor_grande)}${suffix ? ` ${suffix}` : ""}`;
   };
