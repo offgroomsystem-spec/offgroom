@@ -5749,7 +5749,7 @@ const Agendamentos = () => {
 
           diaViewMode === "cards" ?
           (() => {
-                const SLOT_FULL = 40; // height for slots WITH events nearby
+                const SLOT_FULL = 60; // height for slots WITH events nearby
                 const SLOT_EMPTY = 16; // reduced height for empty slots
                 const todayDate = new Date(selectedDate + "T00:00:00");
                 const items = getUnifiedForDate(todayDate);
@@ -5861,8 +5861,8 @@ const Agendamentos = () => {
                           const col = colMap.get(p) || { col: 0, total: 1 };
                           const widthPct = 100 / col.total;
                           const leftPct = col.col * widthPct;
-                          const top = minToY(p.startMin);
-                          const height = Math.max(minToY(p.endMin) - top, 24);
+                          const top = minToY(p.startMin) + 1;
+                          const height = Math.max(minToY(p.endMin) - minToY(p.startMin) - 2, 50);
                           const hasTaxiDog = p.item.taxiDog?.toLowerCase() === "sim";
                           return (
                             <div
