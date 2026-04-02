@@ -5763,7 +5763,8 @@ const Agendamentos = () => {
                 }).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 
                 // Build independent conflict groups (connected components of overlapping intervals)
-                const colMap = new Map<typeof positioned[0], { col: number; total: number }>();
+                // Google Calendar style: cards expand rightward to fill unused columns
+                const colMap = new Map<typeof positioned[0], { col: number; total: number; span: number }>();
                 const visited = new Set<number>();
                 
                 for (let i = 0; i < positioned.length; i++) {
@@ -5793,24 +5794,33 @@ const Agendamentos = () => {
                       const lastInCol = groupCols[c][groupCols[c].length - 1];
                       if (p.startMin >= lastInCol.endMin) {
                         groupCols[c].push(p);
-                        colMap.set(p, { col: c, total: 0 });
+                        colMap.set(p, { col: c, total: 0, span: 1 });
                         placed = true;
                         break;
                       }
                     }
                     if (!placed) {
-                      colMap.set(p, { col: groupCols.length, total: 0 });
+                      colMap.set(p, { col: groupCols.length, total: 0, span: 1 });
                       groupCols.push([p]);
                     }
                   });
                   
-                  // Set total columns for each item based on its local concurrency
+                  const totalCols = groupCols.length;
+                  
+                  // For each item, expand rightward into unused columns (Google Calendar style)
                   groupItems.forEach(p => {
-                    const concurrent = groupItems.filter(
-                      q => q.startMin < p.endMin && q.endMin > p.startMin
-                    );
-                    const maxCol = Math.max(...concurrent.map(q => colMap.get(q)!.col)) + 1;
-                    colMap.get(p)!.total = maxCol;
+                    const pData = colMap.get(p)!;
+                    pData.total = totalCols;
+                    // Check how far right this card can expand
+                    let maxSpan = 1;
+                    for (let c = pData.col + 1; c < totalCols; c++) {
+                      const colOccupied = groupItems.some(
+                        q => q !== p && colMap.get(q)!.col === c && q.startMin < p.endMin && q.endMin > p.startMin
+                      );
+                      if (colOccupied) break;
+                      maxSpan++;
+                    }
+                    pData.span = maxSpan;
                   });
                 }
 
