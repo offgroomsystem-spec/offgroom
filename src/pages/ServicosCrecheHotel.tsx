@@ -309,8 +309,7 @@ const ServicosCrecheHotel = () => {
 
   const getModeloCobrancaLabel = (mc: string) => {
     if (mc === "hora") return "Por Hora";
-    if (mc === "dia") return "Por Dia";
-    return "Por Período";
+    return "Por Dia";
   };
 
   const getValorLabel = () => {
