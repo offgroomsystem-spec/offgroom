@@ -534,6 +534,17 @@ const Agendamentos = () => {
   const [calendarEditCalOpen, setCalendarEditCalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
   const [viewMode, setViewMode] = useState<"semana" | "dia">("semana");
+  const [diaViewMode, setDiaViewMode] = useState<"relatorio" | "cards">(() => {
+    if (!user) return "relatorio";
+    const saved = localStorage.getItem(`diaViewMode_${user.id}`);
+    return saved === "cards" ? "cards" : "relatorio";
+  });
+  const handleDiaViewModeChange = (mode: "relatorio" | "cards") => {
+    setDiaViewMode(mode);
+    if (user) {
+      localStorage.setItem(`diaViewMode_${user.id}`, mode);
+    }
+  };
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [editingAgendamento, setEditingAgendamento] = useState<any>(null);
