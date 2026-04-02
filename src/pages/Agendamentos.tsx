@@ -5822,6 +5822,19 @@ const Agendamentos = () => {
                     }
                     pData.span = maxSpan;
                   });
+                  
+                  // Equalize spans among concurrent cards so overlapping cards have equal width
+                  groupItems.forEach(p => {
+                    const pData = colMap.get(p)!;
+                    const concurrent = groupItems.filter(
+                      q => q !== p && q.startMin < p.endMin && q.endMin > p.startMin
+                    );
+                    if (concurrent.length > 0) {
+                      const minSpan = Math.min(pData.span, ...concurrent.map(q => colMap.get(q)!.span));
+                      pData.span = minSpan;
+                      concurrent.forEach(q => { colMap.get(q)!.span = minSpan; });
+                    }
+                  });
                 }
 
                 // Determine which slots have events (for adaptive height)
