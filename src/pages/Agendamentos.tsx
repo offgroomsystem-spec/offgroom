@@ -5749,7 +5749,7 @@ const Agendamentos = () => {
 
           diaViewMode === "cards" ?
           (() => {
-                const SLOT_FULL = 40; // height for slots WITH events nearby
+                const SLOT_FULL = 60; // height for slots WITH events nearby
                 const SLOT_EMPTY = 16; // reduced height for empty slots
                 const todayDate = new Date(selectedDate + "T00:00:00");
                 const items = getUnifiedForDate(todayDate);
