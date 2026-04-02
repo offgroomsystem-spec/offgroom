@@ -5823,17 +5823,26 @@ const Agendamentos = () => {
                     pData.span = maxSpan;
                   });
                   
-                  // Equalize spans among concurrent cards so overlapping cards have equal width
+                  // Equalize: concurrent cards share available space equally
+                  const processed = new Set<typeof positioned[0]>();
                   groupItems.forEach(p => {
-                    const pData = colMap.get(p)!;
-                    const concurrent = groupItems.filter(
+                    if (processed.has(p)) return;
+                    const concurrent = [p, ...groupItems.filter(
                       q => q !== p && q.startMin < p.endMin && q.endMin > p.startMin
-                    );
-                    if (concurrent.length > 0) {
-                      const minSpan = Math.min(pData.span, ...concurrent.map(q => colMap.get(q)!.span));
-                      pData.span = minSpan;
-                      concurrent.forEach(q => { colMap.get(q)!.span = minSpan; });
-                    }
+                    )].sort((a, b) => colMap.get(a)!.col - colMap.get(b)!.col);
+                    if (concurrent.length <= 1) return;
+                    // Find total available columns: from first card's col to last card's col + its raw span
+                    const firstCol = colMap.get(concurrent[0])!.col;
+                    const lastData = colMap.get(concurrent[concurrent.length - 1])!;
+                    const totalAvail = (lastData.col + lastData.span) - firstCol;
+                    const equalSpan = totalAvail / concurrent.length;
+                    concurrent.forEach((q, idx) => {
+                      const qData = colMap.get(q)!;
+                      qData.col = firstCol + idx * equalSpan;
+                      qData.span = equalSpan;
+                      qData.total = totalCols; // keep using fractional col/span with total
+                      processed.add(q);
+                    });
                   });
                 }
 
