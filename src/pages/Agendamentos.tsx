@@ -2779,6 +2779,7 @@ const Agendamentos = () => {
       pacote: null,
       numeroPacote: null,
       taxiDog: a.taxiDog,
+      groomer: a.groomer || "",
       agendamento: a,
       agendamentoOriginal: a
     }));
