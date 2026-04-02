@@ -331,7 +331,7 @@ export const ClientesEmRisco = () => {
       while (true) {
         const { data, error } = await supabase
           .from("agendamentos")
-          .select("cliente_id, cliente, data, pet, whatsapp")
+          .select("cliente_id, cliente, data, pet, whatsapp, status")
           .eq("user_id", ownerId)
           .order("data", { ascending: false })
           .range(page * 1000, (page + 1) * 1000 - 1);
