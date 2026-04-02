@@ -315,8 +315,7 @@ const ServicosCrecheHotel = () => {
   const getValorLabel = () => {
     if (form.tipo === "creche") {
       if (form.modelo_cobranca === "hora") return "Valor/Hora (R$) *";
-      if (form.modelo_cobranca === "dia") return "Valor/Dia (R$) *";
-      return "Valor/Período (R$) *";
+      return "Valor/Dia (R$) *";
     }
     return "Valor (R$) *";
   };
