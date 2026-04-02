@@ -5902,8 +5902,9 @@ const Agendamentos = () => {
                           return (
                             <div
                               key={p.item.id}
-                              className="absolute p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all overflow-hidden"
+                              className="absolute p-1 rounded text-white cursor-pointer hover:brightness-110 transition-all overflow-hidden"
                               style={{
+                                fontSize: '10px',
                                 backgroundColor: '#1976D2',
                                 top,
                                 height,
