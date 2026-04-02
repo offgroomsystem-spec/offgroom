@@ -183,6 +183,7 @@ Deno.serve(async (req) => {
     );
 
     const now = new Date();
+    const TOLERANCIA_EXPIRACAO_MS = 10 * 60 * 1000; // 10 minutos de tolerância
 
     // 1. Buscar instâncias WhatsApp conectadas
     const { data: instances, error: instErr } = await supabase
@@ -243,13 +244,34 @@ Deno.serve(async (req) => {
     await autoCreateMissingMessages(supabase, activeUserIds, bordaoMap, confirmConfigMap, now);
 
     // =============================================
-    // ETAPA B: Processar mensagens pendentes
+    // ETAPA A.1: Expirar mensagens atrasadas (tolerância de 10 minutos)
+    // =============================================
+    const limiteExpiracao = new Date(now.getTime() - TOLERANCIA_EXPIRACAO_MS);
+    const { data: mensagensExpiradas, error: expErr } = await supabase
+      .from("whatsapp_mensagens_agendadas")
+      .select("id")
+      .eq("status", "pendente")
+      .lt("agendado_para", limiteExpiracao.toISOString())
+      .in("user_id", activeUserIds);
+
+    if (!expErr && mensagensExpiradas && mensagensExpiradas.length > 0) {
+      const idsExpiradas = mensagensExpiradas.map((m: any) => m.id);
+      await supabase
+        .from("whatsapp_mensagens_agendadas")
+        .update({ status: "expirado", erro: `Mensagem expirada - ultrapassou tolerância de 10 minutos (agendado_para < ${limiteExpiracao.toISOString()})` })
+        .in("id", idsExpiradas);
+      console.log(`⏰ ${idsExpiradas.length} mensagens expiradas descartadas (fora da tolerância de 10min)`);
+    }
+
+    // =============================================
+    // ETAPA B: Processar mensagens pendentes (apenas dentro da tolerância)
     // =============================================
     const { data: mensagens, error: msgErr } = await supabase
       .from("whatsapp_mensagens_agendadas")
       .select("*")
       .eq("status", "pendente")
       .lte("agendado_para", now.toISOString())
+      .gte("agendado_para", limiteExpiracao.toISOString())
       .in("user_id", activeUserIds)
       .order("agendado_para", { ascending: true })
       .limit(50);
@@ -260,7 +282,7 @@ Deno.serve(async (req) => {
     }
 
     if (!mensagens || mensagens.length === 0) {
-      return new Response(JSON.stringify({ message: "No pending messages, auto-create done" }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ message: "No pending messages within tolerance, auto-create done" }), { headers: corsHeaders });
     }
 
     // === COLLECT REGEN DATA FOR ALL MESSAGES ===

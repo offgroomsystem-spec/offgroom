@@ -168,16 +168,37 @@ function gerarSlotsHorarios(hojeStr: string): Date[] {
   return slots;
 }
 
+const TOLERANCIA_RISCO_MS = 10 * 60 * 1000; // 10 minutos de tolerância
+
 // ===================== FASE 2: ENVIO =====================
-async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<{ enviadas: number; erros: number; canceladas: number }> {
+async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<{ enviadas: number; erros: number; canceladas: number; expiradas: number }> {
   let totalEnviadas = 0;
   let totalErros = 0;
   let totalCanceladas = 0;
+  let totalExpiradas = 0;
 
   const hojeStr = new Date(agora.getTime() - 3 * 60 * 60 * 1000).toISOString().split("T")[0];
   const hoje = new Date(hojeStr + "T00:00:00");
   const inicioHojeUTC = new Date(hojeStr + "T00:00:00.000Z");
   const fimHojeUTC = new Date(hojeStr + "T23:59:59.999Z");
+
+  // Expirar mensagens de risco pendentes que ultrapassaram a tolerância de 10 minutos
+  const limiteExpiracaoRisco = new Date(agora.getTime() - TOLERANCIA_RISCO_MS);
+  const { data: riscoExpiradas } = await supabase
+    .from("whatsapp_mensagens_risco")
+    .select("id")
+    .eq("status", "pendente")
+    .lt("agendado_para", limiteExpiracaoRisco.toISOString());
+
+  if (riscoExpiradas && riscoExpiradas.length > 0) {
+    const idsExpiradas = riscoExpiradas.map((m: any) => m.id);
+    await supabase
+      .from("whatsapp_mensagens_risco")
+      .update({ status: "expirado", erro: `Mensagem expirada - ultrapassou tolerância de 10 minutos` })
+      .in("id", idsExpiradas);
+    totalExpiradas = idsExpiradas.length;
+    console.log(`⏰ ${idsExpiradas.length} mensagens de risco expiradas descartadas`);
+  }
 
   for (const instance of instances) {
     // Verificar auto_send e risco_auto_send
@@ -203,17 +224,17 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
 
     if ((enviadasHoje || 0) >= LIMITE_DIARIO) {
       console.log(`🚫 Limite diário de ${LIMITE_DIARIO} atingido para ${instance.instance_name}. Pendentes restantes serão mantidos para carry-over.`);
-      // NÃO descartar - manter como pendente para carry-over no dia seguinte
       continue;
     }
 
-    // Buscar a mensagem pendente mais antiga com agendado_para <= agora
+    // Buscar a mensagem pendente mais antiga DENTRO da tolerância
     const { data: mensagens } = await supabase
       .from("whatsapp_mensagens_risco")
       .select("*")
       .eq("user_id", instance.user_id)
       .eq("status", "pendente")
       .lte("agendado_para", agora.toISOString())
+      .gte("agendado_para", limiteExpiracaoRisco.toISOString())
       .order("agendado_para", { ascending: true })
       .limit(1);
 
@@ -258,7 +279,7 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
     }
   }
 
-  return { enviadas: totalEnviadas, erros: totalErros, canceladas: totalCanceladas };
+  return { enviadas: totalEnviadas, erros: totalErros, canceladas: totalCanceladas, expiradas: totalExpiradas };
 }
 
 // Valida se o cliente ainda é elegível para receber a mensagem de risco
