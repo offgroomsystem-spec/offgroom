@@ -1583,6 +1583,12 @@ const Agendamentos = () => {
       }
     }
 
+    // Validar cliente_id obrigatório
+    if (!selectedClienteId) {
+      toast.error("Não foi possível vincular o cliente. Selecione o cliente novamente.");
+      return;
+    }
+
     const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
     if (horarioTermino && formData.horario && horarioTermino <= formData.horario) {
