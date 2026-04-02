@@ -5914,17 +5914,17 @@ const Agendamentos = () => {
                               }}
                               onClick={() => handleEditarClick(p.item)}
                             >
-                              <div className="font-bold break-words flex items-center gap-0.5">
+                              <div className="font-bold break-words flex items-center gap-0.5 leading-tight">
                                 {p.item.tipo === "pacote" && <Package className="h-3 w-3 flex-shrink-0" />}
                                 {hasTaxiDog && (
                                   <span title="Taxi Dog" className="flex-shrink-0">🚗</span>
                                 )}
                                 {p.item.horarioInicio?.substring(0, 5)} - {p.item.cliente}
                               </div>
-                              <div className="font-bold break-words">
+                              <div className="font-bold break-words leading-tight">
                                 {p.item.pet} - {p.item.raca}
                               </div>
-                              <div className="break-words text-white/80">{p.item.servico}</div>
+                              <div className="break-words text-white/80 leading-tight">{p.item.servico}</div>
                             </div>
                           );
                         })}
