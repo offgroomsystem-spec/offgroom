@@ -173,7 +173,7 @@ const ServicosCrecheHotel = () => {
       descricao: "",
       tipo: g.tipo,
       modelo_preco: g.modelo_preco,
-      modelo_cobranca: g.modelo_cobranca || "periodo",
+      modelo_cobranca: g.modelo_cobranca || "hora",
       valor_unico: g.valor_unico,
       valor_pequeno: g.valor_pequeno,
       valor_medio: g.valor_medio,
