@@ -279,7 +279,7 @@ async function faseEnvio(supabase: any, instances: any[], agora: Date): Promise<
     }
   }
 
-  return { enviadas: totalEnviadas, erros: totalErros, canceladas: totalCanceladas };
+  return { enviadas: totalEnviadas, erros: totalErros, canceladas: totalCanceladas, expiradas: totalExpiradas };
 }
 
 // Valida se o cliente ainda é elegível para receber a mensagem de risco
