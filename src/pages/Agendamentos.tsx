@@ -5794,20 +5794,19 @@ const Agendamentos = () => {
                   <thead className="bg-secondary sticky top-0">
                     <tr>
                       {/* Colunas A e B (Início e Fim) - Mais estreitas */}
-                      <th className="p-1.5 border text-left w-[35px]">Início</th>
-                      <th className="p-1.5 border text-left w-[35px]">Fim</th>
+                      <th className="p-1 border text-left w-[32px] whitespace-nowrap">Início</th>
+                      <th className="p-1 border text-left w-[32px] whitespace-nowrap">Fim</th>
 
-                      {/* Colunas C, D, E, F (Tutor, Pet, Raça, Serviço) - Deixe o navegador ajustar ou defina larguras maiores */}
-                      <th className="p-1.5 border text-left">Tutor</th>
-                      <th className="p-1.5 border text-left">Pet</th>
-                      <th className="p-1.5 border text-left">Raça</th>
-                      <th className="p-1.5 border text-left">Serviço</th>
+                      <th className="p-1 border text-left">Tutor</th>
+                      <th className="p-1 border text-left">Pet</th>
+                      <th className="p-1 border text-left">Raça</th>
+                      <th className="p-1 border text-left">Serviço</th>
 
-                      {/* Colunas G, H, I (N° PCT, Taxi Dog, Whatsapp) - Mais estreitas */}
-                      <th className="p-1.5 border text-left w-[50px]">N° PCT</th>
-                      <th className="p-1.5 border text-left w-[30px]">Taxi Dog</th>
-                      <th className="p-1.5 border text-left w-[40px]">Whatsapp</th>
-                      <th className="p-1.5 border text-center w-[45px]">Pet Pronto</th>
+                      <th className="p-1 border text-left w-[40px] whitespace-nowrap">N° PCT</th>
+                      <th className="p-1 border text-left w-[28px] whitespace-nowrap">Taxi</th>
+                      <th className="p-1 border text-left w-[32px] whitespace-nowrap">Whats</th>
+                      <th className="p-1 border text-center w-[38px] whitespace-nowrap">Pronto</th>
+                      <th className="p-1 border text-left whitespace-nowrap">Groomer</th>
                     </tr>
                   </thead>
                   <tbody>
