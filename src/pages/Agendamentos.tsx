@@ -1583,6 +1583,12 @@ const Agendamentos = () => {
       }
     }
 
+    // Validar cliente_id obrigatório
+    if (!selectedClienteId) {
+      toast.error("Não foi possível vincular o cliente. Selecione o cliente novamente.");
+      return;
+    }
+
     const horarioTermino = formData.horarioTermino || calcularHorarioTermino(formData.horario, formData.tempoServico);
 
     if (horarioTermino && formData.horario && horarioTermino <= formData.horario) {
@@ -1599,7 +1605,7 @@ const Agendamentos = () => {
       const { data: agendamentoData, error } = await supabase.from("agendamentos").insert([
       {
         user_id: ownerId,
-        cliente_id: selectedClienteId || null,
+        cliente_id: selectedClienteId,
         cliente: formData.cliente,
         pet: formData.pet,
         raca: formData.raca,
@@ -1672,7 +1678,7 @@ const Agendamentos = () => {
         try {
           const { data: apData, error: apError } = await supabase.from("agendamentos").insert([{
             user_id: ownerId,
-            cliente_id: selectedClienteId || null,
+            cliente_id: selectedClienteId,
             cliente: formData.cliente,
             pet: ap.petName,
             raca: ap.raca,
