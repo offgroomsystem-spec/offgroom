@@ -5749,74 +5749,143 @@ const Agendamentos = () => {
 
           diaViewMode === "cards" ?
           (() => {
-                const slotH = 40;
-                const gridStartMin = timeToMinutes(horarios[0]);
-                const gridEndMin = timeToMinutes(horarios[horarios.length - 1]) + 30;
-                const totalSlots = horarios.length;
-                const totalHeight = totalSlots * slotH;
+                const SLOT_FULL = 40; // height for slots WITH events nearby
+                const SLOT_EMPTY = 16; // reduced height for empty slots
                 const todayDate = new Date(selectedDate + "T00:00:00");
                 const items = getUnifiedForDate(todayDate);
+
+                // Build positioned items with minute-based start/end
                 const positioned = items.map(item => {
                   const startMin = timeToMinutes(item.horarioInicio);
                   const endMin = timeToMinutes(item.horarioTermino);
                   const duration = endMin > startMin ? endMin - startMin : 60;
-                  const top = ((startMin - gridStartMin) / (gridEndMin - gridStartMin)) * totalHeight;
-                  const height = Math.max((duration / (gridEndMin - gridStartMin)) * totalHeight, 24);
-                  return { item, startMin, endMin: startMin + duration, top, height };
-                });
-                const groups: typeof positioned[] = [];
+                  return { item, startMin, endMin: startMin + duration };
+                }).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+
+                // Build overlap groups (transitive closure)
+                const groups: (typeof positioned)[] = [];
                 const used = new Set<number>();
-                positioned.forEach((p, i) => {
-                  if (used.has(i)) return;
-                  const group = [p];
+                for (let i = 0; i < positioned.length; i++) {
+                  if (used.has(i)) continue;
+                  const group = [positioned[i]];
                   used.add(i);
-                  positioned.forEach((q, j) => {
-                    if (used.has(j)) return;
-                    if (q.startMin < p.endMin && q.endMin > p.startMin) {
-                      group.push(q);
-                      used.add(j);
+                  let changed = true;
+                  while (changed) {
+                    changed = false;
+                    for (let j = 0; j < positioned.length; j++) {
+                      if (used.has(j)) continue;
+                      const overlaps = group.some(g => positioned[j].startMin < g.endMin && positioned[j].endMin > g.startMin);
+                      if (overlaps) {
+                        group.push(positioned[j]);
+                        used.add(j);
+                        changed = true;
+                      }
                     }
-                  });
+                  }
+                  group.sort((a, b) => a.startMin - b.startMin);
                   groups.push(group);
-                });
+                }
+
+                // Assign columns within each group
                 const colMap = new Map<typeof positioned[0], { col: number; total: number }>();
                 groups.forEach(group => {
-                  group.forEach((p, idx) => colMap.set(p, { col: idx, total: group.length }));
+                  const columns: (typeof positioned[0])[][] = [];
+                  group.forEach(p => {
+                    let placed = false;
+                    for (let c = 0; c < columns.length; c++) {
+                      const lastInCol = columns[c][columns[c].length - 1];
+                      if (p.startMin >= lastInCol.endMin) {
+                        columns[c].push(p);
+                        placed = true;
+                        break;
+                      }
+                    }
+                    if (!placed) columns.push([p]);
+                  });
+                  const total = columns.length;
+                  columns.forEach((col, colIdx) => {
+                    col.forEach(p => colMap.set(p, { col: colIdx, total }));
+                  });
                 });
+
+                // Determine which slots have events (for adaptive height)
+                const gridStartMin = timeToMinutes(horarios[0]);
+                const occupiedSlots = new Set<number>();
+                positioned.forEach(p => {
+                  horarios.forEach((h, idx) => {
+                    const slotStart = timeToMinutes(h);
+                    const slotEnd = slotStart + 30;
+                    if (p.startMin < slotEnd && p.endMin > slotStart) {
+                      occupiedSlots.add(idx);
+                    }
+                  });
+                });
+
+                // Calculate cumulative top for each slot
+                const slotTops: number[] = [];
+                let cumTop = 0;
+                horarios.forEach((_, idx) => {
+                  slotTops.push(cumTop);
+                  cumTop += occupiedSlots.has(idx) ? SLOT_FULL : SLOT_EMPTY;
+                });
+                const totalHeight = cumTop;
+
+                // Helper: minutes to pixel Y
+                const minToY = (min: number) => {
+                  for (let i = horarios.length - 1; i >= 0; i--) {
+                    const slotStart = timeToMinutes(horarios[i]);
+                    if (min >= slotStart) {
+                      const slotH = occupiedSlots.has(i) ? SLOT_FULL : SLOT_EMPTY;
+                      const frac = Math.min((min - slotStart) / 30, 1);
+                      return slotTops[i] + frac * slotH;
+                    }
+                  }
+                  return 0;
+                };
+
                 return (
                   <div className="w-full">
                     <div className="grid" style={{ gridTemplateColumns: `36px 1fr` }}>
                       <div className="relative" style={{ height: totalHeight }}>
-                        {horarios.map((h, i) => (
-                          <div
-                            key={h}
-                            className="absolute left-0 right-0 text-[10px] leading-tight font-medium text-muted-foreground border-t flex items-start justify-center pt-px"
-                            style={{ top: i * slotH, height: slotH }}
-                          >
-                            {h}
-                          </div>
-                        ))}
+                        {horarios.map((h, i) => {
+                          const slotH = occupiedSlots.has(i) ? SLOT_FULL : SLOT_EMPTY;
+                          return (
+                            <div
+                              key={h}
+                              className="absolute left-0 right-0 text-[10px] leading-tight font-medium text-muted-foreground border-t flex items-start justify-center pt-px"
+                              style={{ top: slotTops[i], height: slotH }}
+                            >
+                              {h}
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="relative border-l" style={{ height: totalHeight }}>
-                        {horarios.map((h, i) => (
-                          <div
-                            key={h}
-                            className={`absolute left-0 right-0 border-t ${i % 2 === 0 ? 'border-border' : 'border-border/40'}`}
-                            style={{ top: i * slotH, height: slotH }}
-                          />
-                        ))}
+                        {horarios.map((h, i) => {
+                          const slotH = occupiedSlots.has(i) ? SLOT_FULL : SLOT_EMPTY;
+                          return (
+                            <div
+                              key={h}
+                              className={`absolute left-0 right-0 border-t ${i % 2 === 0 ? 'border-border' : 'border-border/40'}`}
+                              style={{ top: slotTops[i], height: slotH }}
+                            />
+                          );
+                        })}
                         {positioned.map((p) => {
                           const col = colMap.get(p) || { col: 0, total: 1 };
                           const widthPct = 100 / col.total;
                           const leftPct = col.col * widthPct;
+                          const top = minToY(p.startMin);
+                          const height = Math.max(minToY(p.endMin) - top, 24);
+                          const hasTaxiDog = p.item.taxiDog?.toLowerCase() === "sim";
                           return (
                             <div
                               key={p.item.id}
                               className="absolute p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all overflow-hidden"
                               style={{
                                 backgroundColor: '#1976D2',
-                                top: p.top,
-                                height: Math.max(p.height, 24),
+                                top,
+                                height,
                                 left: `${leftPct}%`,
                                 width: `calc(${widthPct}% - 4px)`,
                                 marginLeft: 2,
@@ -5826,6 +5895,9 @@ const Agendamentos = () => {
                             >
                               <div className="font-bold break-words flex items-center gap-0.5">
                                 {p.item.tipo === "pacote" && <Package className="h-3 w-3 flex-shrink-0" />}
+                                {hasTaxiDog && (
+                                  <span title="Taxi Dog" className="flex-shrink-0">🚗</span>
+                                )}
                                 {p.item.horarioInicio?.substring(0, 5)} - {p.item.cliente}
                               </div>
                               <div className="font-bold break-words">
