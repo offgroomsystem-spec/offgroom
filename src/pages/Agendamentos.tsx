@@ -27,7 +27,9 @@ import {
   ChevronsUpDown,
   X,
   Wifi,
-  WifiOff } from
+  WifiOff,
+  LayoutList,
+  LayoutGrid } from
 "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
