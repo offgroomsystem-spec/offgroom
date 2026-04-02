@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Dog, Hotel, Plus, X } from "lucide-react";
+import { Dog, Hotel, Plus, X, Search } from "lucide-react";
 import { toast } from "sonner";
 
 interface ServicoCreche {
