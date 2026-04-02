@@ -5745,6 +5745,100 @@ const Agendamentos = () => {
                     </div>
                   </div>
                 );
+               })() :
+
+          diaViewMode === "cards" ?
+          (() => {
+                const slotH = 40;
+                const gridStartMin = timeToMinutes(horarios[0]);
+                const gridEndMin = timeToMinutes(horarios[horarios.length - 1]) + 30;
+                const totalSlots = horarios.length;
+                const totalHeight = totalSlots * slotH;
+                const todayDate = new Date(selectedDate + "T00:00:00");
+                const items = getUnifiedForDate(todayDate);
+                const positioned = items.map(item => {
+                  const startMin = timeToMinutes(item.horarioInicio);
+                  const endMin = timeToMinutes(item.horarioTermino);
+                  const duration = endMin > startMin ? endMin - startMin : 60;
+                  const top = ((startMin - gridStartMin) / (gridEndMin - gridStartMin)) * totalHeight;
+                  const height = Math.max((duration / (gridEndMin - gridStartMin)) * totalHeight, 24);
+                  return { item, startMin, endMin: startMin + duration, top, height };
+                });
+                const groups: typeof positioned[] = [];
+                const used = new Set<number>();
+                positioned.forEach((p, i) => {
+                  if (used.has(i)) return;
+                  const group = [p];
+                  used.add(i);
+                  positioned.forEach((q, j) => {
+                    if (used.has(j)) return;
+                    if (q.startMin < p.endMin && q.endMin > p.startMin) {
+                      group.push(q);
+                      used.add(j);
+                    }
+                  });
+                  groups.push(group);
+                });
+                const colMap = new Map<typeof positioned[0], { col: number; total: number }>();
+                groups.forEach(group => {
+                  group.forEach((p, idx) => colMap.set(p, { col: idx, total: group.length }));
+                });
+                return (
+                  <div className="w-full">
+                    <div className="grid" style={{ gridTemplateColumns: `36px 1fr` }}>
+                      <div className="relative" style={{ height: totalHeight }}>
+                        {horarios.map((h, i) => (
+                          <div
+                            key={h}
+                            className="absolute left-0 right-0 text-[10px] leading-tight font-medium text-muted-foreground border-t flex items-start justify-center pt-px"
+                            style={{ top: i * slotH, height: slotH }}
+                          >
+                            {h}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="relative border-l" style={{ height: totalHeight }}>
+                        {horarios.map((h, i) => (
+                          <div
+                            key={h}
+                            className={`absolute left-0 right-0 border-t ${i % 2 === 0 ? 'border-border' : 'border-border/40'}`}
+                            style={{ top: i * slotH, height: slotH }}
+                          />
+                        ))}
+                        {positioned.map((p) => {
+                          const col = colMap.get(p) || { col: 0, total: 1 };
+                          const widthPct = 100 / col.total;
+                          const leftPct = col.col * widthPct;
+                          return (
+                            <div
+                              key={p.item.id}
+                              className="absolute p-1 rounded text-xs text-white cursor-pointer hover:brightness-110 transition-all overflow-hidden"
+                              style={{
+                                backgroundColor: '#1976D2',
+                                top: p.top,
+                                height: Math.max(p.height, 24),
+                                left: `${leftPct}%`,
+                                width: `calc(${widthPct}% - 4px)`,
+                                marginLeft: 2,
+                                zIndex: 10
+                              }}
+                              onClick={() => handleEditarClick(p.item)}
+                            >
+                              <div className="font-bold break-words flex items-center gap-0.5">
+                                {p.item.tipo === "pacote" && <Package className="h-3 w-3 flex-shrink-0" />}
+                                {p.item.horarioInicio?.substring(0, 5)} - {p.item.cliente}
+                              </div>
+                              <div className="font-bold break-words">
+                                {p.item.pet} - {p.item.raca}
+                              </div>
+                              <div className="break-words text-white/80">{p.item.servico}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
               })() :
 
           <div className="flex gap-2">
