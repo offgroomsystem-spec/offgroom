@@ -5762,50 +5762,36 @@ const Agendamentos = () => {
                   return { item, startMin, endMin: startMin + duration };
                 }).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 
-                // Build overlap groups (transitive closure)
-                const groups: (typeof positioned)[] = [];
-                const used = new Set<number>();
-                for (let i = 0; i < positioned.length; i++) {
-                  if (used.has(i)) continue;
-                  const group = [positioned[i]];
-                  used.add(i);
-                  let changed = true;
-                  while (changed) {
-                    changed = false;
-                    for (let j = 0; j < positioned.length; j++) {
-                      if (used.has(j)) continue;
-                      const overlaps = group.some(g => positioned[j].startMin < g.endMin && positioned[j].endMin > g.startMin);
-                      if (overlaps) {
-                        group.push(positioned[j]);
-                        used.add(j);
-                        changed = true;
-                      }
+                // Assign columns using greedy interval-graph colouring
+                // Each item gets the first column where it doesn't clash with an already-placed item
+                const colMap = new Map<typeof positioned[0], { col: number; total: number }>();
+                const columns: (typeof positioned[0])[][] = [];
+                positioned.forEach(p => {
+                  let placed = false;
+                  for (let c = 0; c < columns.length; c++) {
+                    const lastInCol = columns[c][columns[c].length - 1];
+                    if (p.startMin >= lastInCol.endMin) {
+                      columns[c].push(p);
+                      colMap.set(p, { col: c, total: 0 }); // total filled later
+                      placed = true;
+                      break;
                     }
                   }
-                  group.sort((a, b) => a.startMin - b.startMin);
-                  groups.push(group);
-                }
+                  if (!placed) {
+                    colMap.set(p, { col: columns.length, total: 0 });
+                    columns.push([p]);
+                  }
+                });
 
-                // Assign columns within each group
-                const colMap = new Map<typeof positioned[0], { col: number; total: number }>();
-                groups.forEach(group => {
-                  const columns: (typeof positioned[0])[][] = [];
-                  group.forEach(p => {
-                    let placed = false;
-                    for (let c = 0; c < columns.length; c++) {
-                      const lastInCol = columns[c][columns[c].length - 1];
-                      if (p.startMin >= lastInCol.endMin) {
-                        columns[c].push(p);
-                        placed = true;
-                        break;
-                      }
-                    }
-                    if (!placed) columns.push([p]);
-                  });
-                  const total = columns.length;
-                  columns.forEach((col, colIdx) => {
-                    col.forEach(p => colMap.set(p, { col: colIdx, total }));
-                  });
+                // For each item, compute the max concurrency at its time range
+                // so its width = 1/maxConcurrent, not 1/totalColumns
+                positioned.forEach(p => {
+                  const concurrent = positioned.filter(
+                    q => q.startMin < p.endMin && q.endMin > p.startMin
+                  );
+                  const maxCol = Math.max(...concurrent.map(q => colMap.get(q)!.col)) + 1;
+                  const entry = colMap.get(p)!;
+                  entry.total = maxCol;
                 });
 
                 // Determine which slots have events (for adaptive height)
@@ -5886,9 +5872,8 @@ const Agendamentos = () => {
                                 backgroundColor: '#1976D2',
                                 top,
                                 height,
-                                left: `${leftPct}%`,
-                                width: `calc(${widthPct}% - 4px)`,
-                                marginLeft: 2,
+                                left: `calc(${leftPct}% + 2px)`,
+                                width: `calc(${widthPct}% - 6px)`,
                                 zIndex: 10
                               }}
                               onClick={() => handleEditarClick(p.item)}
