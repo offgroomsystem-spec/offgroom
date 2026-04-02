@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Pencil, Trash2, Dog, Hotel, Clock, CalendarDays, Sun, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Dog, Hotel, Clock, CalendarDays, Package } from "lucide-react";
 import { toast } from "sonner";
 import NovoPacoteCrecheModal from "@/components/creche/NovoPacoteCrecheModal";
 
