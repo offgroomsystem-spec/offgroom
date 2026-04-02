@@ -5824,6 +5824,7 @@ const Agendamentos = () => {
                   });
                   
                   // Equalize: concurrent cards share available space equally
+                  // but never overlap with other cards outside the concurrent set
                   const processed = new Set<typeof positioned[0]>();
                   groupItems.forEach(p => {
                     if (processed.has(p)) return;
@@ -5831,16 +5832,35 @@ const Agendamentos = () => {
                       q => q !== p && q.startMin < p.endMin && q.endMin > p.startMin
                     )].sort((a, b) => colMap.get(a)!.col - colMap.get(b)!.col);
                     if (concurrent.length <= 1) return;
-                    // Find total available columns: from first card's col to last card's col + its raw span
+                    
                     const firstCol = colMap.get(concurrent[0])!.col;
+                    // Find the max right boundary: last card's col + span, but capped
+                    // by any OTHER card (not in concurrent set) that overlaps in time
                     const lastData = colMap.get(concurrent[concurrent.length - 1])!;
-                    const totalAvail = (lastData.col + lastData.span) - firstCol;
+                    let maxRight = lastData.col + lastData.span;
+                    
+                    // Check all non-concurrent cards that overlap in time with ANY card in this set
+                    const concurrentSet = new Set(concurrent);
+                    groupItems.forEach(other => {
+                      if (concurrentSet.has(other)) return;
+                      const otherData = colMap.get(other)!;
+                      // Check if this other card overlaps in time with any concurrent card
+                      const overlapsInTime = concurrent.some(
+                        c => c.startMin < other.endMin && c.endMin > other.startMin
+                      );
+                      if (overlapsInTime && otherData.col >= firstCol && otherData.col < maxRight) {
+                        maxRight = Math.min(maxRight, otherData.col);
+                      }
+                    });
+                    
+                    const totalAvail = maxRight - firstCol;
+                    if (totalAvail <= 0) return;
                     const equalSpan = totalAvail / concurrent.length;
                     concurrent.forEach((q, idx) => {
                       const qData = colMap.get(q)!;
                       qData.col = firstCol + idx * equalSpan;
                       qData.span = equalSpan;
-                      qData.total = totalCols; // keep using fractional col/span with total
+                      qData.total = totalCols;
                       processed.add(q);
                     });
                   });
