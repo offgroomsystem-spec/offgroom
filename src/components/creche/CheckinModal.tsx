@@ -333,6 +333,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       restricao: false,
     });
     setChecklistObs("");
+    setAgendarExtras(false);
   };
 
   const checklistItems = [
