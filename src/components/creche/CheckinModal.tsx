@@ -121,8 +121,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
   const loadServicosCreche = async () => {
     const { data } = await supabase
-      .from("servicos_creche")
-      .select("id, nome, tipo, modelo_preco, valor_unico, valor_pequeno, valor_medio, valor_grande, is_opcional")
+      .from("servicos")
+      .select("id, nome, valor, porte")
       .order("nome");
     if (data) setServicosCreche(data);
   };
@@ -136,24 +136,12 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
     return servicosCreche
       .filter((s) => {
-        // Only show optional/extra services, exclude packages
         if (s.nome?.toLowerCase().startsWith("pacote")) return false;
+        if ((s.valor || 0) <= 0) return false;
 
-        // Get value based on pet porte
-        let valor = 0;
-        if (s.modelo_preco === "unico") {
-          valor = s.valor_unico || 0;
-        } else {
-          const porteMap: Record<string, number> = {
-            pequeno: s.valor_pequeno || 0,
-            medio: s.valor_medio || 0,
-            grande: s.valor_grande || 0,
-          };
-          valor = porteMap[petPorte] || 0;
-          // Also check if it has valor_unico as fallback
-          if (valor === 0) valor = s.valor_unico || 0;
-        }
-        if (valor <= 0) return false;
+        // Filter by porte compatibility
+        const sPorte = normalizePorte(s.porte);
+        if (sPorte && sPorte !== petPorte && sPorte !== "todos") return false;
 
         // Search filter
         if (searchNorm) {
@@ -163,21 +151,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
         return true;
       })
-      .map((s) => {
-        const petPorteVal = normalizePorte(selectedPet.porte);
-        let valor = 0;
-        if (s.modelo_preco === "unico") {
-          valor = s.valor_unico || 0;
-        } else {
-          const porteMap: Record<string, number> = {
-            pequeno: s.valor_pequeno || 0,
-            medio: s.valor_medio || 0,
-            grande: s.valor_grande || 0,
-          };
-          valor = porteMap[petPorteVal] || s.valor_unico || 0;
-        }
-        return { id: s.id, nome: s.nome, valor };
-      });
+      .map((s) => ({ id: s.id, nome: s.nome, valor: s.valor }));
   }, [servicosCreche, selectedPet, searchExtras]);
 
   const toggleExtra = (extra: ServicoExtra) => {
