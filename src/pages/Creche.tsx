@@ -63,7 +63,7 @@ const Creche = () => {
     if (!user) return;
     const { data } = await supabase
       .from("creche_estadias")
-      .select("id, tipo, data_entrada, hora_entrada, data_saida_prevista, pet_id, cliente_id, observacoes_entrada, checklist_entrada, modelo_cobranca, modelo_preco")
+      .select("id, tipo, data_entrada, hora_entrada, data_saida_prevista, pet_id, cliente_id, observacoes_entrada, checklist_entrada, modelo_cobranca, modelo_preco, servicos_extras")
       .eq("status", "ativo")
       .order("data_entrada", { ascending: false });
 

@@ -24,6 +24,7 @@ interface Estadia {
   modelo_preco?: string;
   pet_id?: string;
   cliente_id?: string;
+  servicos_extras?: any[];
 }
 
 interface BillingItem {
