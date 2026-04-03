@@ -81,7 +81,7 @@ function calcularBillingItem(
   dataSaida: string,
   valorUnit: number,
   modeloCobranca: string
-): { quantidade: number; valorTotal: number; descricao: string } {
+): { quantidade: number; valorTotal: number; descricao: string; excessoMinutos?: number } {
   const entrada = new Date(`${dataEntrada}T${horaEntrada}`);
   const saida = new Date(`${dataSaida}T${horaSaida}`);
   const diffMs = saida.getTime() - entrada.getTime();
@@ -106,7 +106,6 @@ function calcularBillingItem(
       };
     }
   } else if (modeloCobranca === "periodo") {
-    // 1 período = 4 horas (240 min)
     const periodos = Math.max(1, Math.floor(totalMinutos / 240));
     const minExc = Math.max(0, totalMinutos - periodos * 240);
     if (minExc <= 29) {
@@ -127,18 +126,30 @@ function calcularBillingItem(
     // dia: 1 diária = 24 horas (1440 min)
     const dias = Math.max(1, Math.floor(totalMinutos / 1440));
     const minExc = Math.max(0, totalMinutos - dias * 1440);
+
     if (minExc <= 29) {
+      // Within tolerance - only full days
       return {
         quantidade: dias,
         valorTotal: Math.round(dias * valorUnit * 100) / 100,
         descricao: `${dias} diária(s)`,
       };
-    } else {
-      const qty = Math.round((dias + minExc / 1440) * 100) / 100;
+    } else if (minExc >= 1440) {
+      // Excess is a full extra day - increment quantity
+      const totalDias = dias + Math.floor(minExc / 1440);
       return {
-        quantidade: qty,
-        valorTotal: Math.round(qty * valorUnit * 100) / 100,
-        descricao: `${dias} diária(s) + excedente`,
+        quantidade: totalDias,
+        valorTotal: Math.round(totalDias * valorUnit * 100) / 100,
+        descricao: `${totalDias} diária(s)`,
+        excessoMinutos: minExc % 1440 > 29 ? minExc % 1440 : undefined,
+      };
+    } else {
+      // Excess is partial hours - return base days + excess info for separate line
+      return {
+        quantidade: dias,
+        valorTotal: Math.round(dias * valorUnit * 100) / 100,
+        descricao: `${dias} diária(s)`,
+        excessoMinutos: minExc,
       };
     }
   }
