@@ -54,6 +54,11 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Serviços Extras
+  const [servicosCreche, setServicosCreche] = useState<any[]>([]);
+  const [selectedExtras, setSelectedExtras] = useState<ServicoExtra[]>([]);
+  const [searchExtras, setSearchExtras] = useState("");
+
   const [checklist, setChecklist] = useState({
     comeu_antes: false,
     comportamento_normal: true,
