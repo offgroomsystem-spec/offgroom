@@ -2571,19 +2571,17 @@ const Agendamentos = () => {
     const isSingular = pets.length === 1;
     const todasFemea = pets.every(p => p.sexo?.toLowerCase() === "fêmea" || p.sexo?.toLowerCase() === "femea");
 
-    // Concatenar nomes: "Rex", "Rex e Luna", "Rex, Luna e Mel"
+    // Concatenar nomes com artigo individual: "a Brie", "a Brie e o Cadu", "a Brie, a Malu e o Cadu"
+    const getArtigo = (sexo: string) => (sexo?.toLowerCase() === "fêmea" || sexo?.toLowerCase() === "femea") ? "a" : "o";
+    const nomesComArtigo = pets.map(p => `${getArtigo(p.sexo)} ${p.nome}`);
     let nomesConcat = "";
-    if (pets.length === 1) {
-      nomesConcat = pets[0].nome;
-    } else if (pets.length === 2) {
-      nomesConcat = `${pets[0].nome} e ${pets[1].nome}`;
+    if (nomesComArtigo.length === 1) {
+      nomesConcat = nomesComArtigo[0];
+    } else if (nomesComArtigo.length === 2) {
+      nomesConcat = `${nomesComArtigo[0]} e ${nomesComArtigo[1]}`;
     } else {
-      const ultimos = pets[pets.length - 1].nome;
-      const anteriores = pets.slice(0, -1).map(p => p.nome).join(", ");
-      nomesConcat = `${anteriores} e ${ultimos}`;
+      nomesConcat = nomesComArtigo.slice(0, -1).join(", ") + " e " + nomesComArtigo[nomesComArtigo.length - 1];
     }
-
-    const artigo = todasFemea ? "a" : "o";
 
     if (isSingular) {
       const isFemea = todasFemea;
@@ -2594,9 +2592,9 @@ const Agendamentos = () => {
       const buscarPronome = isFemea ? "buscá-la" : "buscá-lo";
 
       if (taxiDog === "Sim") {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
       } else {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
       }
     } else {
       // Plural
@@ -2607,9 +2605,9 @@ const Agendamentos = () => {
       const buscarPronome = todasFemea ? "buscá-las" : "buscá-los";
 
       if (taxiDog === "Sim") {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} estão ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estarão indo de volta pra casa!`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} estão ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estarão indo de volta pra casa!`;
       } else {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} estão ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} estão ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} estão ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} estão ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
       }
     }
   };
