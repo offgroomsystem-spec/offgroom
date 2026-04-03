@@ -33,6 +33,7 @@ interface EstadiaComNomes {
   cliente_id?: string;
   pet_sexo?: string;
   cliente_whatsapp?: string;
+  servicos_extras?: any[];
 }
 
 const Creche = () => {
