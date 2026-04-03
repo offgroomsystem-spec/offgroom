@@ -5,8 +5,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   ClipboardList, LogOut, Eye, MessageSquarePlus,
   Droplets, UtensilsCrossed, Dog, Smile, Frown,
-  Bug, Stethoscope, CircleCheck, AlertTriangle, Clock
+  Bug, Stethoscope, CircleCheck, AlertTriangle, Clock, MessageCircle
 } from "lucide-react";
+import { gerarHistoricoDiario, gerarHistoricoCompleto } from "@/utils/crecheHistoryMessage";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
