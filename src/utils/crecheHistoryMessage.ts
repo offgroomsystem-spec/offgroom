@@ -80,8 +80,8 @@ export async function gerarHistoricoDiario(
   clienteNome: string,
 ): Promise<string> {
   const hoje = format(new Date(), "yyyy-MM-dd");
-  const art = artigoCapital(petSexo);
   const pro = pronomeEle(petSexo);
+  const artDoDa = (petSexo || "").toLowerCase() === "fêmea" || (petSexo || "").toLowerCase() === "femea" ? "da" : "do";
 
   const { data: registros } = await supabase
     .from("creche_registros_diarios")
@@ -94,7 +94,6 @@ export async function gerarHistoricoDiario(
     return `Olá, ${clienteNome}! 😊\n\nHoje não houve registros relevantes para ${artigo(petSexo)} ${petNome}. Qualquer novidade, avisaremos! 🐾`;
   }
 
-  // Consolidate all registros of the day
   const consolidated: RegistroDiario = {
     data_registro: hoje,
     hora_registro: "",
@@ -112,10 +111,13 @@ export async function gerarHistoricoDiario(
       .join("; ") || null,
   };
 
-  const frases = buildRegistroFrases(petNome, petSexo, consolidated);
+  const { principais, observacao } = buildRegistroFrases(petNome, petSexo, consolidated);
 
-  let msg = `Olá, ${clienteNome}! 😊\n\nSegue o resumo do dia ${artigo(petSexo)} ${petNome}:\n\n`;
-  msg += frases.join("\n");
+  let msg = `Olá, ${clienteNome}! 😊\n\nSegue o resumo do dia ${artDoDa} ${petNome}:\n\n`;
+  msg += principais.join("\n");
+  if (observacao) {
+    msg += `\n\n*Observação adicional:* ${observacao}`;
+  }
   msg += `\n\n${pro} está sendo muito bem ${(petSexo || "").toLowerCase() === "fêmea" || (petSexo || "").toLowerCase() === "femea" ? "cuidada" : "cuidado"}! Qualquer dúvida, estamos à disposição. 🐾`;
 
   return msg;
