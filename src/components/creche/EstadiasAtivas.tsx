@@ -5,8 +5,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   ClipboardList, LogOut, Eye, MessageSquarePlus,
   Droplets, UtensilsCrossed, Dog, Smile, Frown,
-  Bug, Stethoscope, CircleCheck, AlertTriangle, Clock
+  Bug, Stethoscope, CircleCheck, AlertTriangle, Clock, MessageCircle
 } from "lucide-react";
+import { gerarHistoricoDiario, gerarHistoricoCompleto } from "@/utils/crecheHistoryMessage";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,8 @@ interface Estadia {
   observacoes_entrada: string | null;
   ultimo_registro?: Registro | null;
   checklist_entrada?: any;
+  pet_sexo?: string;
+  cliente_whatsapp?: string;
 }
 
 interface EstadiasAtivasProps {
@@ -93,6 +96,35 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
   const { ownerId } = useAuth();
   const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
   const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, Record<string, boolean>>>({});
+  const [sendingHistory, setSendingHistory] = useState<Set<string>>(new Set());
+
+  const handleSendHistory = async (estadia: Estadia, tipo: "diario" | "completo") => {
+    const key = `${estadia.id}-${tipo}`;
+    if (sendingHistory.has(key)) return;
+    setSendingHistory(prev => new Set(prev).add(key));
+    try {
+      const msg = tipo === "diario"
+        ? await gerarHistoricoDiario(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome)
+        : await gerarHistoricoCompleto(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome, estadia.checklist_entrada, estadia.data_entrada);
+
+      const phone = (estadia.cliente_whatsapp || "").replace(/\D/g, "");
+      if (!phone) {
+        toast.error("WhatsApp do cliente não encontrado.");
+        return;
+      }
+      const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank");
+      toast.success(`Histórico ${tipo === "diario" ? "diário" : "completo"} preparado!`);
+    } catch {
+      toast.error("Erro ao gerar histórico.");
+    } finally {
+      setSendingHistory(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
 
   // Smart override clearing: remove overrides that match real data (confirmed by DB)
   useEffect(() => {
@@ -232,6 +264,34 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
                     <Badge variant={status.variant} className="text-[10px]">
                       {status.label}
                     </Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => handleSendHistory(e, "diario")}
+                            disabled={sendingHistory.has(`${e.id}-diario`)}
+                            className="p-1 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">Enviar Histórico Diário</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => handleSendHistory(e, "completo")}
+                            disabled={sendingHistory.has(`${e.id}-completo`)}
+                            className="p-1 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+                          >
+                            <MessageCircle className="h-4 w-4 fill-green-600" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">Enviar Histórico Completo</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>
 

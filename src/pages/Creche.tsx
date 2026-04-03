@@ -31,6 +31,8 @@ interface EstadiaComNomes {
   pet_porte?: string;
   pet_id?: string;
   cliente_id?: string;
+  pet_sexo?: string;
+  cliente_whatsapp?: string;
 }
 
 const Creche = () => {
@@ -74,8 +76,8 @@ const Creche = () => {
     const estadiaIds = data.map((d) => d.id);
 
     const [petsRes, clientesRes, registrosRes] = await Promise.all([
-      supabase.from("pets").select("id, nome_pet, porte").in("id", petIds),
-      supabase.from("clientes").select("id, nome_cliente").in("id", clienteIds),
+      supabase.from("pets").select("id, nome_pet, porte, sexo").in("id", petIds),
+      supabase.from("clientes").select("id, nome_cliente, whatsapp").in("id", clienteIds),
       supabase
         .from("creche_registros_diarios")
         .select("estadia_id, comeu, bebeu_agua, brincou, interagiu_bem, brigas, fez_necessidades, sinais_doenca, pulgas_carrapatos, data_registro, hora_registro")
@@ -84,8 +86,8 @@ const Creche = () => {
         .order("hora_registro", { ascending: false }),
     ]);
 
-    const petMap = new Map(petsRes.data?.map((p) => [p.id, { nome: p.nome_pet, porte: p.porte }]) || []);
-    const clienteMap = new Map(clientesRes.data?.map((c) => [c.id, c.nome_cliente]) || []);
+    const petMap = new Map(petsRes.data?.map((p) => [p.id, { nome: p.nome_pet, porte: p.porte, sexo: p.sexo }]) || []);
+    const clienteMap = new Map(clientesRes.data?.map((c) => [c.id, { nome: c.nome_cliente, whatsapp: c.whatsapp }]) || []);
 
     // Get latest registro per estadia
     const ultimoRegistroMap = new Map<string, any>();
@@ -103,7 +105,7 @@ const Creche = () => {
         hora_entrada: d.hora_entrada,
         data_saida_prevista: d.data_saida_prevista,
         pet_nome: petMap.get(d.pet_id)?.nome || "Pet",
-        cliente_nome: clienteMap.get(d.cliente_id) || "Cliente",
+        cliente_nome: clienteMap.get(d.cliente_id)?.nome || "Cliente",
         observacoes_entrada: d.observacoes_entrada,
         checklist_entrada: d.checklist_entrada,
         ultimo_registro: ultimoRegistroMap.get(d.id) || null,
@@ -112,6 +114,8 @@ const Creche = () => {
         pet_porte: petMap.get(d.pet_id)?.porte || "",
         pet_id: d.pet_id,
         cliente_id: d.cliente_id,
+        pet_sexo: petMap.get(d.pet_id)?.sexo || "",
+        cliente_whatsapp: clienteMap.get(d.cliente_id)?.whatsapp || "",
       }))
     );
   }, [user]);
