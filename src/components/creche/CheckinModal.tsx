@@ -440,11 +440,11 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-[11px] text-muted-foreground">Previsão Saída {tipo === "hotel" && "*"}</Label>
+              <Label className="text-[11px] text-muted-foreground">Previsão Saída {(tipo === "hotel" || selectedExtras.length > 0) && "*"}</Label>
               <Input type="date" value={dataSaidaPrevista} onChange={(e) => setDataSaidaPrevista(e.target.value)} className="h-7 text-xs" />
             </div>
             <div>
-              <Label className="text-[11px] text-muted-foreground">Hora Saída Prevista</Label>
+              <Label className="text-[11px] text-muted-foreground">Hora Saída Prevista {(tipo === "hotel" || selectedExtras.length > 0) && "*"}</Label>
               <Input type="time" value={horaSaidaPrevista} onChange={(e) => setHoraSaidaPrevista(e.target.value)} className="h-7 text-xs" />
             </div>
           </div>
