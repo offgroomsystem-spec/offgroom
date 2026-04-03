@@ -619,11 +619,17 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => { setShowExtrasConfirm(false); setAgendarExtras(true); }}>
+              <AlertDialogCancel onClick={() => { 
+                setShowExtrasConfirm(false); 
+                setAgendarExtras(true); 
+              }}>
                 Não
               </AlertDialogCancel>
-              <AlertDialogAction onClick={() => { setShowExtrasConfirm(false); executeSave(); }}>
-                Sim
+              <AlertDialogAction onClick={async () => { 
+                setShowExtrasConfirm(false); 
+                await executeSave(); 
+              }}>
+                Sim, prosseguir sem agendar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
