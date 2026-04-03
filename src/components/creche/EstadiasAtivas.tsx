@@ -140,7 +140,7 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
     try {
       const msg = tipo === "diario"
         ? await gerarHistoricoDiario(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome)
-        : await gerarHistoricoCompleto(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome, estadia.checklist_entrada, estadia.data_entrada);
+        : await gerarHistoricoCompleto(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome, estadia.checklist_entrada, estadia.data_entrada, estadia.hora_entrada);
 
       const tipoLabel = tipo === "diario" ? "diário" : "completo";
 
