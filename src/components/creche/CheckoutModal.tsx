@@ -80,7 +80,8 @@ function calcularBillingItem(
   horaSaida: string,
   dataSaida: string,
   valorUnit: number,
-  modeloCobranca: string
+  modeloCobranca: string,
+  horarioCheckoutConfig?: string | null
 ): { quantidade: number; valorTotal: number; descricao: string; excessoMinutos?: number } {
   const entrada = new Date(`${dataEntrada}T${horaEntrada}`);
   const saida = new Date(`${dataSaida}T${horaSaida}`);
@@ -123,19 +124,84 @@ function calcularBillingItem(
       };
     }
   } else {
-    // dia: 1 diária = 24 horas (1440 min)
+    // dia: uses configured checkout time to define the daily boundary
+    // If horarioCheckoutConfig is set (e.g. "18:00"), a "diária" spans from entry
+    // until that time. Any time past checkout on the last day = excess.
+    if (horarioCheckoutConfig) {
+      const [hCO, mCO] = horarioCheckoutConfig.split(":").map(Number);
+
+      // Calculate number of calendar days between entry date and exit date
+      const entradaDate = new Date(`${dataEntrada}T00:00:00`);
+      const saidaDate = new Date(`${dataSaida}T00:00:00`);
+      const calendarDays = Math.round((saidaDate.getTime() - entradaDate.getTime()) / 86400000);
+
+      // Build the checkout deadline for the exit day
+      const checkoutDeadline = new Date(`${dataSaida}T${String(hCO).padStart(2, "0")}:${String(mCO).padStart(2, "0")}:00`);
+
+      // If same day: 1 diária if within checkout time
+      if (calendarDays === 0) {
+        const excessMs = saida.getTime() - checkoutDeadline.getTime();
+        const excessMin = excessMs > 0 ? Math.floor(excessMs / 60000) : 0;
+        if (excessMin <= 29) {
+          return {
+            quantidade: 1,
+            valorTotal: Math.round(valorUnit * 100) / 100,
+            descricao: "1 diária",
+          };
+        } else {
+          return {
+            quantidade: 1,
+            valorTotal: Math.round(valorUnit * 100) / 100,
+            descricao: "1 diária",
+            excessoMinutos: excessMin,
+          };
+        }
+      }
+
+      // Multi-day: base = calendarDays diárias
+      // Check if exit time exceeds checkout deadline on exit day
+      const excessMs = saida.getTime() - checkoutDeadline.getTime();
+      const excessMin = excessMs > 0 ? Math.floor(excessMs / 60000) : 0;
+      const dias = Math.max(1, calendarDays);
+
+      if (excessMin <= 29) {
+        return {
+          quantidade: dias,
+          valorTotal: Math.round(dias * valorUnit * 100) / 100,
+          descricao: `${dias} diária(s)`,
+        };
+      } else if (excessMin >= 1440) {
+        // Excess >= 1 full extra day
+        const extraDias = Math.floor(excessMin / 1440);
+        const remainMin = excessMin % 1440;
+        const totalDias = dias + extraDias;
+        return {
+          quantidade: totalDias,
+          valorTotal: Math.round(totalDias * valorUnit * 100) / 100,
+          descricao: `${totalDias} diária(s)`,
+          excessoMinutos: remainMin > 29 ? remainMin : undefined,
+        };
+      } else {
+        return {
+          quantidade: dias,
+          valorTotal: Math.round(dias * valorUnit * 100) / 100,
+          descricao: `${dias} diária(s)`,
+          excessoMinutos: excessMin,
+        };
+      }
+    }
+
+    // Fallback: original 24h-based logic when no checkout config
     const dias = Math.max(1, Math.floor(totalMinutos / 1440));
     const minExc = Math.max(0, totalMinutos - dias * 1440);
 
     if (minExc <= 29) {
-      // Within tolerance - only full days
       return {
         quantidade: dias,
         valorTotal: Math.round(dias * valorUnit * 100) / 100,
         descricao: `${dias} diária(s)`,
       };
     } else if (minExc >= 1440) {
-      // Excess is a full extra day - increment quantity
       const totalDias = dias + Math.floor(minExc / 1440);
       return {
         quantidade: totalDias,
@@ -144,7 +210,6 @@ function calcularBillingItem(
         excessoMinutos: minExc % 1440 > 29 ? minExc % 1440 : undefined,
       };
     } else {
-      // Excess is partial hours - return base days + excess info for separate line
       return {
         quantidade: dias,
         valorTotal: Math.round(dias * valorUnit * 100) / 100,
