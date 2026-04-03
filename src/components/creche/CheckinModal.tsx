@@ -573,6 +573,23 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
             />
           </div>
 
+          {/* Agendar serviços extras toggle */}
+          {selectedExtras.length > 0 && (
+            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+              <div className="flex items-center gap-2">
+                <CalendarPlus className="h-4 w-4 text-primary" />
+                <Label className="text-xs font-medium cursor-pointer" htmlFor="agendar-extras">
+                  Agendar serviços extras
+                </Label>
+              </div>
+              <Switch
+                id="agendar-extras"
+                checked={agendarExtras}
+                onCheckedChange={setAgendarExtras}
+              />
+            </div>
+          )}
+
           <Button onClick={handleSave} disabled={saving} className="w-full h-8 text-sm">
             {saving ? "Salvando..." : "Confirmar Check-in"}
           </Button>
