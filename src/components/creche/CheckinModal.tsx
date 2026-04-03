@@ -263,7 +263,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
             </div>
           </div>
 
-          {/* Modelo de Cobrança - visible for both Creche and Hotel */}
+          {/* Modelo de Cobrança - visible only for Creche */}
+          {tipo === "creche" && (
           <div>
             <Label className="text-[11px] text-muted-foreground">Modelo de Cobrança</Label>
             <ToggleGroup
