@@ -37,25 +37,23 @@ interface Observacao {
   tipo?: string;
 }
 
-function buildRegistroFrases(pet: string, sexo: string | null, reg: RegistroDiario): string[] {
+function buildRegistroFrases(pet: string, sexo: string | null, reg: RegistroDiario): { principais: string[]; observacao: string | null } {
   const art = artigo(sexo);
   const nome = `${art} ${pet}`;
-  const frases: string[] = [];
+  const principais: string[] = [];
 
-  if (reg.comeu) frases.push(`${nome} se alimentou normalmente.`);
-  if (reg.bebeu_agua) frases.push(`${nome} se manteve bem ${(sexo || "").toLowerCase() === "fêmea" || (sexo || "").toLowerCase() === "femea" ? "hidratada" : "hidratado"}.`);
-  if (reg.brincou) frases.push(`${nome} brincou bastante ao longo do dia.`);
-  if (reg.interagiu_bem) frases.push(`${nome} interagiu bem com outros pets.`);
-  if (reg.brigas) frases.push(`${nome} se envolveu em alguns momentos de conflito.`);
-  if (reg.fez_necessidades) frases.push(`${nome} realizou suas necessidades normalmente.`);
-  if (reg.sinais_doenca) frases.push(`${nome} apresentou sinais de atenção relacionados à saúde.`);
-  if (reg.pulgas_carrapatos) frases.push(`${nome} apresentou sinais de pulgas/carrapatos.`);
+  if (reg.comeu) principais.push(`${nome} se alimentou normalmente.`);
+  if (reg.bebeu_agua) principais.push(`${nome} se manteve bem ${(sexo || "").toLowerCase() === "fêmea" || (sexo || "").toLowerCase() === "femea" ? "hidratada" : "hidratado"}.`);
+  if (reg.brincou) principais.push(`${nome} brincou bastante ao longo do dia.`);
+  if (reg.interagiu_bem) principais.push(`${nome} interagiu bem com outros pets.`);
+  if (reg.brigas) principais.push(`${nome} se envolveu em alguns momentos de conflito.`);
+  if (reg.fez_necessidades) principais.push(`${nome} realizou suas necessidades normalmente.`);
+  if (reg.sinais_doenca) principais.push(`${nome} apresentou sinais de atenção relacionados à saúde.`);
+  if (reg.pulgas_carrapatos) principais.push(`${nome} apresentou sinais de pulgas/carrapatos.`);
 
-  if (reg.observacoes?.trim()) {
-    frases.push(`Observação adicional: ${reg.observacoes.trim()}`);
-  }
+  const observacao = reg.observacoes?.trim() || null;
 
-  return frases;
+  return { principais, observacao };
 }
 
 function buildChecklistFrases(pet: string, sexo: string | null, checklist: any): string[] {
