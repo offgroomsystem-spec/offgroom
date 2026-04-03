@@ -2792,7 +2792,8 @@ const Agendamentos = () => {
       taxiDog: a.taxiDog,
       groomer: a.groomer || "",
       agendamento: a,
-      agendamentoOriginal: a
+      agendamentoOriginal: a,
+      isCheckinExtra: a.numeroServicoPacote === "CHECKIN_EXTRA"
     }));
     const agendamentosPacote = agendamentosPacotes.flatMap((p) =>
     p.servicos.
