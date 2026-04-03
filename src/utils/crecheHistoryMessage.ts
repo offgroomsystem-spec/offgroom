@@ -131,8 +131,8 @@ export async function gerarHistoricoCompleto(
   checklistEntrada: any,
   dataEntrada: string,
 ): Promise<string> {
-  const art = artigoCapital(petSexo);
   const pro = pronomeEle(petSexo);
+  const artDoDa = (petSexo || "").toLowerCase() === "fêmea" || (petSexo || "").toLowerCase() === "femea" ? "da" : "do";
 
   const { data: registros } = await supabase
     .from("creche_registros_diarios")
@@ -141,7 +141,7 @@ export async function gerarHistoricoCompleto(
     .order("data_registro", { ascending: true })
     .order("hora_registro", { ascending: true });
 
-  let msg = `Olá, ${clienteNome}! 😊\n\nSegue o histórico completo da estadia ${artigo(petSexo)} ${petNome}:\n\n`;
+  let msg = `Olá, ${clienteNome}! 😊\n\nSegue o histórico completo da estadia ${artDoDa} ${petNome}:\n\n`;
 
   // Checklist inicial
   const checklistFrases = buildChecklistFrases(petNome, petSexo, checklistEntrada);
@@ -154,7 +154,6 @@ export async function gerarHistoricoCompleto(
   if (!registros || registros.length === 0) {
     msg += `Até o momento, não houve registros diários para ${artigo(petSexo)} ${petNome}.\n`;
   } else {
-    // Group by date
     const byDate = new Map<string, RegistroDiario[]>();
     registros.forEach(r => {
       const list = byDate.get(r.data_registro) || [];
@@ -180,10 +179,15 @@ export async function gerarHistoricoCompleto(
           .join("; ") || null,
       };
 
-      const frases = buildRegistroFrases(petNome, petSexo, consolidated);
-      if (frases.length > 0) {
+      const { principais, observacao } = buildRegistroFrases(petNome, petSexo, consolidated);
+      if (principais.length > 0 || observacao) {
         msg += `📅 *${format(new Date(date + "T00:00:00"), "dd/MM/yyyy (EEEE)", { locale: ptBR })}*\n`;
-        msg += frases.join("\n");
+        if (principais.length > 0) {
+          msg += principais.join("\n");
+        }
+        if (observacao) {
+          msg += `\n\n*Observação adicional:* ${observacao}`;
+        }
         msg += "\n\n";
       }
     }
