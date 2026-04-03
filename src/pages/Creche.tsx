@@ -117,6 +117,7 @@ const Creche = () => {
         cliente_id: d.cliente_id,
         pet_sexo: petMap.get(d.pet_id)?.sexo || "",
         cliente_whatsapp: clienteMap.get(d.cliente_id)?.whatsapp || "",
+        servicos_extras: Array.isArray((d as any).servicos_extras) ? (d as any).servicos_extras : [],
       }))
     );
   }, [user]);
