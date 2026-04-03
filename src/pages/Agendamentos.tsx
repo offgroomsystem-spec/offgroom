@@ -2592,9 +2592,9 @@ const Agendamentos = () => {
       const buscarPronome = isFemea ? "buscá-la" : "buscá-lo";
 
       if (taxiDog === "Sim") {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} já está ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estará indo de volta pra casa!`;
       } else {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} já está ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} está ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
       }
     } else {
       // Plural
@@ -2605,9 +2605,9 @@ const Agendamentos = () => {
       const buscarPronome = todasFemea ? "buscá-las" : "buscá-los";
 
       if (taxiDog === "Sim") {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} estão ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estarão indo de volta pra casa!`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} estão ${prontoAdj}!\nJá já o Taxi Dog chega e ${pronome} estarão indo de volta pra casa!`;
       } else {
-        return `Oii ${primeiroNome}!\nPassando para avisar que ${artigo} ${nomesConcat} estão ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} estão ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
+        return `Oii ${primeiroNome}!\nPassando para avisar que ${nomesConcat} estão ${prontoAdj} para ir para casa!\n${pronomeMaiusculo} estão ${ansiosoAdj} te esperando para ${buscarPronome}! 😌`;
       }
     }
   };
