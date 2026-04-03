@@ -410,9 +410,9 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
             toast.error(`Valor do serviço zerado para ${est.pet_nome}. Verifique o cadastro em Serviços Creche & Hotel.`);
           }
 
-          // Hotel sempre calcula por diária (24h), usando timestamp real do check-out
+          // Hotel sempre calcula por diária, usando timestamp real do check-out
           const effectiveMc = isHotel ? "dia" : (servico.modelo_cobranca || mcOriginal || "periodo");
-          const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, effectiveMc);
+          const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, effectiveMc, effectiveMc === "dia" ? horarioCheckoutConfig : null);
 
           console.log(`[Checkout] Cálculo: qty=${result.quantidade}, valorUnit=${valorUnit}, total=${result.valorTotal}, excessoMin=${result.excessoMinutos || 0}`);
 
