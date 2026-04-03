@@ -105,7 +105,7 @@ const Creche = () => {
         hora_entrada: d.hora_entrada,
         data_saida_prevista: d.data_saida_prevista,
         pet_nome: petMap.get(d.pet_id)?.nome || "Pet",
-        cliente_nome: clienteMap.get(d.cliente_id) || "Cliente",
+        cliente_nome: clienteMap.get(d.cliente_id)?.nome || "Cliente",
         observacoes_entrada: d.observacoes_entrada,
         checklist_entrada: d.checklist_entrada,
         ultimo_registro: ultimoRegistroMap.get(d.id) || null,
@@ -114,6 +114,8 @@ const Creche = () => {
         pet_porte: petMap.get(d.pet_id)?.porte || "",
         pet_id: d.pet_id,
         cliente_id: d.cliente_id,
+        pet_sexo: petMap.get(d.pet_id)?.sexo || "",
+        cliente_whatsapp: clienteMap.get(d.cliente_id)?.whatsapp || "",
       }))
     );
   }, [user]);
