@@ -98,26 +98,91 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
   const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
   const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, Record<string, boolean>>>({});
   const [sendingHistory, setSendingHistory] = useState<Set<string>>(new Set());
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
+  const [whatsappInstanceName, setWhatsappInstanceName] = useState("");
+  const lastSendRef = useRef<number>(0);
+
+  // Load WhatsApp instance status
+  useEffect(() => {
+    if (!ownerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("whatsapp_instances")
+        .select("instance_name, status")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      if (data?.instance_name) {
+        setWhatsappInstanceName(data.instance_name);
+        try {
+          const res = await supabase.functions.invoke("evolution-api", {
+            body: { action: "check-status", instanceName: data.instance_name },
+          });
+          setWhatsappConnected(res.data?.instance?.state === "open");
+        } catch {
+          setWhatsappConnected(false);
+        }
+      }
+    })();
+  }, [ownerId]);
 
   const handleSendHistory = async (estadia: Estadia, tipo: "diario" | "completo") => {
     const key = `${estadia.id}-${tipo}`;
     if (sendingHistory.has(key)) return;
+
+    // Validate phone
+    const normalizedPhone = normalizeBrazilPhone(estadia.cliente_whatsapp);
+    if (!normalizedPhone) {
+      toast.error(getInvalidPhoneMessage(estadia.cliente_whatsapp));
+      return;
+    }
+
     setSendingHistory(prev => new Set(prev).add(key));
     try {
       const msg = tipo === "diario"
         ? await gerarHistoricoDiario(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome)
         : await gerarHistoricoCompleto(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome, estadia.checklist_entrada, estadia.data_entrada);
 
-      const phone = (estadia.cliente_whatsapp || "").replace(/\D/g, "");
-      if (!phone) {
-        toast.error("WhatsApp do cliente não encontrado.");
-        return;
+      const tipoLabel = tipo === "diario" ? "diário" : "completo";
+
+      if (whatsappConnected && whatsappInstanceName) {
+        // Enforce 10s spacing between sends
+        const now = Date.now();
+        const elapsed = now - lastSendRef.current;
+        if (elapsed < 10000) {
+          await new Promise(resolve => setTimeout(resolve, 10000 - elapsed));
+        }
+        lastSendRef.current = Date.now();
+
+        const res = await supabase.functions.invoke("evolution-api", {
+          body: { action: "send-message", instanceName: whatsappInstanceName, number: normalizedPhone, text: msg },
+        });
+
+        if (res.error) {
+          throw new Error(res.error.message || "Erro na API");
+        }
+
+        if (res.data?.error) {
+          throw new Error(res.data.error);
+        }
+
+        toast.success(`Histórico ${tipoLabel} enviado automaticamente! ✅`);
+      } else {
+        // Fallback: wa.me link
+        toast.info("WhatsApp não conectado. Abrindo link manual...");
+        const url = buildWhatsAppUrl(estadia.cliente_whatsapp, msg);
+        if (url) window.open(url, "_blank");
       }
-      const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(msg)}`;
-      window.open(url, "_blank");
-      toast.success(`Histórico ${tipo === "diario" ? "diário" : "completo"} preparado!`);
-    } catch {
-      toast.error("Erro ao gerar histórico.");
+    } catch (err: any) {
+      console.error("Erro ao enviar histórico:", err);
+      toast.error(err?.message || "Erro ao enviar histórico.");
+      // Fallback on error
+      try {
+        const msg = tipo === "diario"
+          ? await gerarHistoricoDiario(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome)
+          : await gerarHistoricoCompleto(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome, estadia.checklist_entrada, estadia.data_entrada);
+        const url = buildWhatsAppUrl(estadia.cliente_whatsapp, msg);
+        if (url) window.open(url, "_blank");
+      } catch { /* ignore fallback errors */ }
     } finally {
       setSendingHistory(prev => {
         const next = new Set(prev);
