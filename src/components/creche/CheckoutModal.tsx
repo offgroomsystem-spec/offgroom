@@ -342,7 +342,7 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
           const effectiveMc = isHotel ? "dia" : (servico.modelo_cobranca || mcOriginal || "periodo");
           const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, effectiveMc);
 
-          console.log(`[Checkout] Cálculo: qty=${result.quantidade}, valorUnit=${valorUnit}, total=${result.valorTotal}`);
+          console.log(`[Checkout] Cálculo: qty=${result.quantidade}, valorUnit=${valorUnit}, total=${result.valorTotal}, excessoMin=${result.excessoMinutos || 0}`);
 
           items.push({
             estadiaId: est.id,
@@ -353,6 +353,79 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
             quantidade: result.quantidade,
             valorUnitario: valorUnit,
           });
+
+          // Handle excess minutes as a separate billing line (creche por hora)
+          if (result.excessoMinutos && result.excessoMinutos > 29) {
+            // Look up creche "por hora" service matching the modelo_preco
+            const servicosCrecheHora = servicos.filter((s: any) => {
+              const sTipo = normalizeTipo(s.tipo);
+              const sMc = normalizeModeloCobranca(s.modelo_cobranca);
+              const sMp = normalizeModeloPreco(s.modelo_preco);
+              return sTipo === "creche" && sMc === "hora" && sMp === mpResolvido;
+            });
+
+            // Fallback: any creche por hora service
+            const servicosCrecheHoraFallback = servicosCrecheHora.length > 0
+              ? servicosCrecheHora
+              : servicos.filter((s: any) => normalizeTipo(s.tipo) === "creche" && normalizeModeloCobranca(s.modelo_cobranca) === "hora");
+
+            if (servicosCrecheHoraFallback.length > 0) {
+              let excValorUnit = 0;
+              let excServico = servicosCrecheHoraFallback[0];
+
+              const shouldUsePorteExc = mpResolvido === "porte" && porteField;
+              if (shouldUsePorteExc && porteField) {
+                const match = servicosCrecheHoraFallback.find((s: any) => (s[porteField] || 0) > 0);
+                if (match) {
+                  excServico = match;
+                  excValorUnit = match[porteField] || 0;
+                }
+              }
+              if (excValorUnit === 0) {
+                const matchUnico = servicosCrecheHoraFallback.find((s: any) => (s.valor_unico || 0) > 0);
+                if (matchUnico) {
+                  excServico = matchUnico;
+                  excValorUnit = matchUnico.valor_unico || 0;
+                }
+              }
+
+              if (excValorUnit > 0) {
+                const excHoras = Math.floor(result.excessoMinutos / 60);
+                const excMin = result.excessoMinutos % 60;
+                let excQty: number;
+                let excDescricao: string;
+
+                if (excMin <= 29) {
+                  excQty = Math.max(1, excHoras);
+                  excDescricao = `Excedente: ${excQty}h${excMin > 0 ? ` (${excMin}min tolerância)` : ""}`;
+                } else {
+                  excQty = Math.round((excHoras + excMin / 60) * 100) / 100;
+                  excDescricao = `Excedente: ${excHoras}h${excMin}min`;
+                }
+
+                const excTotal = Math.round(excQty * excValorUnit * 100) / 100;
+
+                console.log(`[Checkout] Excedente: qty=${excQty}, valorUnit=${excValorUnit}, total=${excTotal}, servico=${excServico.nome}`);
+
+                items.push({
+                  estadiaId: est.id,
+                  petNome: est.pet_nome,
+                  valorTotal: excTotal,
+                  descricao: excDescricao,
+                  servicoNome: excServico.nome,
+                  quantidade: excQty,
+                  valorUnitario: excValorUnit,
+                  isExcedente: true,
+                });
+              } else {
+                console.warn(`[Checkout] Serviço de creche por hora com valor zerado para excedente de ${est.pet_nome}`);
+                toast.error(`Serviço de creche por hora não configurado corretamente para o excedente de ${est.pet_nome}.`);
+              }
+            } else {
+              console.warn(`[Checkout] Serviço de creche por hora não encontrado para excedente de ${est.pet_nome}`);
+              toast.error(`Serviço de cobrança por hora não configurado. Cadastre um serviço de Creche por Hora.`);
+            }
+          }
         }
 
         setBillingItems(items);
