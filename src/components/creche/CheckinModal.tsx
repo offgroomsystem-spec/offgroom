@@ -239,7 +239,9 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       if (error) throw error;
 
       // Create agendamento for extras if toggle is on
+      console.log("Check-in save - agendarExtras:", agendarExtras, "selectedExtras:", selectedExtras.length, "dataSaidaPrevista:", dataSaidaPrevista);
       if (agendarExtras && selectedExtras.length > 0 && dataSaidaPrevista) {
+        console.log("Creating agendamento for extras...");
         await criarAgendamentoExtras();
       }
 
