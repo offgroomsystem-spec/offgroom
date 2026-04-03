@@ -239,7 +239,9 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       if (error) throw error;
 
       // Create agendamento for extras if toggle is on
+      console.log("Check-in save - agendarExtras:", agendarExtras, "selectedExtras:", selectedExtras.length, "dataSaidaPrevista:", dataSaidaPrevista);
       if (agendarExtras && selectedExtras.length > 0 && dataSaidaPrevista) {
+        console.log("Creating agendamento for extras...");
         await criarAgendamentoExtras();
       }
 
@@ -255,7 +257,10 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   };
 
   const criarAgendamentoExtras = async () => {
-    if (!selectedPet || !user) return;
+    if (!selectedPet || !user) {
+      console.error("criarAgendamentoExtras: selectedPet or user is null");
+      return;
+    }
 
     // Calculate date and time for the agendamento
     let agendaData = dataSaidaPrevista;
@@ -314,11 +319,13 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       status: "Agendado",
     };
 
+    console.log("Inserting agendamento:", JSON.stringify(agendamentoData));
     const { error } = await supabase.from("agendamentos").insert(agendamentoData);
     if (error) {
       console.error("Erro ao criar agendamento de extras:", error);
       toast.error("Check-in ok, mas falha ao agendar serviços extras.");
     } else {
+      console.log("Agendamento de extras criado com sucesso!");
       toast.success("Serviços extras agendados com sucesso!");
     }
   };
@@ -617,11 +624,17 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => { setShowExtrasConfirm(false); setAgendarExtras(true); }}>
+              <AlertDialogCancel onClick={() => { 
+                setShowExtrasConfirm(false); 
+                setAgendarExtras(true); 
+              }}>
                 Não
               </AlertDialogCancel>
-              <AlertDialogAction onClick={() => { setShowExtrasConfirm(false); executeSave(); }}>
-                Sim
+              <AlertDialogAction onClick={async () => { 
+                setShowExtrasConfirm(false); 
+                await executeSave(); 
+              }}>
+                Sim, prosseguir sem agendar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
