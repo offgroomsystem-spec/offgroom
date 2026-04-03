@@ -59,6 +59,18 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const [selectedExtras, setSelectedExtras] = useState<ServicoExtra[]>([]);
   const [searchExtras, setSearchExtras] = useState("");
   const [extrasOpen, setExtrasOpen] = useState(false);
+  const extrasRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!extrasOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (extrasRef.current && !extrasRef.current.contains(e.target as Node)) {
+        setExtrasOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [extrasOpen]);
 
   const [checklist, setChecklist] = useState({
     comeu_antes: false,
