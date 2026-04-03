@@ -4472,7 +4472,23 @@ const Agendamentos = () => {
                         return (
                         <div key={index} className="space-y-1">
                           <div className="flex gap-1.5 items-center">
-                            <div className="w-12">
+                            <div className="w-16 flex items-center gap-0.5">
+                              <div className="flex flex-col">
+                                <button
+                                  type="button"
+                                  onClick={() => moveServico(index, "up")}
+                                  disabled={index === 0}
+                                  className="text-[10px] leading-none h-3 w-3 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+                                  aria-label="Mover para cima"
+                                >˄</button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveServico(index, "down")}
+                                  disabled={index === servicosAgendamento.length - 1}
+                                  className="text-[10px] leading-none h-3 w-3 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+                                  aria-label="Mover para baixo"
+                                >˅</button>
+                              </div>
                               <Label className="text-[10px] text-primary font-semibold">{servico.numero}</Label>
                             </div>
 
