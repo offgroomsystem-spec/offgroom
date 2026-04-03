@@ -319,11 +319,13 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       status: "Agendado",
     };
 
+    console.log("Inserting agendamento:", JSON.stringify(agendamentoData));
     const { error } = await supabase.from("agendamentos").insert(agendamentoData);
     if (error) {
       console.error("Erro ao criar agendamento de extras:", error);
       toast.error("Check-in ok, mas falha ao agendar serviços extras.");
     } else {
+      console.log("Agendamento de extras criado com sucesso!");
       toast.success("Serviços extras agendados com sucesso!");
     }
   };
