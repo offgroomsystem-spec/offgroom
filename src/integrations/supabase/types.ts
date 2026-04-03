@@ -661,6 +661,8 @@ export type Database = {
           endereco: string | null
           evolution_auto_send: boolean | null
           evolution_instance_name: string | null
+          horario_checkin_creche: string | null
+          horario_checkout_creche: string | null
           horario_fim: string | null
           horario_inicio: string | null
           id: string
@@ -699,6 +701,8 @@ export type Database = {
           endereco?: string | null
           evolution_auto_send?: boolean | null
           evolution_instance_name?: string | null
+          horario_checkin_creche?: string | null
+          horario_checkout_creche?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -737,6 +741,8 @@ export type Database = {
           endereco?: string | null
           evolution_auto_send?: boolean | null
           evolution_instance_name?: string | null
+          horario_checkin_creche?: string | null
+          horario_checkout_creche?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
