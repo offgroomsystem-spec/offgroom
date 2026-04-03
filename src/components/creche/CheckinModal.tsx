@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,18 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const [selectedExtras, setSelectedExtras] = useState<ServicoExtra[]>([]);
   const [searchExtras, setSearchExtras] = useState("");
   const [extrasOpen, setExtrasOpen] = useState(false);
+  const extrasRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!extrasOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (extrasRef.current && !extrasRef.current.contains(e.target as Node)) {
+        setExtrasOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [extrasOpen]);
 
   const [checklist, setChecklist] = useState({
     comeu_antes: false,
@@ -346,7 +358,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
           {/* Serviços Extras */}
           {selectedPet && (
-            <div className="relative">
+            <div className="relative" ref={extrasRef}>
               <Label className="text-[11px] font-semibold">Serviços Extras</Label>
               {/* Selected extras badges */}
               {selectedExtras.length > 0 && (
