@@ -234,7 +234,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-[11px] text-muted-foreground">Tipo de Estadia</Label>
-              <Select value={tipo} onValueChange={(v) => { setTipo(v); if (v === "hotel") { setModeloPreco("unico"); } }}>
+              <Select value={tipo} onValueChange={(v) => { setTipo(v); }}>
                 <SelectTrigger className="h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
