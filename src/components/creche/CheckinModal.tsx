@@ -125,7 +125,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const loadPets = async () => {
     const { data } = await supabase
       .from("pets")
-      .select("id, nome_pet, cliente_id, porte")
+      .select("id, nome_pet, cliente_id, porte, raca")
       .order("nome_pet");
 
     if (data) {
