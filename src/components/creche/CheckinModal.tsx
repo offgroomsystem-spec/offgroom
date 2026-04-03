@@ -28,6 +28,7 @@ interface Pet {
   nome_pet: string;
   cliente_id: string;
   porte?: string;
+  raca?: string;
   cliente_nome?: string;
   cliente_whatsapp?: string;
 }
