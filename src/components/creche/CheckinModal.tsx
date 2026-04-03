@@ -369,6 +369,64 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
           </div>
           )}
 
+          {/* Serviços Extras */}
+          {selectedPet && (
+            <div>
+              <Label className="text-[11px] font-semibold">Serviços Extras</Label>
+              {/* Selected extras badges */}
+              {selectedExtras.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1 mb-1">
+                  {selectedExtras.map((extra) => (
+                    <Badge
+                      key={extra.id}
+                      variant="secondary"
+                      className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/20"
+                      onClick={() => toggleExtra(extra)}
+                    >
+                      {extra.nome} — R$ {extra.valor.toFixed(2)}
+                      <X className="h-2.5 w-2.5" />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              {/* Search */}
+              <div className="relative mt-0.5">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar serviço extra..."
+                  value={searchExtras}
+                  onChange={(e) => setSearchExtras(e.target.value)}
+                  className="h-7 text-xs pl-7"
+                />
+              </div>
+              {/* List */}
+              <div className="border rounded mt-0.5 max-h-28 overflow-y-auto bg-background">
+                {availableExtras.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground text-center py-2">
+                    {servicosCreche.length === 0 ? "Nenhum serviço cadastrado" : "Nenhum serviço compatível"}
+                  </p>
+                ) : (
+                  availableExtras.map((extra) => {
+                    const isSelected = selectedExtras.some((e) => e.id === extra.id);
+                    return (
+                      <div
+                        key={extra.id}
+                        className={`flex items-center justify-between px-2 py-1 cursor-pointer text-xs hover:bg-accent ${isSelected ? "bg-primary/10 font-medium" : ""}`}
+                        onClick={() => toggleExtra(extra)}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Checkbox checked={isSelected} className="h-3 w-3" tabIndex={-1} />
+                          <span>{extra.nome}</span>
+                        </div>
+                        <span className="text-muted-foreground text-[10px]">R$ {extra.valor.toFixed(2)}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Datas */}
           <div className="grid grid-cols-2 gap-2">
             <div>
