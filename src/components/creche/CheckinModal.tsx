@@ -72,6 +72,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   useEffect(() => {
     if (!open || !user) return;
     loadPets();
+    loadServicosCreche();
   }, [open, user]);
 
   useEffect(() => {
