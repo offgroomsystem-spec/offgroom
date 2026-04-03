@@ -545,6 +545,22 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
               console.warn(`[Checkout] Serviço de creche por hora não encontrado para excedente de ${est.pet_nome}`);
               toast.error(`Serviço de cobrança por hora não configurado. Cadastre um serviço de Creche por Hora.`);
             }
+        }
+
+          // Add extras from check-in
+          const extras = Array.isArray(est.servicos_extras) ? est.servicos_extras : [];
+          for (const extra of extras) {
+            if (extra.valor && extra.valor > 0) {
+              items.push({
+                estadiaId: est.id,
+                petNome: est.pet_nome,
+                valorTotal: Math.round(extra.valor * 100) / 100,
+                descricao: "Serviço Extra",
+                servicoNome: extra.nome || "Serviço Extra",
+                quantidade: 1,
+                valorUnitario: extra.valor,
+              });
+            }
           }
         }
 
