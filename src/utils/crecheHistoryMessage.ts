@@ -130,6 +130,7 @@ export async function gerarHistoricoCompleto(
   clienteNome: string,
   checklistEntrada: any,
   dataEntrada: string,
+  horaEntrada?: string,
 ): Promise<string> {
   const pro = pronomeEle(petSexo);
   const artDoDa = (petSexo || "").toLowerCase() === "fêmea" || (petSexo || "").toLowerCase() === "femea" ? "da" : "do";
