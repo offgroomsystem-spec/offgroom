@@ -90,7 +90,17 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
     if (!open || !user) return;
     loadPets();
     loadServicosCreche();
+    loadEmpresaConfig();
   }, [open, user]);
+
+  const loadEmpresaConfig = async () => {
+    const { data } = await supabase
+      .from("empresa_config")
+      .select("horario_fim")
+      .limit(1)
+      .maybeSingle();
+    if (data) setEmpresaHorarioFim(data.horario_fim);
+  };
 
   useEffect(() => {
     if (!searchPet.trim()) {
