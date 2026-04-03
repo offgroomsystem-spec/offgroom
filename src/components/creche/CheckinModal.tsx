@@ -8,11 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Search, X } from "lucide-react";
+import { Search, X, CalendarPlus } from "lucide-react";
+import { subtractBusinessDays } from "@/utils/diasUteis";
 
 interface ServicoExtra {
   id: string;
@@ -60,6 +62,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const [searchExtras, setSearchExtras] = useState("");
   const [extrasOpen, setExtrasOpen] = useState(false);
   const extrasRef = useRef<HTMLDivElement>(null);
+  const [agendarExtras, setAgendarExtras] = useState(false);
+  const [empresaHorarioFim, setEmpresaHorarioFim] = useState<string | null>(null);
 
   useEffect(() => {
     if (!extrasOpen) return;
@@ -86,7 +90,17 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
     if (!open || !user) return;
     loadPets();
     loadServicosCreche();
+    loadEmpresaConfig();
   }, [open, user]);
+
+  const loadEmpresaConfig = async () => {
+    const { data } = await supabase
+      .from("empresa_config")
+      .select("horario_fim")
+      .limit(1)
+      .maybeSingle();
+    if (data) setEmpresaHorarioFim(data.horario_fim);
+  };
 
   useEffect(() => {
     if (!searchPet.trim()) {
@@ -211,6 +225,12 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       const { error } = await supabase.from("creche_estadias").insert(insertData);
 
       if (error) throw error;
+
+      // Create agendamento for extras if toggle is on
+      if (agendarExtras && selectedExtras.length > 0 && dataSaidaPrevista) {
+        await criarAgendamentoExtras();
+      }
+
       toast.success("Check-in realizado com sucesso!");
       resetForm();
       onOpenChange(false);
@@ -219,6 +239,75 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       toast.error("Erro ao fazer check-in: " + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const criarAgendamentoExtras = async () => {
+    if (!selectedPet || !user) return;
+
+    // Calculate date and time for the agendamento
+    let agendaData = dataSaidaPrevista;
+    let agendaHora = horaSaidaPrevista || "09:00";
+
+    if (empresaHorarioFim && horaSaidaPrevista) {
+      const [fimH, fimM] = empresaHorarioFim.split(":").map(Number);
+      const [saidaH, saidaM] = horaSaidaPrevista.split(":").map(Number);
+      const fimMinutos = fimH * 60 + fimM;
+      const saidaMinutos = saidaH * 60 + saidaM;
+      const limiteMinutos = fimMinutos - 120; // 2 hours before end
+
+      if (saidaMinutos <= limiteMinutos) {
+        // Move to previous business day, set time to horaFim - 2h01min
+        const dataSaida = new Date(dataSaidaPrevista + "T12:00:00");
+        const diaAnterior = subtractBusinessDays(dataSaida, 1);
+        agendaData = format(diaAnterior, "yyyy-MM-dd");
+
+        const novaHoraMinutos = fimMinutos - 121; // 2h01min before
+        const h = Math.floor(novaHoraMinutos / 60);
+        const m = novaHoraMinutos % 60;
+        agendaHora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+    }
+
+    // Build servicos list and description
+    const servicosNomes = selectedExtras.map((e) => e.nome).join(", ");
+    const servicosJson = selectedExtras.map((e) => ({
+      nome: e.nome,
+      valor: e.valor,
+    }));
+
+    // Calculate horario_termino (1 hour after start as default)
+    const [hh, mm] = agendaHora.split(":").map(Number);
+    const terminoMin = Math.min(hh * 60 + mm + 60, 23 * 60 + 59);
+    const terminoH = Math.floor(terminoMin / 60);
+    const terminoM = terminoMin % 60;
+    const horarioTermino = `${String(terminoH).padStart(2, "0")}:${String(terminoM).padStart(2, "0")}`;
+
+    const agendamentoData = {
+      user_id: user!.id,
+      cliente: selectedPet.cliente_nome || "",
+      cliente_id: selectedPet.cliente_id,
+      pet: selectedPet.nome_pet,
+      raca: "",
+      whatsapp: selectedPet.cliente_whatsapp || "",
+      servico: servicosNomes,
+      servicos: servicosJson,
+      tempo_servico: "01:00",
+      groomer: "",
+      taxi_dog: "Não",
+      data: agendaData,
+      data_venda: format(new Date(), "yyyy-MM-dd"),
+      horario: agendaHora,
+      horario_termino: horarioTermino,
+      status: "Agendado",
+    };
+
+    const { error } = await supabase.from("agendamentos").insert(agendamentoData);
+    if (error) {
+      console.error("Erro ao criar agendamento de extras:", error);
+      toast.error("Check-in ok, mas falha ao agendar serviços extras.");
+    } else {
+      toast.success("Serviços extras agendados com sucesso!");
     }
   };
 
@@ -244,6 +333,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       restricao: false,
     });
     setChecklistObs("");
+    setAgendarExtras(false);
   };
 
   const checklistItems = [
@@ -482,6 +572,23 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               className="min-h-[40px] text-xs"
             />
           </div>
+
+          {/* Agendar serviços extras toggle */}
+          {selectedExtras.length > 0 && (
+            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+              <div className="flex items-center gap-2">
+                <CalendarPlus className="h-4 w-4 text-primary" />
+                <Label className="text-xs font-medium cursor-pointer" htmlFor="agendar-extras">
+                  Agendar serviços extras
+                </Label>
+              </div>
+              <Switch
+                id="agendar-extras"
+                checked={agendarExtras}
+                onCheckedChange={setAgendarExtras}
+              />
+            </div>
+          )}
 
           <Button onClick={handleSave} disabled={saving} className="w-full h-8 text-sm">
             {saving ? "Salvando..." : "Confirmar Check-in"}
