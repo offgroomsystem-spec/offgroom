@@ -105,6 +105,8 @@ const Empresa = () => {
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [crecheAtiva, setCrecheAtiva] = useState(false);
   const [salvandoCreche, setSalvandoCreche] = useState(false);
+  const [horarioCheckinCreche, setHorarioCheckinCreche] = useState("");
+  const [horarioCheckoutCreche, setHorarioCheckoutCreche] = useState("");
 
   // Fetch empresa config from Supabase
   useEffect(() => {
