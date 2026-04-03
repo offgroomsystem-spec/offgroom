@@ -226,23 +226,70 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
   const [billingItems, setBillingItems] = useState<BillingItem[]>([]);
+  const [includedAllClientPets, setIncludedAllClientPets] = useState<boolean | null>(null);
 
-  const filteredEstadias = contextClienteNome
-    ? estadiasAtivas.filter((e) => e.cliente_nome === contextClienteNome)
-    : estadiasAtivas;
+  // Find the context estadia to get cliente_id
+  const contextEstadia = contextEstadiaId
+    ? estadiasAtivas.find((e) => e.id === contextEstadiaId)
+    : null;
+
+  const contextClienteId = contextEstadia?.cliente_id || null;
+
+  // Other pets from the same tutor (by cliente_id) that are NOT the context pet
+  const otherClientPets = useMemo(() => {
+    if (!contextClienteId || !contextEstadiaId) return [];
+    return estadiasAtivas.filter(
+      (e) => e.cliente_id === contextClienteId && e.id !== contextEstadiaId
+    );
+  }, [estadiasAtivas, contextClienteId, contextEstadiaId]);
+
+  const showSameTutorAlert = contextEstadiaId && otherClientPets.length > 0 && includedAllClientPets === null;
+
+  // Determine which estadias to show in the list
+  const filteredEstadias = useMemo(() => {
+    if (contextEstadiaId && contextClienteId) {
+      if (includedAllClientPets === true) {
+        // Show all pets from the same tutor
+        return estadiasAtivas.filter((e) => e.cliente_id === contextClienteId);
+      }
+      // Show only the triggered pet (before or after declining)
+      if (includedAllClientPets === false || includedAllClientPets === null) {
+        return estadiasAtivas.filter((e) => e.id === contextEstadiaId);
+      }
+    }
+    if (contextClienteNome) {
+      return estadiasAtivas.filter((e) => e.cliente_nome === contextClienteNome);
+    }
+    return estadiasAtivas;
+  }, [estadiasAtivas, contextEstadiaId, contextClienteId, contextClienteNome, includedAllClientPets]);
 
   const allSelected = filteredEstadias.length > 0 && selectedIds.size === filteredEstadias.length;
 
   useEffect(() => {
     if (open && contextEstadiaId) {
       setSelectedIds(new Set([contextEstadiaId]));
+      setIncludedAllClientPets(null);
     }
     if (!open) {
       setSelectedIds(new Set());
       setObservacoes("");
       setBillingItems([]);
+      setIncludedAllClientPets(null);
     }
   }, [open, contextEstadiaId]);
+
+  const handleIncludeAllPets = () => {
+    setIncludedAllClientPets(true);
+    // Select all pets from the same tutor
+    const allIds = new Set<string>();
+    if (contextEstadiaId) allIds.add(contextEstadiaId);
+    otherClientPets.forEach((e) => allIds.add(e.id));
+    setSelectedIds(allIds);
+  };
+
+  const handleDeclineInclude = () => {
+    setIncludedAllClientPets(false);
+  };
 
   // Calculate billing for all selected pets
   useEffect(() => {
@@ -627,6 +674,28 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
                   <span className="text-muted-foreground ml-1">— Tutor: {contextClienteNome}</span>
                 )}
               </Label>
+
+              {/* Alert for other pets from same tutor */}
+              {showSameTutorAlert && (
+                <div className="bg-destructive/10 border border-destructive/40 rounded-md p-3 mt-2 mb-1">
+                  <p className="text-sm font-semibold text-destructive mb-2">
+                    Acrescentar demais pets do mesmo cliente no Check-out?
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {otherClientPets.length} outro{otherClientPets.length > 1 ? "s" : ""} pet{otherClientPets.length > 1 ? "s" : ""} encontrado{otherClientPets.length > 1 ? "s" : ""}:{" "}
+                    {otherClientPets.map((e) => e.pet_nome).join(", ")}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="destructive" onClick={handleIncludeAllPets}>
+                      Sim
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleDeclineInclude}>
+                      Não
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="border rounded-md max-h-52 overflow-y-auto mt-1">
                 {filteredEstadias.length > 1 && (
                   <div
