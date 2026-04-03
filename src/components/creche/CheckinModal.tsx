@@ -128,8 +128,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
         observacoes_entrada: observacoes || null,
         checklist_entrada: { ...checklist, observacoes_adicionais: checklistObs },
         status: "ativo",
-        modelo_preco: tipo === "creche" ? modeloPreco : "unico",
-        modelo_cobranca: tipo === "creche" ? modeloCobranca : "dia",
+        modelo_preco: modeloPreco,
+        modelo_cobranca: modeloCobranca,
       };
 
       const { error } = await supabase.from("creche_estadias").insert(insertData);
@@ -234,7 +234,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-[11px] text-muted-foreground">Tipo de Estadia</Label>
-              <Select value={tipo} onValueChange={(v) => { setTipo(v); if (v === "hotel") { setModeloPreco("unico"); } }}>
+              <Select value={tipo} onValueChange={(v) => { setTipo(v); }}>
                 <SelectTrigger className="h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
@@ -245,45 +245,41 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               </Select>
             </div>
 
-            {tipo === "creche" && (
-              <div>
-                <Label className="text-[11px] text-muted-foreground">Tipo de Cobrança</Label>
-                <ToggleGroup
-                  type="single"
-                  value={modeloPreco}
-                  onValueChange={(v) => { if (v) setModeloPreco(v); }}
-                  className="justify-start mt-0.5"
-                >
-                  <ToggleGroupItem value="unico" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    Único
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="porte" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    Por Porte
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-            )}
-          </div>
-
-          {/* Modelo de Cobrança - always visible for Creche */}
-          {tipo === "creche" && (
             <div>
-              <Label className="text-[11px] text-muted-foreground">Modelo de Cobrança</Label>
+              <Label className="text-[11px] text-muted-foreground">Tipo de Cobrança</Label>
               <ToggleGroup
                 type="single"
-                value={modeloCobranca}
-                onValueChange={(v) => { if (v) setModeloCobranca(v); }}
+                value={modeloPreco}
+                onValueChange={(v) => { if (v) setModeloPreco(v); }}
                 className="justify-start mt-0.5"
               >
-                <ToggleGroupItem value="hora" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                  Por Hora
+                <ToggleGroupItem value="unico" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                  Único
                 </ToggleGroupItem>
-                <ToggleGroupItem value="dia" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                  Por Dia
+                <ToggleGroupItem value="porte" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                  Por Porte
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
-          )}
+          </div>
+
+          {/* Modelo de Cobrança - visible for both Creche and Hotel */}
+          <div>
+            <Label className="text-[11px] text-muted-foreground">Modelo de Cobrança</Label>
+            <ToggleGroup
+              type="single"
+              value={modeloCobranca}
+              onValueChange={(v) => { if (v) setModeloCobranca(v); }}
+              className="justify-start mt-0.5"
+            >
+              <ToggleGroupItem value="hora" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                Por Hora
+              </ToggleGroupItem>
+              <ToggleGroupItem value="dia" className="h-7 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                Por Dia
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
 
           {/* Datas */}
           <div className="grid grid-cols-2 gap-2">
