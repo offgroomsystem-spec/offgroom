@@ -614,11 +614,17 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
             {billingItems.length > 0 && (
               <div className="bg-primary/5 border border-primary/20 rounded-md p-3 space-y-2">
                 <p className="text-xs font-medium text-primary">💰 Cálculo Automático</p>
-                {billingItems.map((b) => (
-                  <div key={b.estadiaId} className="flex items-center justify-between text-xs">
+                {billingItems.map((b, idx) => (
+                  <div key={`${b.estadiaId}-${idx}`} className={`flex items-center justify-between text-xs ${b.isExcedente ? "pl-3 text-muted-foreground" : ""}`}>
                     <div>
-                      <span className="font-medium">{b.petNome}</span>
-                      <span className="text-muted-foreground ml-1">({b.descricao})</span>
+                      {b.isExcedente ? (
+                        <span className="italic">↳ {b.descricao}</span>
+                      ) : (
+                        <>
+                          <span className="font-medium">{b.petNome}</span>
+                          <span className="text-muted-foreground ml-1">({b.descricao})</span>
+                        </>
+                      )}
                     </div>
                     <span className="font-semibold">
                       {b.valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
