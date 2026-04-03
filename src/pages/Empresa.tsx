@@ -157,6 +157,8 @@ const Empresa = () => {
           ambienteFiscal: empresaData.ambiente_fiscal || 'homologacao',
         });
         setCrecheAtiva(empresaData.creche_ativa ?? false);
+        setHorarioCheckinCreche(empresaData.horario_checkin_creche || "");
+        setHorarioCheckoutCreche(empresaData.horario_checkout_creche || "");
       }
       setLoading(false);
     };
