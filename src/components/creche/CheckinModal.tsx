@@ -281,6 +281,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
+          )}
 
           {/* Datas */}
           <div className="grid grid-cols-2 gap-2">
