@@ -268,33 +268,41 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
     let agendaHora = "09:00";
     const tempoServico = "02:00";
 
-    if (empresaHorarioFim && horaSaidaPrevista) {
+    const checkinECheckoutMesmoDia = dataEntrada === dataSaidaPrevista;
+
+    if (checkinECheckoutMesmoDia && horaSaidaPrevista) {
+      // Regra 3: Check-in e Check-out no mesmo dia → 2h antes da hora de saída prevista
+      const [saidaH, saidaM] = horaSaidaPrevista.split(":").map(Number);
+      const inicioMinutos = Math.max(saidaH * 60 + saidaM - 120, 0);
+      const h = Math.floor(inicioMinutos / 60);
+      const m = inicioMinutos % 60;
+      agendaHora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    } else if (empresaHorarioFim && horaSaidaPrevista) {
       const [fimH, fimM] = empresaHorarioFim.split(":").map(Number);
       const [saidaH, saidaM] = horaSaidaPrevista.split(":").map(Number);
       const fimMinutos = fimH * 60 + fimM;
       const saidaMinutos = saidaH * 60 + saidaM;
-      const limiteMinutos = fimMinutos - 120; // 2 hours before end
+      // Regra 1: mais de 1h40min antes do horário fim → dia útil anterior, 2h antes do fim
+      const limiteMinutos = fimMinutos - 100; // 1h40min = 100 minutos
 
       if (saidaMinutos <= limiteMinutos) {
-        // Hora saída prevista is more than 2h before hora fim → move to previous business day
         const dataSaida = new Date(dataSaidaPrevista + "T12:00:00");
         const diaAnterior = subtractBusinessDays(dataSaida, 1);
         agendaData = format(diaAnterior, "yyyy-MM-dd");
 
-        // Set time to horaFim - 2h01min
-        const novaHoraMinutos = fimMinutos - 121;
-        const h = Math.floor(novaHoraMinutos / 60);
-        const m = novaHoraMinutos % 60;
+        // 2h antes do horário de encerramento
+        const novaHoraMinutos = fimMinutos - 120;
+        const h = Math.floor(Math.max(novaHoraMinutos, 0) / 60);
+        const m = Math.max(novaHoraMinutos, 0) % 60;
         agendaHora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
       } else {
-        // Same day as previsão de saída → horário início = hora saída prevista - 2h
-        const inicioMinutos = saidaMinutos - 120;
-        const h = Math.floor(Math.max(inicioMinutos, 0) / 60);
-        const m = Math.max(inicioMinutos, 0) % 60;
+        // Regra 2: dentro do mesmo dia → 2h antes da hora de saída prevista
+        const inicioMinutos = Math.max(saidaMinutos - 120, 0);
+        const h = Math.floor(inicioMinutos / 60);
+        const m = inicioMinutos % 60;
         agendaHora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
       }
     } else if (horaSaidaPrevista) {
-      // No empresa config, default: 2h before checkout time
       const [saidaH, saidaM] = horaSaidaPrevista.split(":").map(Number);
       const inicioMinutos = Math.max(saidaH * 60 + saidaM - 120, 0);
       const h = Math.floor(inicioMinutos / 60);
