@@ -31,6 +31,8 @@ interface EstadiaComNomes {
   pet_porte?: string;
   pet_id?: string;
   cliente_id?: string;
+  pet_sexo?: string;
+  cliente_whatsapp?: string;
 }
 
 const Creche = () => {
