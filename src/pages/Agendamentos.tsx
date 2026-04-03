@@ -2819,7 +2819,8 @@ const Agendamentos = () => {
         taxiDog: p.taxiDog,
         groomer: (s as any).groomer || "",
         agendamentoPacote: p,
-        servicoAgendamento: s
+        servicoAgendamento: s,
+        isCheckinExtra: false
       };
     })
     );
