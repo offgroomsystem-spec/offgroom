@@ -80,7 +80,8 @@ function calcularBillingItem(
   horaSaida: string,
   dataSaida: string,
   valorUnit: number,
-  modeloCobranca: string
+  modeloCobranca: string,
+  horarioCheckoutConfig?: string | null
 ): { quantidade: number; valorTotal: number; descricao: string; excessoMinutos?: number } {
   const entrada = new Date(`${dataEntrada}T${horaEntrada}`);
   const saida = new Date(`${dataSaida}T${horaSaida}`);
@@ -123,19 +124,84 @@ function calcularBillingItem(
       };
     }
   } else {
-    // dia: 1 diária = 24 horas (1440 min)
+    // dia: uses configured checkout time to define the daily boundary
+    // If horarioCheckoutConfig is set (e.g. "18:00"), a "diária" spans from entry
+    // until that time. Any time past checkout on the last day = excess.
+    if (horarioCheckoutConfig) {
+      const [hCO, mCO] = horarioCheckoutConfig.split(":").map(Number);
+
+      // Calculate number of calendar days between entry date and exit date
+      const entradaDate = new Date(`${dataEntrada}T00:00:00`);
+      const saidaDate = new Date(`${dataSaida}T00:00:00`);
+      const calendarDays = Math.round((saidaDate.getTime() - entradaDate.getTime()) / 86400000);
+
+      // Build the checkout deadline for the exit day
+      const checkoutDeadline = new Date(`${dataSaida}T${String(hCO).padStart(2, "0")}:${String(mCO).padStart(2, "0")}:00`);
+
+      // If same day: 1 diária if within checkout time
+      if (calendarDays === 0) {
+        const excessMs = saida.getTime() - checkoutDeadline.getTime();
+        const excessMin = excessMs > 0 ? Math.floor(excessMs / 60000) : 0;
+        if (excessMin <= 29) {
+          return {
+            quantidade: 1,
+            valorTotal: Math.round(valorUnit * 100) / 100,
+            descricao: "1 diária",
+          };
+        } else {
+          return {
+            quantidade: 1,
+            valorTotal: Math.round(valorUnit * 100) / 100,
+            descricao: "1 diária",
+            excessoMinutos: excessMin,
+          };
+        }
+      }
+
+      // Multi-day: base = calendarDays diárias
+      // Check if exit time exceeds checkout deadline on exit day
+      const excessMs = saida.getTime() - checkoutDeadline.getTime();
+      const excessMin = excessMs > 0 ? Math.floor(excessMs / 60000) : 0;
+      const dias = Math.max(1, calendarDays);
+
+      if (excessMin <= 29) {
+        return {
+          quantidade: dias,
+          valorTotal: Math.round(dias * valorUnit * 100) / 100,
+          descricao: `${dias} diária(s)`,
+        };
+      } else if (excessMin >= 1440) {
+        // Excess >= 1 full extra day
+        const extraDias = Math.floor(excessMin / 1440);
+        const remainMin = excessMin % 1440;
+        const totalDias = dias + extraDias;
+        return {
+          quantidade: totalDias,
+          valorTotal: Math.round(totalDias * valorUnit * 100) / 100,
+          descricao: `${totalDias} diária(s)`,
+          excessoMinutos: remainMin > 29 ? remainMin : undefined,
+        };
+      } else {
+        return {
+          quantidade: dias,
+          valorTotal: Math.round(dias * valorUnit * 100) / 100,
+          descricao: `${dias} diária(s)`,
+          excessoMinutos: excessMin,
+        };
+      }
+    }
+
+    // Fallback: original 24h-based logic when no checkout config
     const dias = Math.max(1, Math.floor(totalMinutos / 1440));
     const minExc = Math.max(0, totalMinutos - dias * 1440);
 
     if (minExc <= 29) {
-      // Within tolerance - only full days
       return {
         quantidade: dias,
         valorTotal: Math.round(dias * valorUnit * 100) / 100,
         descricao: `${dias} diária(s)`,
       };
     } else if (minExc >= 1440) {
-      // Excess is a full extra day - increment quantity
       const totalDias = dias + Math.floor(minExc / 1440);
       return {
         quantidade: totalDias,
@@ -144,7 +210,6 @@ function calcularBillingItem(
         excessoMinutos: minExc % 1440 > 29 ? minExc % 1440 : undefined,
       };
     } else {
-      // Excess is partial hours - return base days + excess info for separate line
       return {
         quantidade: dias,
         valorTotal: Math.round(dias * valorUnit * 100) / 100,
@@ -190,14 +255,21 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
 
     const calcBilling = async () => {
       try {
-        const { data: servicos } = await supabase
-          .from("servicos_creche")
-          .select("*");
+        const [{ data: servicos }, { data: empresaConfig }] = await Promise.all([
+          supabase.from("servicos_creche").select("*"),
+          supabase.from("empresa_config").select("horario_checkin_creche, horario_checkout_creche").limit(1).single(),
+        ]);
+
+        const horarioCheckoutConfig = (empresaConfig as any)?.horario_checkout_creche || null;
 
         if (!servicos || servicos.length === 0) {
           console.warn("[Checkout] Nenhum serviço cadastrado em servicos_creche");
           setBillingItems([]);
           return;
+        }
+
+        if (!horarioCheckoutConfig) {
+          console.warn("[Checkout] Horário de check-out não configurado na empresa. Usando cálculo por 24h.");
         }
 
         const now = new Date();
@@ -338,9 +410,9 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
             toast.error(`Valor do serviço zerado para ${est.pet_nome}. Verifique o cadastro em Serviços Creche & Hotel.`);
           }
 
-          // Hotel sempre calcula por diária (24h), usando timestamp real do check-out
+          // Hotel sempre calcula por diária, usando timestamp real do check-out
           const effectiveMc = isHotel ? "dia" : (servico.modelo_cobranca || mcOriginal || "periodo");
-          const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, effectiveMc);
+          const result = calcularBillingItem(est.hora_entrada, est.data_entrada, horaSaida, dataSaida, valorUnit, effectiveMc, effectiveMc === "dia" ? horarioCheckoutConfig : null);
 
           console.log(`[Checkout] Cálculo: qty=${result.quantidade}, valorUnit=${valorUnit}, total=${result.valorTotal}, excessoMin=${result.excessoMinutos || 0}`);
 
