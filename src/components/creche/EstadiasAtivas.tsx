@@ -265,6 +265,34 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
                       {status.label}
                     </Badge>
                   </div>
+                  <div className="flex items-center gap-1">
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => handleSendHistory(e, "diario")}
+                            disabled={sendingHistory.has(`${e.id}-diario`)}
+                            className="p-1 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">Enviar Histórico Diário</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => handleSendHistory(e, "completo")}
+                            disabled={sendingHistory.has(`${e.id}-completo`)}
+                            className="p-1 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+                          >
+                            <MessageCircle className="h-4 w-4 fill-green-600" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">Enviar Histórico Completo</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
 
                 {/* Info */}
