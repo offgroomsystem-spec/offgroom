@@ -34,6 +34,7 @@ interface BillingItem {
   servicoNome: string;
   quantidade: number;
   valorUnitario: number;
+  isExcedente?: boolean;
 }
 
 interface CheckoutModalProps {
