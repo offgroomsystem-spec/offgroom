@@ -316,7 +316,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       data_venda: format(new Date(), "yyyy-MM-dd"),
       horario: agendaHora,
       horario_termino: horarioTermino,
-      status: "Agendado",
+      status: "confirmado",
     };
 
     console.log("Inserting agendamento:", JSON.stringify(agendamentoData));
