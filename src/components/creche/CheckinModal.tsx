@@ -179,8 +179,13 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       toast.error("Selecione um pet.");
       return;
     }
-    if (tipo === "hotel" && !dataSaidaPrevista) {
-      toast.error("Informe a previsão de saída para hospedagem.");
+    const exigeSaida = tipo === "hotel" || selectedExtras.length > 0;
+    if (exigeSaida && !dataSaidaPrevista) {
+      toast.error("Informe a previsão de saída.");
+      return;
+    }
+    if (exigeSaida && !horaSaidaPrevista) {
+      toast.error("Informe a hora de saída prevista.");
       return;
     }
 
