@@ -43,7 +43,7 @@ function buildRegistroFrases(pet: string, sexo: string | null, reg: RegistroDiar
   const frases: string[] = [];
 
   if (reg.comeu) frases.push(`${nome} se alimentou normalmente.`);
-  if (reg.bebeu_agua) frases.push(`${nome} se manteve bem hidratado(a).`);
+  if (reg.bebeu_agua) frases.push(`${nome} se manteve bem ${(sexo || "").toLowerCase() === "fêmea" || (sexo || "").toLowerCase() === "femea" ? "hidratada" : "hidratado"}.`);
   if (reg.brincou) frases.push(`${nome} brincou bastante ao longo do dia.`);
   if (reg.interagiu_bem) frases.push(`${nome} interagiu bem com outros pets.`);
   if (reg.brigas) frases.push(`${nome} se envolveu em alguns momentos de conflito.`);
