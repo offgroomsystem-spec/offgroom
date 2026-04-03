@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +65,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const extrasRef = useRef<HTMLDivElement>(null);
   const [agendarExtras, setAgendarExtras] = useState(false);
   const [empresaHorarioFim, setEmpresaHorarioFim] = useState<string | null>(null);
+  const [showExtrasConfirm, setShowExtrasConfirm] = useState(false);
 
   useEffect(() => {
     if (!extrasOpen) return;
@@ -203,6 +205,16 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       return;
     }
 
+    // Show confirmation if extras selected but toggle is off
+    if (selectedExtras.length > 0 && !agendarExtras) {
+      setShowExtrasConfirm(true);
+      return;
+    }
+
+    await executeSave();
+  };
+
+  const executeSave = async () => {
     setSaving(true);
     try {
       const insertData: any = {
@@ -575,9 +587,9 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
           {/* Agendar serviços extras toggle */}
           {selectedExtras.length > 0 && (
-            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+            <div className="flex items-center justify-between rounded-md border-2 border-destructive px-3 py-2">
               <div className="flex items-center gap-2">
-                <CalendarPlus className="h-4 w-4 text-primary" />
+                <CalendarPlus className="h-4 w-4 text-destructive" />
                 <Label className="text-xs font-medium cursor-pointer" htmlFor="agendar-extras">
                   Agendar serviços extras
                 </Label>
@@ -594,6 +606,26 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
             {saving ? "Salvando..." : "Confirmar Check-in"}
           </Button>
         </div>
+
+        {/* Confirmation dialog for extras not scheduled */}
+        <AlertDialog open={showExtrasConfirm} onOpenChange={setShowExtrasConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Serviços extras não agendados</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja prosseguir com o check-in sem confirmar o agendamento de serviços extras?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { setShowExtrasConfirm(false); setAgendarExtras(true); }}>
+                Não
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={() => { setShowExtrasConfirm(false); executeSave(); }}>
+                Sim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
