@@ -358,7 +358,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
           {/* Serviços Extras */}
           {selectedPet && (
-            <div className="relative">
+            <div className="relative" ref={extrasRef}>
               <Label className="text-[11px] font-semibold">Serviços Extras</Label>
               {/* Selected extras badges */}
               {selectedExtras.length > 0 && (
