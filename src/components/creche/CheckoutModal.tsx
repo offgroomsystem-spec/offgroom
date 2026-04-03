@@ -674,6 +674,28 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
                   <span className="text-muted-foreground ml-1">— Tutor: {contextClienteNome}</span>
                 )}
               </Label>
+
+              {/* Alert for other pets from same tutor */}
+              {showSameTutorAlert && (
+                <div className="bg-destructive/10 border border-destructive/40 rounded-md p-3 mt-2 mb-1">
+                  <p className="text-sm font-semibold text-destructive mb-2">
+                    Acrescentar demais pets do mesmo cliente no Check-out?
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {otherClientPets.length} outro{otherClientPets.length > 1 ? "s" : ""} pet{otherClientPets.length > 1 ? "s" : ""} encontrado{otherClientPets.length > 1 ? "s" : ""}:{" "}
+                    {otherClientPets.map((e) => e.pet_nome).join(", ")}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="destructive" onClick={handleIncludeAllPets}>
+                      Sim
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleDeclineInclude}>
+                      Não
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="border rounded-md max-h-52 overflow-y-auto mt-1">
                 {filteredEstadias.length > 1 && (
                   <div
