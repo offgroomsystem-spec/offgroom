@@ -213,6 +213,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
         status: "ativo",
         modelo_preco: modeloPreco,
         modelo_cobranca: modeloCobranca,
+        servicos_extras: selectedExtras.map((e) => ({ id: e.id, nome: e.nome, valor: e.valor })),
       };
 
       const { error } = await supabase.from("creche_estadias").insert(insertData);
