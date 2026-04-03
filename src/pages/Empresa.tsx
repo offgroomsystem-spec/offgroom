@@ -105,6 +105,8 @@ const Empresa = () => {
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [crecheAtiva, setCrecheAtiva] = useState(false);
   const [salvandoCreche, setSalvandoCreche] = useState(false);
+  const [horarioCheckinCreche, setHorarioCheckinCreche] = useState("");
+  const [horarioCheckoutCreche, setHorarioCheckoutCreche] = useState("");
 
   // Fetch empresa config from Supabase
   useEffect(() => {
@@ -155,6 +157,8 @@ const Empresa = () => {
           ambienteFiscal: empresaData.ambiente_fiscal || 'homologacao',
         });
         setCrecheAtiva(empresaData.creche_ativa ?? false);
+        setHorarioCheckinCreche(empresaData.horario_checkin_creche || "");
+        setHorarioCheckoutCreche(empresaData.horario_checkout_creche || "");
       }
       setLoading(false);
     };
@@ -925,6 +929,63 @@ const Empresa = () => {
               }}
             />
           </div>
+
+          {crecheAtiva && (
+            <div className="mt-4 space-y-3">
+              <Separator />
+              <h4 className="font-medium text-sm">Definir horário de Check-in e Check-out</h4>
+              <p className="text-xs text-muted-foreground">
+                O horário definido para o check-out é essencial para o cálculo correto do valor da diária. Caso o cliente ultrapasse esse horário, será cobrado um valor adicional referente ao tempo excedente, calculado com base nos minutos ou horas adicionais.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="horarioCheckinCreche" className="text-xs">Check-in *</Label>
+                  <Input
+                    id="horarioCheckinCreche"
+                    type="time"
+                    value={horarioCheckinCreche}
+                    onChange={(e) => setHorarioCheckinCreche(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="horarioCheckoutCreche" className="text-xs">Check-out *</Label>
+                  <Input
+                    id="horarioCheckoutCreche"
+                    type="time"
+                    value={horarioCheckoutCreche}
+                    onChange={(e) => setHorarioCheckoutCreche(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={salvandoCreche || !horarioCheckinCreche || !horarioCheckoutCreche}
+                onClick={async () => {
+                  if (!user || !formData.id) return;
+                  setSalvandoCreche(true);
+                  const { error } = await supabase
+                    .from('empresa_config')
+                    .update({
+                      horario_checkin_creche: horarioCheckinCreche,
+                      horario_checkout_creche: horarioCheckoutCreche,
+                    } as any)
+                    .eq('id', formData.id)
+                    .eq('user_id', ownerId);
+                  if (error) {
+                    toast.error('Erro ao salvar horários da creche');
+                  } else {
+                    toast.success('Horários da creche salvos com sucesso!');
+                  }
+                  setSalvandoCreche(false);
+                }}
+              >
+                Salvar Horários
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
