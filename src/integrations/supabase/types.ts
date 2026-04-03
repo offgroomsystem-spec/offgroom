@@ -335,6 +335,7 @@ export type Database = {
           observacoes_entrada: string | null
           observacoes_saida: string | null
           pet_id: string
+          servicos_extras: Json | null
           status: string
           tipo: string
           updated_at: string
@@ -356,6 +357,7 @@ export type Database = {
           observacoes_entrada?: string | null
           observacoes_saida?: string | null
           pet_id: string
+          servicos_extras?: Json | null
           status?: string
           tipo?: string
           updated_at?: string
@@ -377,6 +379,7 @@ export type Database = {
           observacoes_entrada?: string | null
           observacoes_saida?: string | null
           pet_id?: string
+          servicos_extras?: Json | null
           status?: string
           tipo?: string
           updated_at?: string

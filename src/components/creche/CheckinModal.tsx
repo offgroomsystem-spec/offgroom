@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Search, X } from "lucide-react";
+
+interface ServicoExtra {
+  id: string;
+  nome: string;
+  valor: number;
+}
 
 interface Pet {
   id: string;
@@ -46,6 +54,11 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Serviços Extras
+  const [servicosCreche, setServicosCreche] = useState<any[]>([]);
+  const [selectedExtras, setSelectedExtras] = useState<ServicoExtra[]>([]);
+  const [searchExtras, setSearchExtras] = useState("");
+
   const [checklist, setChecklist] = useState({
     comeu_antes: false,
     comportamento_normal: true,
@@ -59,6 +72,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   useEffect(() => {
     if (!open || !user) return;
     loadPets();
+    loadServicosCreche();
   }, [open, user]);
 
   useEffect(() => {
@@ -104,6 +118,75 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
     }
   };
 
+  const loadServicosCreche = async () => {
+    const { data } = await supabase
+      .from("servicos_creche")
+      .select("id, nome, tipo, modelo_preco, valor_unico, valor_pequeno, valor_medio, valor_grande, is_opcional")
+      .order("nome");
+    if (data) setServicosCreche(data);
+  };
+
+  const normalizePorte = (p?: string) => (p || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  const availableExtras = useMemo(() => {
+    if (!selectedPet) return [];
+    const petPorte = normalizePorte(selectedPet.porte);
+    const searchNorm = searchExtras.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    return servicosCreche
+      .filter((s) => {
+        // Only show optional/extra services, exclude packages
+        if (s.nome?.toLowerCase().startsWith("pacote")) return false;
+
+        // Get value based on pet porte
+        let valor = 0;
+        if (s.modelo_preco === "unico") {
+          valor = s.valor_unico || 0;
+        } else {
+          const porteMap: Record<string, number> = {
+            pequeno: s.valor_pequeno || 0,
+            medio: s.valor_medio || 0,
+            grande: s.valor_grande || 0,
+          };
+          valor = porteMap[petPorte] || 0;
+          // Also check if it has valor_unico as fallback
+          if (valor === 0) valor = s.valor_unico || 0;
+        }
+        if (valor <= 0) return false;
+
+        // Search filter
+        if (searchNorm) {
+          const nomeNorm = (s.nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          if (!nomeNorm.includes(searchNorm)) return false;
+        }
+
+        return true;
+      })
+      .map((s) => {
+        const petPorteVal = normalizePorte(selectedPet.porte);
+        let valor = 0;
+        if (s.modelo_preco === "unico") {
+          valor = s.valor_unico || 0;
+        } else {
+          const porteMap: Record<string, number> = {
+            pequeno: s.valor_pequeno || 0,
+            medio: s.valor_medio || 0,
+            grande: s.valor_grande || 0,
+          };
+          valor = porteMap[petPorteVal] || s.valor_unico || 0;
+        }
+        return { id: s.id, nome: s.nome, valor };
+      });
+  }, [servicosCreche, selectedPet, searchExtras]);
+
+  const toggleExtra = (extra: ServicoExtra) => {
+    setSelectedExtras((prev) => {
+      const exists = prev.find((e) => e.id === extra.id);
+      if (exists) return prev.filter((e) => e.id !== extra.id);
+      return [...prev, extra];
+    });
+  };
+
   const handleSave = async () => {
     if (!selectedPet || !user) {
       toast.error("Selecione um pet.");
@@ -130,6 +213,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
         status: "ativo",
         modelo_preco: modeloPreco,
         modelo_cobranca: modeloCobranca,
+        servicos_extras: selectedExtras.map((e) => ({ id: e.id, nome: e.nome, valor: e.valor })),
       };
 
       const { error } = await supabase.from("creche_estadias").insert(insertData);
@@ -157,6 +241,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
     setDataSaidaPrevista("");
     setHoraSaidaPrevista("");
     setObservacoes("");
+    setSelectedExtras([]);
+    setSearchExtras("");
     setChecklist({
       comeu_antes: false,
       comportamento_normal: true,
@@ -281,6 +367,64 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
+          )}
+
+          {/* Serviços Extras */}
+          {selectedPet && (
+            <div>
+              <Label className="text-[11px] font-semibold">Serviços Extras</Label>
+              {/* Selected extras badges */}
+              {selectedExtras.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1 mb-1">
+                  {selectedExtras.map((extra) => (
+                    <Badge
+                      key={extra.id}
+                      variant="secondary"
+                      className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/20"
+                      onClick={() => toggleExtra(extra)}
+                    >
+                      {extra.nome} — R$ {extra.valor.toFixed(2)}
+                      <X className="h-2.5 w-2.5" />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              {/* Search */}
+              <div className="relative mt-0.5">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar serviço extra..."
+                  value={searchExtras}
+                  onChange={(e) => setSearchExtras(e.target.value)}
+                  className="h-7 text-xs pl-7"
+                />
+              </div>
+              {/* List */}
+              <div className="border rounded mt-0.5 max-h-28 overflow-y-auto bg-background">
+                {availableExtras.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground text-center py-2">
+                    {servicosCreche.length === 0 ? "Nenhum serviço cadastrado" : "Nenhum serviço compatível"}
+                  </p>
+                ) : (
+                  availableExtras.map((extra) => {
+                    const isSelected = selectedExtras.some((e) => e.id === extra.id);
+                    return (
+                      <div
+                        key={extra.id}
+                        className={`flex items-center justify-between px-2 py-1 cursor-pointer text-xs hover:bg-accent ${isSelected ? "bg-primary/10 font-medium" : ""}`}
+                        onClick={() => toggleExtra(extra)}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Checkbox checked={isSelected} className="h-3 w-3" tabIndex={-1} />
+                          <span>{extra.nome}</span>
+                        </div>
+                        <span className="text-muted-foreground text-[10px]">R$ {extra.valor.toFixed(2)}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           )}
 
           {/* Datas */}
