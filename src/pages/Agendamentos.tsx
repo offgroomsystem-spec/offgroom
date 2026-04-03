@@ -2792,7 +2792,8 @@ const Agendamentos = () => {
       taxiDog: a.taxiDog,
       groomer: a.groomer || "",
       agendamento: a,
-      agendamentoOriginal: a
+      agendamentoOriginal: a,
+      isCheckinExtra: a.numeroServicoPacote === "CHECKIN_EXTRA"
     }));
     const agendamentosPacote = agendamentosPacotes.flatMap((p) =>
     p.servicos.
@@ -2818,7 +2819,8 @@ const Agendamentos = () => {
         taxiDog: p.taxiDog,
         groomer: (s as any).groomer || "",
         agendamentoPacote: p,
-        servicoAgendamento: s
+        servicoAgendamento: s,
+        isCheckinExtra: false
       };
     })
     );
@@ -6043,7 +6045,7 @@ const Agendamentos = () => {
                   </thead>
                   <tbody>
                     {agendamentosDia.map((agendamento, index) =>
-                  <tr key={index} className="hover:bg-cyan-500/20 transition-colors cursor-pointer" onClick={() => handleEditarClick(convertDiaItemToUnificado(agendamento))}>
+                  <tr key={index} className={cn("transition-colors cursor-pointer", (agendamento as any).isCheckinExtra ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40" : "hover:bg-cyan-500/20")} onClick={() => handleEditarClick(convertDiaItemToUnificado(agendamento))}>
                         <td className="p-1 border whitespace-nowrap">
                           {agendamento.horarioInicio ? agendamento.horarioInicio.substring(0, 5) : "-"}
                         </td>
