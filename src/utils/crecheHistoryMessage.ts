@@ -147,7 +147,8 @@ export async function gerarHistoricoCompleto(
   // Checklist inicial
   const checklistFrases = buildChecklistFrases(petNome, petSexo, checklistEntrada);
   if (checklistFrases.length > 0) {
-    msg += `📋 *Check-in (${format(new Date(dataEntrada + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })})*\n`;
+    const horaFormatada = horaEntrada ? ` às ${horaEntrada.substring(0, 5)}` : "";
+    msg += `📋 *Check-in (${format(new Date(dataEntrada + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}${horaFormatada})*\n`;
     msg += checklistFrases.join("\n");
     msg += "\n\n";
   }
