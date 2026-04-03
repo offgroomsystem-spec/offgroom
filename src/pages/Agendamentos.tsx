@@ -4447,7 +4447,7 @@ const Agendamentos = () => {
 
                     {/* Header com títulos das colunas */}
                     <div className="flex gap-1.5 items-center">
-                      <div className="w-12"></div>
+                      <div className="w-16"></div>
                       <div className="flex-1 min-w-[80px]"></div>
                       <div className="w-28">
                         <Label className="text-muted-foreground text-[10px] font-bold">
