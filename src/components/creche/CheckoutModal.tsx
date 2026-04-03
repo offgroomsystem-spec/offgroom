@@ -255,14 +255,21 @@ const CheckoutModal = ({ open, onOpenChange, estadiasAtivas, onSuccess, contextC
 
     const calcBilling = async () => {
       try {
-        const { data: servicos } = await supabase
-          .from("servicos_creche")
-          .select("*");
+        const [{ data: servicos }, { data: empresaConfig }] = await Promise.all([
+          supabase.from("servicos_creche").select("*"),
+          supabase.from("empresa_config").select("horario_checkin_creche, horario_checkout_creche").limit(1).single(),
+        ]);
+
+        const horarioCheckoutConfig = (empresaConfig as any)?.horario_checkout_creche || null;
 
         if (!servicos || servicos.length === 0) {
           console.warn("[Checkout] Nenhum serviço cadastrado em servicos_creche");
           setBillingItems([]);
           return;
+        }
+
+        if (!horarioCheckoutConfig) {
+          console.warn("[Checkout] Horário de check-out não configurado na empresa. Usando cálculo por 24h.");
         }
 
         const now = new Date();
