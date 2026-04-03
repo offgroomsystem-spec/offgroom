@@ -205,6 +205,16 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       return;
     }
 
+    // Show confirmation if extras selected but toggle is off
+    if (selectedExtras.length > 0 && !agendarExtras) {
+      setShowExtrasConfirm(true);
+      return;
+    }
+
+    await executeSave();
+  };
+
+  const executeSave = async () => {
     setSaving(true);
     try {
       const insertData: any = {
