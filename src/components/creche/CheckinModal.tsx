@@ -241,6 +241,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
     setDataSaidaPrevista("");
     setHoraSaidaPrevista("");
     setObservacoes("");
+    setSelectedExtras([]);
+    setSearchExtras("");
     setChecklist({
       comeu_antes: false,
       comportamento_normal: true,
