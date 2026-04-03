@@ -8,11 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Search, X } from "lucide-react";
+import { Search, X, CalendarPlus } from "lucide-react";
+import { subtractBusinessDays } from "@/utils/diasUteis";
 
 interface ServicoExtra {
   id: string;
