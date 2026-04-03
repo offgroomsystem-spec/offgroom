@@ -118,7 +118,7 @@ export async function gerarHistoricoDiario(
 
   let msg = `Olá, ${clienteNome}! 😊\n\nSegue o resumo do dia ${artigo(petSexo)} ${petNome}:\n\n`;
   msg += frases.join("\n");
-  msg += `\n\n${pro} está sendo muito bem cuidado(a)! Qualquer dúvida, estamos à disposição. 🐾`;
+  msg += `\n\n${pro} está sendo muito bem ${(petSexo || "").toLowerCase() === "fêmea" || (petSexo || "").toLowerCase() === "femea" ? "cuidada" : "cuidado"}! Qualquer dúvida, estamos à disposição. 🐾`;
 
   return msg;
 }
