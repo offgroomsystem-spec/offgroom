@@ -96,6 +96,35 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
   const { ownerId } = useAuth();
   const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
   const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, Record<string, boolean>>>({});
+  const [sendingHistory, setSendingHistory] = useState<Set<string>>(new Set());
+
+  const handleSendHistory = async (estadia: Estadia, tipo: "diario" | "completo") => {
+    const key = `${estadia.id}-${tipo}`;
+    if (sendingHistory.has(key)) return;
+    setSendingHistory(prev => new Set(prev).add(key));
+    try {
+      const msg = tipo === "diario"
+        ? await gerarHistoricoDiario(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome)
+        : await gerarHistoricoCompleto(estadia.id, estadia.pet_nome, estadia.pet_sexo || null, estadia.cliente_nome, estadia.checklist_entrada, estadia.data_entrada);
+
+      const phone = (estadia.cliente_whatsapp || "").replace(/\D/g, "");
+      if (!phone) {
+        toast.error("WhatsApp do cliente não encontrado.");
+        return;
+      }
+      const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank");
+      toast.success(`Histórico ${tipo === "diario" ? "diário" : "completo"} preparado!`);
+    } catch {
+      toast.error("Erro ao gerar histórico.");
+    } finally {
+      setSendingHistory(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
 
   // Smart override clearing: remove overrides that match real data (confirmed by DB)
   useEffect(() => {
