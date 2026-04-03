@@ -62,6 +62,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   const [searchExtras, setSearchExtras] = useState("");
   const [extrasOpen, setExtrasOpen] = useState(false);
   const extrasRef = useRef<HTMLDivElement>(null);
+  const [agendarExtras, setAgendarExtras] = useState(false);
+  const [empresaHorarioFim, setEmpresaHorarioFim] = useState<string | null>(null);
 
   useEffect(() => {
     if (!extrasOpen) return;
