@@ -265,7 +265,8 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
 
     // Calculate date and time for the agendamento
     let agendaData = dataSaidaPrevista;
-    let agendaHora = horaSaidaPrevista || "09:00";
+    let agendaHora = "09:00";
+    const tempoServico = "02:00";
 
     if (empresaHorarioFim && horaSaidaPrevista) {
       const [fimH, fimM] = empresaHorarioFim.split(":").map(Number);
@@ -275,17 +276,38 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       const limiteMinutos = fimMinutos - 120; // 2 hours before end
 
       if (saidaMinutos <= limiteMinutos) {
-        // Move to previous business day, set time to horaFim - 2h01min
+        // Hora saída prevista is more than 2h before hora fim → move to previous business day
         const dataSaida = new Date(dataSaidaPrevista + "T12:00:00");
         const diaAnterior = subtractBusinessDays(dataSaida, 1);
         agendaData = format(diaAnterior, "yyyy-MM-dd");
 
-        const novaHoraMinutos = fimMinutos - 121; // 2h01min before
+        // Set time to horaFim - 2h01min
+        const novaHoraMinutos = fimMinutos - 121;
         const h = Math.floor(novaHoraMinutos / 60);
         const m = novaHoraMinutos % 60;
         agendaHora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      } else {
+        // Same day as previsão de saída → horário início = hora saída prevista - 2h
+        const inicioMinutos = saidaMinutos - 120;
+        const h = Math.floor(Math.max(inicioMinutos, 0) / 60);
+        const m = Math.max(inicioMinutos, 0) % 60;
+        agendaHora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
       }
+    } else if (horaSaidaPrevista) {
+      // No empresa config, default: 2h before checkout time
+      const [saidaH, saidaM] = horaSaidaPrevista.split(":").map(Number);
+      const inicioMinutos = Math.max(saidaH * 60 + saidaM - 120, 0);
+      const h = Math.floor(inicioMinutos / 60);
+      const m = inicioMinutos % 60;
+      agendaHora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     }
+
+    // Calculate horario_termino (2 hours after start)
+    const [hh, mm] = agendaHora.split(":").map(Number);
+    const terminoMin = Math.min(hh * 60 + mm + 120, 23 * 60 + 59);
+    const terminoH = Math.floor(terminoMin / 60);
+    const terminoM = terminoMin % 60;
+    const horarioTermino = `${String(terminoH).padStart(2, "0")}:${String(terminoM).padStart(2, "0")}`;
 
     // Build servicos list and description
     const servicosNomes = selectedExtras.map((e) => e.nome).join(", ");
@@ -294,23 +316,16 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       valor: e.valor,
     }));
 
-    // Calculate horario_termino (1 hour after start as default)
-    const [hh, mm] = agendaHora.split(":").map(Number);
-    const terminoMin = Math.min(hh * 60 + mm + 60, 23 * 60 + 59);
-    const terminoH = Math.floor(terminoMin / 60);
-    const terminoM = terminoMin % 60;
-    const horarioTermino = `${String(terminoH).padStart(2, "0")}:${String(terminoM).padStart(2, "0")}`;
-
     const agendamentoData = {
       user_id: user!.id,
       cliente: selectedPet.cliente_nome || "",
       cliente_id: selectedPet.cliente_id,
       pet: selectedPet.nome_pet,
-      raca: "",
+      raca: selectedPet.raca || "",
       whatsapp: selectedPet.cliente_whatsapp || "",
       servico: servicosNomes,
       servicos: servicosJson,
-      tempo_servico: "01:00",
+      tempo_servico: tempoServico,
       groomer: "",
       taxi_dog: "Não",
       data: agendaData,
