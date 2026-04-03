@@ -257,7 +257,10 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
   };
 
   const criarAgendamentoExtras = async () => {
-    if (!selectedPet || !user) return;
+    if (!selectedPet || !user) {
+      console.error("criarAgendamentoExtras: selectedPet or user is null");
+      return;
+    }
 
     // Calculate date and time for the agendamento
     let agendaData = dataSaidaPrevista;
