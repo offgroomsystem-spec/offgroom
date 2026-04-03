@@ -341,6 +341,7 @@ const CheckinModal = ({ open, onOpenChange, onSuccess }: CheckinModalProps) => {
       horario: agendaHora,
       horario_termino: horarioTermino,
       status: "confirmado",
+      numero_servico_pacote: "CHECKIN_EXTRA",
     };
 
     console.log("Inserting agendamento:", JSON.stringify(agendamentoData));
