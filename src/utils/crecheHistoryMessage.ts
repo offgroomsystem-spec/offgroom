@@ -130,6 +130,7 @@ export async function gerarHistoricoCompleto(
   clienteNome: string,
   checklistEntrada: any,
   dataEntrada: string,
+  horaEntrada?: string,
 ): Promise<string> {
   const pro = pronomeEle(petSexo);
   const artDoDa = (petSexo || "").toLowerCase() === "fêmea" || (petSexo || "").toLowerCase() === "femea" ? "da" : "do";
@@ -146,7 +147,8 @@ export async function gerarHistoricoCompleto(
   // Checklist inicial
   const checklistFrases = buildChecklistFrases(petNome, petSexo, checklistEntrada);
   if (checklistFrases.length > 0) {
-    msg += `📋 *Check-in (${format(new Date(dataEntrada + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })})*\n`;
+    const horaFormatada = horaEntrada ? ` às ${horaEntrada.substring(0, 5)}` : "";
+    msg += `📋 *Check-in (${format(new Date(dataEntrada + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}${horaFormatada})*\n`;
     msg += checklistFrases.join("\n");
     msg += "\n\n";
   }
