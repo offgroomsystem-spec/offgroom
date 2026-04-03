@@ -37,6 +37,8 @@ interface Estadia {
   observacoes_entrada: string | null;
   ultimo_registro?: Registro | null;
   checklist_entrada?: any;
+  pet_sexo?: string;
+  cliente_whatsapp?: string;
 }
 
 interface EstadiasAtivasProps {
