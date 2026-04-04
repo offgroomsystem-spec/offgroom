@@ -158,7 +158,8 @@ const Cadastro = () => {
                 <Input
                   id="whatsapp"
                   type="text"
-                  placeholder="(11) 99999-9999"
+                  placeholder="61981468122"
+                  maxLength={11}
                   className="pl-8 h-7 text-[12px]"
                   {...register("whatsapp")}
                   onChange={(e) => {
