@@ -82,6 +82,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
           comissao_atendimento: d.comissao_atendimento ?? 0,
           bonus_meta: d.bonus_meta ?? 0,
           comissoes_groomers: (d.comissoes_groomers as Record<string, number>) ?? {},
+          tipos_comissao_groomers: (d.tipos_comissao_groomers as Record<string, TipoComissao>) ?? {},
         });
       }
       setLoading(false);
