@@ -367,6 +367,7 @@ const Agendamentos = () => {
   const lastSendTimestampRef = useRef<number>(0);
   const sendQueueRef = useRef<Array<() => Promise<void>>>([]);
   const processingQueueRef = useRef(false);
+  const { canSend, registerSend } = useManualSendCooldown();
 
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
