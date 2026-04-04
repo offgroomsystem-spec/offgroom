@@ -1,12 +1,13 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home, UserCog, Dog } from "lucide-react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home, UserCog, Dog, Database } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
+import { ExportDataDialog } from "@/components/ExportDataDialog";
 
 const Layout = () => {
   const location = useLocation();
@@ -14,6 +15,7 @@ const Layout = () => {
   const { profile, signOut, user } = useAuth();
   const { hasPermission, isAdministrador, isTaxiDog, isRecepcionista } = usePermissions();
   const [crecheAtiva, setCrecheAtiva] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -146,6 +148,12 @@ const Layout = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-background">
+                {isAdministrador && (
+                  <DropdownMenuItem onClick={() => setExportDialogOpen(true)} className="cursor-pointer">
+                    <Database className="h-4 w-4 mr-2" />
+                    <span>Exportar Dados</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   <span>Sair</span>
@@ -161,6 +169,8 @@ const Layout = () => {
       <main className="w-full max-w-[1800px] mx-auto py-1 px-2">
         <Outlet />
       </main>
+
+      <ExportDataDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen} />
     </div>
   );
 };
