@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { StoreLayout } from "@/components/store/StoreLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Zap, TrendingUp, Shield, Clock, Lock, Headphones, Sparkles, AlertTriangle } from "lucide-react";
+import { Check, Zap, TrendingUp, Shield, Clock, Lock, Headphones, Sparkles, AlertTriangle, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Pagamento = () => {
   const location = useLocation();
