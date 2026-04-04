@@ -202,6 +202,45 @@ export type Database = {
         }
         Relationships: []
       }
+      comissoes_config: {
+        Row: {
+          ativo: boolean
+          bonus_meta: number | null
+          comissao_atendimento: number | null
+          comissao_faturamento: number | null
+          comissoes_groomers: Json | null
+          created_at: string
+          id: string
+          modelo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          bonus_meta?: number | null
+          comissao_atendimento?: number | null
+          comissao_faturamento?: number | null
+          comissoes_groomers?: Json | null
+          created_at?: string
+          id?: string
+          modelo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          bonus_meta?: number | null
+          comissao_atendimento?: number | null
+          comissao_faturamento?: number | null
+          comissoes_groomers?: Json | null
+          created_at?: string
+          id?: string
+          modelo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       compras_nf: {
         Row: {
           chave_nf: string
