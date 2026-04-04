@@ -267,6 +267,43 @@ export const ComissoesDetalhadas = ({ open, onOpenChange }: ComissoesDetalhadasP
     } catch { return `${dataInicio} a ${dataFim}`; }
   };
 
+  const generateChartsSvgHtml = (results: typeof filteredResults, total: number) => {
+    if (results.length === 0) return "";
+    const barW = 340, barH = results.length * 32 + 20;
+    const maxVal = Math.max(...results.map(r => r.comissao), 1);
+    const barBars = results.map((r, i) => {
+      const w = (r.comissao / maxVal) * 240;
+      const y = i * 32 + 10;
+      const c = COLORS[i % COLORS.length];
+      return `<rect x="90" y="${y}" width="${w}" height="22" rx="3" fill="${c}"/><text x="86" y="${y + 15}" text-anchor="end" font-size="9" fill="#333">${r.nome}</text><text x="${92 + w}" y="${y + 15}" font-size="8" fill="#333">${formatCurrency(r.comissao)}</text>`;
+    }).join("");
+    const barSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${barW} ${barH}" width="${barW}" height="${barH}">${barBars}</svg>`;
+
+    const pieR = 70, pieCx = 90, pieCy = 90;
+    let startAngle = 0;
+    const pieSlices = results.filter(r => r.comissao > 0).map((r, i) => {
+      const pct = total > 0 ? r.comissao / total : 0;
+      const angle = pct * 360;
+      const a1 = (startAngle * Math.PI) / 180;
+      const a2 = ((startAngle + angle) * Math.PI) / 180;
+      const largeArc = angle > 180 ? 1 : 0;
+      const x1 = pieCx + pieR * Math.cos(a1), y1 = pieCy + pieR * Math.sin(a1);
+      const x2 = pieCx + pieR * Math.cos(a2), y2 = pieCy + pieR * Math.sin(a2);
+      const mid = ((startAngle + angle / 2) * Math.PI) / 180;
+      const lx = pieCx + (pieR + 18) * Math.cos(mid), ly = pieCy + (pieR + 18) * Math.sin(mid);
+      startAngle += angle;
+      const c = COLORS[i % COLORS.length];
+      return `<path d="M${pieCx},${pieCy} L${x1},${y1} A${pieR},${pieR} 0 ${largeArc},1 ${x2},${y2} Z" fill="${c}"/><text x="${lx}" y="${ly}" text-anchor="middle" font-size="7" fill="#333">${(pct * 100).toFixed(0)}%</text>`;
+    }).join("");
+    const pieLegend = results.filter(r => r.comissao > 0).map((r, i) => {
+      const y = 10 + i * 16;
+      return `<rect x="200" y="${y}" width="10" height="10" rx="2" fill="${COLORS[i % COLORS.length]}"/><text x="214" y="${y + 9}" font-size="9" fill="#333">${r.nome}</text>`;
+    }).join("");
+    const pieSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 180" width="340" height="180">${pieSlices}${pieLegend}</svg>`;
+
+    return `<div class="charts-row"><div class="chart-box"><div class="chart-title">Comissão por Funcionário</div>${barSvg}</div><div class="chart-box"><div class="chart-title">Distribuição das Comissões</div>${pieSvg}</div></div>`;
+  };
+
   const exportPDFDetalhado = () => {
     if (filteredResults.length === 0) {
       toast({ title: "Aviso", description: "Não há dados para exportar.", variant: "destructive" });
