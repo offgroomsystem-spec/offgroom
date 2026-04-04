@@ -591,6 +591,33 @@ const AdminMaster = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* SQL Schema */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2"><Code className="h-5 w-5" /> SQL das Tabelas (CREATE TABLE)</CardTitle>
+                <p className="text-xs text-muted-foreground">Copie o SQL abaixo para migrar a estrutura das tabelas do sistema.</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const el = document.getElementById('sql-schema-textarea') as HTMLTextAreaElement;
+                    if (el) {
+                      navigator.clipboard.writeText(el.value);
+                      toast.success('SQL copiado para a área de transferência!');
+                    }
+                  }}>
+                    <Copy className="h-4 w-4 mr-1" /> Copiar SQL
+                  </Button>
+                </div>
+                <Textarea
+                  id="sql-schema-textarea"
+                  readOnly
+                  className="font-mono text-[11px] min-h-[400px] bg-muted/30"
+                  value={SQL_SCHEMA}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
