@@ -43,7 +43,7 @@ function isValidEmail(email: string): boolean {
 }
 
 function isValidWhatsApp(whatsapp: string): boolean {
-  return typeof whatsapp === 'string' && /^\(\d{2}\) \d{5}-\d{4}$/.test(whatsapp);
+  return typeof whatsapp === 'string' && /^\d{11}$/.test(whatsapp);
 }
 
 function isValidName(name: string): boolean {
