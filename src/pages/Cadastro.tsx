@@ -129,7 +129,7 @@ const Cadastro = () => {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="email_hotmart" className="text-[11px] font-semibold">E-mail cadastrado na Hotmart</Label>
+              <Label htmlFor="email_hotmart" className="text-[11px] font-semibold">E-mail para cadastro</Label>
               <div className="relative">
                 <Mail className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
