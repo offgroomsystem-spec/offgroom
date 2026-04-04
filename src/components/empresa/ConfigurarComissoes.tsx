@@ -37,7 +37,7 @@ interface Props {
 const MODELOS: { value: ModeloComissao; label: string; desc: string }[] = [
   { value: "groomer", label: "Comissão por Groomer", desc: "Percentual individual por groomer sobre o faturamento bruto. A comissão é aplicada sobre o faturamento total da empresa, mesmo em serviços não realizados pelo groomer." },
   { value: "faturamento", label: "Comissão por Faturamento", desc: "Percentual único sobre o faturamento bruto. A comissão é aplicada sobre o faturamento total da empresa, mesmo em serviços não realizados pelo groomer." },
-  { value: "atendimento", label: "Comissão por Atendimento", desc: "Percentual por atendimento realizado sobre o faturamento bruto." },
+  { value: "atendimento", label: "Comissão por Atendimento", desc: "Percentual por atendimento sobre o faturamento bruto. A comissão é aplicada apenas sobre os serviços e vendas realizados pelo próprio groomer" },
   { value: "hibrida", label: "Comissão Híbrida", desc: "Faturamento + Atendimento + Bônus por Meta batida" },
 ];
 
