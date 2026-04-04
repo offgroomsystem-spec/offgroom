@@ -2526,6 +2526,7 @@ const Agendamentos = () => {
           throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
         }
         toast.success(`✅ Mensagem enviada para ${primeiroNome}!`);
+        registerSend(clienteNome, petNome, "whatsapp");
 
         // Mark as "enviado" so scheduler doesn't duplicate
         await supabase
