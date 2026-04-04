@@ -304,32 +304,32 @@ export function ConfigurarComissoes({ groomers }: Props) {
                     <p className="text-[11px] text-muted-foreground">Nenhum groomer cadastrado. Cadastre groomers acima para configurar comissões individuais.</p>
                   ) : (
                     groomers.map((g) => (
-                      <div key={g.id} className="flex items-center gap-2">
-                        <Label className="min-w-[90px] text-[11px] font-semibold">{g.nome}</Label>
-                        <div className="relative max-w-[100px]">
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step="0.01"
-                            placeholder="0"
-                            className="h-7 text-[12px] pr-6"
-                            value={config.comissoes_groomers[g.id] ?? ""}
-                            onChange={(e) =>
-                              setConfig((c) => ({
-                                ...c,
-                                comissoes_groomers: {
-                                  ...c.comissoes_groomers,
-                                  [g.id]: clampValue(e.target.value),
-                                },
-                              }))
-                            }
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                      <div key={g.id} className="space-y-1 rounded-md border p-2">
+                        <div className="flex items-center gap-2">
+                          <Label className="min-w-[90px] text-[11px] font-semibold">{g.nome}</Label>
+                          <div className="relative max-w-[100px]">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="0.01"
+                              placeholder="0"
+                              className="h-7 text-[12px] pr-6"
+                              value={config.comissoes_groomers[g.id] ?? ""}
+                              onChange={(e) =>
+                                setConfig((c) => ({
+                                  ...c,
+                                  comissoes_groomers: {
+                                    ...c.comissoes_groomers,
+                                    [g.id]: clampValue(e.target.value),
+                                  },
+                                }))
+                              }
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <TipoComissaoSelector inline />
-                        </div>
+                        <GroomerTipoComissaoSelector groomerId={g.id} />
                       </div>
                     ))
                   )}
