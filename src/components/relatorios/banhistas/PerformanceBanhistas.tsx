@@ -808,20 +808,32 @@ export const PerformanceBanhistas = () => {
           </CardContent>
         </Card>
 
-        {/* Receita por Banhista */}
+        {/* Comissões por Banhista */}
         <Card>
           <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">💰 Comissões por Banhista (em desenvolvimento)</CardTitle>
+            <CardTitle className="text-xs">💰 Comissões por Banhista</CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 h-48">
-            {receitaPerGroomer.length === 0 ? <EmptyState /> : (
+            {!comissoesConfig?.ativo ? (
+              <div className="flex items-center justify-center h-full px-4">
+                <p className="text-xs text-muted-foreground text-center">
+                  Ative a opção <strong>"Configurar Comissões"</strong> na página de <strong>"Configurações da Empresa"</strong> para visualizar este gráfico.
+                </p>
+              </div>
+            ) : !comissaoPerGroomer || comissaoPerGroomer.length === 0 ? (
+              <EmptyState />
+            ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={receitaPerGroomer} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
+                <BarChart data={comissaoPerGroomer} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${v}`} />
                   <YAxis dataKey="nome" type="category" width={70} tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number) => formatCurrency(v)} />
-                  <Bar dataKey="receita" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                  <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number) => [formatCurrency(v), "Comissão"]} />
+                  <Bar dataKey="comissao" fill="#8b5cf6" radius={[0, 4, 4, 0]} label={({ x, y, width, height, value }: any) => (
+                    <text x={x + width - 4} y={y + height / 2} textAnchor="end" dominantBaseline="middle" fontSize={9} fontWeight="bold" fill="#fff">
+                      {formatCurrency(value)}
+                    </text>
+                  )} />
                 </BarChart>
               </ResponsiveContainer>
             )}
