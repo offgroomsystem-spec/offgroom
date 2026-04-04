@@ -46,7 +46,7 @@ export const BenefitsSection = () => {
               size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              Experimente Grátis por 30 dias
+              Começar Agora
               <ArrowRight className="ml-2" />
             </Button>
           </div>
