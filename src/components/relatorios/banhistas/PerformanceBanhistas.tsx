@@ -673,7 +673,7 @@ export const PerformanceBanhistas = () => {
     }
 
     return results.sort((a, b) => b.comissao - a.comissao);
-  }, [comissoesConfig, lancamentosComissao, normalizedAgendamentos, groomersData, empresaConfig]);
+  
 
   const totalComissao = useMemo(() => {
     if (!comissaoPerGroomer) return 0;
