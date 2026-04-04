@@ -101,7 +101,7 @@ const Cadastro = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <Card className="w-full max-w-md shadow-lg border-border/60">
+      <Card className="w-full max-w-sm shadow-lg border-border/60">
         <CardHeader className="text-center pb-2 pt-5 px-5">
           <div className="mx-auto mb-2">
             <img src="/src/assets/logo-offgroom.png" alt="OffGroom" className="h-14 mx-auto" />
