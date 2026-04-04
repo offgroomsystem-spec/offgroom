@@ -417,6 +417,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
                     </div>
                     <div className="space-y-[2px]">
                       <Label className="text-[11px] font-semibold">Bônus por Meta batida</Label>
+                      <p className="text-[9px] text-muted-foreground leading-tight">Se a meta for atingida, a comissão será calculada apenas sobre o valor que passar dessa meta, independentemente de qual groomer fez o atendimento.</p>
                       <div className="relative">
                         <Input
                           type="number"
