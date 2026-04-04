@@ -16,7 +16,7 @@ const cadastroSchema = z
   .object({
     nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100, "Nome muito longo"),
     email_hotmart: z.string().email("E-mail inválido").max(255, "E-mail muito longo"),
-    whatsapp: z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/, "WhatsApp inválido. Use o formato (XX) XXXXX-XXXX"),
+    whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp inválido. Digite 11 dígitos: DDD + número (ex: 61981468122)"),
     senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres").max(100, "Senha muito longa"),
     confirmar_senha: z.string(),
     cupom: z.string().optional(),
