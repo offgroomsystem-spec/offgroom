@@ -91,7 +91,7 @@ const Cadastro = () => {
 
       if (couponApplied) {
         toast.success(`🎉 Cadastro realizado! Cupom aplicado: ${couponDays} dias grátis.`);
-        navigate("/home");
+        navigate("/empresa");
       } else {
         toast.success("Cadastro realizado! Escolha um plano para começar.");
         navigate("/pagamento");
