@@ -104,7 +104,7 @@ export const PerformanceBanhistas = () => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [agRes, grRes, lnRes, empRes, pacRes, comRes, lnDetailRes] = await Promise.all([
+      const [agRes, grRes, lnRes, empRes, pacRes, comRes, lnDetailRes, agAllGroomerRes] = await Promise.all([
         supabase
           .from("agendamentos")
           .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
@@ -131,17 +131,22 @@ export const PerformanceBanhistas = () => {
           .maybeSingle(),
         supabase
           .from("lancamentos_financeiros")
-          .select("id, agendamento_id, valor_total, data_pagamento, lancamentos_financeiros_itens(descricao2, valor, quantidade)")
+          .select("id, agendamento_id, valor_total, descricao1, data_pagamento, lancamentos_financeiros_itens(descricao2, valor, quantidade)")
           .eq("user_id", ownerId)
           .eq("pago", true)
           .eq("tipo", "Receita")
-          .not("agendamento_id", "is", null)
           .gte("data_pagamento", dataInicio)
           .lte("data_pagamento", dataFim),
+        // Fetch ALL agendamento->groomer mapping (no date filter) for commission calc
+        supabase
+          .from("agendamentos")
+          .select("id, groomer")
+          .eq("user_id", ownerId),
       ]);
       setEmpresaConfig(empRes.data);
       setComissoesConfig(comRes.data || null);
       setLancamentosComissao(lnDetailRes.data || []);
+      setAllAgGroomers((agAllGroomerRes.data || []) as { id: string; groomer: string }[]);
       setGroomersData((grRes.data || []) as { id: string; nome: string }[]);
 
       const agData = agRes.data || [];
