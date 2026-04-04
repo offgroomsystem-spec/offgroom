@@ -2444,9 +2444,16 @@ const Agendamentos = () => {
   const enviarWhatsAppDireto = (agendamento: any, e: React.MouseEvent) => {
     e.stopPropagation();
 
+    const clienteNome = agendamento.cliente || "";
+    const petNome = agendamento.pet || "";
+
+    // Anti-spam: verificar cooldown de 30 minutos
+    if (!canSend(clienteNome, petNome, "whatsapp")) return;
+
     if (!whatsappConnected || !whatsappInstanceName) {
       // Fallback: abrir wa.me
       toast.info("WhatsApp não conectado. Abrindo link manual...");
+      registerSend(clienteNome, petNome, "whatsapp");
       if (agendamento.tipo === "pacote" && (agendamento.pacoteOriginal || agendamento.agendamentoPacote) && (agendamento.servicoOriginal || agendamento.servicoAgendamento)) {
         const pacote = agendamento.pacoteOriginal || agendamento.agendamentoPacote;
         const servico = agendamento.servicoOriginal || agendamento.servicoAgendamento;
