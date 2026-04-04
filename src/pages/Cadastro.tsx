@@ -59,7 +59,6 @@ const Cadastro = () => {
           password: data.senha,
           nome_completo: data.nome_completo,
           whatsapp: data.whatsapp,
-          ...(data.cupom ? { cupom: data.cupom } : {}),
         },
       });
 
