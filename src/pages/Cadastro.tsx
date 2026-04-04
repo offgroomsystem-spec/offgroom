@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { User, Mail, Phone, Lock, Tag } from "lucide-react";
+import { User, Mail, Phone, Lock } from "lucide-react";
 
 const cadastroSchema = z
   .object({
@@ -19,7 +19,7 @@ const cadastroSchema = z
     whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp inválido. Digite 11 dígitos: DDD + número (ex: 61981468122)"),
     senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres").max(100, "Senha muito longa"),
     confirmar_senha: z.string(),
-    cupom: z.string().optional(),
+    
   })
   .refine((data) => data.senha === data.confirmar_senha, {
     message: "As senhas não coincidem",
@@ -59,7 +59,6 @@ const Cadastro = () => {
           password: data.senha,
           nome_completo: data.nome_completo,
           whatsapp: data.whatsapp,
-          ...(data.cupom ? { cupom: data.cupom } : {}),
         },
       });
 
@@ -74,8 +73,6 @@ const Cadastro = () => {
         return;
       }
 
-      const couponApplied = response.data?.coupon_applied === true;
-      const couponDays = response.data?.coupon_days || 0;
 
       // Auto-login after signup
       const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -89,13 +86,8 @@ const Cadastro = () => {
         return;
       }
 
-      if (couponApplied) {
-        toast.success(`🎉 Cadastro realizado! Cupom aplicado: ${couponDays} dias grátis.`);
-        navigate("/empresa");
-      } else {
-        toast.success("Cadastro realizado! Escolha um plano para começar.");
-        navigate("/pagamento");
-      }
+      toast.success("Cadastro realizado! Escolha um plano para começar.");
+      navigate("/pagamento");
     } catch (error) {
       toast.error("Erro ao criar conta. Tente novamente.");
     } finally {
@@ -207,21 +199,6 @@ const Cadastro = () => {
               )}
             </div>
 
-            <div className="space-y-[2px]">
-              <Label htmlFor="cupom" className="text-[11px] font-semibold">
-                Cupom
-              </Label>
-              <div className="relative">
-                <Tag className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  id="cupom"
-                  type="text"
-                  placeholder="Insira seu cupom (opcional)"
-                  className="pl-8 h-7 text-[12px]"
-                  {...register("cupom")}
-                />
-              </div>
-            </div>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-3 px-5 pt-1 pb-5">
