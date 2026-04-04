@@ -79,6 +79,600 @@ const AdminMaster = () => {
     { key: "crm_usuarios_autorizados", label: "CRM Autorizados" },
   ];
 
+  const SQL_SCHEMA = `-- ========================================
+-- SQL Schema - Offgroom System Tables
+-- Gerado automaticamente
+-- ========================================
+
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid NOT NULL PRIMARY KEY,
+  nome_completo text NOT NULL,
+  email_hotmart text NOT NULL,
+  whatsapp text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  login_count integer NOT NULL DEFAULT 0,
+  trial_end_date timestamptz,
+  periodo_gratis_dias integer NOT NULL DEFAULT 30,
+  plano_ativo text DEFAULT 'Periodo Gratis',
+  pagamento_em_dia text DEFAULT 'Periodo Gratis Ativo',
+  data_inicio_periodo_gratis timestamptz,
+  data_fim_periodo_gratis timestamptz,
+  dias_liberacao_extra integer NOT NULL DEFAULT 0,
+  data_fim_liberacao_extra timestamptz,
+  liberacao_manual_ativa boolean NOT NULL DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  plan_name text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  is_active boolean DEFAULT false,
+  start_date timestamptz NOT NULL DEFAULT now(),
+  end_date timestamptz,
+  subscription_start timestamptz,
+  subscription_end timestamptz,
+  stripe_subscription_id text,
+  stripe_customer_id text,
+  stripe_product_id text,
+  customer_email text,
+  hotmart_transaction_id text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TYPE public.app_role AS ENUM ('administrador', 'taxi_dog', 'recepcionista');
+
+CREATE TABLE IF NOT EXISTS public.user_roles (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  role app_role NOT NULL,
+  created_by uuid,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, role)
+);
+
+CREATE TABLE IF NOT EXISTS public.staff_accounts (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  owner_id uuid NOT NULL,
+  nome text NOT NULL,
+  email text NOT NULL,
+  tipo_login app_role NOT NULL DEFAULT 'recepcionista',
+  ativo boolean NOT NULL DEFAULT true,
+  ultimo_acesso timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.staff_permissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  staff_id uuid NOT NULL REFERENCES public.staff_accounts(id),
+  permission_codigo text NOT NULL REFERENCES public.permissions(codigo),
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.permissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  codigo text NOT NULL,
+  nome text NOT NULL,
+  tema text NOT NULL,
+  ordem integer NOT NULL DEFAULT 0,
+  parent_codigo text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.clientes (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome_cliente text NOT NULL,
+  whatsapp text NOT NULL,
+  whatsapp_ativo boolean NOT NULL DEFAULT true,
+  email text,
+  cpf_cnpj text,
+  endereco text,
+  logradouro text,
+  numero_endereco text,
+  complemento text,
+  bairro text,
+  cidade text,
+  uf text,
+  cep text,
+  codigo_ibge_cidade text,
+  observacao text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.pets (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  cliente_id uuid NOT NULL REFERENCES public.clientes(id),
+  nome_pet text NOT NULL,
+  raca text NOT NULL,
+  porte text NOT NULL,
+  sexo text,
+  observacao text,
+  whatsapp_ativo boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.agendamentos (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  cliente text NOT NULL,
+  cliente_id uuid REFERENCES public.clientes(id),
+  pet text NOT NULL,
+  raca text NOT NULL,
+  whatsapp text NOT NULL,
+  servico text NOT NULL,
+  servicos jsonb DEFAULT '[]',
+  data date NOT NULL,
+  horario time NOT NULL,
+  horario_termino time NOT NULL,
+  tempo_servico text NOT NULL,
+  groomer text NOT NULL,
+  taxi_dog text NOT NULL,
+  status text NOT NULL,
+  data_venda date NOT NULL,
+  numero_servico_pacote text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.agendamentos_pacotes (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome_cliente text NOT NULL,
+  nome_pet text NOT NULL,
+  raca text NOT NULL,
+  whatsapp text NOT NULL,
+  nome_pacote text NOT NULL,
+  taxi_dog text NOT NULL,
+  data_venda date NOT NULL,
+  servicos jsonb NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.servicos (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  valor numeric NOT NULL,
+  porte text NOT NULL,
+  raca text,
+  aliquota_iss numeric DEFAULT 0,
+  codigo_servico_municipal text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.produtos (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  codigo text NOT NULL DEFAULT '',
+  valor numeric NOT NULL,
+  preco_custo numeric NOT NULL DEFAULT 0,
+  margem_lucro numeric NOT NULL DEFAULT 0,
+  lucro_unitario numeric NOT NULL DEFAULT 0,
+  imposto numeric NOT NULL DEFAULT 0,
+  taxa_cartao numeric NOT NULL DEFAULT 0,
+  estoque_atual numeric,
+  estoque_minimo integer NOT NULL DEFAULT 0,
+  descricao text,
+  unidade_medida text DEFAULT 'UN',
+  ncm text,
+  cfop text,
+  origem text DEFAULT '0',
+  fornecedor_id uuid REFERENCES public.fornecedores(id),
+  data_ultima_compra date,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.pacotes (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  porte text NOT NULL,
+  raca text,
+  valor numeric NOT NULL,
+  desconto_percentual numeric NOT NULL DEFAULT 0,
+  desconto_valor numeric NOT NULL DEFAULT 0,
+  valor_final numeric NOT NULL DEFAULT 0,
+  validade text NOT NULL DEFAULT '',
+  servicos jsonb NOT NULL DEFAULT '[]',
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.lancamentos_financeiros (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  ano text NOT NULL,
+  mes_competencia text NOT NULL,
+  tipo text NOT NULL,
+  descricao1 text NOT NULL,
+  cliente_id uuid REFERENCES public.clientes(id),
+  observacao text,
+  valor_total numeric NOT NULL DEFAULT 0,
+  data_pagamento date NOT NULL,
+  conta_id uuid REFERENCES public.contas_bancarias(id),
+  pago boolean NOT NULL DEFAULT false,
+  data_cadastro timestamptz NOT NULL DEFAULT now(),
+  agendamento_id uuid REFERENCES public.agendamentos(id),
+  fornecedor_id uuid REFERENCES public.fornecedores(id),
+  valor_deducao numeric DEFAULT 0,
+  tipo_deducao text,
+  valor_juros numeric DEFAULT 0,
+  tipo_juros text,
+  modo_ajuste text DEFAULT 'deducao',
+  pet_ids jsonb DEFAULT '[]',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.lancamentos_financeiros_itens (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  lancamento_id uuid NOT NULL REFERENCES public.lancamentos_financeiros(id),
+  descricao2 text NOT NULL,
+  produto_servico text,
+  quantidade numeric DEFAULT 1,
+  valor numeric NOT NULL DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.despesas (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  descricao text NOT NULL,
+  valor numeric NOT NULL,
+  data date NOT NULL,
+  categoria text,
+  conta_id uuid REFERENCES public.contas_bancarias(id),
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.receitas (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  descricao text NOT NULL,
+  valor numeric NOT NULL,
+  data date NOT NULL,
+  categoria text,
+  conta_id uuid REFERENCES public.contas_bancarias(id),
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.contas_bancarias (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  saldo numeric DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.fornecedores (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome_fornecedor text NOT NULL,
+  cnpj_cpf text NOT NULL,
+  tipo_fornecedor text NOT NULL,
+  nome_fantasia text,
+  whatsapp text,
+  telefone text,
+  email text,
+  site text,
+  rua text,
+  numero text,
+  complemento text,
+  bairro text,
+  cidade text,
+  estado text,
+  cep text,
+  forma_pagamento text,
+  condicao_pagamento text,
+  banco text,
+  chave_pix text,
+  nome_titular text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.compras_nf (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  chave_nf text NOT NULL,
+  fornecedor_id uuid REFERENCES public.fornecedores(id),
+  data_compra date NOT NULL,
+  valor_total numeric NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.compras_nf_itens (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  nf_id uuid NOT NULL REFERENCES public.compras_nf(id),
+  produto_id uuid NOT NULL REFERENCES public.produtos(id),
+  quantidade numeric NOT NULL,
+  valor_compra numeric NOT NULL,
+  data_validade date,
+  observacoes text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.groomers (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.racas (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  porte text NOT NULL DEFAULT 'medio',
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.racas_padrao (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  nome text NOT NULL,
+  porte text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.empresa_config (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome_empresa text,
+  telefone text,
+  endereco text,
+  bordao text,
+  horario_inicio text,
+  horario_fim text,
+  meta_faturamento_mensal numeric DEFAULT 10000,
+  dias_funcionamento jsonb DEFAULT '{"sexta":true,"terca":true,"quarta":true,"quinta":true,"sabado":false,"domingo":false,"segunda":true}',
+  confirmacao_3h boolean NOT NULL DEFAULT true,
+  confirmacao_15h boolean NOT NULL DEFAULT false,
+  confirmacao_24h boolean NOT NULL DEFAULT false,
+  confirmacao_periodo_ativo boolean NOT NULL DEFAULT true,
+  risco_auto_send boolean NOT NULL DEFAULT true,
+  creche_ativa boolean NOT NULL DEFAULT false,
+  horario_checkin_creche text,
+  horario_checkout_creche text,
+  evolution_instance_name text,
+  evolution_auto_send boolean DEFAULT false,
+  cnpj text,
+  razao_social text,
+  inscricao_estadual text,
+  inscricao_municipal text,
+  regime_tributario text,
+  cep_fiscal text,
+  logradouro_fiscal text,
+  numero_endereco_fiscal text,
+  complemento_fiscal text,
+  bairro_fiscal text,
+  cidade_fiscal text,
+  uf_fiscal text,
+  codigo_ibge_cidade text,
+  codigo_cnae text,
+  email_fiscal text,
+  ambiente_fiscal text DEFAULT 'homologacao',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.comissoes_config (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  ativo boolean NOT NULL DEFAULT false,
+  modelo text NOT NULL DEFAULT 'groomer',
+  comissao_faturamento numeric DEFAULT 0,
+  comissao_atendimento numeric DEFAULT 0,
+  bonus_meta numeric DEFAULT 0,
+  comissoes_groomers jsonb DEFAULT '{}',
+  tipo_comissao text NOT NULL DEFAULT 'servicos_e_vendas',
+  tipos_comissao_groomers jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.notas_fiscais (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  tipo text NOT NULL,
+  numero text,
+  serie text,
+  status text NOT NULL DEFAULT 'processando',
+  valor_total numeric NOT NULL DEFAULT 0,
+  cliente_id uuid,
+  cliente_nome text,
+  cliente_documento text,
+  agendamento_id uuid,
+  lancamento_id uuid,
+  nuvem_fiscal_id text,
+  mensagem_erro text,
+  dados_nfe jsonb,
+  dados_nfse jsonb,
+  danfe_pdf_base64 text,
+  danfe_pdf_cached_at timestamptz,
+  email_enviado boolean DEFAULT false,
+  chave_acesso text,
+  protocolo_autorizacao text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.creche_estadias (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  cliente_id uuid NOT NULL REFERENCES public.clientes(id),
+  pet_id uuid NOT NULL REFERENCES public.pets(id),
+  tipo text NOT NULL DEFAULT 'creche',
+  status text NOT NULL DEFAULT 'ativo',
+  data_entrada date NOT NULL,
+  hora_entrada time NOT NULL,
+  data_saida date,
+  hora_saida time,
+  data_saida_prevista date,
+  hora_saida_prevista time,
+  observacoes_entrada text,
+  observacoes_saida text,
+  checklist_entrada jsonb NOT NULL DEFAULT '{}',
+  modelo_preco text NOT NULL DEFAULT 'unico',
+  modelo_cobranca text,
+  servicos_extras jsonb DEFAULT '[]',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.creche_registros_diarios (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  estadia_id uuid NOT NULL REFERENCES public.creche_estadias(id),
+  data_registro date NOT NULL DEFAULT CURRENT_DATE,
+  hora_registro time NOT NULL DEFAULT CURRENT_TIME,
+  comeu boolean DEFAULT false,
+  bebeu_agua boolean DEFAULT false,
+  fez_necessidades boolean DEFAULT false,
+  brincou boolean DEFAULT false,
+  interagiu_bem boolean DEFAULT false,
+  brigas boolean DEFAULT false,
+  pulgas_carrapatos boolean DEFAULT false,
+  sinais_doenca boolean DEFAULT false,
+  observacoes text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.servicos_creche (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  descricao text,
+  tipo text NOT NULL DEFAULT 'creche',
+  modelo_preco text NOT NULL DEFAULT 'unico',
+  modelo_cobranca text NOT NULL DEFAULT 'periodo',
+  valor_unico numeric DEFAULT 0,
+  valor_pequeno numeric DEFAULT 0,
+  valor_medio numeric DEFAULT 0,
+  valor_grande numeric DEFAULT 0,
+  is_padrao boolean NOT NULL DEFAULT false,
+  is_opcional boolean NOT NULL DEFAULT true,
+  observacoes_internas text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.pacotes_creche (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  tipo text NOT NULL DEFAULT 'creche',
+  servicos_ids jsonb NOT NULL DEFAULT '[]',
+  valor_total numeric NOT NULL DEFAULT 0,
+  desconto_percentual numeric NOT NULL DEFAULT 0,
+  desconto_valor numeric NOT NULL DEFAULT 0,
+  valor_final numeric NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.formas_pagamento (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  dias text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.whatsapp_instances (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  instance_name text NOT NULL,
+  phone_number text NOT NULL,
+  status text NOT NULL DEFAULT 'disconnected',
+  session_data jsonb,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.whatsapp_mensagens_agendadas (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  agendamento_id uuid,
+  agendamento_pacote_id uuid,
+  tipo_mensagem text NOT NULL,
+  numero_whatsapp text NOT NULL,
+  mensagem text,
+  agendado_para timestamptz NOT NULL,
+  status text NOT NULL DEFAULT 'pendente',
+  enviado_em timestamptz,
+  erro text,
+  servico_numero text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.whatsapp_mensagens_risco (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  cliente_id uuid NOT NULL REFERENCES public.clientes(id),
+  numero_whatsapp text NOT NULL,
+  mensagem text,
+  pets_incluidos jsonb NOT NULL DEFAULT '[]',
+  tentativa integer NOT NULL DEFAULT 1,
+  agendado_para timestamptz NOT NULL DEFAULT now(),
+  status text NOT NULL DEFAULT 'pendente',
+  enviado_em timestamptz,
+  erro text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_leads (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  nome_empresa text NOT NULL,
+  telefone_empresa text NOT NULL,
+  nome_dono text,
+  telefone_dono text,
+  nota_google numeric,
+  qtd_avaliacoes integer,
+  status text DEFAULT 'Novo',
+  tentativa integer DEFAULT 1,
+  teve_resposta boolean DEFAULT false,
+  agendou_reuniao boolean DEFAULT false,
+  data_reuniao date,
+  usando_acesso_gratis boolean DEFAULT false,
+  dias_acesso_gratis integer DEFAULT 30,
+  data_inicio_acesso_gratis date,
+  iniciou_acesso_pago boolean DEFAULT false,
+  data_inicio_acesso_pago date,
+  plano_contratado text,
+  proximo_passo date,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_mensagens (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  lead_id uuid NOT NULL REFERENCES public.crm_leads(id),
+  tentativa integer NOT NULL,
+  fase text DEFAULT 'prospecao',
+  observacao text,
+  data_envio timestamptz NOT NULL DEFAULT now(),
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_usuarios_autorizados (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  email text NOT NULL,
+  nome text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);`;
+
   const callAdmin = useCallback(async (action: string, params?: any) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
