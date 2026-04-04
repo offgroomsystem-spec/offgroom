@@ -2728,6 +2728,7 @@ const Agendamentos = () => {
           throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
         }
         toast.success(`✅ Mensagem "Pet Pronto" enviada para ${primeiroNome}!`);
+        registerSend(clienteNomePP, petNomePP, "pet_pronto");
       } catch (err: any) {
         console.error("Erro ao enviar Pet Pronto:", err);
         toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
