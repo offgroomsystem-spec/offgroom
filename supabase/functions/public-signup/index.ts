@@ -43,7 +43,7 @@ function isValidEmail(email: string): boolean {
 }
 
 function isValidWhatsApp(whatsapp: string): boolean {
-  return typeof whatsapp === 'string' && /^\(\d{2}\) \d{5}-\d{4}$/.test(whatsapp);
+  return typeof whatsapp === 'string' && /^\d{11}$/.test(whatsapp);
 }
 
 function isValidName(name: string): boolean {
@@ -127,7 +127,7 @@ serve(async (req) => {
 
     if (!isValidWhatsApp(whatsapp)) {
       return new Response(
-        JSON.stringify({ error: 'WhatsApp inválido. Use o formato (XX) XXXXX-XXXX' }),
+        JSON.stringify({ error: 'WhatsApp inválido. Digite 11 dígitos: DDD + número (ex: 61981468122)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

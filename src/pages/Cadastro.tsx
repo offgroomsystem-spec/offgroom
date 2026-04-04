@@ -16,7 +16,7 @@ const cadastroSchema = z
   .object({
     nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100, "Nome muito longo"),
     email_hotmart: z.string().email("E-mail inválido").max(255, "E-mail muito longo"),
-    whatsapp: z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/, "WhatsApp inválido. Use o formato (XX) XXXXX-XXXX"),
+    whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp inválido. Digite 11 dígitos: DDD + número (ex: 61981468122)"),
     senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres").max(100, "Senha muito longa"),
     confirmar_senha: z.string(),
     cupom: z.string().optional(),
@@ -47,12 +47,7 @@ const Cadastro = () => {
   }
 
   const formatarWhatsApp = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 11) {
-      const formatted = numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
-      return formatted;
-    }
-    return value;
+    return value.replace(/\D/g, "").slice(0, 11);
   };
 
   const onSubmit = async (data: CadastroForm) => {
@@ -163,7 +158,8 @@ const Cadastro = () => {
                 <Input
                   id="whatsapp"
                   type="text"
-                  placeholder="(11) 99999-9999"
+                  placeholder="61981468122"
+                  maxLength={11}
                   className="pl-8 h-7 text-[12px]"
                   {...register("whatsapp")}
                   onChange={(e) => {
