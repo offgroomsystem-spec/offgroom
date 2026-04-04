@@ -315,7 +315,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm">Bônus por Meta</Label>
+                    <Label className="text-sm">Bônus por Meta batida</Label>
                     <div className="relative">
                       <Input
                         type="number"
