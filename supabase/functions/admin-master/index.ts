@@ -207,6 +207,43 @@ serve(async (req) => {
         });
       }
 
+      case 'export_table': {
+        const allowedTables = [
+          'profiles', 'subscriptions', 'user_roles', 'staff_accounts', 'staff_permissions',
+          'agendamentos', 'agendamentos_pacotes', 'clientes', 'pets', 'servicos', 'produtos',
+          'pacotes', 'lancamentos_financeiros', 'lancamentos_financeiros_itens', 'despesas',
+          'receitas', 'contas_bancarias', 'fornecedores', 'compras_nf', 'compras_nf_itens',
+          'groomers', 'racas', 'racas_padrao', 'empresa_config', 'comissoes_config',
+          'notas_fiscais', 'creche_estadias', 'creche_registros_diarios', 'servicos_creche',
+          'pacotes_creche', 'formas_pagamento', 'whatsapp_instances',
+          'whatsapp_mensagens_agendadas', 'whatsapp_mensagens_risco', 'permissions',
+          'crm_leads', 'crm_mensagens', 'crm_usuarios_autorizados',
+        ];
+        const table = params?.table;
+        if (!table || !allowedTables.includes(table)) {
+          return new Response(JSON.stringify({ error: 'Tabela não permitida' }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        // Exclude large binary/base64 columns
+        const excludeCols: Record<string, string[]> = {
+          notas_fiscais: ['danfe_pdf_base64'],
+        };
+        let query = supabaseAdmin.from(table).select('*').limit(10000);
+        const { data: rows, error: exportErr } = await query;
+        if (exportErr) throw exportErr;
+        // Remove excluded columns
+        const exclude = excludeCols[table] || [];
+        const cleaned = (rows || []).map((r: any) => {
+          const obj = { ...r };
+          exclude.forEach(c => delete obj[c]);
+          return obj;
+        });
+        return new Response(JSON.stringify({ rows: cleaned }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
       default:
         return new Response(JSON.stringify({ error: 'Ação desconhecida' }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
