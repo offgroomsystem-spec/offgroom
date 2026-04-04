@@ -13,7 +13,11 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Pagamento = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, checkSubscription } = useAuth();
   const reason = location.state?.reason;
+  const [cupom, setCupom] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   // Mensagens específicas baseadas no motivo do redirecionamento
   const getAlertContent = () => {
