@@ -15,6 +15,7 @@ const Layout = () => {
   const { profile, signOut, user } = useAuth();
   const { hasPermission, isAdministrador, isTaxiDog, isRecepcionista } = usePermissions();
   const [crecheAtiva, setCrecheAtiva] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
