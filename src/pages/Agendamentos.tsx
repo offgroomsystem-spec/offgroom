@@ -70,6 +70,7 @@ import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criar
 import { scheduleWhatsAppMessages, deletePendingMessages } from "@/utils/whatsappScheduler";
 import { buildWhatsAppUrl, getInvalidPhoneMessage, normalizeBrazilPhone } from "@/utils/phone";
 import { FinanceiroEditDialog } from "@/components/agendamentos/FinanceiroEditDialog";
+import { useManualSendCooldown } from "@/hooks/useManualSendCooldown";
 
 
 // Interfaces
@@ -366,6 +367,7 @@ const Agendamentos = () => {
   const lastSendTimestampRef = useRef<number>(0);
   const sendQueueRef = useRef<Array<() => Promise<void>>>([]);
   const processingQueueRef = useRef(false);
+  const { canSend, registerSend } = useManualSendCooldown();
 
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
@@ -2442,9 +2444,16 @@ const Agendamentos = () => {
   const enviarWhatsAppDireto = (agendamento: any, e: React.MouseEvent) => {
     e.stopPropagation();
 
+    const clienteNome = agendamento.cliente || "";
+    const petNome = agendamento.pet || "";
+
+    // Anti-spam: verificar cooldown de 30 minutos
+    if (!canSend(clienteNome, petNome, "whatsapp")) return;
+
     if (!whatsappConnected || !whatsappInstanceName) {
       // Fallback: abrir wa.me
       toast.info("WhatsApp não conectado. Abrindo link manual...");
+      registerSend(clienteNome, petNome, "whatsapp");
       if (agendamento.tipo === "pacote" && (agendamento.pacoteOriginal || agendamento.agendamentoPacote) && (agendamento.servicoOriginal || agendamento.servicoAgendamento)) {
         const pacote = agendamento.pacoteOriginal || agendamento.agendamentoPacote;
         const servico = agendamento.servicoOriginal || agendamento.servicoAgendamento;
@@ -2517,6 +2526,7 @@ const Agendamentos = () => {
           throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
         }
         toast.success(`✅ Mensagem enviada para ${primeiroNome}!`);
+        registerSend(clienteNome, petNome, "whatsapp");
 
         // Mark as "enviado" so scheduler doesn't duplicate
         await supabase
@@ -2616,6 +2626,15 @@ const Agendamentos = () => {
   const handlePetProntoConfirm = async (atualizarHorario: boolean) => {
     if (!petProntoAgendamento) return;
 
+    const clienteNomePP = petProntoAgendamento.cliente || "";
+    const petNomePP = petProntoAgendamento.pet || "";
+
+    // Anti-spam: verificar cooldown de 30 minutos
+    if (!canSend(clienteNomePP, petNomePP, "pet_pronto")) {
+      setPetProntoDialogOpen(false);
+      return;
+    }
+
     if (atualizarHorario) {
       try {
         if (petProntoAgendamento.tipo === "simples" && petProntoAgendamento.agendamentoOriginal) {
@@ -2695,6 +2714,7 @@ const Agendamentos = () => {
         return;
       }
       window.open(url, '_blank');
+      registerSend(clienteNomePP, petNomePP, "pet_pronto");
       setPetProntoDialogOpen(false);
       return;
     }
@@ -2709,6 +2729,7 @@ const Agendamentos = () => {
           throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
         }
         toast.success(`✅ Mensagem "Pet Pronto" enviada para ${primeiroNome}!`);
+        registerSend(clienteNomePP, petNomePP, "pet_pronto");
       } catch (err: any) {
         console.error("Erro ao enviar Pet Pronto:", err);
         toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
