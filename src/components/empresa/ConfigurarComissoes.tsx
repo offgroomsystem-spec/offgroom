@@ -27,6 +27,7 @@ interface ComissaoConfig {
   comissao_atendimento: number;
   bonus_meta: number;
   comissoes_groomers: Record<string, number>;
+  tipos_comissao_groomers: Record<string, TipoComissao>;
 }
 
 interface Props {
