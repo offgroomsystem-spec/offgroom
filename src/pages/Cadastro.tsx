@@ -73,8 +73,6 @@ const Cadastro = () => {
         return;
       }
 
-      const couponApplied = response.data?.coupon_applied === true;
-      const couponDays = response.data?.coupon_days || 0;
 
       // Auto-login after signup
       const { error: loginError } = await supabase.auth.signInWithPassword({
