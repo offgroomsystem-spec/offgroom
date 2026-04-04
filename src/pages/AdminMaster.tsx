@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, PawPrint, Calendar, TrendingUp, DollarSign, LogOut, Shield, AlertTriangle, Search, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { Users, PawPrint, Calendar, TrendingUp, DollarSign, LogOut, Shield, AlertTriangle, Search, RefreshCw, ArrowUpDown, Database, Download, Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const ADMIN_EMAIL = 'offgroom.system@gmail.com';
@@ -34,6 +34,49 @@ const AdminMaster = () => {
   const [grantDaysDialog, setGrantDaysDialog] = useState<{ userId: string; nome: string } | null>(null);
   const [grantDays, setGrantDays] = useState('30');
   const [userSearch, setUserSearch] = useState('');
+  const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const ADMIN_EXPORT_TABLES = [
+    { key: "profiles", label: "Perfis (Users)" },
+    { key: "subscriptions", label: "Assinaturas" },
+    { key: "user_roles", label: "Roles de Usuários" },
+    { key: "staff_accounts", label: "Contas Staff" },
+    { key: "staff_permissions", label: "Permissões Staff" },
+    { key: "agendamentos", label: "Agendamentos" },
+    { key: "agendamentos_pacotes", label: "Agendamentos Pacotes" },
+    { key: "clientes", label: "Clientes" },
+    { key: "pets", label: "Pets" },
+    { key: "servicos", label: "Serviços" },
+    { key: "produtos", label: "Produtos" },
+    { key: "pacotes", label: "Pacotes" },
+    { key: "lancamentos_financeiros", label: "Lançamentos Financeiros" },
+    { key: "lancamentos_financeiros_itens", label: "Itens Financeiros" },
+    { key: "despesas", label: "Despesas" },
+    { key: "receitas", label: "Receitas" },
+    { key: "contas_bancarias", label: "Contas Bancárias" },
+    { key: "fornecedores", label: "Fornecedores" },
+    { key: "compras_nf", label: "Compras NF" },
+    { key: "compras_nf_itens", label: "Itens Compras NF" },
+    { key: "groomers", label: "Groomers" },
+    { key: "racas", label: "Raças" },
+    { key: "racas_padrao", label: "Raças Padrão" },
+    { key: "empresa_config", label: "Config Empresa" },
+    { key: "comissoes_config", label: "Config Comissões" },
+    { key: "notas_fiscais", label: "Notas Fiscais" },
+    { key: "creche_estadias", label: "Creche Estadias" },
+    { key: "creche_registros_diarios", label: "Creche Registros" },
+    { key: "servicos_creche", label: "Serviços Creche" },
+    { key: "pacotes_creche", label: "Pacotes Creche" },
+    { key: "formas_pagamento", label: "Formas Pagamento" },
+    { key: "whatsapp_instances", label: "WhatsApp Instâncias" },
+    { key: "whatsapp_mensagens_agendadas", label: "WhatsApp Agendadas" },
+    { key: "whatsapp_mensagens_risco", label: "WhatsApp Risco" },
+    { key: "permissions", label: "Permissões Sistema" },
+    { key: "crm_leads", label: "CRM Leads" },
+    { key: "crm_mensagens", label: "CRM Mensagens" },
+    { key: "crm_usuarios_autorizados", label: "CRM Autorizados" },
+  ];
 
   const callAdmin = useCallback(async (action: string, params?: any) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -143,11 +186,12 @@ const AdminMaster = () => {
 
       <main className="container py-6 space-y-6">
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+           <TabsList className="grid grid-cols-5 w-full max-w-3xl">
             <TabsTrigger value="dashboard">📊 Dashboard</TabsTrigger>
             <TabsTrigger value="users">👥 Usuários</TabsTrigger>
             <TabsTrigger value="pets">🐶 Pets</TabsTrigger>
             <TabsTrigger value="plans">💰 Planos</TabsTrigger>
+            <TabsTrigger value="export">📦 Exportar</TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD */}
@@ -468,6 +512,82 @@ const AdminMaster = () => {
                     )}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* EXPORT */}
+          <TabsContent value="export" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold flex items-center gap-2"><Database className="h-6 w-6" /> Exportar Dados do Sistema</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Selecione as tabelas para exportar como CSV. Os dados são exportados diretamente do banco de dados sem filtro de usuário (admin master).</p>
+
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={exportSelected.size === ADMIN_EXPORT_TABLES.length}
+                      onCheckedChange={() => {
+                        if (exportSelected.size === ADMIN_EXPORT_TABLES.length) {
+                          setExportSelected(new Set());
+                        } else {
+                          setExportSelected(new Set(ADMIN_EXPORT_TABLES.map(t => t.key)));
+                        }
+                      }}
+                    />
+                    <span className="text-sm font-semibold">Selecionar Todos ({exportSelected.size}/{ADMIN_EXPORT_TABLES.length})</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={exportLoading || exportSelected.size === 0}
+                    onClick={async () => {
+                      setExportLoading(true);
+                      const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+                      let ok = 0, err = 0;
+                      for (const key of exportSelected) {
+                        try {
+                          const resp = await callAdmin('export_table', { table: key });
+                          if (resp?.rows && resp.rows.length > 0) {
+                            const headers = Object.keys(resp.rows[0]);
+                            const escape = (v: any) => {
+                              if (v === null || v === undefined) return '';
+                              const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                              return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+                            };
+                            const csv = [headers.join(','), ...resp.rows.map((r: any) => headers.map(h => escape(r[h])).join(','))].join('\n');
+                            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(blob);
+                            link.download = `${key}_${dateStr}.csv`;
+                            link.click();
+                            URL.revokeObjectURL(link.href);
+                            ok++;
+                          }
+                        } catch { err++; }
+                      }
+                      setExportLoading(false);
+                      if (ok > 0) toast.success(`${ok} tabela(s) exportada(s)`);
+                      if (err > 0) toast.error(`${err} tabela(s) com erro`);
+                    }}
+                  >
+                    {exportLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Exportando...</> : <><Download className="h-4 w-4 mr-1" /> Exportar {exportSelected.size} tabela(s)</>}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {ADMIN_EXPORT_TABLES.map(t => (
+                    <div key={t.key} className="flex items-center gap-2 p-2 rounded-md border hover:bg-muted/50 cursor-pointer" onClick={() => {
+                      const next = new Set(exportSelected);
+                      if (next.has(t.key)) next.delete(t.key); else next.add(t.key);
+                      setExportSelected(next);
+                    }}>
+                      <Checkbox checked={exportSelected.has(t.key)} />
+                      <span className="text-xs">{t.label}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
