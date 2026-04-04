@@ -169,6 +169,8 @@ const Layout = () => {
       <main className="w-full max-w-[1800px] mx-auto py-1 px-2">
         <Outlet />
       </main>
+
+      <ExportDataDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen} />
     </div>
   );
 };
