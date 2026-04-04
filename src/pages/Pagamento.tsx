@@ -73,6 +73,31 @@ const Pagamento = () => {
     }
   };
 
+  const handleCouponValidation = async () => {
+    if (!cupom.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-coupon', {
+        body: { cupom: cupom.trim() }
+      });
+
+      if (error || data?.error) {
+        toast.error(data?.error || 'Cupom inválido');
+        return;
+      }
+
+      toast.success(data.message || `Cupom aplicado! ${data.days} dias de acesso.`);
+      // Refresh subscription status
+      await checkSubscription();
+      // Redirect to /empresa
+      navigate('/empresa');
+    } catch (err) {
+      toast.error('Erro ao validar cupom. Tente novamente.');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   return (
     <StoreLayout>
       {/* Alert de Status */}
