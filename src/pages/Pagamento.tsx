@@ -399,6 +399,39 @@ const Pagamento = () => {
               ⚡ Ativação imediata • 🔒 Pagamento 100% seguro
             </p>
           </div>
+          {/* Seção Cupom */}
+          {user && (
+            <div className="max-w-xl mx-auto mt-16">
+              <Card className="border border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" />
+                    Possui um cupom?
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Insira seu cupom promocional para liberar o acesso ao sistema
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Cupom"
+                      value={cupom}
+                      onChange={(e) => setCupom(e.target.value.toUpperCase())}
+                      maxLength={50}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleCouponValidation}
+                      disabled={validatingCoupon || !cupom.trim()}
+                    >
+                      {validatingCoupon ? "Validando..." : "Iniciar"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </section>
     </StoreLayout>
