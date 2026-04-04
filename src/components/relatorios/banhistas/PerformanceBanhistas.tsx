@@ -522,6 +522,95 @@ export const PerformanceBanhistas = () => {
     }));
   }, [concluidos]);
 
+  // === Commission calculation ===
+  const comissaoPerGroomer = useMemo(() => {
+    const cfg = comissoesConfig as any;
+    if (!cfg?.ativo) return null;
+
+    const tipoGlobal = cfg.tipo_comissao || "servicos_e_vendas";
+    const tiposPerGroomer = (cfg.tipos_comissao_groomers || {}) as Record<string, string>;
+    const modelo = cfg.modelo;
+
+    const matchesTipo = (descricao2: string, tipo: string) => {
+      const d = descricao2?.toLowerCase() || "";
+      if (tipo === "servicos") return d === "serviços";
+      if (tipo === "produtos") return d === "venda" || d === "vendas";
+      return d === "serviços" || d === "venda" || d === "vendas";
+    };
+
+    const agGroomerMap = new Map<string, string>();
+    normalizedAgendamentos.forEach((a) => {
+      if (a.id && a.groomer && a.groomer !== "Não atribuído") {
+        agGroomerMap.set(a.id, a.groomer);
+      }
+    });
+
+    const getGroomerTipo = (groomerName: string): string => {
+      if (modelo === "groomer") {
+        const nameToId = new Map(groomersData.map((g) => [g.nome, g.id]));
+        const gId = nameToId.get(groomerName);
+        return gId ? (tiposPerGroomer[gId] || tipoGlobal) : tipoGlobal;
+      }
+      return tipoGlobal;
+    };
+
+    const groomerValues = new Map<string, number>();
+    let totalFiltered = 0;
+
+    (lancamentosComissao || []).forEach((l: any) => {
+      const groomer = agGroomerMap.get(l.agendamento_id);
+      if (!groomer) return;
+      const tipo = getGroomerTipo(groomer);
+      const itens = (l.lancamentos_financeiros_itens || []) as any[];
+      const filteredVal = itens
+        .filter((item: any) => matchesTipo(item.descricao2, tipo))
+        .reduce((sum: number, item: any) => sum + ((item.valor || 0) * (item.quantidade || 1)), 0);
+      if (filteredVal > 0) {
+        groomerValues.set(groomer, (groomerValues.get(groomer) || 0) + filteredVal);
+        totalFiltered += filteredVal;
+      }
+    });
+
+    const results: { nome: string; comissao: number }[] = [];
+
+    if (modelo === "groomer") {
+      const nameToId = new Map(groomersData.map((g) => [g.nome, g.id]));
+      groomerValues.forEach((val, name) => {
+        const gId = nameToId.get(name);
+        const pct = gId ? ((cfg.comissoes_groomers as any)?.[gId] || 0) : 0;
+        results.push({ nome: name, comissao: Math.round(val * pct / 100 * 100) / 100 });
+      });
+    } else if (modelo === "faturamento") {
+      const comissaoTotal = totalFiltered * (cfg.comissao_faturamento || 0) / 100;
+      groomerValues.forEach((val, name) => {
+        const part = totalFiltered > 0 ? val / totalFiltered : 0;
+        results.push({ nome: name, comissao: Math.round(comissaoTotal * part * 100) / 100 });
+      });
+    } else if (modelo === "atendimento") {
+      groomerValues.forEach((val, name) => {
+        results.push({ nome: name, comissao: Math.round(val * (cfg.comissao_atendimento || 0) / 100 * 100) / 100 });
+      });
+    } else if (modelo === "hibrida") {
+      const pctFat = cfg.comissao_faturamento || 0;
+      const pctAtend = cfg.comissao_atendimento || 0;
+      const pctBonus = cfg.bonus_meta || 0;
+      const meta = empresaConfig?.meta_faturamento_mensal || 0;
+      const comissaoFatTotal = totalFiltered * pctFat / 100;
+      const bonusTotal = (meta > 0 && totalFiltered >= meta) ? totalFiltered * pctBonus / 100 : 0;
+      groomerValues.forEach((val, name) => {
+        const part = totalFiltered > 0 ? val / totalFiltered : 0;
+        results.push({ nome: name, comissao: Math.round((comissaoFatTotal * part + val * pctAtend / 100 + bonusTotal * part) * 100) / 100 });
+      });
+    }
+
+    return results.sort((a, b) => b.comissao - a.comissao);
+  }, [comissoesConfig, lancamentosComissao, normalizedAgendamentos, groomersData, empresaConfig]);
+
+  const totalComissao = useMemo(() => {
+    if (!comissaoPerGroomer) return 0;
+    return comissaoPerGroomer.reduce((s, g) => s + g.comissao, 0);
+  }, [comissaoPerGroomer]);
+
 
   if (loading) {
     return (
