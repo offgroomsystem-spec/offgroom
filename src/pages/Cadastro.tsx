@@ -112,7 +112,7 @@ const Cadastro = () => {
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-1.5 px-5 pt-2 pb-3">
-            <div className="space-y-0.5">
+            <div className="space-y-[2px]">
               <Label htmlFor="nome_completo" className="text-[11px] font-semibold">
                 Nome Completo
               </Label>
@@ -129,7 +129,7 @@ const Cadastro = () => {
               {errors.nome_completo && <p className="text-[11px] text-destructive">{errors.nome_completo.message}</p>}
             </div>
 
-            <div className="space-y-0.5">
+            <div className="space-y-[2px]">
               <Label htmlFor="email_hotmart" className="text-[11px] font-semibold">
                 E-mail para cadastro
               </Label>
@@ -146,7 +146,7 @@ const Cadastro = () => {
               {errors.email_hotmart && <p className="text-[11px] text-destructive">{errors.email_hotmart.message}</p>}
             </div>
 
-            <div className="space-y-0.5">
+            <div className="space-y-[2px]">
               <Label htmlFor="whatsapp" className="text-[11px] font-semibold">
                 WhatsApp
               </Label>
@@ -167,7 +167,7 @@ const Cadastro = () => {
               {errors.whatsapp && <p className="text-[11px] text-destructive">{errors.whatsapp.message}</p>}
             </div>
 
-            <div className="space-y-0.5">
+            <div className="space-y-[2px]">
               <Label htmlFor="senha" className="text-[11px] font-semibold">
                 Senha
               </Label>
@@ -184,7 +184,7 @@ const Cadastro = () => {
               {errors.senha && <p className="text-[11px] text-destructive">{errors.senha.message}</p>}
             </div>
 
-            <div className="space-y-0.5">
+            <div className="space-y-[2px]">
               <Label htmlFor="confirmar_senha" className="text-[11px] font-semibold">
                 Confirmar Senha
               </Label>
@@ -203,7 +203,7 @@ const Cadastro = () => {
               )}
             </div>
 
-            <div className="space-y-0.5">
+            <div className="space-y-[2px]">
               <Label htmlFor="cupom" className="text-[11px] font-semibold">
                 Cupom
               </Label>
