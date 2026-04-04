@@ -103,7 +103,7 @@ export const PerformanceBanhistas = () => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [agRes, grRes, lnRes, empRes, pacRes] = await Promise.all([
+      const [agRes, grRes, lnRes, empRes, pacRes, comRes, lnDetailRes] = await Promise.all([
         supabase
           .from("agendamentos")
           .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
@@ -111,20 +111,37 @@ export const PerformanceBanhistas = () => {
           .gte("data", dataInicio)
           .lte("data", dataFim)
           .order("data", { ascending: true }),
-        supabase.from("groomers").select("nome").eq("user_id", ownerId),
+        supabase.from("groomers").select("id, nome").eq("user_id", ownerId),
         supabase
           .from("lancamentos_financeiros")
           .select("agendamento_id, valor_total")
           .eq("user_id", ownerId)
-          .eq("tipo", "receita")
+          .eq("tipo", "Receita")
           .not("agendamento_id", "is", null),
-        supabase.from("empresa_config").select("dias_funcionamento, horario_inicio, horario_fim").eq("user_id", ownerId).maybeSingle(),
+        supabase.from("empresa_config").select("dias_funcionamento, horario_inicio, horario_fim, meta_faturamento_mensal").eq("user_id", ownerId).maybeSingle(),
         supabase
           .from("agendamentos_pacotes")
           .select("id, nome_cliente, nome_pet, raca, taxi_dog, servicos")
           .eq("user_id", ownerId),
+        supabase
+          .from("comissoes_config" as any)
+          .select("*")
+          .eq("user_id", ownerId)
+          .maybeSingle(),
+        supabase
+          .from("lancamentos_financeiros")
+          .select("id, agendamento_id, valor_total, data_pagamento, lancamentos_financeiros_itens(descricao2, valor, quantidade)")
+          .eq("user_id", ownerId)
+          .eq("pago", true)
+          .eq("tipo", "Receita")
+          .not("agendamento_id", "is", null)
+          .gte("data_pagamento", dataInicio)
+          .lte("data_pagamento", dataFim),
       ]);
       setEmpresaConfig(empRes.data);
+      setComissoesConfig(comRes.data || null);
+      setLancamentosComissao(lnDetailRes.data || []);
+      setGroomersData((grRes.data || []) as { id: string; nome: string }[]);
 
       const agData = agRes.data || [];
       const pacData = pacRes.data || [];
@@ -132,8 +149,7 @@ export const PerformanceBanhistas = () => {
       const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
       const allAgendamentos = [...agData, ...pacoteEntries];
       setAgendamentos(allAgendamentos);
-      const nomes = [...new Set((grRes.data || []).map((g) => g.nome))].sort();
-      // Add "Não atribuído" if any appointment has empty groomer
+      const nomes = [...new Set((grRes.data || []).map((g: any) => g.nome))].sort();
       const hasEmpty = allAgendamentos.some((a: any) => !a.groomer || !a.groomer.trim());
       if (hasEmpty) nomes.push("Não atribuído");
       setGroomers(nomes);
