@@ -292,14 +292,21 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     }
   }
 
-  // Inserir todas as mensagens agendadas
+  // Inserir mensagens uma a uma para respeitar unique index e evitar duplicidades
   if (mensagensParaInserir.length > 0) {
-    const { error } = await supabase
-      .from("whatsapp_mensagens_agendadas" as any)
-      .insert(mensagensParaInserir);
+    for (const msg of mensagensParaInserir) {
+      const { error } = await supabase
+        .from("whatsapp_mensagens_agendadas" as any)
+        .insert(msg);
 
-    if (error) {
-      console.error("Erro ao agendar mensagens WhatsApp:", error);
+      if (error) {
+        // 23505 = unique constraint violation (duplicate), silently skip
+        if (error.code === "23505") {
+          console.log(`Mensagem duplicada ignorada: ${msg.tipo_mensagem}`);
+        } else {
+          console.error("Erro ao agendar mensagem WhatsApp:", error);
+        }
+      }
     }
   }
 }

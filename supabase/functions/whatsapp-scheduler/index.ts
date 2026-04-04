@@ -23,6 +23,7 @@ interface MensagemAgendada {
   mensagem: string;
   numero_whatsapp: string;
   agendado_para: string;
+  status: string;
 }
 
 async function enviarMensagemEvolution(instanceName: string, number: string, text: string) {
@@ -81,7 +82,7 @@ function buildConfirmationMessage(
   }
 
   if (isUltimo) {
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Que tal já renovar para manter a frequência ideal dos banhos ${doDa} ${nomePet}. Assim, você também garante os próximos horários com mais tranquilidade. 😊${bordaoLine}`;
   }
 
   return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n*Serviço:* ${servicos}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
@@ -122,7 +123,6 @@ function buildUnifiedConfirmationMessage(
   const dataBR = formatDataBR(data);
   const bordaoLine = bordao ? `\n\n*${bordao}*` : "";
 
-  // Build service line(s)
   const allSameService = petInfos.every(p => p.servico === petInfos[0].servico);
   let servicoLines: string;
   if (allSameService) {
@@ -136,7 +136,7 @@ function buildUnifiedConfirmationMessage(
   }
 
   if (isUltimo) {
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n${servicoLines}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${namesStr}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
+    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n${servicoLines}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Que tal já renovar para manter a frequência ideal dos banhos ${doDa} ${namesStr}. Assim, você também garante os próximos horários com mais tranquilidade. 😊${bordaoLine}`;
   }
 
   return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${namesStr} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${horario}\n${servicoLines}\n*N° do Pacote:* ${servicoNumero}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
@@ -164,12 +164,14 @@ function formatNumero(whatsapp: string): string {
   return numero;
 }
 
-// Convert date + time to UTC, treating input as Brasília time (UTC-3)
 function parseDateTimeBRT(date: string, time: string): Date {
   const [year, month, day] = date.split("-").map(Number);
   const [hours, minutes] = time.split(":").map(Number);
   return new Date(Date.UTC(year, month - 1, day, hours + 3, minutes, 0, 0));
 }
+
+// Status that BLOCK message sending
+const BLOCKED_STATUSES = ["Cancelado", "Atrasado"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -183,7 +185,7 @@ Deno.serve(async (req) => {
     );
 
     const now = new Date();
-    const TOLERANCIA_EXPIRACAO_MS = 10 * 60 * 1000; // 10 minutos de tolerância
+    const TOLERANCIA_EXPIRACAO_MS = 10 * 60 * 1000;
 
     // 1. Buscar instâncias WhatsApp conectadas
     const { data: instances, error: instErr } = await supabase
@@ -225,7 +227,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Filter only instances with auto_send enabled
     const activeInstances = instances.filter((i: WhatsAppInstance) => autoSendEnabled.has(i.user_id));
 
     if (activeInstances.length === 0) {
@@ -258,32 +259,31 @@ Deno.serve(async (req) => {
       const idsExpiradas = mensagensExpiradas.map((m: any) => m.id);
       await supabase
         .from("whatsapp_mensagens_agendadas")
-        .update({ status: "expirado", erro: `Mensagem expirada - ultrapassou tolerância de 10 minutos (agendado_para < ${limiteExpiracao.toISOString()})` })
+        .update({ status: "expirado", erro: `Mensagem expirada - ultrapassou tolerância de 10 minutos` })
         .in("id", idsExpiradas);
-      console.log(`⏰ ${idsExpiradas.length} mensagens expiradas descartadas (fora da tolerância de 10min)`);
+      console.log(`⏰ ${idsExpiradas.length} mensagens expiradas descartadas`);
     }
 
     // =============================================
-    // ETAPA B: Processar mensagens pendentes (apenas dentro da tolerância)
+    // ETAPA B: ATOMIC CLAIM — reivindicar mensagens pendentes atomicamente
     // =============================================
-    const { data: mensagens, error: msgErr } = await supabase
-      .from("whatsapp_mensagens_agendadas")
-      .select("*")
-      .eq("status", "pendente")
-      .lte("agendado_para", now.toISOString())
-      .gte("agendado_para", limiteExpiracao.toISOString())
-      .in("user_id", activeUserIds)
-      .order("agendado_para", { ascending: true })
-      .limit(50);
+    const { data: mensagens, error: claimErr } = await supabase
+      .rpc("claim_pending_whatsapp_messages", {
+        _user_ids: activeUserIds,
+        _now: now.toISOString(),
+        _tolerance_ms: TOLERANCIA_EXPIRACAO_MS,
+      });
 
-    if (msgErr) {
-      console.error("Error fetching messages:", msgErr);
-      return new Response(JSON.stringify({ error: msgErr.message }), { status: 500, headers: corsHeaders });
+    if (claimErr) {
+      console.error("Error claiming messages:", claimErr);
+      return new Response(JSON.stringify({ error: claimErr.message }), { status: 500, headers: corsHeaders });
     }
 
     if (!mensagens || mensagens.length === 0) {
-      return new Response(JSON.stringify({ message: "No pending messages within tolerance, auto-create done" }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ message: "No pending messages to process" }), { headers: corsHeaders });
     }
+
+    console.log(`🔒 Claimed ${mensagens.length} messages for processing`);
 
     // === COLLECT REGEN DATA FOR ALL MESSAGES ===
     interface RegenData {
@@ -319,8 +319,20 @@ Deno.serve(async (req) => {
             .eq("id", msg.agendamento_id)
             .single();
 
-          if (!agAtual || agAtual.status === "Cancelado") {
-            await supabase.from("whatsapp_mensagens_agendadas").update({ status: "cancelado", erro: "Agendamento removido ou cancelado" }).eq("id", msg.id);
+          // BLOCK: appointment not found, cancelled, or late
+          if (!agAtual || BLOCKED_STATUSES.includes(agAtual.status)) {
+            await supabase.from("whatsapp_mensagens_agendadas")
+              .update({ status: "cancelado", erro: `Agendamento ${!agAtual ? 'removido' : 'com status ' + agAtual.status}` })
+              .eq("id", msg.id);
+            continue;
+          }
+
+          // Validate appointment is still in the future
+          const agDateTime = parseDateTimeBRT(agAtual.data, agAtual.horario);
+          if (agDateTime.getTime() < now.getTime()) {
+            await supabase.from("whatsapp_mensagens_agendadas")
+              .update({ status: "expirado", erro: "Horário do agendamento já passou" })
+              .eq("id", msg.id);
             continue;
           }
 
@@ -343,30 +355,24 @@ Deno.serve(async (req) => {
             if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
           }
 
-          // Cross-validate client name AND WhatsApp against cadastro (source of truth)
           let nomeClienteValidado = agAtual.cliente;
           let numeroWhatsappAtualizado = msg.numero_whatsapp;
           if (agAtual.cliente_id) {
             const { data: clienteReal } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("id", agAtual.cliente_id).single();
             if (clienteReal) {
               if (clienteReal.nome_cliente.trim() !== agAtual.cliente.trim()) {
-                console.log(`Client name mismatch (avulso): agendamento="${agAtual.cliente}" cadastro="${clienteReal.nome_cliente}". Using cadastro.`);
                 nomeClienteValidado = clienteReal.nome_cliente;
               }
-              // Always use latest WhatsApp from client record
               const latestWhatsapp = formatNumero(clienteReal.whatsapp);
               if (latestWhatsapp && latestWhatsapp !== msg.numero_whatsapp) {
-                console.log(`WhatsApp updated (avulso): msg stored="${msg.numero_whatsapp}" cadastro="${latestWhatsapp}". Using cadastro.`);
                 numeroWhatsappAtualizado = latestWhatsapp;
               }
             }
           } else {
-            // No cliente_id — try to find by whatsapp number
             const numNorm = formatNumero(agAtual.whatsapp);
             const { data: clientesByNum } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("user_id", msg.user_id);
-            const clienteReal = (clientesByNum || []).find(c => formatNumero(c.whatsapp) === numNorm);
+            const clienteReal = (clientesByNum || []).find((c: any) => formatNumero(c.whatsapp) === numNorm);
             if (clienteReal && clienteReal.nome_cliente.trim() !== agAtual.cliente.trim()) {
-              console.log(`Client name mismatch (avulso no id): agendamento="${agAtual.cliente}" cadastro="${clienteReal.nome_cliente}". Using cadastro.`);
               nomeClienteValidado = clienteReal.nome_cliente;
             }
           }
@@ -413,6 +419,17 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Validate pacote service is still in the future
+          if (svAtual.data && svAtual.horarioInicio) {
+            const svDateTime = parseDateTimeBRT(svAtual.data, svAtual.horarioInicio);
+            if (svDateTime.getTime() < now.getTime()) {
+              await supabase.from("whatsapp_mensagens_agendadas")
+                .update({ status: "expirado", erro: "Horário do serviço já passou" })
+                .eq("id", msg.id);
+              continue;
+            }
+          }
+
           let sexoPet = "Macho";
           const { data: petData } = await supabase.from("pets").select("sexo").eq("user_id", msg.user_id).eq("nome_pet", pacoteAtual.nome_pet).limit(1);
           if (petData && petData.length > 0) sexoPet = petData[0].sexo || "Macho";
@@ -420,25 +437,20 @@ Deno.serve(async (req) => {
           const servicoNumero = svAtual.numero || msg.servico_numero;
           const servicoNome = svAtual.nomeServico || svAtual.servico || svAtual.nome || "Banho";
 
-          // Cross-validate client name AND WhatsApp against cadastro (source of truth)
           let nomeClientePacoteValidado = pacoteAtual.nome_cliente;
           let numeroWhatsappPacoteAtualizado = msg.numero_whatsapp;
           const numNormPacote = formatNumero(pacoteAtual.whatsapp);
           const { data: clientesByNumPacote } = await supabase.from("clientes").select("nome_cliente, whatsapp").eq("user_id", msg.user_id);
-          // Try matching by name first (more reliable for pacotes), then by number
-          const clienteRealPacote = (clientesByNumPacote || []).find(c => 
+          const clienteRealPacote = (clientesByNumPacote || []).find((c: any) =>
             c.nome_cliente.trim() === pacoteAtual.nome_cliente.trim()
-          ) || (clientesByNumPacote || []).find(c => formatNumero(c.whatsapp) === numNormPacote);
+          ) || (clientesByNumPacote || []).find((c: any) => formatNumero(c.whatsapp) === numNormPacote);
           
           if (clienteRealPacote) {
             if (clienteRealPacote.nome_cliente.trim() !== pacoteAtual.nome_cliente.trim()) {
-              console.log(`Client name mismatch (pacote): pacote="${pacoteAtual.nome_cliente}" cadastro="${clienteRealPacote.nome_cliente}". Using cadastro.`);
               nomeClientePacoteValidado = clienteRealPacote.nome_cliente;
             }
-            // Always use latest WhatsApp from client record
             const latestWhatsapp = formatNumero(clienteRealPacote.whatsapp);
             if (latestWhatsapp && latestWhatsapp !== msg.numero_whatsapp) {
-              console.log(`WhatsApp updated (pacote): msg stored="${msg.numero_whatsapp}" cadastro="${latestWhatsapp}". Using cadastro.`);
               numeroWhatsappPacoteAtualizado = latestWhatsapp;
             }
           }
@@ -473,18 +485,16 @@ Deno.serve(async (req) => {
           const diffMs = Math.abs(expectedAgendadoPara.getTime() - msgAgendadoPara.getTime());
 
           if (diffMs > 2 * 60 * 1000) {
-            // Appointment time changed — reschedule this message
-            console.log(`Sync: msg ${msg.id} agendado_para ${msg.agendado_para} differs from expected ${expectedAgendadoPara.toISOString()} by ${Math.round(diffMs/60000)}min. Rescheduling.`);
+            console.log(`Sync: msg ${msg.id} rescheduling from ${msg.agendado_para} to ${expectedAgendadoPara.toISOString()}`);
             await supabase.from("whatsapp_mensagens_agendadas")
-              .update({ agendado_para: expectedAgendadoPara.toISOString() })
+              .update({ agendado_para: expectedAgendadoPara.toISOString(), status: "pendente" })
               .eq("id", msg.id);
-            continue; // skip this message, it will be picked up at the correct time
+            continue;
           }
         }
 
         regenList.push(extracted);
       } else {
-        // Fallback: mark as ungroupable, will send with stored message
         regenList.push({
           msgId: msg.id, userId: msg.user_id,
           nomeCliente: "", nomePet: "", sexoPet: "Macho",
@@ -505,8 +515,6 @@ Deno.serve(async (req) => {
         ungroupable.push(rd);
         continue;
       }
-      // Para mensagens de 30min, agrupar apenas por userId|numero|tipo|data (sem servicoNumero/taxiDog)
-      // para unificar pets avulsos e de pacote do mesmo cliente
       const key = rd.tipoMensagem === "30min"
         ? `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}`
         : `${rd.userId}|${rd.numeroWhatsapp}|${rd.tipoMensagem}|${rd.data}|${rd.servicoNumero || "null"}|${rd.taxiDog}`;
@@ -530,7 +538,6 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Deduplicate pets (keeping servico per pet)
       const seenPets = new Set<string>();
       const petInfos: Array<{nome: string, sexo: string, servico: string}> = [];
       for (const rd of group) {
@@ -540,11 +547,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Use earliest horario
       const horarios = group.map(rd => rd.horario).filter(Boolean).sort();
       const horario = horarios[0] || first.horario;
-
-      // If any in group is ultimo, consider ultimo
       const isUltimo = group.some(rd => rd.isUltimo);
 
       let mensagemFinal: string;
@@ -616,7 +620,7 @@ Deno.serve(async (req) => {
 });
 
 // =============================================
-// AUTO-CREATE MISSING MESSAGES
+// AUTO-CREATE MISSING MESSAGES (with ON CONFLICT safety)
 // =============================================
 async function autoCreateMissingMessages(
   supabase: any,
@@ -626,39 +630,36 @@ async function autoCreateMissingMessages(
   now: Date
 ) {
   try {
-    // Calculate today and tomorrow in BRT (UTC-3)
     const brtOffset = -3;
     const brtNow = new Date(now.getTime() + brtOffset * 60 * 60 * 1000);
-    const todayBRT = brtNow.toISOString().split("T")[0]; // YYYY-MM-DD
+    const todayBRT = brtNow.toISOString().split("T")[0];
     const tomorrowDate = new Date(brtNow);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowBRT = tomorrowDate.toISOString().split("T")[0];
 
-    // Fetch agendamentos avulsos for today and tomorrow
     const { data: agendamentos } = await supabase
       .from("agendamentos")
       .select("id, user_id, cliente, pet, raca, whatsapp, data, horario, servico, taxi_dog, numero_servico_pacote, status, cliente_id")
       .in("user_id", activeUserIds)
       .in("data", [todayBRT, tomorrowBRT])
-      .neq("status", "Cancelado");
+      .not("status", "in", `(${BLOCKED_STATUSES.join(",")})`);
 
     if (!agendamentos || agendamentos.length === 0) {
       console.log("No appointments found for today/tomorrow");
       return;
     }
 
-    // Get all existing scheduled messages for these appointments
     const agendamentoIds = agendamentos.map((a: any) => a.id);
     const { data: existingMessages } = await supabase
       .from("whatsapp_mensagens_agendadas")
-      .select("agendamento_id, tipo_mensagem")
-      .in("agendamento_id", agendamentoIds);
+      .select("agendamento_id, tipo_mensagem, status")
+      .in("agendamento_id", agendamentoIds)
+      .in("status", ["pendente", "processando", "enviado"]);
 
     const existingSet = new Set(
       (existingMessages || []).map((m: any) => `${m.agendamento_id}_${m.tipo_mensagem}`)
     );
 
-    // Get whatsapp_ativo status for all clients
     const clienteIds = [...new Set(agendamentos.filter((a: any) => a.cliente_id).map((a: any) => a.cliente_id))];
     let petsMap = new Map<string, string>();
     const whatsappAtivoMap = new Map<string, boolean>();
@@ -694,16 +695,9 @@ async function autoCreateMissingMessages(
       const agDateTime = parseDateTimeBRT(ag.data, ag.horario);
       const diffMinutes = (agDateTime.getTime() - now.getTime()) / (1000 * 60);
 
-      // Skip if whatsapp_ativo is false for this client
       if (ag.cliente_id && whatsappAtivoMap.get(ag.cliente_id) === false) continue;
-
-      // Skip if whatsapp_ativo is false for this pet
       if (ag.cliente_id && petWhatsappAtivoMap.get(`${ag.cliente_id}_${ag.pet}`) === false) continue;
-
-      // Skip if appointment is in the past
       if (diffMinutes < -60) continue;
-
-      // Skip if within 60 minutes (no auto messages)
       if (diffMinutes <= 60 && diffMinutes >= -60) continue;
 
       const sexoPet = petsMap.get(`${ag.cliente_id}_${ag.pet}`) || "Macho";
@@ -727,13 +721,9 @@ async function autoCreateMissingMessages(
         status: "pendente",
       };
 
-      // Get confirmation config for this user
       const cc = confirmConfigMap.get(ag.user_id) || { ativo: true, h24: false, h15: false, h3: true };
       
       if (cc.ativo) {
-        // === MODO PERSONALIZADO ===
-
-        // 24h antes
         if (cc.h24 && diffMinutes > 24 * 60 && !existingSet.has(`${ag.id}_24h`)) {
           const ag24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
           if (ag24h.getTime() > now.getTime()) {
@@ -741,19 +731,17 @@ async function autoCreateMissingMessages(
           }
         }
 
-        // 15h antes (máximo 18h BRT)
         if (cc.h15 && diffMinutes > 15 * 60 && !existingSet.has(`${ag.id}_15h`)) {
           let ag15h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
           const brtHour15 = (ag15h.getUTCHours() - 3 + 24) % 24;
           if (brtHour15 > 18) {
-            ag15h.setUTCHours(21, 0, 0, 0); // 18h BRT = 21h UTC
+            ag15h.setUTCHours(21, 0, 0, 0);
           }
           if (ag15h.getTime() > now.getTime()) {
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "15h", mensagem: confirmMsg, agendado_para: ag15h.toISOString() });
           }
         }
 
-        // 3h antes (mínimo 07h BRT)
         if (cc.h3 && diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
           let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
           const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
@@ -765,13 +753,11 @@ async function autoCreateMissingMessages(
           }
         }
 
-        // Confirmação imediata (entre 61min e o menor período selecionado)
         const menorPeriodoMinutos = cc.h3 ? 3 * 60 : cc.h15 ? 15 * 60 : cc.h24 ? 24 * 60 : 0;
         if (menorPeriodoMinutos > 0 && diffMinutes > 61 && diffMinutes <= menorPeriodoMinutos && !existingSet.has(`${ag.id}_imediata`) && !existingSet.has(`${ag.id}_3h`)) {
           mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "imediata", mensagem: confirmMsg, agendado_para: now.toISOString() });
         }
       } else {
-        // === MODO PADRÃO (3h fixo) ===
         if (diffMinutes > 3 * 60 && !existingSet.has(`${ag.id}_3h`)) {
           let agendadoPara3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
           const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
@@ -788,7 +774,6 @@ async function autoCreateMissingMessages(
         }
       }
 
-      // === 30min message (always active, only if Taxi Dog = "Não") ===
       if (ag.taxi_dog === "Não" && diffMinutes > 30 && !existingSet.has(`${ag.id}_30min`)) {
         const agendadoPara30min = new Date(agDateTime.getTime() - 30 * 60 * 1000);
         const brtH30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
@@ -804,14 +789,25 @@ async function autoCreateMissingMessages(
     await autoCreatePacoteMessages(supabase, activeUserIds, bordaoMap, confirmConfigMap, now, todayBRT, tomorrowBRT);
 
     if (mensagensParaInserir.length > 0) {
-      const { error } = await supabase
-        .from("whatsapp_mensagens_agendadas")
-        .insert(mensagensParaInserir);
-
-      if (error) {
-        console.error("Error inserting auto-created messages:", error);
-      } else {
-        console.log(`Auto-created ${mensagensParaInserir.length} messages for avulso appointments`);
+      // Insert one by one to handle conflicts gracefully (unique index will reject duplicates)
+      let inserted = 0;
+      for (const msg of mensagensParaInserir) {
+        const { error } = await supabase
+          .from("whatsapp_mensagens_agendadas")
+          .insert(msg);
+        if (error) {
+          // Unique constraint violation = duplicate, silently skip
+          if (error.code === "23505") {
+            console.log(`⏭️ Skipped duplicate: ${msg.agendamento_id || msg.agendamento_pacote_id}_${msg.tipo_mensagem}`);
+          } else {
+            console.error("Error inserting message:", error);
+          }
+        } else {
+          inserted++;
+        }
+      }
+      if (inserted > 0) {
+        console.log(`Auto-created ${inserted} messages for avulso appointments (${mensagensParaInserir.length - inserted} duplicates skipped)`);
       }
     }
   } catch (err) {
@@ -836,18 +832,17 @@ async function autoCreatePacoteMessages(
 
     if (!pacotes || pacotes.length === 0) return;
 
-    // Get existing messages for pacotes
     const pacoteIds = pacotes.map((p: any) => p.id);
     const { data: existingPacoteMsgs } = await supabase
       .from("whatsapp_mensagens_agendadas")
-      .select("agendamento_pacote_id, servico_numero, tipo_mensagem")
-      .in("agendamento_pacote_id", pacoteIds);
+      .select("agendamento_pacote_id, servico_numero, tipo_mensagem, status")
+      .in("agendamento_pacote_id", pacoteIds)
+      .in("status", ["pendente", "processando", "enviado"]);
 
     const existingPacoteSet = new Set(
       (existingPacoteMsgs || []).map((m: any) => `${m.agendamento_pacote_id}_${m.servico_numero}_${m.tipo_mensagem}`)
     );
 
-    // Get pet sexo and whatsapp_ativo
     const petSexoMap = new Map<string, string>();
     const petWhatsappAtivoPacoteMap = new Map<string, boolean>();
     for (const userId of activeUserIds) {
@@ -863,7 +858,6 @@ async function autoCreatePacoteMessages(
       }
     }
 
-    // Get whatsapp_ativo by client name per user
     const whatsappAtivoPacoteMap = new Map<string, boolean>();
     for (const userId of activeUserIds) {
       const { data: clientesData } = await supabase
@@ -880,10 +874,7 @@ async function autoCreatePacoteMessages(
     const mensagensParaInserir: any[] = [];
 
     for (const pacote of pacotes) {
-      // Skip if whatsapp_ativo is false for client
       if (whatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_cliente}`) === false) continue;
-
-      // Skip if whatsapp_ativo is false for pet
       if (petWhatsappAtivoPacoteMap.get(`${pacote.user_id}_${pacote.nome_pet}`) === false) continue;
 
       const servicos = pacote.servicos as any[];
@@ -928,7 +919,6 @@ async function autoCreatePacoteMessages(
         const cc = confirmConfigMap.get(pacote.user_id) || { ativo: true, h24: false, h15: false, h3: true };
 
         if (cc.ativo) {
-          // 24h antes
           if (cc.h24 && diffMinutes > 24 * 60 && !existingPacoteSet.has(`${key}_24h`)) {
             const ag24h = new Date(agDateTime.getTime() - 24 * 60 * 60 * 1000);
             if (ag24h.getTime() > now.getTime()) {
@@ -936,7 +926,6 @@ async function autoCreatePacoteMessages(
             }
           }
 
-          // 15h antes (máximo 18h BRT)
           if (cc.h15 && diffMinutes > 15 * 60 && !existingPacoteSet.has(`${key}_15h`)) {
             let ag15h = new Date(agDateTime.getTime() - 15 * 60 * 60 * 1000);
             const brtH15 = (ag15h.getUTCHours() - 3 + 24) % 24;
@@ -946,7 +935,6 @@ async function autoCreatePacoteMessages(
             }
           }
 
-          // 3h antes (mínimo 07h BRT)
           if (cc.h3 && diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
             let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
             const brtH3 = (ag3h.getUTCHours() - 3 + 24) % 24;
@@ -956,13 +944,11 @@ async function autoCreatePacoteMessages(
             }
           }
 
-          // Confirmação imediata
           const menorPeriodoMinutos = cc.h3 ? 3 * 60 : cc.h15 ? 15 * 60 : cc.h24 ? 24 * 60 : 0;
           if (menorPeriodoMinutos > 0 && diffMinutes > 61 && diffMinutes <= menorPeriodoMinutos && !existingPacoteSet.has(`${key}_imediata`) && !existingPacoteSet.has(`${key}_3h`)) {
             mensagensParaInserir.push({ ...baseRecord, tipo_mensagem: "imediata", mensagem: confirmMsg, agendado_para: now.toISOString() });
           }
         } else {
-          // Modo padrão (3h fixo)
           if (diffMinutes > 3 * 60 && !existingPacoteSet.has(`${key}_3h`)) {
             let ag3h = new Date(agDateTime.getTime() - 3 * 60 * 60 * 1000);
             const brtH3 = (ag3h.getUTCHours() - 3 + 24) % 24;
@@ -976,7 +962,6 @@ async function autoCreatePacoteMessages(
           }
         }
 
-        // === 30min (sempre ativo, independente da config, apenas se Taxi Dog = "Não") ===
         if (pacote.taxi_dog === "Não" && diffMinutes > 30 && !existingPacoteSet.has(`${key}_30min`)) {
           const ag30 = new Date(agDateTime.getTime() - 30 * 60 * 1000);
           const brtH30p = (ag30.getUTCHours() - 3 + 24) % 24;
@@ -990,14 +975,23 @@ async function autoCreatePacoteMessages(
     }
 
     if (mensagensParaInserir.length > 0) {
-      const { error } = await supabase
-        .from("whatsapp_mensagens_agendadas")
-        .insert(mensagensParaInserir);
-
-      if (error) {
-        console.error("Error inserting auto-created pacote messages:", error);
-      } else {
-        console.log(`Auto-created ${mensagensParaInserir.length} messages for pacote appointments`);
+      let inserted = 0;
+      for (const msg of mensagensParaInserir) {
+        const { error } = await supabase
+          .from("whatsapp_mensagens_agendadas")
+          .insert(msg);
+        if (error) {
+          if (error.code === "23505") {
+            console.log(`⏭️ Skipped duplicate pacote: ${msg.agendamento_pacote_id}_${msg.servico_numero}_${msg.tipo_mensagem}`);
+          } else {
+            console.error("Error inserting pacote message:", error);
+          }
+        } else {
+          inserted++;
+        }
+      }
+      if (inserted > 0) {
+        console.log(`Auto-created ${inserted} messages for pacote appointments`);
       }
     }
   } catch (err) {
