@@ -2714,6 +2714,7 @@ const Agendamentos = () => {
         return;
       }
       window.open(url, '_blank');
+      registerSend(clienteNomePP, petNomePP, "pet_pronto");
       setPetProntoDialogOpen(false);
       return;
     }
