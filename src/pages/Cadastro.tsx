@@ -47,12 +47,7 @@ const Cadastro = () => {
   }
 
   const formatarWhatsApp = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 11) {
-      const formatted = numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
-      return formatted;
-    }
-    return value;
+    return value.replace(/\D/g, "").slice(0, 11);
   };
 
   const onSubmit = async (data: CadastroForm) => {
