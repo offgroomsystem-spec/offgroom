@@ -167,6 +167,26 @@ export const PerformanceBanhistas = () => {
 
   // Subscribe to realtime changes
   useEffect(() => {
+    const reloadComissaoData = () => {
+      if (!user) return;
+      Promise.all([
+        supabase.from("comissoes_config" as any).select("*").eq("user_id", ownerId).maybeSingle(),
+        supabase
+          .from("lancamentos_financeiros")
+          .select("id, agendamento_id, valor_total, descricao1, data_pagamento, lancamentos_financeiros_itens(descricao2, valor, quantidade)")
+          .eq("user_id", ownerId)
+          .eq("pago", true)
+          .eq("tipo", "Receita")
+          .gte("data_pagamento", dataInicio)
+          .lte("data_pagamento", dataFim),
+        supabase.from("agendamentos").select("id, groomer").eq("user_id", ownerId),
+      ]).then(([comRes, lnRes, agAllRes]) => {
+        setComissoesConfig(comRes.data || null);
+        setLancamentosComissao(lnRes.data || []);
+        setAllAgGroomers((agAllRes.data || []) as { id: string; groomer: string }[]);
+      });
+    };
+
     const channel = supabase
       .channel("perf-banhistas")
       .on("postgres_changes", { event: "*", schema: "public", table: "agendamentos" }, () => {
@@ -183,11 +203,13 @@ export const PerformanceBanhistas = () => {
             .from("agendamentos_pacotes")
             .select("id, nome_cliente, nome_pet, raca, taxi_dog, servicos")
             .eq("user_id", ownerId),
-        ]).then(([agRes, pacRes]) => {
+          supabase.from("agendamentos").select("id, groomer").eq("user_id", ownerId),
+        ]).then(([agRes, pacRes, agAllRes]) => {
           const pacData = pacRes.data || [];
           setPacotes(pacData);
           const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
           setAgendamentos([...(agRes.data || []), ...pacoteEntries]);
+          setAllAgGroomers((agAllRes.data || []) as { id: string; groomer: string }[]);
         });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "agendamentos_pacotes" }, () => {
@@ -210,6 +232,12 @@ export const PerformanceBanhistas = () => {
           const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
           setAgendamentos([...(agRes.data || []), ...pacoteEntries]);
         });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "comissoes_config" }, () => {
+        reloadComissaoData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "lancamentos_financeiros" }, () => {
+        reloadComissaoData();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
