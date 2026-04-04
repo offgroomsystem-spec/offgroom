@@ -196,6 +196,34 @@ export function ConfigurarComissoes({ groomers }: Props) {
     }));
   };
 
+  const GroomerTipoComissaoSelector = ({ groomerId }: { groomerId: string }) => {
+    const value = config.tipos_comissao_groomers[groomerId] || "";
+    return (
+      <RadioGroup
+        value={value}
+        onValueChange={(v) =>
+          setConfig((c) => ({
+            ...c,
+            tipos_comissao_groomers: {
+              ...c.tipos_comissao_groomers,
+              [groomerId]: v as TipoComissao,
+            },
+          }))
+        }
+        className="flex flex-wrap gap-x-3 gap-y-0.5"
+      >
+        {TIPOS_COMISSAO.map((t) => (
+          <div key={t.value} className="flex items-center gap-1.5">
+            <RadioGroupItem value={t.value} id={`tipo-${groomerId}-${t.value}`} className="h-3 w-3" />
+            <Label htmlFor={`tipo-${groomerId}-${t.value}`} className="text-[10px] text-muted-foreground cursor-pointer leading-tight font-normal">
+              {t.label}
+            </Label>
+          </div>
+        ))}
+      </RadioGroup>
+    );
+  };
+
   const TipoComissaoSelector = ({ inline = false }: { inline?: boolean }) => {
     if (config.modelo === "faturamento") {
       return (
