@@ -2626,6 +2626,15 @@ const Agendamentos = () => {
   const handlePetProntoConfirm = async (atualizarHorario: boolean) => {
     if (!petProntoAgendamento) return;
 
+    const clienteNomePP = petProntoAgendamento.cliente || "";
+    const petNomePP = petProntoAgendamento.pet || "";
+
+    // Anti-spam: verificar cooldown de 30 minutos
+    if (!canSend(clienteNomePP, petNomePP, "pet_pronto")) {
+      setPetProntoDialogOpen(false);
+      return;
+    }
+
     if (atualizarHorario) {
       try {
         if (petProntoAgendamento.tipo === "simples" && petProntoAgendamento.agendamentoOriginal) {
