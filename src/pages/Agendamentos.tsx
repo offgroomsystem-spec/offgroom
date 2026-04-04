@@ -70,6 +70,7 @@ import { criarLancamentoFinanceiroAvulso, criarLancamentoFinanceiroPacote, criar
 import { scheduleWhatsAppMessages, deletePendingMessages } from "@/utils/whatsappScheduler";
 import { buildWhatsAppUrl, getInvalidPhoneMessage, normalizeBrazilPhone } from "@/utils/phone";
 import { FinanceiroEditDialog } from "@/components/agendamentos/FinanceiroEditDialog";
+import { useManualSendCooldown } from "@/hooks/useManualSendCooldown";
 
 
 // Interfaces
