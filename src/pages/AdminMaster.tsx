@@ -34,6 +34,49 @@ const AdminMaster = () => {
   const [grantDaysDialog, setGrantDaysDialog] = useState<{ userId: string; nome: string } | null>(null);
   const [grantDays, setGrantDays] = useState('30');
   const [userSearch, setUserSearch] = useState('');
+  const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const ADMIN_EXPORT_TABLES = [
+    { key: "profiles", label: "Perfis (Users)" },
+    { key: "subscriptions", label: "Assinaturas" },
+    { key: "user_roles", label: "Roles de Usuários" },
+    { key: "staff_accounts", label: "Contas Staff" },
+    { key: "staff_permissions", label: "Permissões Staff" },
+    { key: "agendamentos", label: "Agendamentos" },
+    { key: "agendamentos_pacotes", label: "Agendamentos Pacotes" },
+    { key: "clientes", label: "Clientes" },
+    { key: "pets", label: "Pets" },
+    { key: "servicos", label: "Serviços" },
+    { key: "produtos", label: "Produtos" },
+    { key: "pacotes", label: "Pacotes" },
+    { key: "lancamentos_financeiros", label: "Lançamentos Financeiros" },
+    { key: "lancamentos_financeiros_itens", label: "Itens Financeiros" },
+    { key: "despesas", label: "Despesas" },
+    { key: "receitas", label: "Receitas" },
+    { key: "contas_bancarias", label: "Contas Bancárias" },
+    { key: "fornecedores", label: "Fornecedores" },
+    { key: "compras_nf", label: "Compras NF" },
+    { key: "compras_nf_itens", label: "Itens Compras NF" },
+    { key: "groomers", label: "Groomers" },
+    { key: "racas", label: "Raças" },
+    { key: "racas_padrao", label: "Raças Padrão" },
+    { key: "empresa_config", label: "Config Empresa" },
+    { key: "comissoes_config", label: "Config Comissões" },
+    { key: "notas_fiscais", label: "Notas Fiscais" },
+    { key: "creche_estadias", label: "Creche Estadias" },
+    { key: "creche_registros_diarios", label: "Creche Registros" },
+    { key: "servicos_creche", label: "Serviços Creche" },
+    { key: "pacotes_creche", label: "Pacotes Creche" },
+    { key: "formas_pagamento", label: "Formas Pagamento" },
+    { key: "whatsapp_instances", label: "WhatsApp Instâncias" },
+    { key: "whatsapp_mensagens_agendadas", label: "WhatsApp Agendadas" },
+    { key: "whatsapp_mensagens_risco", label: "WhatsApp Risco" },
+    { key: "permissions", label: "Permissões Sistema" },
+    { key: "crm_leads", label: "CRM Leads" },
+    { key: "crm_mensagens", label: "CRM Mensagens" },
+    { key: "crm_usuarios_autorizados", label: "CRM Autorizados" },
+  ];
 
   const callAdmin = useCallback(async (action: string, params?: any) => {
     const { data: { session } } = await supabase.auth.getSession();
