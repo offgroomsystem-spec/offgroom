@@ -383,6 +383,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="space-y-[2px]">
                       <Label className="text-[11px] font-semibold">Faturamento</Label>
+                      <p className="text-[9px] text-muted-foreground leading-tight">A comissão é aplicada sobre o faturamento total da empresa, mesmo em serviços e vendas não realizados pelo groomer.</p>
                       <div className="relative">
                         <Input
                           type="number"
