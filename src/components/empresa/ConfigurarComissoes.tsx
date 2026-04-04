@@ -150,6 +150,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
       comissao_atendimento: config.comissao_atendimento,
       bonus_meta: config.bonus_meta,
       comissoes_groomers: config.comissoes_groomers,
+      tipos_comissao_groomers: config.tipos_comissao_groomers,
       updated_at: new Date().toISOString(),
     };
 
