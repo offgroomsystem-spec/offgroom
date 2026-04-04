@@ -1,6 +1,6 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home, UserCog, Dog } from "lucide-react";
+import { Users, PawPrint, Scissors, Calendar, ChevronDown, FileText, Building2, DollarSign, TrendingUp, Package, LogOut, User, Home, UserCog, Dog, Database } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
