@@ -50,6 +50,7 @@ export const PerformanceBanhistas = () => {
   const [comissoesConfig, setComissoesConfig] = useState<any>(null);
   const [lancamentosComissao, setLancamentosComissao] = useState<any[]>([]);
   const [allAgGroomers, setAllAgGroomers] = useState<{ id: string; groomer: string }[]>([]);
+  const [comissoesDetalhadasOpen, setComissoesDetalhadasOpen] = useState(false);
 
   // Filters
   const [periodo, setPeriodo] = useState("mes");
