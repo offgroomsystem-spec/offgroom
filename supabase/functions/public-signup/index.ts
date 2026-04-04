@@ -127,7 +127,7 @@ serve(async (req) => {
 
     if (!isValidWhatsApp(whatsapp)) {
       return new Response(
-        JSON.stringify({ error: 'WhatsApp inválido. Use o formato (XX) XXXXX-XXXX' }),
+        JSON.stringify({ error: 'WhatsApp inválido. Digite 11 dígitos: DDD + número (ex: 61981468122)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
