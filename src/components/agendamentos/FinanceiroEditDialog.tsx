@@ -528,6 +528,8 @@ export const FinanceiroEditDialog = ({
                                 petIds: prev.petIds.filter((id) => id !== petId),
                               }))
                             }
+                            disabled={isLinkedToAgendamento}
+                            className={isLinkedToAgendamento ? "opacity-30 cursor-not-allowed" : ""}
                           >
                             <X className="h-3 w-3" />
                           </button>
