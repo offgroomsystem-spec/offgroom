@@ -191,6 +191,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
       comissao_atendimento: 0,
       bonus_meta: 0,
       comissoes_groomers: {},
+      tipos_comissao_groomers: {},
       tipo_comissao: modelo === "faturamento" ? "servicos_e_vendas" : c.tipo_comissao,
     }));
   };
