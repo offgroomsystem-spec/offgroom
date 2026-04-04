@@ -186,11 +186,12 @@ const AdminMaster = () => {
 
       <main className="container py-6 space-y-6">
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+           <TabsList className="grid grid-cols-5 w-full max-w-3xl">
             <TabsTrigger value="dashboard">📊 Dashboard</TabsTrigger>
             <TabsTrigger value="users">👥 Usuários</TabsTrigger>
             <TabsTrigger value="pets">🐶 Pets</TabsTrigger>
             <TabsTrigger value="plans">💰 Planos</TabsTrigger>
+            <TabsTrigger value="export">📦 Exportar</TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD */}
