@@ -892,9 +892,12 @@ export const PerformanceBanhistas = () => {
         </Card>
 
         {/* Comissões por Banhista */}
-        <Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setComissoesDetalhadasOpen(true)}>
           <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">💰 Comissões por Banhista</CardTitle>
+            <CardTitle className="text-xs flex items-center justify-between">
+              <span>💰 Comissões por Banhista</span>
+              <span className="text-[9px] text-muted-foreground font-normal">Clique para detalhes</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 h-48">
             {!comissoesConfig?.ativo ? (
