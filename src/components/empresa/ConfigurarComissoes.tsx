@@ -400,6 +400,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
                     </div>
                     <div className="space-y-[2px]">
                       <Label className="text-[11px] font-semibold">Atendimento</Label>
+                      <p className="text-[9px] text-muted-foreground leading-tight">A comissão é aplicada apenas sobre os serviços e vendas realizados pelo próprio groomer</p>
                       <div className="relative">
                         <Input
                           type="number"
