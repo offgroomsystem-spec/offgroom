@@ -872,6 +872,9 @@ const Empresa = () => {
           </div>
         </CardContent>
       </Card>
+
+      <ConfigurarComissoes groomers={groomers} />
+
       {/* Card Creche Pet */}
       <Card>
         <CardHeader>
