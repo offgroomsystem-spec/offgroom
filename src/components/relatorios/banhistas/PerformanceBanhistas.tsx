@@ -572,7 +572,7 @@ export const PerformanceBanhistas = () => {
       return d === "serviços" || d === "servicos" || d === "venda" || d === "vendas";
     };
 
-    // Use ALL agendamentos (no date filter) for groomer mapping
+    // Map agendamento_id -> groomer name (for atendimento-based models)
     const agGroomerMap = new Map<string, string>();
     allAgGroomers.forEach((a) => {
       const g = a.groomer?.trim();
@@ -581,83 +581,106 @@ export const PerformanceBanhistas = () => {
       }
     });
 
+    const nameToId = new Map(groomersData.map((g) => [g.nome, g.id]));
+
+    // Helper: get tipo for a specific groomer (only used in "groomer" model)
     const getGroomerTipo = (groomerName: string): string => {
       if (modelo === "groomer") {
-        const nameToId = new Map(groomersData.map((g) => [g.nome, g.id]));
         const gId = nameToId.get(groomerName);
         return gId ? (tiposPerGroomer[gId] || tipoGlobal) : tipoGlobal;
       }
       return tipoGlobal;
     };
 
-    const groomerValues = new Map<string, number>();
-    const groomerAtendimentos = new Map<string, number>();
-    let totalFiltered = 0;
-
-    (lancamentosComissao || []).forEach((l: any) => {
-      const groomer = l.agendamento_id ? agGroomerMap.get(l.agendamento_id) : null;
-      if (!groomer) return;
-      const tipo = getGroomerTipo(groomer);
+    // Calculate filtered value for a lancamento given a tipo filter
+    const calcFilteredValue = (l: any, tipo: string): number => {
       const itens = (l.lancamentos_financeiros_itens || []) as any[];
-
-      let filteredVal = 0;
       if (itens.length > 0) {
-        filteredVal = itens
+        return itens
           .filter((item: any) => matchesTipo(item.descricao2, tipo))
           .reduce((sum: number, item: any) => sum + ((item.valor || 0) * (item.quantidade || 1)), 0);
-      } else {
-        // Fallback: no items detail — use valor_total if tipo allows services+sales or is generic
-        if (tipo === "servicos_e_vendas") {
-          filteredVal = l.valor_total || 0;
-        } else {
-          // Try to infer from descricao1
-          const d1 = (l.descricao1 || "").toLowerCase();
-          if (tipo === "servicos" && d1.includes("operacional")) {
-            filteredVal = l.valor_total || 0;
-          } else if (tipo === "produtos" && d1.includes("operacional")) {
-            filteredVal = l.valor_total || 0;
-          } else {
-            filteredVal = l.valor_total || 0;
-          }
-        }
       }
+      // Fallback: use valor_total
+      return l.valor_total || 0;
+    };
 
-      if (filteredVal > 0) {
-        groomerValues.set(groomer, (groomerValues.get(groomer) || 0) + filteredVal);
-        groomerAtendimentos.set(groomer, (groomerAtendimentos.get(groomer) || 0) + 1);
-        totalFiltered += filteredVal;
-      }
-    });
-
+    const registeredGroomers = groomersData.map((g) => g.nome);
     const results: { nome: string; comissao: number }[] = [];
 
     if (modelo === "groomer") {
-      const nameToId = new Map(groomersData.map((g) => [g.nome, g.id]));
-      groomerValues.forEach((val, name) => {
-        const gId = nameToId.get(name);
+      // Commission on TOTAL company revenue per tipo, each groomer gets their % of that total
+      registeredGroomers.forEach((groomerName) => {
+        const gId = nameToId.get(groomerName);
         const pct = gId ? ((cfg.comissoes_groomers as any)?.[gId] || 0) : 0;
-        results.push({ nome: name, comissao: Math.round(val * pct / 100 * 100) / 100 });
+        const tipo = getGroomerTipo(groomerName);
+        
+        // Sum ALL paid lancamentos filtered by this groomer's tipo (total company revenue)
+        let totalFiltered = 0;
+        (lancamentosComissao || []).forEach((l: any) => {
+          totalFiltered += calcFilteredValue(l, tipo);
+        });
+        
+        results.push({ nome: groomerName, comissao: Math.round(totalFiltered * pct / 100 * 100) / 100 });
       });
+
     } else if (modelo === "faturamento") {
-      const comissaoTotal = totalFiltered * (cfg.comissao_faturamento || 0) / 100;
-      groomerValues.forEach((val, name) => {
-        const part = totalFiltered > 0 ? val / totalFiltered : 0;
-        results.push({ nome: name, comissao: Math.round(comissaoTotal * part * 100) / 100 });
+      // Commission on TOTAL company revenue (servicos_e_vendas always), single % for all groomers
+      const pct = cfg.comissao_faturamento || 0;
+      let totalFiltered = 0;
+      (lancamentosComissao || []).forEach((l: any) => {
+        totalFiltered += calcFilteredValue(l, "servicos_e_vendas");
       });
+      
+      registeredGroomers.forEach((groomerName) => {
+        results.push({ nome: groomerName, comissao: Math.round(totalFiltered * pct / 100 * 100) / 100 });
+      });
+
     } else if (modelo === "atendimento") {
-      groomerValues.forEach((val, name) => {
-        results.push({ nome: name, comissao: Math.round(val * (cfg.comissao_atendimento || 0) / 100 * 100) / 100 });
+      // Commission on groomer's OWN attended revenue only
+      const pct = cfg.comissao_atendimento || 0;
+      
+      registeredGroomers.forEach((groomerName) => {
+        let groomerVal = 0;
+        (lancamentosComissao || []).forEach((l: any) => {
+          const attendedBy = l.agendamento_id ? agGroomerMap.get(l.agendamento_id) : null;
+          if (attendedBy !== groomerName) return;
+          groomerVal += calcFilteredValue(l, tipoGlobal);
+        });
+        results.push({ nome: groomerName, comissao: Math.round(groomerVal * pct / 100 * 100) / 100 });
       });
+
     } else if (modelo === "hibrida") {
       const pctFat = cfg.comissao_faturamento || 0;
       const pctAtend = cfg.comissao_atendimento || 0;
       const pctBonus = cfg.bonus_meta || 0;
       const meta = empresaConfig?.meta_faturamento_mensal || 0;
-      const comissaoFatTotal = totalFiltered * pctFat / 100;
-      const bonusTotal = (meta > 0 && totalFiltered >= meta) ? totalFiltered * pctBonus / 100 : 0;
-      groomerValues.forEach((val, name) => {
-        const part = totalFiltered > 0 ? val / totalFiltered : 0;
-        results.push({ nome: name, comissao: Math.round((comissaoFatTotal * part + val * pctAtend / 100 + bonusTotal * part) * 100) / 100 });
+
+      // Total company revenue (servicos_e_vendas) for faturamento + bonus parts
+      let totalCompany = 0;
+      (lancamentosComissao || []).forEach((l: any) => {
+        totalCompany += calcFilteredValue(l, "servicos_e_vendas");
+      });
+
+      // Bonus: only on excess over meta
+      const excessoMeta = (meta > 0 && totalCompany >= meta) ? (totalCompany - meta) : 0;
+
+      registeredGroomers.forEach((groomerName) => {
+        // Faturamento part: % of total company revenue
+        const comFat = totalCompany * pctFat / 100;
+
+        // Atendimento part: % of groomer's OWN attended revenue
+        let groomerAtendVal = 0;
+        (lancamentosComissao || []).forEach((l: any) => {
+          const attendedBy = l.agendamento_id ? agGroomerMap.get(l.agendamento_id) : null;
+          if (attendedBy !== groomerName) return;
+          groomerAtendVal += calcFilteredValue(l, tipoGlobal);
+        });
+        const comAtend = groomerAtendVal * pctAtend / 100;
+
+        // Bonus part: % of excess over meta (total company)
+        const comBonus = excessoMeta * pctBonus / 100;
+
+        results.push({ nome: groomerName, comissao: Math.round((comFat + comAtend + comBonus) * 100) / 100 });
       });
     }
 
