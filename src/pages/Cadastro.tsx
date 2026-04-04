@@ -19,7 +19,7 @@ const cadastroSchema = z
     whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp inválido. Digite 11 dígitos: DDD + número (ex: 61981468122)"),
     senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres").max(100, "Senha muito longa"),
     confirmar_senha: z.string(),
-    cupom: z.string().optional(),
+    
   })
   .refine((data) => data.senha === data.confirmar_senha, {
     message: "As senhas não coincidem",
