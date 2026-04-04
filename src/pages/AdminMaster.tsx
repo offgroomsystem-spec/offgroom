@@ -924,6 +924,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
+                      <TableHead>WhatsApp</TableHead>
                       <TableHead>Plano</TableHead>
                       <TableHead>Cadastro</TableHead>
                       <TableHead>Logins</TableHead>
@@ -935,6 +936,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                       <TableRow key={u.id}>
                         <TableCell className="font-medium">{u.nome_completo}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{u.email_hotmart}</TableCell>
+                        <TableCell className="text-sm">{u.whatsapp || '-'}</TableCell>
                         <TableCell>
                           <Badge variant={u.hasActivePlan ? 'default' : 'secondary'}>
                             {u.hasActivePlan ? u.subscription?.plan_name || 'Pago' : u.plano_ativo || 'Free'}
