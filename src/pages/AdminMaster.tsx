@@ -515,6 +515,82 @@ const AdminMaster = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* EXPORT */}
+          <TabsContent value="export" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold flex items-center gap-2"><Database className="h-6 w-6" /> Exportar Dados do Sistema</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Selecione as tabelas para exportar como CSV. Os dados são exportados diretamente do banco de dados sem filtro de usuário (admin master).</p>
+
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={exportSelected.size === ADMIN_EXPORT_TABLES.length}
+                      onCheckedChange={() => {
+                        if (exportSelected.size === ADMIN_EXPORT_TABLES.length) {
+                          setExportSelected(new Set());
+                        } else {
+                          setExportSelected(new Set(ADMIN_EXPORT_TABLES.map(t => t.key)));
+                        }
+                      }}
+                    />
+                    <span className="text-sm font-semibold">Selecionar Todos ({exportSelected.size}/{ADMIN_EXPORT_TABLES.length})</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={exportLoading || exportSelected.size === 0}
+                    onClick={async () => {
+                      setExportLoading(true);
+                      const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+                      let ok = 0, err = 0;
+                      for (const key of exportSelected) {
+                        try {
+                          const resp = await callAdmin('export_table', { table: key });
+                          if (resp?.rows && resp.rows.length > 0) {
+                            const headers = Object.keys(resp.rows[0]);
+                            const escape = (v: any) => {
+                              if (v === null || v === undefined) return '';
+                              const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                              return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+                            };
+                            const csv = [headers.join(','), ...resp.rows.map((r: any) => headers.map(h => escape(r[h])).join(','))].join('\n');
+                            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(blob);
+                            link.download = `${key}_${dateStr}.csv`;
+                            link.click();
+                            URL.revokeObjectURL(link.href);
+                            ok++;
+                          }
+                        } catch { err++; }
+                      }
+                      setExportLoading(false);
+                      if (ok > 0) toast.success(`${ok} tabela(s) exportada(s)`);
+                      if (err > 0) toast.error(`${err} tabela(s) com erro`);
+                    }}
+                  >
+                    {exportLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Exportando...</> : <><Download className="h-4 w-4 mr-1" /> Exportar {exportSelected.size} tabela(s)</>}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {ADMIN_EXPORT_TABLES.map(t => (
+                    <div key={t.key} className="flex items-center gap-2 p-2 rounded-md border hover:bg-muted/50 cursor-pointer" onClick={() => {
+                      const next = new Set(exportSelected);
+                      if (next.has(t.key)) next.delete(t.key); else next.add(t.key);
+                      setExportSelected(next);
+                    }}>
+                      <Checkbox checked={exportSelected.has(t.key)} />
+                      <span className="text-xs">{t.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
