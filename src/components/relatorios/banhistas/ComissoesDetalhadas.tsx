@@ -343,6 +343,7 @@ body { font-family: Arial, sans-serif; font-size: 11px; color: #222; margin: 0; 
   <div class="sum-card"><div class="sum-label">Modelo</div><div class="sum-value">${modeloLabel(comissaoData?.modelo || "")}</div></div>
 </div>
 ${metaSection}
+${generateChartsSvgHtml(filteredResults, totalComissao)}
 ${rows}
 <div class="total-footer">Total a Pagar: ${formatCurrency(totalComissao)}</div>
 </body></html>`;
