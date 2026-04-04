@@ -86,13 +86,8 @@ const Cadastro = () => {
         return;
       }
 
-      if (couponApplied) {
-        toast.success(`🎉 Cadastro realizado! Cupom aplicado: ${couponDays} dias grátis.`);
-        navigate("/empresa");
-      } else {
-        toast.success("Cadastro realizado! Escolha um plano para começar.");
-        navigate("/pagamento");
-      }
+      toast.success("Cadastro realizado! Escolha um plano para começar.");
+      navigate("/pagamento");
     } catch (error) {
       toast.error("Erro ao criar conta. Tente novamente.");
     } finally {
