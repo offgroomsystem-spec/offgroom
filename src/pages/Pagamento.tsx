@@ -1,23 +1,18 @@
-import { useState } from "react";
+
 import { StoreLayout } from "@/components/store/StoreLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Zap, TrendingUp, Shield, Clock, Lock, Headphones, Sparkles, AlertTriangle, Tag } from "lucide-react";
+import { Check, Zap, TrendingUp, Shield, Clock, Lock, Headphones, Sparkles, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/contexts/AuthContext";
 
 const Pagamento = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, checkSubscription } = useAuth();
   const reason = location.state?.reason;
-  const [cupom, setCupom] = useState("");
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   // Mensagens específicas baseadas no motivo do redirecionamento
   const getAlertContent = () => {
@@ -73,30 +68,6 @@ const Pagamento = () => {
     }
   };
 
-  const handleCouponValidation = async () => {
-    if (!cupom.trim()) return;
-    setValidatingCoupon(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('validate-coupon', {
-        body: { cupom: cupom.trim() }
-      });
-
-      if (error || data?.error) {
-        toast.error(data?.error || 'Cupom inválido');
-        return;
-      }
-
-      toast.success(data.message || `Cupom aplicado! ${data.days} dias de acesso.`);
-      // Refresh subscription status
-      await checkSubscription();
-      // Redirect to /empresa
-      navigate('/empresa');
-    } catch (err) {
-      toast.error('Erro ao validar cupom. Tente novamente.');
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
 
   return (
     <StoreLayout>
@@ -424,39 +395,6 @@ const Pagamento = () => {
               ⚡ Ativação imediata • 🔒 Pagamento 100% seguro
             </p>
           </div>
-          {/* Seção Cupom */}
-          {user && (
-            <div className="max-w-xl mx-auto mt-16">
-              <Card className="border border-border">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-primary" />
-                    Possui um cupom?
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    Insira seu cupom promocional para liberar o acesso ao sistema
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-3">
-                    <Input
-                      placeholder="Cupom"
-                      value={cupom}
-                      onChange={(e) => setCupom(e.target.value.toUpperCase())}
-                      maxLength={50}
-                      className="flex-1"
-                    />
-                    <Button
-                      onClick={handleCouponValidation}
-                      disabled={validatingCoupon || !cupom.trim()}
-                    >
-                      {validatingCoupon ? "Validando..." : "Iniciar"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
       </section>
     </StoreLayout>
