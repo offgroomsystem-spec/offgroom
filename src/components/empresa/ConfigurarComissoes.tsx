@@ -383,6 +383,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="space-y-[2px]">
                       <Label className="text-[11px] font-semibold">Faturamento</Label>
+                      <p className="text-[9px] text-muted-foreground leading-tight">A comissão é aplicada sobre o faturamento total da empresa, mesmo em serviços e vendas não realizados pelo groomer.</p>
                       <div className="relative">
                         <Input
                           type="number"
@@ -399,6 +400,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
                     </div>
                     <div className="space-y-[2px]">
                       <Label className="text-[11px] font-semibold">Atendimento</Label>
+                      <p className="text-[9px] text-muted-foreground leading-tight">A comissão é aplicada apenas sobre os serviços e vendas realizados pelo próprio groomer</p>
                       <div className="relative">
                         <Input
                           type="number"
@@ -415,6 +417,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
                     </div>
                     <div className="space-y-[2px]">
                       <Label className="text-[11px] font-semibold">Bônus por Meta batida</Label>
+                      <p className="text-[9px] text-muted-foreground leading-tight">Se a meta for atingida, a comissão será calculada apenas sobre o valor que passar dessa meta, independentemente de qual groomer fez o atendimento.</p>
                       <div className="relative">
                         <Input
                           type="number"
