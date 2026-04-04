@@ -365,6 +365,9 @@ body { font-family: Arial, sans-serif; font-size: 11px; color: #222; margin: 0; 
 .meta-ok { color: #15803d; font-weight: 600; }
 .meta-nok { color: #dc2626; font-weight: 600; }
 .total-footer { text-align: right; font-size: 14px; font-weight: 700; color: #8b5cf6; margin-top: 10px; padding-top: 8px; border-top: 2px solid #8b5cf6; }
+.charts-row { display: flex; gap: 16px; margin-bottom: 16px; }
+.chart-box { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #fafafa; }
+.chart-title { font-size: 11px; font-weight: 700; color: #8b5cf6; margin-bottom: 6px; }
 @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style></head><body>
 <div class="header">
