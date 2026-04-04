@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { ComissoesDetalhadas } from "./ComissoesDetalhadas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ export const PerformanceBanhistas = () => {
   const [comissoesConfig, setComissoesConfig] = useState<any>(null);
   const [lancamentosComissao, setLancamentosComissao] = useState<any[]>([]);
   const [allAgGroomers, setAllAgGroomers] = useState<{ id: string; groomer: string }[]>([]);
+  const [comissoesDetalhadasOpen, setComissoesDetalhadasOpen] = useState(false);
 
   // Filters
   const [periodo, setPeriodo] = useState("mes");
@@ -890,9 +892,12 @@ export const PerformanceBanhistas = () => {
         </Card>
 
         {/* Comissões por Banhista */}
-        <Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setComissoesDetalhadasOpen(true)}>
           <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs">💰 Comissões por Banhista</CardTitle>
+            <CardTitle className="text-xs flex items-center justify-between">
+              <span>💰 Comissões por Banhista</span>
+              <span className="text-[9px] text-muted-foreground font-normal">Clique para detalhes</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 h-48">
             {!comissoesConfig?.ativo ? (
@@ -1126,6 +1131,7 @@ export const PerformanceBanhistas = () => {
         </Card>
 
       </div>
+      <ComissoesDetalhadas open={comissoesDetalhadasOpen} onOpenChange={setComissoesDetalhadasOpen} />
     </div>
   );
 };
