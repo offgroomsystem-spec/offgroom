@@ -387,10 +387,10 @@ const Empresa = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Cadastro da Empresa</h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-[12px]">
           Configure as informações da sua empresa
         </p>
       </div>
@@ -401,50 +401,52 @@ const Empresa = () => {
 
       {/* Card Dados Fiscais */}
       <Card>
-        <CardHeader>
-          <CardTitle>Dados Fiscais da Empresa</CardTitle>
-          <CardDescription>
+        <CardHeader className="px-5 py-4">
+          <CardTitle className="text-base">Dados Fiscais da Empresa</CardTitle>
+          <CardDescription className="text-[11px]">
             Informações necessárias para emissão de NFe/NFSe
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="px-5">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Identificação da Empresa */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm text-muted-foreground">Identificação</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ *</Label>
+            <div className="space-y-1.5">
+              <h4 className="font-semibold text-[11px] text-muted-foreground">Identificação</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="space-y-[2px]">
+                  <Label htmlFor="cnpj" className="text-[11px] font-semibold">CNPJ *</Label>
                   <Input
                     id="cnpj"
                     placeholder="00.000.000/0000-00"
+                    className="h-7 text-[12px]"
                     value={formData.cnpj}
                     onChange={(e) => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
                     maxLength={18}
                   />
                   {formData.cnpj && formData.cnpj.replace(/\D/g, '').length === 14 && !validarCNPJ(formData.cnpj) && (
-                    <p className="text-xs text-destructive">CNPJ inválido</p>
+                    <p className="text-[11px] text-destructive">CNPJ inválido</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="razaoSocial">Razão Social *</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="razaoSocial" className="text-[11px] font-semibold">Razão Social *</Label>
                   <Input
                     id="razaoSocial"
                     placeholder="Razão Social da empresa"
+                    className="h-7 text-[12px]"
                     value={formData.razaoSocial}
                     onChange={(e) => setFormData({ ...formData, razaoSocial: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="regimeTributario">Regime Tributário *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="space-y-[2px]">
+                  <Label htmlFor="regimeTributario" className="text-[11px] font-semibold">Regime Tributário *</Label>
                   <Select
                     value={formData.regimeTributario}
                     onValueChange={(value) => setFormData({ ...formData, regimeTributario: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-7 text-[12px]">
                       <SelectValue placeholder="Selecione o regime" />
                     </SelectTrigger>
                     <SelectContent>
@@ -456,25 +458,27 @@ const Empresa = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inscricaoEstadual">Inscrição Estadual (IE)</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="inscricaoEstadual" className="text-[11px] font-semibold">Inscrição Estadual (IE)</Label>
                   <Input
                     id="inscricaoEstadual"
                     placeholder="Somente números"
+                    className="h-7 text-[12px]"
                     value={formData.inscricaoEstadual}
                     onChange={(e) => setFormData({ ...formData, inscricaoEstadual: e.target.value.replace(/\D/g, '') })}
                   />
-                  <p className="text-xs text-muted-foreground">Obrigatório para NFe de produto</p>
+                  <p className="text-[11px] text-muted-foreground">Obrigatório para NFe de produto</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inscricaoMunicipal">Inscrição Municipal (IM)</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="inscricaoMunicipal" className="text-[11px] font-semibold">Inscrição Municipal (IM)</Label>
                   <Input
                     id="inscricaoMunicipal"
                     placeholder="Somente números"
+                    className="h-7 text-[12px]"
                     value={formData.inscricaoMunicipal}
                     onChange={(e) => setFormData({ ...formData, inscricaoMunicipal: e.target.value.replace(/\D/g, '') })}
                   />
-                  <p className="text-xs text-muted-foreground">Obrigatório para NFSe de serviço</p>
+                  <p className="text-[11px] text-muted-foreground">Obrigatório para NFSe de serviço</p>
                 </div>
               </div>
             </div>
@@ -482,99 +486,106 @@ const Empresa = () => {
             <Separator />
 
             {/* Endereço Fiscal */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm text-muted-foreground">Endereço Fiscal</h4>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cepFiscal">CEP *</Label>
-                  <div className="flex gap-2">
+            <div className="space-y-1.5">
+              <h4 className="font-semibold text-[11px] text-muted-foreground">Endereço Fiscal</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <div className="space-y-[2px]">
+                  <Label htmlFor="cepFiscal" className="text-[11px] font-semibold">CEP *</Label>
+                  <div className="flex gap-1">
                     <Input
                       id="cepFiscal"
                       placeholder="00000-000"
+                      className="h-7 text-[12px] flex-1"
                       value={formData.cepFiscal}
                       onChange={(e) => setFormData({ ...formData, cepFiscal: formatCEP(e.target.value) })}
                       maxLength={9}
-                      className="flex-1"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
+                      className="h-7 w-7"
                       onClick={handleBuscarCep}
                       disabled={buscandoCep}
                     >
-                      {buscandoCep ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      {buscandoCep ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-2 md:col-span-3">
-                  <Label htmlFor="logradouroFiscal">Logradouro *</Label>
+                <div className="space-y-[2px] md:col-span-3">
+                  <Label htmlFor="logradouroFiscal" className="text-[11px] font-semibold">Logradouro *</Label>
                   <Input
                     id="logradouroFiscal"
                     placeholder="Rua, Avenida, etc."
+                    className="h-7 text-[12px]"
                     value={formData.logradouroFiscal}
                     onChange={(e) => setFormData({ ...formData, logradouroFiscal: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="numeroEnderecoFiscal">Número *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <div className="space-y-[2px]">
+                  <Label htmlFor="numeroEnderecoFiscal" className="text-[11px] font-semibold">Número *</Label>
                   <Input
                     id="numeroEnderecoFiscal"
                     placeholder="Nº"
+                    className="h-7 text-[12px]"
                     value={formData.numeroEnderecoFiscal}
                     onChange={(e) => setFormData({ ...formData, numeroEnderecoFiscal: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="complementoFiscal">Complemento</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="complementoFiscal" className="text-[11px] font-semibold">Complemento</Label>
                   <Input
                     id="complementoFiscal"
                     placeholder="Sala, Bloco, etc."
+                    className="h-7 text-[12px]"
                     value={formData.complementoFiscal}
                     onChange={(e) => setFormData({ ...formData, complementoFiscal: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="bairroFiscal">Bairro *</Label>
+                <div className="space-y-[2px] md:col-span-2">
+                  <Label htmlFor="bairroFiscal" className="text-[11px] font-semibold">Bairro *</Label>
                   <Input
                     id="bairroFiscal"
                     placeholder="Bairro"
+                    className="h-7 text-[12px]"
                     value={formData.bairroFiscal}
                     onChange={(e) => setFormData({ ...formData, bairroFiscal: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="cidadeFiscal">Cidade *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <div className="space-y-[2px] md:col-span-2">
+                  <Label htmlFor="cidadeFiscal" className="text-[11px] font-semibold">Cidade *</Label>
                   <Input
                     id="cidadeFiscal"
                     placeholder="Cidade"
+                    className="h-7 text-[12px]"
                     value={formData.cidadeFiscal}
                     onChange={(e) => setFormData({ ...formData, cidadeFiscal: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="codigoIbgeCidade">Código IBGE *</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="codigoIbgeCidade" className="text-[11px] font-semibold">Código IBGE *</Label>
                   <Input
                     id="codigoIbgeCidade"
                     placeholder="7 dígitos"
+                    className="h-7 text-[12px]"
                     value={formData.codigoIbgeCidade}
                     onChange={(e) => setFormData({ ...formData, codigoIbgeCidade: e.target.value.replace(/\D/g, '').slice(0, 7) })}
                     maxLength={7}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ufFiscal">UF *</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="ufFiscal" className="text-[11px] font-semibold">UF *</Label>
                   <Select
                     value={formData.ufFiscal}
                     onValueChange={(value) => setFormData({ ...formData, ufFiscal: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-7 text-[12px]">
                       <SelectValue placeholder="UF" />
                     </SelectTrigger>
                     <SelectContent>
@@ -592,16 +603,16 @@ const Empresa = () => {
             <Separator />
 
             {/* Informações Adicionais */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm text-muted-foreground">Informações Adicionais</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ambienteFiscal">Ambiente Fiscal *</Label>
+            <div className="space-y-1.5">
+              <h4 className="font-semibold text-[11px] text-muted-foreground">Informações Adicionais</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="space-y-[2px]">
+                  <Label htmlFor="ambienteFiscal" className="text-[11px] font-semibold">Ambiente Fiscal *</Label>
                   <Select
                     value={formData.ambienteFiscal}
                     onValueChange={(value) => setFormData({ ...formData, ambienteFiscal: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-7 text-[12px]">
                       <SelectValue placeholder="Selecione o ambiente" />
                     </SelectTrigger>
                     <SelectContent>
@@ -609,28 +620,30 @@ const Empresa = () => {
                       <SelectItem value="producao">Produção</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground">
                     {formData.ambienteFiscal === "producao" 
                       ? "⚠️ Notas serão emitidas com validade fiscal" 
                       : "Notas emitidas apenas para testes"}
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emailFiscal">Email Fiscal</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="emailFiscal" className="text-[11px] font-semibold">Email Fiscal</Label>
                   <Input
                     id="emailFiscal"
                     type="email"
                     placeholder="fiscal@empresa.com.br"
+                    className="h-7 text-[12px]"
                     value={formData.emailFiscal}
                     onChange={(e) => setFormData({ ...formData, emailFiscal: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">Email para recebimento de notas fiscais</p>
+                  <p className="text-[11px] text-muted-foreground">Email para recebimento de notas fiscais</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="codigoCnae">CNAE Principal</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="codigoCnae" className="text-[11px] font-semibold">CNAE Principal</Label>
                   <Input
                     id="codigoCnae"
                     placeholder="Ex: 9609-2/08"
+                    className="h-7 text-[12px]"
                     value={formData.codigoCnae}
                     onChange={(e) => setFormData({ ...formData, codigoCnae: e.target.value })}
                   />
@@ -638,7 +651,7 @@ const Empresa = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="h-7 text-[12px] font-semibold w-full">
               Salvar Dados Fiscais
             </Button>
           </form>
@@ -647,45 +660,48 @@ const Empresa = () => {
 
       {/* Card Dados Gerais */}
       <Card>
-        <CardHeader>
-          <CardTitle>Dados da Empresa</CardTitle>
-          <CardDescription>
+        <CardHeader className="px-5 py-4">
+          <CardTitle className="text-base">Dados da Empresa</CardTitle>
+          <CardDescription className="text-[11px]">
             Preencha as informações gerais da empresa
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="bordao">Bordão da Empresa</Label>
+        <CardContent className="px-5">
+          <form onSubmit={handleSubmit} className="space-y-1.5">
+            <div className="space-y-[2px]">
+              <Label htmlFor="bordao" className="text-[11px] font-semibold">Bordão da Empresa</Label>
               <Input
                 id="bordao"
                 placeholder="Digite o bordão da empresa (máx. 50 caracteres)"
+                className="h-7 text-[12px]"
                 value={formData.bordao}
                 onChange={(e) => setFormData({ ...formData, bordao: e.target.value })}
                 maxLength={50}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {formData.bordao.length}/50 caracteres
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label>Horário de Funcionamento da Empresa</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="horarioInicio" className="text-sm">Horário Início</Label>
+            <div className="space-y-[2px]">
+              <Label className="text-[11px] font-semibold">Horário de Funcionamento da Empresa</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-[2px]">
+                  <Label htmlFor="horarioInicio" className="text-[11px] font-semibold">Horário Início</Label>
                   <Input
                     id="horarioInicio"
                     type="time"
+                    className="h-7 text-[12px]"
                     value={formData.horarioInicio}
                     onChange={(e) => setFormData({ ...formData, horarioInicio: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="horarioFim" className="text-sm">Horário Fim</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="horarioFim" className="text-[11px] font-semibold">Horário Fim</Label>
                   <Input
                     id="horarioFim"
                     type="time"
+                    className="h-7 text-[12px]"
                     value={formData.horarioFim}
                     onChange={(e) => setFormData({ ...formData, horarioFim: e.target.value })}
                   />
@@ -693,9 +709,9 @@ const Empresa = () => {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Label>Dias de Funcionamento da Empresa</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-semibold">Dias de Funcionamento da Empresa</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { key: 'segunda', label: 'Segunda-feira' },
                   { key: 'terca', label: 'Terça-feira' },
@@ -721,7 +737,7 @@ const Empresa = () => {
                     />
                     <Label
                       htmlFor={dia.key}
-                      className="text-sm font-normal cursor-pointer"
+                      className="text-[11px] font-normal cursor-pointer"
                     >
                       {dia.label}
                     </Label>
@@ -730,7 +746,7 @@ const Empresa = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="h-7 text-[12px] font-semibold w-full">
               Salvar Configurações
             </Button>
           </form>
@@ -738,29 +754,30 @@ const Empresa = () => {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Meta de Faturamento Mensal</CardTitle>
-          <CardDescription>
+        <CardHeader className="px-5 py-4">
+          <CardTitle className="text-base">Meta de Faturamento Mensal</CardTitle>
+          <CardDescription className="text-[11px]">
             Defina a meta de faturamento mensal da empresa
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="metaFaturamento">Meta Mensal (R$)</Label>
+        <CardContent className="px-5">
+          <form onSubmit={handleSubmit} className="space-y-1.5">
+            <div className="space-y-[2px]">
+              <Label htmlFor="metaFaturamento" className="text-[11px] font-semibold">Meta Mensal (R$)</Label>
               <Input
                 id="metaFaturamento"
                 type="number"
                 step="0.01"
                 min="0"
                 placeholder="10.000,00"
+                className="h-7 text-[12px]"
                 value={formData.metaFaturamentoMensal}
                 onChange={(e) => setFormData({ 
                   ...formData, 
                   metaFaturamentoMensal: parseFloat(e.target.value) || 0 
                 })}
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Valor atual: {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL'
@@ -768,7 +785,7 @@ const Empresa = () => {
               </p>
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="h-7 text-[12px] font-semibold w-full">
               Salvar Meta
             </Button>
           </form>
@@ -776,17 +793,18 @@ const Empresa = () => {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Cadastro de Groomers</CardTitle>
-          <CardDescription>
+        <CardHeader className="px-5 py-4">
+          <CardTitle className="text-base">Cadastro de Groomers</CardTitle>
+          <CardDescription className="text-[11px]">
             Gerencie os groomers da empresa
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="flex gap-2">
+        <CardContent className="px-5">
+          <div className="space-y-1.5">
+            <div className="flex gap-1">
               <Input
                 placeholder="Digite o nome do groomer"
+                className="h-7 text-[12px]"
                 value={novoGroomer}
                 onChange={(e) => setNovoGroomer(e.target.value)}
                 onKeyPress={(e) => {
@@ -802,11 +820,12 @@ const Empresa = () => {
               />
               {editandoGroomer ? (
                 <>
-                  <Button onClick={handleSalvarEdicaoGroomer}>
+                  <Button onClick={handleSalvarEdicaoGroomer} className="h-7 text-[12px] font-semibold">
                     Salvar
                   </Button>
                   <Button 
-                    variant="outline" 
+                    variant="outline"
+                    className="h-7 text-[12px] font-semibold"
                     onClick={() => {
                       setEditandoGroomer(null);
                       setNovoGroomer("");
@@ -816,7 +835,7 @@ const Empresa = () => {
                   </Button>
                 </>
               ) : (
-                <Button onClick={handleAdicionarGroomer}>
+                <Button onClick={handleAdicionarGroomer} className="h-7 text-[12px] font-semibold">
                   Adicionar Groomer
                 </Button>
               )}
@@ -827,19 +846,20 @@ const Empresa = () => {
                 <table className="w-full">
                   <thead className="bg-secondary">
                     <tr>
-                      <th className="p-3 text-left text-sm font-semibold">Nome do Groomer</th>
-                      <th className="p-3 text-right text-sm font-semibold">Ações</th>
+                      <th className="p-2 text-left text-[11px] font-semibold">Nome do Groomer</th>
+                      <th className="p-2 text-right text-[11px] font-semibold">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {groomers.map((groomer) => (
                       <tr key={groomer.id} className="border-t hover:bg-accent/50">
-                        <td className="p-3">{groomer.nome}</td>
-                        <td className="p-3 text-right">
-                          <div className="flex gap-2 justify-end">
+                        <td className="p-2 text-[12px]">{groomer.nome}</td>
+                        <td className="p-2 text-right">
+                          <div className="flex gap-1 justify-end">
                             <Button
                               size="sm"
                               variant="outline"
+                              className="h-6 text-[11px] px-2"
                               onClick={() => handleEditarGroomer(groomer)}
                             >
                               Editar
@@ -847,6 +867,7 @@ const Empresa = () => {
                             <Button
                               size="sm"
                               variant="destructive"
+                              className="h-6 text-[11px] px-2"
                               onClick={() => {
                                 if (window.confirm(`Tem certeza que deseja excluir o groomer ${groomer.nome}?`)) {
                                   handleExcluirGroomer(groomer.id);
@@ -865,7 +886,7 @@ const Empresa = () => {
             )}
 
             {groomers.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">
+              <p className="text-center text-muted-foreground text-[11px] py-4">
                 Nenhum groomer cadastrado ainda.
               </p>
             )}
@@ -877,15 +898,15 @@ const Empresa = () => {
 
       {/* Card Creche Pet */}
       <Card>
-        <CardHeader>
-          <CardTitle>Creche</CardTitle>
-          <CardDescription>
+        <CardHeader className="px-5 py-4">
+          <CardTitle className="text-base">Creche</CardTitle>
+          <CardDescription className="text-[11px]">
             Adicionar a seção de gerenciamento de creche pet à plataforma.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-5">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
+            <span className="text-[11px] font-semibold">
               {crecheAtiva ? 'Liberado' : 'Desativado'}
             </span>
             <Switch
@@ -935,28 +956,30 @@ const Empresa = () => {
           </div>
 
           {crecheAtiva && (
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-1.5">
               <Separator />
-              <h4 className="font-medium text-sm">Definir horário de Check-in e Check-out</h4>
-              <p className="text-xs text-muted-foreground">
+              <h4 className="font-semibold text-[11px]">Definir horário de Check-in e Check-out</h4>
+              <p className="text-[11px] text-muted-foreground">
                 O horário definido para o check-out é essencial para o cálculo correto do valor da diária. Caso o cliente ultrapasse esse horário, será cobrado um valor adicional referente ao tempo excedente, calculado com base nos minutos ou horas adicionais.
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="horarioCheckinCreche" className="text-xs">Check-in *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-[2px]">
+                  <Label htmlFor="horarioCheckinCreche" className="text-[11px] font-semibold">Check-in *</Label>
                   <Input
                     id="horarioCheckinCreche"
                     type="time"
+                    className="h-7 text-[12px]"
                     value={horarioCheckinCreche}
                     onChange={(e) => setHorarioCheckinCreche(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="horarioCheckoutCreche" className="text-xs">Check-out *</Label>
+                <div className="space-y-[2px]">
+                  <Label htmlFor="horarioCheckoutCreche" className="text-[11px] font-semibold">Check-out *</Label>
                   <Input
                     id="horarioCheckoutCreche"
                     type="time"
+                    className="h-7 text-[12px]"
                     value={horarioCheckoutCreche}
                     onChange={(e) => setHorarioCheckoutCreche(e.target.value)}
                     required
@@ -965,7 +988,7 @@ const Empresa = () => {
               </div>
               <Button
                 type="button"
-                size="sm"
+                className="h-7 text-[12px] font-semibold w-full"
                 disabled={salvandoCreche || !horarioCheckinCreche || !horarioCheckoutCreche}
                 onClick={async () => {
                   if (!user || !formData.id) return;
