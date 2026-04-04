@@ -213,6 +213,7 @@ export type Database = {
           id: string
           modelo: string
           tipo_comissao: string
+          tipos_comissao_groomers: Json
           updated_at: string
           user_id: string
         }
@@ -226,6 +227,7 @@ export type Database = {
           id?: string
           modelo?: string
           tipo_comissao?: string
+          tipos_comissao_groomers?: Json
           updated_at?: string
           user_id: string
         }
@@ -239,6 +241,7 @@ export type Database = {
           id?: string
           modelo?: string
           tipo_comissao?: string
+          tipos_comissao_groomers?: Json
           updated_at?: string
           user_id?: string
         }

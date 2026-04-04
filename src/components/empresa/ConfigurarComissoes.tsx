@@ -27,6 +27,7 @@ interface ComissaoConfig {
   comissao_atendimento: number;
   bonus_meta: number;
   comissoes_groomers: Record<string, number>;
+  tipos_comissao_groomers: Record<string, TipoComissao>;
 }
 
 interface Props {
@@ -58,6 +59,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
     comissao_atendimento: 0,
     bonus_meta: 0,
     comissoes_groomers: {},
+    tipos_comissao_groomers: {},
   });
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
           comissao_atendimento: d.comissao_atendimento ?? 0,
           bonus_meta: d.bonus_meta ?? 0,
           comissoes_groomers: (d.comissoes_groomers as Record<string, number>) ?? {},
+          tipos_comissao_groomers: (d.tipos_comissao_groomers as Record<string, TipoComissao>) ?? {},
         });
       }
       setLoading(false);
@@ -99,6 +102,11 @@ export function ConfigurarComissoes({ groomers }: Props) {
         const v = config.comissoes_groomers[g.id];
         if (v === undefined || v === null || isNaN(v)) {
           toast.error(`Preencha a comissão do groomer ${g.nome}`);
+          return false;
+        }
+        const tipo = config.tipos_comissao_groomers[g.id];
+        if (!tipo) {
+          toast.error(`Selecione o tipo de comissão do groomer ${g.nome}`);
           return false;
         }
       }
@@ -142,6 +150,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
       comissao_atendimento: config.comissao_atendimento,
       bonus_meta: config.bonus_meta,
       comissoes_groomers: config.comissoes_groomers,
+      tipos_comissao_groomers: config.tipos_comissao_groomers,
       updated_at: new Date().toISOString(),
     };
 
@@ -182,8 +191,37 @@ export function ConfigurarComissoes({ groomers }: Props) {
       comissao_atendimento: 0,
       bonus_meta: 0,
       comissoes_groomers: {},
+      tipos_comissao_groomers: {},
       tipo_comissao: modelo === "faturamento" ? "servicos_e_vendas" : c.tipo_comissao,
     }));
+  };
+
+  const GroomerTipoComissaoSelector = ({ groomerId }: { groomerId: string }) => {
+    const value = config.tipos_comissao_groomers[groomerId] || "";
+    return (
+      <RadioGroup
+        value={value}
+        onValueChange={(v) =>
+          setConfig((c) => ({
+            ...c,
+            tipos_comissao_groomers: {
+              ...c.tipos_comissao_groomers,
+              [groomerId]: v as TipoComissao,
+            },
+          }))
+        }
+        className="flex flex-wrap gap-x-3 gap-y-0.5"
+      >
+        {TIPOS_COMISSAO.map((t) => (
+          <div key={t.value} className="flex items-center gap-1.5">
+            <RadioGroupItem value={t.value} id={`tipo-${groomerId}-${t.value}`} className="h-3 w-3" />
+            <Label htmlFor={`tipo-${groomerId}-${t.value}`} className="text-[10px] text-muted-foreground cursor-pointer leading-tight font-normal">
+              {t.label}
+            </Label>
+          </div>
+        ))}
+      </RadioGroup>
+    );
   };
 
   const TipoComissaoSelector = ({ inline = false }: { inline?: boolean }) => {
@@ -266,32 +304,32 @@ export function ConfigurarComissoes({ groomers }: Props) {
                     <p className="text-[11px] text-muted-foreground">Nenhum groomer cadastrado. Cadastre groomers acima para configurar comissões individuais.</p>
                   ) : (
                     groomers.map((g) => (
-                      <div key={g.id} className="flex items-center gap-2">
-                        <Label className="min-w-[90px] text-[11px] font-semibold">{g.nome}</Label>
-                        <div className="relative max-w-[100px]">
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step="0.01"
-                            placeholder="0"
-                            className="h-7 text-[12px] pr-6"
-                            value={config.comissoes_groomers[g.id] ?? ""}
-                            onChange={(e) =>
-                              setConfig((c) => ({
-                                ...c,
-                                comissoes_groomers: {
-                                  ...c.comissoes_groomers,
-                                  [g.id]: clampValue(e.target.value),
-                                },
-                              }))
-                            }
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                      <div key={g.id} className="space-y-1 rounded-md border p-2">
+                        <div className="flex items-center gap-2">
+                          <Label className="min-w-[90px] text-[11px] font-semibold">{g.nome}</Label>
+                          <div className="relative max-w-[100px]">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="0.01"
+                              placeholder="0"
+                              className="h-7 text-[12px] pr-6"
+                              value={config.comissoes_groomers[g.id] ?? ""}
+                              onChange={(e) =>
+                                setConfig((c) => ({
+                                  ...c,
+                                  comissoes_groomers: {
+                                    ...c.comissoes_groomers,
+                                    [g.id]: clampValue(e.target.value),
+                                  },
+                                }))
+                              }
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <TipoComissaoSelector inline />
-                        </div>
+                        <GroomerTipoComissaoSelector groomerId={g.id} />
                       </div>
                     ))
                   )}
