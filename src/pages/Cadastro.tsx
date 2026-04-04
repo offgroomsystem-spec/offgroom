@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { User, Mail, Phone, Lock } from 'lucide-react';
+import { User, Mail, Phone, Lock, Tag } from 'lucide-react';
 
 const cadastroSchema = z.object({
   nome_completo: z.string()
@@ -24,7 +24,8 @@ const cadastroSchema = z.object({
   senha: z.string()
     .min(8, 'Senha deve ter no mínimo 8 caracteres')
     .max(100, 'Senha muito longa'),
-  confirmar_senha: z.string()
+  confirmar_senha: z.string(),
+  cupom: z.string().optional()
 }).refine((data) => data.senha === data.confirmar_senha, {
   message: 'As senhas não coincidem',
   path: ['confirmar_senha']
@@ -41,7 +42,6 @@ const Cadastro = () => {
     resolver: zodResolver(cadastroSchema),
   });
 
-  // Se já estiver autenticado, redirecionar para home
   if (user) {
     return <Navigate to="/home" replace />;
   }
@@ -58,19 +58,17 @@ const Cadastro = () => {
   const onSubmit = async (data: CadastroForm) => {
     setLoading(true);
     try {
-      // Call public signup Edge Function
       const response = await supabase.functions.invoke('public-signup', {
         body: {
           email: data.email_hotmart,
           password: data.senha,
           nome_completo: data.nome_completo,
-          whatsapp: data.whatsapp
+          whatsapp: data.whatsapp,
+          ...(data.cupom ? { cupom: data.cupom } : {})
         }
       });
 
-      // Handle error responses
       if (response.error) {
-        // Try to get error message from response data first
         const errorMessage = response.data?.error || response.error.message || 'Erro ao criar conta';
         toast.error(errorMessage);
         return;
@@ -81,7 +79,6 @@ const Cadastro = () => {
         return;
       }
 
-      // Auto-login after successful signup
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: data.email_hotmart,
         password: data.senha
@@ -104,59 +101,59 @@ const Cadastro = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4">
-            <img src="/src/assets/logo-offgroom.png" alt="OffGroom" className="h-16 mx-auto" />
+      <Card className="w-full max-w-md shadow-lg border-border/60">
+        <CardHeader className="text-center pb-2 pt-5 px-5">
+          <div className="mx-auto mb-2">
+            <img src="/src/assets/logo-offgroom.png" alt="OffGroom" className="h-14 mx-auto" />
           </div>
-          <CardTitle className="text-2xl font-bold">Criar conta</CardTitle>
-          <CardDescription>Preencha os dados abaixo para se cadastrar</CardDescription>
+          <CardTitle className="text-xl font-bold tracking-tight">Criar conta</CardTitle>
+          <CardDescription className="text-[12px]">Preencha os dados abaixo para se cadastrar</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome_completo">Nome Completo</Label>
+          <CardContent className="space-y-2.5 px-5 pt-2 pb-3">
+            <div className="space-y-1">
+              <Label htmlFor="nome_completo" className="text-[11px] font-semibold">Nome Completo</Label>
               <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <User className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   id="nome_completo"
                   type="text"
                   placeholder="João Silva"
-                  className="pl-10"
+                  className="pl-8 h-9 text-[13px]"
                   {...register('nome_completo')}
                 />
               </div>
               {errors.nome_completo && (
-                <p className="text-sm text-destructive">{errors.nome_completo.message}</p>
+                <p className="text-[11px] text-destructive">{errors.nome_completo.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email_hotmart">E-mail cadastrado na Hotmart</Label>
+            <div className="space-y-1">
+              <Label htmlFor="email_hotmart" className="text-[11px] font-semibold">E-mail cadastrado na Hotmart</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   id="email_hotmart"
                   type="email"
                   placeholder="seu@email.com"
-                  className="pl-10"
+                  className="pl-8 h-9 text-[13px]"
                   {...register('email_hotmart')}
                 />
               </div>
               {errors.email_hotmart && (
-                <p className="text-sm text-destructive">{errors.email_hotmart.message}</p>
+                <p className="text-[11px] text-destructive">{errors.email_hotmart.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp">WhatsApp</Label>
+            <div className="space-y-1">
+              <Label htmlFor="whatsapp" className="text-[11px] font-semibold">WhatsApp</Label>
               <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Phone className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   id="whatsapp"
                   type="text"
                   placeholder="(11) 99999-9999"
-                  className="pl-10"
+                  className="pl-8 h-9 text-[13px]"
                   {...register('whatsapp')}
                   onChange={(e) => {
                     const formatted = formatarWhatsApp(e.target.value);
@@ -165,51 +162,65 @@ const Cadastro = () => {
                 />
               </div>
               {errors.whatsapp && (
-                <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
+                <p className="text-[11px] text-destructive">{errors.whatsapp.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="senha">Senha</Label>
+            <div className="space-y-1">
+              <Label htmlFor="senha" className="text-[11px] font-semibold">Senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   id="senha"
                   type="password"
                   placeholder="••••••••"
-                  className="pl-10"
+                  className="pl-8 h-9 text-[13px]"
                   {...register('senha')}
                 />
               </div>
               {errors.senha && (
-                <p className="text-sm text-destructive">{errors.senha.message}</p>
+                <p className="text-[11px] text-destructive">{errors.senha.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmar_senha">Confirmar Senha</Label>
+            <div className="space-y-1">
+              <Label htmlFor="confirmar_senha" className="text-[11px] font-semibold">Confirmar Senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   id="confirmar_senha"
                   type="password"
                   placeholder="••••••••"
-                  className="pl-10"
+                  className="pl-8 h-9 text-[13px]"
                   {...register('confirmar_senha')}
                 />
               </div>
               {errors.confirmar_senha && (
-                <p className="text-sm text-destructive">{errors.confirmar_senha.message}</p>
+                <p className="text-[11px] text-destructive">{errors.confirmar_senha.message}</p>
               )}
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="cupom" className="text-[11px] font-semibold">Cupom</Label>
+              <div className="relative">
+                <Tag className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  id="cupom"
+                  type="text"
+                  placeholder="Insira seu cupom (opcional)"
+                  className="pl-8 h-9 text-[13px]"
+                  {...register('cupom')}
+                />
+              </div>
             </div>
           </CardContent>
 
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+          <CardFooter className="flex flex-col space-y-3 px-5 pt-1 pb-5">
+            <Button type="submit" className="w-full h-9 text-[13px] font-semibold" disabled={loading}>
               {loading ? 'Criando conta...' : 'Criar Conta'}
             </Button>
 
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-[12px] text-center text-muted-foreground">
               Já tem uma conta?{' '}
               <Link to="/login" className="text-primary hover:underline font-medium">
                 Faça login
