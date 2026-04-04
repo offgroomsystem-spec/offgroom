@@ -463,6 +463,7 @@ export const FinanceiroEditDialog = ({
                   onValueChange={(value) =>
                     setForm((prev) => ({ ...prev, clienteId: value, petIds: [] }))
                   }
+                  disabled={isLinkedToAgendamento}
                 >
                   <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="Selecione o cliente" />
