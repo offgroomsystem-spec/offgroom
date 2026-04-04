@@ -104,6 +104,11 @@ export function ConfigurarComissoes({ groomers }: Props) {
           toast.error(`Preencha a comissão do groomer ${g.nome}`);
           return false;
         }
+        const tipo = config.tipos_comissao_groomers[g.id];
+        if (!tipo) {
+          toast.error(`Selecione o tipo de comissão do groomer ${g.nome}`);
+          return false;
+        }
       }
     }
     if (config.modelo === "faturamento") {
