@@ -117,6 +117,8 @@ export const FinanceiroEditDialog = ({
   ownerId,
   onUpdated,
 }: FinanceiroEditDialogProps) => {
+  // When linked to an appointment, lock client/pet editing
+  const isLinkedToAgendamento = Boolean(lancamento?.agendamento_id);
   const [form, setForm] = useState<FormFinanceiro>(defaultForm);
   const [itensForm, setItensForm] = useState<ItemFinanceiro[]>([]);
   const [produtos, setProdutos] = useState<ProdutoOption[]>([]);
@@ -461,6 +463,7 @@ export const FinanceiroEditDialog = ({
                   onValueChange={(value) =>
                     setForm((prev) => ({ ...prev, clienteId: value, petIds: [] }))
                   }
+                  disabled={isLinkedToAgendamento}
                 >
                   <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="Selecione o cliente" />
@@ -525,6 +528,8 @@ export const FinanceiroEditDialog = ({
                                 petIds: prev.petIds.filter((id) => id !== petId),
                               }))
                             }
+                            disabled={isLinkedToAgendamento}
+                            className={isLinkedToAgendamento ? "opacity-30 cursor-not-allowed" : ""}
                           >
                             <X className="h-3 w-3" />
                           </button>
