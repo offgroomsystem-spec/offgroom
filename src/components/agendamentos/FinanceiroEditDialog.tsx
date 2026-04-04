@@ -117,6 +117,8 @@ export const FinanceiroEditDialog = ({
   ownerId,
   onUpdated,
 }: FinanceiroEditDialogProps) => {
+  // When linked to an appointment, lock client/pet editing
+  const isLinkedToAgendamento = Boolean(lancamento?.agendamento_id);
   const [form, setForm] = useState<FormFinanceiro>(defaultForm);
   const [itensForm, setItensForm] = useState<ItemFinanceiro[]>([]);
   const [produtos, setProdutos] = useState<ProdutoOption[]>([]);
