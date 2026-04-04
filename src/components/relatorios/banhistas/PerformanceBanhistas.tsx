@@ -48,6 +48,7 @@ export const PerformanceBanhistas = () => {
   const [pacotes, setPacotes] = useState<any[]>([]);
   const [comissoesConfig, setComissoesConfig] = useState<any>(null);
   const [lancamentosComissao, setLancamentosComissao] = useState<any[]>([]);
+  const [allAgGroomers, setAllAgGroomers] = useState<{ id: string; groomer: string }[]>([]);
 
   // Filters
   const [periodo, setPeriodo] = useState("mes");
@@ -103,7 +104,7 @@ export const PerformanceBanhistas = () => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [agRes, grRes, lnRes, empRes, pacRes, comRes, lnDetailRes] = await Promise.all([
+      const [agRes, grRes, lnRes, empRes, pacRes, comRes, lnDetailRes, agAllGroomerRes] = await Promise.all([
         supabase
           .from("agendamentos")
           .select("id, groomer, data, horario, horario_termino, tempo_servico, servico, servicos, status, pet, raca, taxi_dog, cliente")
@@ -130,17 +131,22 @@ export const PerformanceBanhistas = () => {
           .maybeSingle(),
         supabase
           .from("lancamentos_financeiros")
-          .select("id, agendamento_id, valor_total, data_pagamento, lancamentos_financeiros_itens(descricao2, valor, quantidade)")
+          .select("id, agendamento_id, valor_total, descricao1, data_pagamento, lancamentos_financeiros_itens(descricao2, valor, quantidade)")
           .eq("user_id", ownerId)
           .eq("pago", true)
           .eq("tipo", "Receita")
-          .not("agendamento_id", "is", null)
           .gte("data_pagamento", dataInicio)
           .lte("data_pagamento", dataFim),
+        // Fetch ALL agendamento->groomer mapping (no date filter) for commission calc
+        supabase
+          .from("agendamentos")
+          .select("id, groomer")
+          .eq("user_id", ownerId),
       ]);
       setEmpresaConfig(empRes.data);
       setComissoesConfig(comRes.data || null);
       setLancamentosComissao(lnDetailRes.data || []);
+      setAllAgGroomers((agAllGroomerRes.data || []) as { id: string; groomer: string }[]);
       setGroomersData((grRes.data || []) as { id: string; nome: string }[]);
 
       const agData = agRes.data || [];
@@ -161,6 +167,26 @@ export const PerformanceBanhistas = () => {
 
   // Subscribe to realtime changes
   useEffect(() => {
+    const reloadComissaoData = () => {
+      if (!user) return;
+      Promise.all([
+        supabase.from("comissoes_config" as any).select("*").eq("user_id", ownerId).maybeSingle(),
+        supabase
+          .from("lancamentos_financeiros")
+          .select("id, agendamento_id, valor_total, descricao1, data_pagamento, lancamentos_financeiros_itens(descricao2, valor, quantidade)")
+          .eq("user_id", ownerId)
+          .eq("pago", true)
+          .eq("tipo", "Receita")
+          .gte("data_pagamento", dataInicio)
+          .lte("data_pagamento", dataFim),
+        supabase.from("agendamentos").select("id, groomer").eq("user_id", ownerId),
+      ]).then(([comRes, lnRes, agAllRes]) => {
+        setComissoesConfig(comRes.data || null);
+        setLancamentosComissao(lnRes.data || []);
+        setAllAgGroomers((agAllRes.data || []) as { id: string; groomer: string }[]);
+      });
+    };
+
     const channel = supabase
       .channel("perf-banhistas")
       .on("postgres_changes", { event: "*", schema: "public", table: "agendamentos" }, () => {
@@ -177,11 +203,13 @@ export const PerformanceBanhistas = () => {
             .from("agendamentos_pacotes")
             .select("id, nome_cliente, nome_pet, raca, taxi_dog, servicos")
             .eq("user_id", ownerId),
-        ]).then(([agRes, pacRes]) => {
+          supabase.from("agendamentos").select("id, groomer").eq("user_id", ownerId),
+        ]).then(([agRes, pacRes, agAllRes]) => {
           const pacData = pacRes.data || [];
           setPacotes(pacData);
           const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
           setAgendamentos([...(agRes.data || []), ...pacoteEntries]);
+          setAllAgGroomers((agAllRes.data || []) as { id: string; groomer: string }[]);
         });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "agendamentos_pacotes" }, () => {
@@ -204,6 +232,12 @@ export const PerformanceBanhistas = () => {
           const pacoteEntries = flattenPacotes(pacData, dataInicio, dataFim);
           setAgendamentos([...(agRes.data || []), ...pacoteEntries]);
         });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "comissoes_config" }, () => {
+        reloadComissaoData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "lancamentos_financeiros" }, () => {
+        reloadComissaoData();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -532,16 +566,18 @@ export const PerformanceBanhistas = () => {
     const modelo = cfg.modelo;
 
     const matchesTipo = (descricao2: string, tipo: string) => {
-      const d = descricao2?.toLowerCase() || "";
-      if (tipo === "servicos") return d === "serviços";
+      const d = descricao2?.toLowerCase()?.trim() || "";
+      if (tipo === "servicos") return d === "serviços" || d === "servicos";
       if (tipo === "produtos") return d === "venda" || d === "vendas";
-      return d === "serviços" || d === "venda" || d === "vendas";
+      return d === "serviços" || d === "servicos" || d === "venda" || d === "vendas";
     };
 
+    // Use ALL agendamentos (no date filter) for groomer mapping
     const agGroomerMap = new Map<string, string>();
-    normalizedAgendamentos.forEach((a) => {
-      if (a.id && a.groomer && a.groomer !== "Não atribuído") {
-        agGroomerMap.set(a.id, a.groomer);
+    allAgGroomers.forEach((a) => {
+      const g = a.groomer?.trim();
+      if (a.id && g && g !== "Não atribuído") {
+        agGroomerMap.set(a.id, g);
       }
     });
 
@@ -555,18 +591,40 @@ export const PerformanceBanhistas = () => {
     };
 
     const groomerValues = new Map<string, number>();
+    const groomerAtendimentos = new Map<string, number>();
     let totalFiltered = 0;
 
     (lancamentosComissao || []).forEach((l: any) => {
-      const groomer = agGroomerMap.get(l.agendamento_id);
+      const groomer = l.agendamento_id ? agGroomerMap.get(l.agendamento_id) : null;
       if (!groomer) return;
       const tipo = getGroomerTipo(groomer);
       const itens = (l.lancamentos_financeiros_itens || []) as any[];
-      const filteredVal = itens
-        .filter((item: any) => matchesTipo(item.descricao2, tipo))
-        .reduce((sum: number, item: any) => sum + ((item.valor || 0) * (item.quantidade || 1)), 0);
+
+      let filteredVal = 0;
+      if (itens.length > 0) {
+        filteredVal = itens
+          .filter((item: any) => matchesTipo(item.descricao2, tipo))
+          .reduce((sum: number, item: any) => sum + ((item.valor || 0) * (item.quantidade || 1)), 0);
+      } else {
+        // Fallback: no items detail — use valor_total if tipo allows services+sales or is generic
+        if (tipo === "servicos_e_vendas") {
+          filteredVal = l.valor_total || 0;
+        } else {
+          // Try to infer from descricao1
+          const d1 = (l.descricao1 || "").toLowerCase();
+          if (tipo === "servicos" && d1.includes("operacional")) {
+            filteredVal = l.valor_total || 0;
+          } else if (tipo === "produtos" && d1.includes("operacional")) {
+            filteredVal = l.valor_total || 0;
+          } else {
+            filteredVal = l.valor_total || 0;
+          }
+        }
+      }
+
       if (filteredVal > 0) {
         groomerValues.set(groomer, (groomerValues.get(groomer) || 0) + filteredVal);
+        groomerAtendimentos.set(groomer, (groomerAtendimentos.get(groomer) || 0) + 1);
         totalFiltered += filteredVal;
       }
     });
@@ -604,7 +662,18 @@ export const PerformanceBanhistas = () => {
     }
 
     return results.sort((a, b) => b.comissao - a.comissao);
-  }, [comissoesConfig, lancamentosComissao, normalizedAgendamentos, groomersData, empresaConfig]);
+  }, [comissoesConfig, lancamentosComissao, allAgGroomers, groomersData, empresaConfig]);
+      const meta = empresaConfig?.meta_faturamento_mensal || 0;
+      const comissaoFatTotal = totalFiltered * pctFat / 100;
+      const bonusTotal = (meta > 0 && totalFiltered >= meta) ? totalFiltered * pctBonus / 100 : 0;
+      groomerValues.forEach((val, name) => {
+        const part = totalFiltered > 0 ? val / totalFiltered : 0;
+        results.push({ nome: name, comissao: Math.round((comissaoFatTotal * part + val * pctAtend / 100 + bonusTotal * part) * 100) / 100 });
+      });
+    }
+
+    return results.sort((a, b) => b.comissao - a.comissao);
+  
 
   const totalComissao = useMemo(() => {
     if (!comissaoPerGroomer) return 0;
