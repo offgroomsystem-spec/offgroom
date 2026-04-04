@@ -1131,6 +1131,7 @@ export const PerformanceBanhistas = () => {
         </Card>
 
       </div>
+      <ComissoesDetalhadas open={comissoesDetalhadasOpen} onOpenChange={setComissoesDetalhadasOpen} />
     </div>
   );
 };
