@@ -38,7 +38,6 @@ const Cadastro = () => {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<CadastroForm>({
     resolver: zodResolver(cadastroSchema),
   });
@@ -80,6 +79,10 @@ const Cadastro = () => {
         return;
       }
 
+      const couponApplied = response.data?.coupon_applied === true;
+      const couponDays = response.data?.coupon_days || 0;
+
+      // Auto-login after signup
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: data.email_hotmart,
         password: data.senha,
@@ -91,8 +94,13 @@ const Cadastro = () => {
         return;
       }
 
-      toast.success("Cadastro realizado com sucesso!");
-      navigate("/home");
+      if (couponApplied) {
+        toast.success(`🎉 Cadastro realizado! Cupom aplicado: ${couponDays} dias grátis.`);
+        navigate("/home");
+      } else {
+        toast.success("Cadastro realizado! Escolha um plano para começar.");
+        navigate("/pagamento");
+      }
     } catch (error) {
       toast.error("Erro ao criar conta. Tente novamente.");
     } finally {

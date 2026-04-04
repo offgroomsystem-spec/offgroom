@@ -79,7 +79,7 @@ const Login = () => {
       }
 
       if (subscriptionData?.type === 'expired') {
-        toast.warning('Que pena, você usou todo o periodo grátis, que tal ativarmos algum plano para ter acesso novamente?!');
+        toast.warning('Seu acesso expirou. Escolha um plano para continuar utilizando o Offgroom.');
         navigate('/pagamento');
         return;
       }
