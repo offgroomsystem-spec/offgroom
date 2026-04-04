@@ -199,21 +199,6 @@ const Cadastro = () => {
               )}
             </div>
 
-            <div className="space-y-[2px]">
-              <Label htmlFor="cupom" className="text-[11px] font-semibold">
-                Cupom
-              </Label>
-              <div className="relative">
-                <Tag className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  id="cupom"
-                  type="text"
-                  placeholder="Insira seu cupom (opcional)"
-                  className="pl-8 h-7 text-[12px]"
-                  {...register("cupom")}
-                />
-              </div>
-            </div>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-3 px-5 pt-1 pb-5">
