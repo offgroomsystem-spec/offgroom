@@ -16,11 +16,13 @@ interface Groomer {
 }
 
 type ModeloComissao = "groomer" | "faturamento" | "atendimento" | "hibrida";
+type TipoComissao = "servicos" | "produtos" | "servicos_e_vendas";
 
 interface ComissaoConfig {
   id?: string;
   ativo: boolean;
   modelo: ModeloComissao;
+  tipo_comissao: TipoComissao;
   comissao_faturamento: number;
   comissao_atendimento: number;
   bonus_meta: number;
@@ -38,6 +40,12 @@ const MODELOS: { value: ModeloComissao; label: string; desc: string }[] = [
   { value: "hibrida", label: "Comissão Híbrida", desc: "Faturamento + Atendimento + Bônus por Meta batida" },
 ];
 
+const TIPOS_COMISSAO: { value: TipoComissao; label: string }[] = [
+  { value: "servicos", label: "Comissão apenas para Serviços Realizados" },
+  { value: "produtos", label: "Comissão apenas para Produtos Vendidos" },
+  { value: "servicos_e_vendas", label: "Comissão sobre os Serviços e Vendas" },
+];
+
 export function ConfigurarComissoes({ groomers }: Props) {
   const { user, ownerId } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -45,6 +53,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
   const [config, setConfig] = useState<ComissaoConfig>({
     ativo: false,
     modelo: "groomer",
+    tipo_comissao: "servicos_e_vendas",
     comissao_faturamento: 0,
     comissao_atendimento: 0,
     bonus_meta: 0,
@@ -66,6 +75,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
           id: d.id,
           ativo: d.ativo ?? false,
           modelo: d.modelo ?? "groomer",
+          tipo_comissao: d.tipo_comissao ?? "servicos_e_vendas",
           comissao_faturamento: d.comissao_faturamento ?? 0,
           comissao_atendimento: d.comissao_atendimento ?? 0,
           bonus_meta: d.bonus_meta ?? 0,
@@ -111,6 +121,10 @@ export function ConfigurarComissoes({ groomers }: Props) {
         return false;
       }
     }
+    if (!config.tipo_comissao) {
+      toast.error("Selecione o tipo de comissão");
+      return false;
+    }
     return true;
   };
 
@@ -123,6 +137,7 @@ export function ConfigurarComissoes({ groomers }: Props) {
       user_id: ownerId,
       ativo: config.ativo,
       modelo: config.modelo,
+      tipo_comissao: config.tipo_comissao,
       comissao_faturamento: config.comissao_faturamento,
       comissao_atendimento: config.comissao_atendimento,
       bonus_meta: config.bonus_meta,
@@ -167,20 +182,53 @@ export function ConfigurarComissoes({ groomers }: Props) {
       comissao_atendimento: 0,
       bonus_meta: 0,
       comissoes_groomers: {},
+      tipo_comissao: modelo === "faturamento" ? "servicos_e_vendas" : c.tipo_comissao,
     }));
+  };
+
+  const TipoComissaoSelector = ({ inline = false }: { inline?: boolean }) => {
+    if (config.modelo === "faturamento") {
+      return (
+        <div className={inline ? "flex items-center" : "pt-1"}>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full border border-primary bg-primary flex items-center justify-center">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+            </div>
+            <span className="text-[10px] text-muted-foreground leading-tight">Comissão sobre os Serviços e Vendas</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <RadioGroup
+        value={config.tipo_comissao}
+        onValueChange={(v) => setConfig((c) => ({ ...c, tipo_comissao: v as TipoComissao }))}
+        className={inline ? "flex flex-wrap gap-x-3 gap-y-0.5" : "space-y-0.5 pt-1"}
+      >
+        {TIPOS_COMISSAO.map((t) => (
+          <div key={t.value} className="flex items-center gap-1.5">
+            <RadioGroupItem value={t.value} id={`tipo-${t.value}`} className="h-3 w-3" />
+            <Label htmlFor={`tipo-${t.value}`} className="text-[10px] text-muted-foreground cursor-pointer leading-tight font-normal">
+              {t.label}
+            </Label>
+          </div>
+        ))}
+      </RadioGroup>
+    );
   };
 
   if (loading) return null;
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Configurar Comissões</CardTitle>
-        <CardDescription>Defina as regras de comissão dos colaboradores</CardDescription>
+      <CardHeader className="px-5 py-4">
+        <CardTitle className="text-base">Configurar Comissões</CardTitle>
+        <CardDescription className="text-[11px]">Defina as regras de comissão dos colaboradores</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="px-5 space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label htmlFor="comissao-toggle" className="text-sm font-medium">
+          <Label htmlFor="comissao-toggle" className="text-[11px] font-semibold">
             Ativar controle de comissões
           </Label>
           <Switch
@@ -191,42 +239,43 @@ export function ConfigurarComissoes({ groomers }: Props) {
         </div>
 
         {config.ativo && (
-          <div className="space-y-4 pt-2">
+          <div className="space-y-1.5 pt-1">
             <RadioGroup
               value={config.modelo}
               onValueChange={(v) => handleModeloChange(v as ModeloComissao)}
-              className="space-y-2"
+              className="space-y-1"
             >
               {MODELOS.map((m) => (
-                <div key={m.value} className="flex items-start space-x-3 rounded-md border p-3">
+                <div key={m.value} className="flex items-start space-x-2 rounded-md border p-2">
                   <RadioGroupItem value={m.value} id={`modelo-${m.value}`} className="mt-0.5" />
                   <div>
-                    <Label htmlFor={`modelo-${m.value}`} className="font-medium cursor-pointer">
+                    <Label htmlFor={`modelo-${m.value}`} className="text-[11px] font-semibold cursor-pointer">
                       {m.label}
                     </Label>
-                    <p className="text-xs text-muted-foreground">{m.desc}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">{m.desc}</p>
                   </div>
                 </div>
               ))}
             </RadioGroup>
 
             {/* Campos por modelo */}
-            <div className="space-y-3 pt-2">
+            <div className="space-y-1.5 pt-1">
               {config.modelo === "groomer" && (
                 <>
                   {groomers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum groomer cadastrado. Cadastre groomers acima para configurar comissões individuais.</p>
+                    <p className="text-[11px] text-muted-foreground">Nenhum groomer cadastrado. Cadastre groomers acima para configurar comissões individuais.</p>
                   ) : (
                     groomers.map((g) => (
-                      <div key={g.id} className="flex items-center gap-3">
-                        <Label className="min-w-[120px] text-sm">{g.nome}</Label>
-                        <div className="relative flex-1 max-w-[140px]">
+                      <div key={g.id} className="flex items-center gap-2">
+                        <Label className="min-w-[90px] text-[11px] font-semibold">{g.nome}</Label>
+                        <div className="relative max-w-[100px]">
                           <Input
                             type="number"
                             min={0}
                             max={100}
                             step="0.01"
                             placeholder="0"
+                            className="h-7 text-[12px] pr-6"
                             value={config.comissoes_groomers[g.id] ?? ""}
                             onChange={(e) =>
                               setConfig((c) => ({
@@ -238,7 +287,10 @@ export function ConfigurarComissoes({ groomers }: Props) {
                               }))
                             }
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                        </div>
+                        <div className="flex-1">
+                          <TipoComissaoSelector inline />
                         </div>
                       </div>
                     ))
@@ -247,94 +299,106 @@ export function ConfigurarComissoes({ groomers }: Props) {
               )}
 
               {config.modelo === "faturamento" && (
-                <div className="space-y-1">
-                  <Label className="text-sm">Comissão sobre Faturamento</Label>
-                  <div className="relative max-w-[200px]">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step="0.01"
-                      placeholder="0"
-                      value={config.comissao_faturamento || ""}
-                      onChange={(e) => setConfig((c) => ({ ...c, comissao_faturamento: clampValue(e.target.value) }))}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                <div className="space-y-[2px]">
+                  <Label className="text-[11px] font-semibold">Comissão sobre Faturamento</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative max-w-[120px]">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.01"
+                        placeholder="0"
+                        className="h-7 text-[12px] pr-6"
+                        value={config.comissao_faturamento || ""}
+                        onChange={(e) => setConfig((c) => ({ ...c, comissao_faturamento: clampValue(e.target.value) }))}
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                    </div>
+                    <TipoComissaoSelector inline />
                   </div>
                 </div>
               )}
 
               {config.modelo === "atendimento" && (
-                <div className="space-y-1">
-                  <Label className="text-sm">Comissão por Atendimento Realizado</Label>
-                  <div className="relative max-w-[200px]">
+                <div className="space-y-[2px]">
+                  <Label className="text-[11px] font-semibold">Comissão por Atendimento Realizado</Label>
+                  <div className="relative max-w-[120px]">
                     <Input
                       type="number"
                       min={0}
                       max={100}
                       step="0.01"
                       placeholder="0"
+                      className="h-7 text-[12px] pr-6"
                       value={config.comissao_atendimento || ""}
                       onChange={(e) => setConfig((c) => ({ ...c, comissao_atendimento: clampValue(e.target.value) }))}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
                   </div>
+                  <TipoComissaoSelector />
                 </div>
               )}
 
               {config.modelo === "hibrida" && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-sm">Faturamento</Label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.01"
-                        placeholder="0"
-                        value={config.comissao_faturamento || ""}
-                        onChange={(e) => setConfig((c) => ({ ...c, comissao_faturamento: clampValue(e.target.value) }))}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="space-y-[2px]">
+                      <Label className="text-[11px] font-semibold">Faturamento</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          placeholder="0"
+                          className="h-7 text-[12px] pr-6"
+                          value={config.comissao_faturamento || ""}
+                          onChange={(e) => setConfig((c) => ({ ...c, comissao_faturamento: clampValue(e.target.value) }))}
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                      </div>
+                    </div>
+                    <div className="space-y-[2px]">
+                      <Label className="text-[11px] font-semibold">Atendimento</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          placeholder="0"
+                          className="h-7 text-[12px] pr-6"
+                          value={config.comissao_atendimento || ""}
+                          onChange={(e) => setConfig((c) => ({ ...c, comissao_atendimento: clampValue(e.target.value) }))}
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                      </div>
+                    </div>
+                    <div className="space-y-[2px]">
+                      <Label className="text-[11px] font-semibold">Bônus por Meta batida</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          placeholder="0"
+                          className="h-7 text-[12px] pr-6"
+                          value={config.bonus_meta || ""}
+                          onChange={(e) => setConfig((c) => ({ ...c, bonus_meta: clampValue(e.target.value) }))}
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[11px]">%</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm">Atendimento</Label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.01"
-                        placeholder="0"
-                        value={config.comissao_atendimento || ""}
-                        onChange={(e) => setConfig((c) => ({ ...c, comissao_atendimento: clampValue(e.target.value) }))}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm">Bônus por Meta batida</Label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.01"
-                        placeholder="0"
-                        value={config.bonus_meta || ""}
-                        onChange={(e) => setConfig((c) => ({ ...c, bonus_meta: clampValue(e.target.value) }))}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
-                    </div>
-                  </div>
+                  <TipoComissaoSelector />
                 </div>
               )}
             </div>
 
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            <Button onClick={handleSave} disabled={saving} className="h-7 text-[12px] font-semibold w-full">
+              {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
               Salvar Comissões
             </Button>
           </div>
