@@ -619,7 +619,11 @@ export const PerformanceBanhistas = () => {
                   <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3 z-[100]">
                     {k.tooltipType === "comissao" ? (
-                      <p className="font-semibold">🚧 Em desenvolvimento</p>
+                      comissoesConfig?.ativo ? (
+                        <p className="font-semibold">💰 Total de comissões calculadas no período</p>
+                      ) : (
+                        <p className="text-xs">Ative as comissões em <strong>Configurações da Empresa</strong></p>
+                      )
                     ) : (
                       <>
                         <p className="font-semibold">📊 Taxa de Ocupação</p>
