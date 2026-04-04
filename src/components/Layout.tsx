@@ -148,6 +148,12 @@ const Layout = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-background">
+                {isAdministrador && (
+                  <DropdownMenuItem onClick={() => setExportDialogOpen(true)} className="cursor-pointer">
+                    <Database className="h-4 w-4 mr-2" />
+                    <span>Exportar Dados</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   <span>Sair</span>
