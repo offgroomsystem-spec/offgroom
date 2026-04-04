@@ -663,17 +663,6 @@ export const PerformanceBanhistas = () => {
 
     return results.sort((a, b) => b.comissao - a.comissao);
   }, [comissoesConfig, lancamentosComissao, allAgGroomers, groomersData, empresaConfig]);
-      const meta = empresaConfig?.meta_faturamento_mensal || 0;
-      const comissaoFatTotal = totalFiltered * pctFat / 100;
-      const bonusTotal = (meta > 0 && totalFiltered >= meta) ? totalFiltered * pctBonus / 100 : 0;
-      groomerValues.forEach((val, name) => {
-        const part = totalFiltered > 0 ? val / totalFiltered : 0;
-        results.push({ nome: name, comissao: Math.round((comissaoFatTotal * part + val * pctAtend / 100 + bonusTotal * part) * 100) / 100 });
-      });
-    }
-
-    return results.sort((a, b) => b.comissao - a.comissao);
-  
 
   const totalComissao = useMemo(() => {
     if (!comissaoPerGroomer) return 0;
