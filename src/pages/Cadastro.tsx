@@ -111,7 +111,7 @@ const Cadastro = () => {
           <CardDescription className="text-[12px]">Preencha os dados abaixo para se cadastrar</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-1.0 px-5 pt-2 pb-3">
+          <CardContent className="space-y-1.5 px-5 pt-2 pb-3">
             <div className="space-y-1">
               <Label htmlFor="nome_completo" className="text-[11px] font-semibold">
                 Nome Completo
