@@ -48,6 +48,7 @@ export const PerformanceBanhistas = () => {
   const [pacotes, setPacotes] = useState<any[]>([]);
   const [comissoesConfig, setComissoesConfig] = useState<any>(null);
   const [lancamentosComissao, setLancamentosComissao] = useState<any[]>([]);
+  const [allAgGroomers, setAllAgGroomers] = useState<{ id: string; groomer: string }[]>([]);
 
   // Filters
   const [periodo, setPeriodo] = useState("mes");
