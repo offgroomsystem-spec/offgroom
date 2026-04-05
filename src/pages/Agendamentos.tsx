@@ -2576,6 +2576,7 @@ const Agendamentos = () => {
     window.open(url, '_blank');
     registerSend(clienteNomePP, petNomePP, "pet_pronto");
     setPetProntoDialogOpen(false);
+  };
 
   // Convert dia item to AgendamentoUnificado for edit dialog
   const convertDiaItemToUnificado = (item: typeof agendamentosDia[0]): AgendamentoUnificado => {
