@@ -1327,31 +1327,9 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                   ))}
                 </div>
 
-                {csvPreview && (
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold">CSV Gerado</h3>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => {
-                          navigator.clipboard.writeText(csvPreview);
-                          toast.success('CSV copiado!');
-                        }}>
-                          <Copy className="h-4 w-4 mr-1" /> Copiar CSV
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setCsvPreview('')}>
-                          Limpar
-                        </Button>
-                      </div>
-                    </div>
-                    <Textarea
-                      readOnly
-                      className="font-mono text-[11px] min-h-[400px] bg-muted/30"
-                      value={csvPreview}
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
+
 
             <Card>
               <CardHeader className="pb-3">
