@@ -356,11 +356,20 @@ serve(async (req) => {
           // For tables like permissions, racas_padrao, crm_* — no user filter applied
         }
 
-        const { data: rows, error: exportErr } = await query;
-        if (exportErr) throw exportErr;
+        // Paginate generic query to avoid 1000-row limit
+        let allRows: any[] = [];
+        let genericOffset = 0;
+        const genericPageSize = 1000;
+        while (true) {
+          const { data: page, error: pageErr } = await query.range(genericOffset, genericOffset + genericPageSize - 1);
+          if (pageErr) throw pageErr;
+          if (page) allRows = allRows.concat(page);
+          if (!page || page.length < genericPageSize) break;
+          genericOffset += genericPageSize;
+        }
         // Remove excluded columns
         const exclude = excludeCols[table] || [];
-        const cleaned = (rows || []).map((r: any) => {
+        const cleaned = allRows.map((r: any) => {
           const obj = { ...r };
           exclude.forEach(c => delete obj[c]);
           return obj;
