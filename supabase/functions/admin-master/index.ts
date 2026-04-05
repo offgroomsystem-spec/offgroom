@@ -275,16 +275,21 @@ serve(async (req) => {
             let offset = 0;
             const pageSize = 1000;
             while (true) {
-              const { data: page } = await supabaseAdmin
+              const { data: page, error: pageErr } = await supabaseAdmin
                 .from('lancamentos_financeiros')
                 .select('id')
                 .in('user_id', filterUserIds)
                 .range(offset, offset + pageSize - 1);
+              if (pageErr) {
+                console.error('Error fetching lancamento IDs page:', pageErr);
+                throw pageErr;
+              }
               if (!page || page.length === 0) break;
               allLancIds = allLancIds.concat(page.map((l: any) => l.id));
               if (page.length < pageSize) break;
               offset += pageSize;
             }
+            console.log(`lancamentos_financeiros_itens export: found ${allLancIds.length} parent lancamento IDs for ${filterUserIds.length} users`);
             if (allLancIds.length === 0) {
               return new Response(JSON.stringify({ rows: [] }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -292,17 +297,21 @@ serve(async (req) => {
             }
             // Fetch items in batches to avoid .in() limit
             let allItems: any[] = [];
-            const BATCH = 500;
+            const BATCH = 300;
             for (let i = 0; i < allLancIds.length; i += BATCH) {
               const batch = allLancIds.slice(i, i + BATCH);
               const { data: batchRows, error: batchErr } = await supabaseAdmin
                 .from('lancamentos_financeiros_itens')
                 .select('*')
-                .in('lancamento_id', batch)
-                .limit(10000);
-              if (batchErr) throw batchErr;
+                .in('lancamento_id', batch);
+              if (batchErr) {
+                console.error(`Error fetching items batch ${Math.floor(i / BATCH) + 1}:`, batchErr);
+                throw batchErr;
+              }
+              console.log(`lancamentos_financeiros_itens batch ${Math.floor(i / BATCH) + 1}: ${batchRows?.length || 0} rows`);
               if (batchRows) allItems = allItems.concat(batchRows);
             }
+            console.log(`lancamentos_financeiros_itens export: fetched ${allItems.length} items total`);
             const exclude = excludeCols[table] || [];
             const cleaned = allItems.map((r: any) => {
               const obj = { ...r };
