@@ -120,34 +120,9 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
 
       const tipoLabel = tipo === "diario" ? "diário" : "completo";
 
-      if (whatsappConnected && whatsappInstanceName) {
-        // Enforce 10s spacing between sends
-        const now = Date.now();
-        const elapsed = now - lastSendRef.current;
-        if (elapsed < 10000) {
-          await new Promise(resolve => setTimeout(resolve, 10000 - elapsed));
-        }
-        lastSendRef.current = Date.now();
-
-        const res = await supabase.functions.invoke("evolution-api", {
-          body: { action: "send-message", instanceName: whatsappInstanceName, number: normalizedPhone, text: msg },
-        });
-
-        if (res.error) {
-          throw new Error(res.error.message || "Erro na API");
-        }
-
-        if (res.data?.error) {
-          throw new Error(res.data.error);
-        }
-
-        toast.success(`Histórico ${tipoLabel} enviado automaticamente! ✅`);
-      } else {
-        // Fallback: wa.me link
-        toast.info("WhatsApp não conectado. Abrindo link manual...");
-        const url = buildWhatsAppUrl(estadia.cliente_whatsapp, msg);
-        if (url) window.open(url, "_blank");
-      }
+      // Always use wa.me fallback (Evolution API removed)
+      const url = buildWhatsAppUrl(estadia.cliente_whatsapp, msg);
+      if (url) window.open(url, "_blank");
     } catch (err: any) {
       console.error("Erro ao enviar histórico:", err);
       toast.error(err?.message || "Erro ao enviar histórico.");

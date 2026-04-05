@@ -217,31 +217,9 @@ export const ClientesEmRisco = () => {
       return;
     }
 
-    setEnviandoWhatsApp(clienteClicado.clienteId);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("evolution-api", {
-        body: {
-          action: "send-message",
-          instanceName,
-          number: numeroCompleto,
-          text: mensagem,
-        },
-      });
-
-      if (error) {
-        const detail = data?.error || data?.details || error?.message || "Erro desconhecido";
-        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
-      }
-      toast.success(`Mensagem enviada para ${clienteClicado.nomeCliente}!`);
-    } catch (err) {
-      console.error("Erro ao enviar WhatsApp:", err);
-      toast.error("Erro ao enviar mensagem. Abrindo link manual...");
-      const link = buildWhatsAppUrl(numeroCompleto, mensagem);
-      if (link) window.open(link, "_blank");
-    } finally {
-      setEnviandoWhatsApp(null);
-    }
+    // Evolution API removed - just open wa.me
+    const link = buildWhatsAppUrl(numeroCompleto, mensagem);
+    if (link) window.open(link, "_blank");
   };
 
   // Apply filters helper
