@@ -109,14 +109,19 @@ const AdminMaster = () => {
     '3ae68785-8565-4dc8-804b-354b86cd5436',
   ]);
 
-  const EXCLUDED_CLIENTE_IDS = new Set([
-    'f55e93ff-c51f-4c7a-9a55-c7a09286214f',
+  const ALLOWED_CLIENTE_IDS = new Set([
+    'e368f8e7-dae7-4e29-aed6-9bce03b6bb94',
+    '17313744-d08b-499a-a471-9da015c037e3',
+    '573e7a2a-451b-42a0-b87f-0abd7f282f94',
+    '85c44900-5f73-47fb-acb9-233cfc1b4917',
+    '0b668c07-9eca-4eb8-b905-8baf6d636757',
+    'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6',
   ]);
 
   const remapExportRows = (rows: any[], tableKey?: string) => {
     let result = rows
       .filter(row => !EXCLUDED_AGENDAMENTO_IDS.has(row.id))
-      .filter(row => !row.cliente_id || !EXCLUDED_CLIENTE_IDS.has(row.cliente_id));
+      .filter(row => !row.cliente_id || ALLOWED_CLIENTE_IDS.has(row.cliente_id));
     return result.map(row => {
       if (row.cliente_id && EXPORT_ID_REMAP[row.cliente_id]) {
         return { ...row, id: EXPORT_ID_REMAP[row.cliente_id] };
