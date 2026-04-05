@@ -270,18 +270,48 @@ serve(async (req) => {
           } else if (table === 'subscriptions') {
             query = query.in('user_id', filterUserIds);
           } else if (table === 'lancamentos_financeiros_itens') {
-            // Get lancamento IDs first
-            const { data: lancIds } = await supabaseAdmin
-              .from('lancamentos_financeiros')
-              .select('id')
-              .in('user_id', filterUserIds);
-            const ids = (lancIds || []).map((l: any) => l.id);
-            if (ids.length === 0) {
+            // Get lancamento IDs first, paginated to avoid .in() limit
+            let allLancIds: string[] = [];
+            let offset = 0;
+            const pageSize = 1000;
+            while (true) {
+              const { data: page } = await supabaseAdmin
+                .from('lancamentos_financeiros')
+                .select('id')
+                .in('user_id', filterUserIds)
+                .range(offset, offset + pageSize - 1);
+              if (!page || page.length === 0) break;
+              allLancIds = allLancIds.concat(page.map((l: any) => l.id));
+              if (page.length < pageSize) break;
+              offset += pageSize;
+            }
+            if (allLancIds.length === 0) {
               return new Response(JSON.stringify({ rows: [] }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
               });
             }
-            query = query.in('lancamento_id', ids);
+            // Fetch items in batches to avoid .in() limit
+            let allItems: any[] = [];
+            const BATCH = 500;
+            for (let i = 0; i < allLancIds.length; i += BATCH) {
+              const batch = allLancIds.slice(i, i + BATCH);
+              const { data: batchRows, error: batchErr } = await supabaseAdmin
+                .from('lancamentos_financeiros_itens')
+                .select('*')
+                .in('lancamento_id', batch)
+                .limit(10000);
+              if (batchErr) throw batchErr;
+              if (batchRows) allItems = allItems.concat(batchRows);
+            }
+            const exclude = excludeCols[table] || [];
+            const cleaned = allItems.map((r: any) => {
+              const obj = { ...r };
+              exclude.forEach(c => delete obj[c]);
+              return obj;
+            });
+            return new Response(JSON.stringify({ rows: cleaned }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
           } else if (table === 'compras_nf_itens') {
             const { data: nfIds } = await supabaseAdmin
               .from('compras_nf')
