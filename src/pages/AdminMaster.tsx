@@ -120,12 +120,13 @@ const AdminMaster = () => {
   ]);
 
   const ALLOWED_USER_IDS = new Set([
-    'd3d089ba-fa43-4f83-bf88-3b9ae7cf5255',
-    '0084ab9b-fc08-4fa3-b97b-ddb17c67eb89',
-    '6a8f7a7b-a093-42fd-b1b5-69e31134c5be',
-    '059ad3ef-0dfa-4712-9add-ad15969628cb',
-    'aa81f151-3154-4379-89ec-d64d3a6a6838',
-    '3baba1f6-59c4-40b5-9aa2-63a5d9e67312',
+    // IDs originais no banco (keys do EXPORT_ID_REMAP)
+    'e368f8e7-dae7-4e29-aed6-9bce03b6bb94',
+    '17313744-d08b-499a-a471-9da015c037e3',
+    '573e7a2a-451b-42a0-b87f-0abd7f282f94',
+    '85c44900-5f73-47fb-acb9-233cfc1b4917',
+    '0b668c07-9eca-4eb8-b905-8baf6d636757',
+    'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6',
   ]);
 
   const remapExportRows = (rows: any[], tableKey?: string) => {
