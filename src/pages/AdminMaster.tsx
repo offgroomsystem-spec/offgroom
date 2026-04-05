@@ -133,19 +133,17 @@ const AdminMaster = () => {
     let result = rows
       .filter(row => {
         // Filtrar por user_id quando disponível
-        if (row.user_id !== undefined && row.user_id !== null) {
+        const hasUserId = row.user_id !== undefined && row.user_id !== null;
+        if (hasUserId) {
           if (!ALLOWED_USER_IDS.has(row.user_id)) return false;
         }
         // Respeitar exclusões manuais da tabela de agendamentos
         if (tableKey === 'agendamentos' && EXCLUDED_AGENDAMENTO_IDS.has(row.id)) {
           return false;
         }
-        // Clientes: filtrar pelo user_id (já tratado acima)
-        // Para agendamentos, manter o cliente_id original para o CSV não ficar vazio
-        if (tableKey === 'agendamentos') {
-          return true;
-        }
-        // Filtrar por cliente_id quando disponível
+        // Se já filtrou por user_id, não precisa filtrar por cliente_id novamente
+        if (hasUserId) return true;
+        // Filtrar por cliente_id somente quando NÃO há user_id
         if (row.cliente_id !== undefined && row.cliente_id !== null) {
           return ALLOWED_CLIENTE_IDS.has(row.cliente_id);
         }
