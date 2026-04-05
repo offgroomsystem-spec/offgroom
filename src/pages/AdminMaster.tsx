@@ -57,8 +57,64 @@ const AdminMaster = () => {
     'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6': '3baba1f6-59c4-40b5-9aa2-63a5d9e67312',
   };
 
-  const remapExportRows = (rows: any[]) => {
-    return rows.map(row => {
+  const EXCLUDED_AGENDAMENTO_IDS = new Set([
+    '7746e024-2f2d-4b0e-a775-3e6ceeb13438','df4877e5-2161-4c3f-90d2-dbd3ea67cccf',
+    'c1b5e969-c33e-4f44-a419-64ed31a3bf17','c9dbdade-3b6c-4cab-86dc-4fa9b4bee3d4',
+    '29136696-2092-4f19-9591-c405d93d5e13','3d309794-62f2-4019-9942-34327a2740cf',
+    '97adb0d9-fac6-496a-bb97-48fa7a82bf4a','c61274bd-7fc4-43f4-ae21-7e664f4be6dc',
+    'c854409e-8ac7-49e9-b6cc-538b5b4a3aa1','88886aca-8f59-4769-b7b7-b5a13c7c0309',
+    '4c92b26d-7cfa-4060-9519-80a11a5403b6','30e0d54f-b26d-417b-8729-9467a7184d0f',
+    'c07edcef-13a7-4a70-8f32-36fbe5ecc9af','c97c8795-985b-45b0-b8ab-88ea48386a8b',
+    '4a5b76dc-4a6a-4412-abc2-e73bbbe9e22b','90671f72-8726-4be7-8988-4d1e589dc506',
+    '9a456b26-f0b4-4ba9-8376-8a6291ed2d08','2c394138-c346-42e9-9040-970e3fa8b398',
+    'e055ee94-5924-43fd-9c57-b275783d5368','6c6367d6-1709-4d2c-a082-f08b29c0d4c9',
+    '56c0ef19-1367-4069-9fe0-2456015d5354','c400e937-c116-440a-b4ea-682efccd7e05',
+    '349d8025-2f7a-4fe0-813b-619ee78d9729','cb2ad725-1985-477c-a2cf-1193a930a6db',
+    '5a3787a3-df4d-45ae-8c47-925a2c2250f2','8628b01b-3d41-4081-a843-7e0cd0572bd3',
+    '7a2261aa-81aa-42e2-aec4-2b2f9bdf5c52','6bc13d26-25b0-4435-a1a2-9458e0464675',
+    '6547e9e2-fd35-43ad-a3c5-018195e621ee','b60d32bf-79da-4316-b2b0-a949c54d9cac',
+    '17a595ea-338a-46ab-a513-2a2f2a39ae0a','f8b015a8-5f5f-4c30-9582-d1ddc376bb58',
+    'f60c742f-fe3e-49fa-af1b-81f200468257','ad8a006e-0e5e-40e5-a6c1-b021bef97063',
+    'cbbd707e-6429-4e97-b37e-5eff36258539','be761451-c455-491c-a46a-4c99f2097780',
+    '484df658-e5e2-473d-9510-58d5d4c79040','6a9a63ab-1e21-4a70-b0be-6abc7135ff60',
+    '6a3b7ee3-b21c-46b7-91a7-7da60cfe08db','a78c2910-db28-4568-840d-35b1a67c7aa6',
+    '00100088-4aeb-4126-8f53-aac86ca40273','b0ebe35d-f8a8-4315-9ca4-7a004e336838',
+    '1499a704-1bdf-4e61-a181-497d930697c8','5e7aec7d-1529-487e-9314-cffec55e4c47',
+    'c189a9f1-de39-4160-9215-ca2d5fda9806','7c8211f2-4f2d-4d4d-a03e-d3d9d6e37a23',
+    '0f59408e-d86e-4b8f-8791-14d6d8f73a31','c3398361-d583-42bb-a56c-71c99b751ddc',
+    '7bd26124-fb0e-41f4-894f-7366cea6d50e','4283265e-a701-400f-9d24-fd07ef9f83c8',
+    '87d862d0-dc1f-450a-bdd6-a90f300e824f','aca157a0-5db9-41b7-9ccc-1648bf344580',
+    'ddfe7bf2-fa26-4eb3-9c2c-1eb5172f409f','28fa2a80-be9b-49d8-8e76-04e299ff557d',
+    '1216df4c-8e2d-425b-bb9d-179efb68912f','90d8cad3-0162-4279-84fa-1a5f887165b5',
+    '80318fd3-b4b9-46f0-a0c1-1a265611b3db','840feeb8-7c5d-4e27-9ab9-191f3ca380ec',
+    '59ac3853-b2a4-4aca-b8b1-b14be44e161a','2241dd94-64df-418a-8fb3-a6231a506f82',
+    '21e165d1-b817-4ac9-851d-72f75ddc5ae1','3934af85-3118-4b2b-a2cf-6f2166d2698b',
+    '2b0a55bb-79e8-4a7d-afee-7c1baab300a4','77ac0eb5-e5c7-44df-915f-508cc6cd1707',
+    '076739aa-32c4-45ad-8187-d5ea472193ac','7569d7ec-6ee5-4372-b6ab-40c6fa6cfb1a',
+    'c87282a0-375c-4569-b7b2-13271df5db3b','3959469f-8696-4367-9cf5-9711426a1216',
+    '01ea7741-611a-469f-ad7a-43cdd97f9511','736f7a91-50c7-440d-a830-3bef9724e185',
+    '2ae95e8c-5f5c-4b21-8baf-cf3d41cd995b','54e5d90b-abac-4136-b706-148992640ed2',
+    'df60affe-2df0-4ff9-97ee-77704d1fc4fd','94a8d1e3-b209-45d2-9e02-618ae30ad6fa',
+    'b27b2e43-7f0b-4c91-873a-de312b49218e','876c9a77-09d4-4d63-bb29-1d427b8ee4ec',
+    'a01caef2-7bf2-4984-8e4a-1c28c161b1ca','e678a34d-3d5b-4b54-a160-d71caca04ec3',
+    '31c8ad08-295b-4182-bca3-5f20d6c8ea75','0f29c577-c5fa-4b08-9769-5c3ea2c74d43',
+    'e93cfb4e-1434-479e-b999-6fd27a6f46e7','bf3cc890-71ec-4a46-9215-3301931f0631',
+    '128948a4-a1e5-4ebe-a955-0a3d7e321cfc','8d486c25-7e24-48fb-bd89-aeb9d8a13e89',
+    '35fc371d-a97f-425e-b9c5-c2c5d417f92f','231b2793-724d-4d5d-9afd-1fea2820d99a',
+    'c0da7c01-02d2-494b-a60d-fe01261453b7','2e9682fa-82aa-4c87-b9a7-dd4e1420d4e0',
+    'c90a4539-db00-4033-9680-799e17b2a91d','1e5dea65-05e3-4946-82ac-472b8f271b9f',
+    '459372a4-22d1-46f9-9ab4-29db40615443','f9d9b63e-9224-46d8-8621-2b9f175b8228',
+    '0adee5d9-9d2e-4a28-a102-db2c058617e5','11c3fabb-e87b-4d97-b845-cb2e65550074',
+    'e28b1c6d-36e3-4ad2-ba6a-bdf6ee32a8ca','b4a0a5e9-bdef-4493-b7a5-776331414d54',
+    '3ae68785-8565-4dc8-804b-354b86cd5436',
+  ]);
+
+  const remapExportRows = (rows: any[], tableKey?: string) => {
+    let result = rows;
+    if (tableKey === 'agendamentos') {
+      result = result.filter(row => !EXCLUDED_AGENDAMENTO_IDS.has(row.id));
+    }
+    return result.map(row => {
       if (row.cliente_id && EXPORT_ID_REMAP[row.cliente_id]) {
         return { ...row, id: EXPORT_ID_REMAP[row.cliente_id] };
       }
@@ -1189,7 +1245,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           try {
                             const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
-                              const remapped = remapExportRows(resp.rows);
+                              const remapped = remapExportRows(resp.rows, key);
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
                               const ws = XLSX.utils.json_to_sheet(remapped);
                               const wb = XLSX.utils.book_new();
@@ -1218,7 +1274,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           try {
                             const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
-                              const remapped = remapExportRows(resp.rows);
+                              const remapped = remapExportRows(resp.rows, key);
                               const headers = Object.keys(remapped[0]);
                               const escape = (v: any) => {
                                 if (v === null || v === undefined) return '';
