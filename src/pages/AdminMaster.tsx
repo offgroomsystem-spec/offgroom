@@ -46,6 +46,7 @@ const AdminMaster = () => {
     'carloseduardopereira2254@gmail.com',
     'igorkilzee175@gmail.com',
     'eixospetcare@gmail.com',
+    'benodahora@hotmail.com',
   ];
 
   // Mapeamento de IDs para substituição no arquivo de download (não altera banco)
@@ -56,6 +57,7 @@ const AdminMaster = () => {
     '85c44900-5f73-47fb-acb9-233cfc1b4917': '059ad3ef-0dfa-4712-9add-ad15969628cb',
     '0b668c07-9eca-4eb8-b905-8baf6d636757': 'aa81f151-3154-4379-89ec-d64d3a6a6838',
     'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6': '3baba1f6-59c4-40b5-9aa2-63a5d9e67312',
+    '63800c70-1d59-4dd5-95b3-a823b1635761': 'c7bfd0d1-609e-410f-956c-5b08029f8dfb',
   };
 
   const EXCLUDED_AGENDAMENTO_IDS = new Set([
