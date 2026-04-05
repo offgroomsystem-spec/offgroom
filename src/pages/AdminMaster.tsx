@@ -1161,12 +1161,6 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           try {
                             const resp = await callAdmin('export_table', { table: key });
                             if (resp?.rows && resp.rows.length > 0) {
-                              const headers = Object.keys(resp.rows[0]);
-                              const escape = (v: any) => {
-                                if (v === null || v === undefined) return '';
-                                const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-                                return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-                              };
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
                               const ws = XLSX.utils.json_to_sheet(resp.rows);
                               const wb = XLSX.utils.book_new();
