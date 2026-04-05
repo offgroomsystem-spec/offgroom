@@ -38,6 +38,15 @@ const AdminMaster = () => {
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [exportLoading, setExportLoading] = useState(false);
 
+  const EXPORT_FILTER_EMAILS = [
+    'rodrygo.sv12@gmail.com',
+    'dogloverpet1@gmail.com',
+    'barrositalo350@gmail.com',
+    'carloseduardopereira2254@gmail.com',
+    'igorkilzee175@gmail.com',
+    'eixospetcare@gmail.com',
+  ];
+
   const ADMIN_EXPORT_TABLES = [
     { key: "profiles", label: "Perfis (Users)" },
     { key: "subscriptions", label: "Assinaturas" },
@@ -1131,7 +1140,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold flex items-center gap-2"><Database className="h-6 w-6" /> Exportar Dados do Sistema</h2>
             </div>
-            <p className="text-sm text-muted-foreground">Selecione as tabelas para exportar como CSV. Os dados são exportados diretamente do banco de dados sem filtro de usuário (admin master).</p>
+            <p className="text-sm text-muted-foreground">Selecione as tabelas para exportar. Os dados são filtrados apenas para os clientes autorizados.</p>
 
             <Card>
               <CardContent className="pt-6 space-y-4">
@@ -1159,7 +1168,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                         let ok = 0, err = 0;
                         for (const key of exportSelected) {
                           try {
-                            const resp = await callAdmin('export_table', { table: key });
+                            const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
                               const ws = XLSX.utils.json_to_sheet(resp.rows);
@@ -1187,7 +1196,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                         let ok = 0, err = 0;
                         for (const key of exportSelected) {
                           try {
-                            const resp = await callAdmin('export_table', { table: key });
+                            const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
                               const headers = Object.keys(resp.rows[0]);
                               const escape = (v: any) => {

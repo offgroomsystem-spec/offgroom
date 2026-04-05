@@ -220,16 +220,96 @@ serve(async (req) => {
           'crm_leads', 'crm_mensagens', 'crm_usuarios_autorizados',
         ];
         const table = params?.table;
+        const userEmails: string[] | undefined = params?.user_emails;
         if (!table || !allowedTables.includes(table)) {
           return new Response(JSON.stringify({ error: 'Tabela não permitida' }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
         }
+
+        // If user_emails filter is provided, resolve user IDs
+        let filterUserIds: string[] | null = null;
+        if (userEmails && userEmails.length > 0) {
+          const { data: profileRows } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email_hotmart')
+            .in('email_hotmart', userEmails);
+          filterUserIds = (profileRows || []).map((p: any) => p.id);
+          if (filterUserIds.length === 0) {
+            return new Response(JSON.stringify({ rows: [] }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
+          }
+        }
+
         // Exclude large binary/base64 columns
         const excludeCols: Record<string, string[]> = {
           notas_fiscais: ['danfe_pdf_base64'],
         };
+
+        // Tables that use user_id for filtering
+        const userIdTables = [
+          'agendamentos', 'agendamentos_pacotes', 'clientes', 'pets', 'servicos', 'produtos',
+          'pacotes', 'lancamentos_financeiros', 'despesas', 'receitas', 'contas_bancarias',
+          'fornecedores', 'compras_nf', 'groomers', 'racas', 'empresa_config', 'comissoes_config',
+          'notas_fiscais', 'creche_estadias', 'creche_registros_diarios', 'servicos_creche',
+          'pacotes_creche', 'formas_pagamento', 'whatsapp_instances',
+          'whatsapp_mensagens_agendadas', 'whatsapp_mensagens_risco',
+        ];
+        // Tables that use id = user_id (profiles)
+        const idTables = ['profiles'];
+
         let query = supabaseAdmin.from(table).select('*').limit(10000);
+        if (filterUserIds) {
+          if (userIdTables.includes(table)) {
+            query = query.in('user_id', filterUserIds);
+          } else if (idTables.includes(table)) {
+            query = query.in('id', filterUserIds);
+          } else if (table === 'user_roles' || table === 'staff_accounts') {
+            query = query.in('user_id', filterUserIds);
+          } else if (table === 'subscriptions') {
+            query = query.in('user_id', filterUserIds);
+          } else if (table === 'lancamentos_financeiros_itens') {
+            // Get lancamento IDs first
+            const { data: lancIds } = await supabaseAdmin
+              .from('lancamentos_financeiros')
+              .select('id')
+              .in('user_id', filterUserIds);
+            const ids = (lancIds || []).map((l: any) => l.id);
+            if (ids.length === 0) {
+              return new Response(JSON.stringify({ rows: [] }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              });
+            }
+            query = query.in('lancamento_id', ids);
+          } else if (table === 'compras_nf_itens') {
+            const { data: nfIds } = await supabaseAdmin
+              .from('compras_nf')
+              .select('id')
+              .in('user_id', filterUserIds);
+            const ids = (nfIds || []).map((n: any) => n.id);
+            if (ids.length === 0) {
+              return new Response(JSON.stringify({ rows: [] }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              });
+            }
+            query = query.in('nf_id', ids);
+          } else if (table === 'staff_permissions') {
+            const { data: staffIds } = await supabaseAdmin
+              .from('staff_accounts')
+              .select('id')
+              .in('user_id', filterUserIds);
+            const ids = (staffIds || []).map((s: any) => s.id);
+            if (ids.length === 0) {
+              return new Response(JSON.stringify({ rows: [] }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              });
+            }
+            query = query.in('staff_id', ids);
+          }
+          // For tables like permissions, racas_padrao, crm_* — no user filter applied
+        }
+
         const { data: rows, error: exportErr } = await query;
         if (exportErr) throw exportErr;
         // Remove excluded columns
