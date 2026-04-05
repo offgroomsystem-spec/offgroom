@@ -1149,41 +1149,80 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                     />
                     <span className="text-sm font-semibold">Selecionar Todos ({exportSelected.size}/{ADMIN_EXPORT_TABLES.length})</span>
                   </div>
-                  <Button
-                    size="sm"
-                    disabled={exportLoading || exportSelected.size === 0}
-                    onClick={async () => {
-                      setExportLoading(true);
-                      const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
-                      let ok = 0, err = 0;
-                      for (const key of exportSelected) {
-                        try {
-                          const resp = await callAdmin('export_table', { table: key });
-                          if (resp?.rows && resp.rows.length > 0) {
-                            const headers = Object.keys(resp.rows[0]);
-                            const escape = (v: any) => {
-                              if (v === null || v === undefined) return '';
-                              const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-                              return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-                            };
-                            const csv = [headers.join(','), ...resp.rows.map((r: any) => headers.map(h => escape(r[h])).join(','))].join('\n');
-                            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-                            const link = document.createElement('a');
-                            link.href = URL.createObjectURL(blob);
-                            link.download = `${key}_${dateStr}.csv`;
-                            link.click();
-                            URL.revokeObjectURL(link.href);
-                            ok++;
-                          }
-                        } catch { err++; }
-                      }
-                      setExportLoading(false);
-                      if (ok > 0) toast.success(`${ok} tabela(s) exportada(s)`);
-                      if (err > 0) toast.error(`${err} tabela(s) com erro`);
-                    }}
-                  >
-                    {exportLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Exportando...</> : <><Download className="h-4 w-4 mr-1" /> Exportar {exportSelected.size} tabela(s)</>}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={exportLoading || exportSelected.size === 0}
+                      onClick={async () => {
+                        setExportLoading(true);
+                        const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+                        let ok = 0, err = 0;
+                        for (const key of exportSelected) {
+                          try {
+                            const resp = await callAdmin('export_table', { table: key });
+                            if (resp?.rows && resp.rows.length > 0) {
+                              const headers = Object.keys(resp.rows[0]);
+                              const escape = (v: any) => {
+                                if (v === null || v === undefined) return '';
+                                const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                                return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+                              };
+                              const csv = [headers.join(','), ...resp.rows.map((r: any) => headers.map(h => escape(r[h])).join(','))].join('\n');
+                              const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                              const link = document.createElement('a');
+                              link.href = URL.createObjectURL(blob);
+                              link.download = `${key}_${dateStr}.csv`;
+                              link.click();
+                              URL.revokeObjectURL(link.href);
+                              ok++;
+                            }
+                          } catch { err++; }
+                        }
+                        setExportLoading(false);
+                        if (ok > 0) toast.success(`${ok} tabela(s) exportada(s)`);
+                        if (err > 0) toast.error(`${err} tabela(s) com erro`);
+                      }}
+                    >
+                      {exportLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Exportando...</> : <><Download className="h-4 w-4 mr-1" /> Exportar {exportSelected.size} tabela(s)</>}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={exportLoading || exportSelected.size === 0}
+                      onClick={async () => {
+                        setExportLoading(true);
+                        const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+                        let ok = 0, err = 0;
+                        for (const key of exportSelected) {
+                          try {
+                            const resp = await callAdmin('export_table', { table: key });
+                            if (resp?.rows && resp.rows.length > 0) {
+                              const headers = Object.keys(resp.rows[0]);
+                              const escape = (v: any) => {
+                                if (v === null || v === undefined) return '';
+                                const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                                return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+                              };
+                              const csvRows = resp.rows.map((r: any) => headers.map(h => escape(r[h])).join(','));
+                              const csv = [headers.join(','), ...csvRows].join('\n');
+                              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                              const link = document.createElement('a');
+                              link.href = URL.createObjectURL(blob);
+                              link.download = `${key}_supabase_import_${dateStr}.csv`;
+                              link.click();
+                              URL.revokeObjectURL(link.href);
+                              ok++;
+                            }
+                          } catch { err++; }
+                        }
+                        setExportLoading(false);
+                        if (ok > 0) toast.success(`${ok} CSV(s) para importação gerado(s)`);
+                        if (err > 0) toast.error(`${err} tabela(s) com erro`);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" /> Exportar {exportSelected.size} CSV
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
