@@ -1298,7 +1298,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                               };
                               const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h])).join(','));
                               const csv = [headers.join(','), ...csvRows].join('\n');
-                              allCsv += `-- ======== ${key.toUpperCase()} ========\n${csv}\n\n`;
+                              allCsv += csv + '\n\n';
                               ok++;
                             }
                           } catch { err++; }
