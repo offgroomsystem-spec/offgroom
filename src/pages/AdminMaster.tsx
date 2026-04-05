@@ -1288,7 +1288,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                             const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
                               const remapped = remapExportRows(resp.rows, key);
-                              if (remapped.length === 0) { ok++; continue; }
+                              if (remapped.length === 0) continue;
                               const headers = Object.keys(remapped[0]);
                               const escape = (v: any) => {
                                 if (v === null || v === undefined || v === '') return 'null';
