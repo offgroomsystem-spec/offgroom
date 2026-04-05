@@ -295,21 +295,28 @@ serve(async (req) => {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
               });
             }
-            // Fetch items in batches to avoid .in() limit
+            // Fetch items in batches to avoid .in() limit, with pagination to bypass 1000-row default
             let allItems: any[] = [];
-            const BATCH = 300;
+            const BATCH = 200;
             for (let i = 0; i < allLancIds.length; i += BATCH) {
               const batch = allLancIds.slice(i, i + BATCH);
-              const { data: batchRows, error: batchErr } = await supabaseAdmin
-                .from('lancamentos_financeiros_itens')
-                .select('*')
-                .in('lancamento_id', batch);
-              if (batchErr) {
-                console.error(`Error fetching items batch ${Math.floor(i / BATCH) + 1}:`, batchErr);
-                throw batchErr;
+              let batchOffset = 0;
+              const batchPageSize = 1000;
+              while (true) {
+                const { data: batchRows, error: batchErr } = await supabaseAdmin
+                  .from('lancamentos_financeiros_itens')
+                  .select('*')
+                  .in('lancamento_id', batch)
+                  .range(batchOffset, batchOffset + batchPageSize - 1);
+                if (batchErr) {
+                  console.error(`Error fetching items batch ${Math.floor(i / BATCH) + 1} offset ${batchOffset}:`, batchErr);
+                  throw batchErr;
+                }
+                if (batchRows) allItems = allItems.concat(batchRows);
+                if (!batchRows || batchRows.length < batchPageSize) break;
+                batchOffset += batchPageSize;
               }
-              console.log(`lancamentos_financeiros_itens batch ${Math.floor(i / BATCH) + 1}: ${batchRows?.length || 0} rows`);
-              if (batchRows) allItems = allItems.concat(batchRows);
+              console.log(`lancamentos_financeiros_itens batch ${Math.floor(i / BATCH) + 1}: fetched so far ${allItems.length} rows`);
             }
             console.log(`lancamentos_financeiros_itens export: fetched ${allItems.length} items total`);
             const exclude = excludeCols[table] || [];
@@ -349,11 +356,20 @@ serve(async (req) => {
           // For tables like permissions, racas_padrao, crm_* — no user filter applied
         }
 
-        const { data: rows, error: exportErr } = await query;
-        if (exportErr) throw exportErr;
+        // Paginate generic query to avoid 1000-row limit
+        let allRows: any[] = [];
+        let genericOffset = 0;
+        const genericPageSize = 1000;
+        while (true) {
+          const { data: page, error: pageErr } = await query.range(genericOffset, genericOffset + genericPageSize - 1);
+          if (pageErr) throw pageErr;
+          if (page) allRows = allRows.concat(page);
+          if (!page || page.length < genericPageSize) break;
+          genericOffset += genericPageSize;
+        }
         // Remove excluded columns
         const exclude = excludeCols[table] || [];
-        const cleaned = (rows || []).map((r: any) => {
+        const cleaned = allRows.map((r: any) => {
           const obj = { ...r };
           exclude.forEach(c => delete obj[c]);
           return obj;
