@@ -1225,7 +1225,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                                 const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
                                 return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
                               };
-                              const csvRows = resp.rows.map((r: any) => headers.map(h => escape(r[h])).join(','));
+                              const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h])).join(','));
                               const csv = [headers.join(','), ...csvRows].join('\n');
                               const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                               const link = document.createElement('a');
