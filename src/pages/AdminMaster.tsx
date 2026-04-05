@@ -1277,7 +1277,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                               const remapped = remapExportRows(resp.rows, key);
                               const headers = Object.keys(remapped[0]);
                               const escape = (v: any) => {
-                                if (v === null || v === undefined) return '';
+                                if (v === null || v === undefined || v === '') return 'null';
                                 const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
                                 return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
                               };
