@@ -353,8 +353,9 @@ const AdminMaster = () => {
     if (!sanitized) return null;
 
     const escapeCsvValue = (value: any) => {
-      const normalized = String(value);
-      return normalized.includes(',') || normalized.includes('"') || normalized.includes('\n')
+      // Strip all newlines/carriage returns to prevent CSV row splitting
+      const normalized = String(value).replace(/(\r\n|\r|\n)/gm, ' ');
+      return normalized.includes(',') || normalized.includes('"')
         ? `"${normalized.replace(/"/g, '""')}"`
         : normalized;
     };
