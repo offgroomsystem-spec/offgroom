@@ -136,8 +136,16 @@ const AdminMaster = () => {
         if (row.user_id !== undefined && row.user_id !== null) {
           if (!ALLOWED_USER_IDS.has(row.user_id)) return false;
         }
+        // Respeitar exclusões manuais da tabela de agendamentos
+        if (tableKey === 'agendamentos' && EXCLUDED_AGENDAMENTO_IDS.has(row.id)) {
+          return false;
+        }
         // Filtrar clientes pelo id direto
         if (tableKey === 'clientes') return ALLOWED_CLIENTE_IDS.has(row.id);
+        // Para agendamentos, manter o cliente_id original para o CSV não ficar vazio
+        if (tableKey === 'agendamentos') {
+          return true;
+        }
         // Filtrar por cliente_id quando disponível
         if (row.cliente_id !== undefined && row.cliente_id !== null) {
           return ALLOWED_CLIENTE_IDS.has(row.cliente_id);
