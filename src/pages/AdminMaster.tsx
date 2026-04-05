@@ -121,7 +121,11 @@ const AdminMaster = () => {
   const remapExportRows = (rows: any[], tableKey?: string) => {
     let result = rows
       .filter(row => !EXCLUDED_AGENDAMENTO_IDS.has(row.id))
-      .filter(row => !row.cliente_id || ALLOWED_CLIENTE_IDS.has(row.cliente_id));
+      .filter(row => {
+        if (tableKey === 'clientes') return ALLOWED_CLIENTE_IDS.has(row.id);
+        if (row.cliente_id !== undefined && row.cliente_id !== null) return ALLOWED_CLIENTE_IDS.has(row.cliente_id);
+        return true;
+      });
     return result.map(row => {
       if (row.cliente_id && EXPORT_ID_REMAP[row.cliente_id]) {
         return { ...row, id: EXPORT_ID_REMAP[row.cliente_id] };
