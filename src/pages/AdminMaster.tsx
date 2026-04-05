@@ -276,7 +276,9 @@ const AdminMaster = () => {
 
   type CsvColumnType = 'number' | 'boolean' | 'date' | 'uuid' | 'text';
 
-  const buildSupabaseCompatibleCsv = (rows: any[], tableKey: string) => {
+  const STRICT_NULL_UNSAFE_TYPES = new Set<CsvColumnType>(['uuid', 'date', 'boolean']);
+
+  const getSanitizedExportData = (rows: any[], tableKey: string) => {
     const remapped = remapExportRows(rows, tableKey);
     if (remapped.length === 0) return null;
 
@@ -292,10 +294,10 @@ const AdminMaster = () => {
     );
 
     headers = headers.filter(header => {
-      const type = columnTypes.get(header);
+      const type = columnTypes.get(header) || 'text';
 
       if (type === 'number') return true;
-      if (type === 'uuid' || type === 'date' || type === 'boolean') {
+      if (STRICT_NULL_UNSAFE_TYPES.has(type)) {
         return remapped.every(row => !isMissingValue(row[header]));
       }
 
@@ -304,31 +306,58 @@ const AdminMaster = () => {
 
     if (headers.length === 0) return null;
 
-    const escapeCsvValue = (value: any, type: CsvColumnType) => {
-      if (isMissingValue(value)) {
-        return type === 'number' ? '0' : '';
-      }
+    const normalizedRows = remapped.map(row => {
+      const normalizedRow: Record<string, any> = {};
 
-      if (type === 'boolean') {
-        return String(value).toLowerCase() === 'true' ? 'true' : 'false';
-      }
+      headers.forEach(header => {
+        const type = columnTypes.get(header) || 'text';
+        const value = row[header];
 
-      if (typeof value === 'object') {
-        const json = JSON.stringify(value);
-        return `"${json.replace(/"/g, '""')}"`;
-      }
+        if (isMissingValue(value)) {
+          normalizedRow[header] = type === 'number' ? 0 : '';
+          return;
+        }
 
-      const normalized = type === 'date' ? formatDateValue(String(value)) : String(value);
+        if (type === 'date') {
+          normalizedRow[header] = formatDateValue(String(value));
+          return;
+        }
+
+        if (type === 'boolean') {
+          normalizedRow[header] = String(value).toLowerCase() === 'true' ? 'true' : 'false';
+          return;
+        }
+
+        if (typeof value === 'object') {
+          normalizedRow[header] = JSON.stringify(value);
+          return;
+        }
+
+        normalizedRow[header] = value;
+      });
+
+      return normalizedRow;
+    });
+
+    return { headers, rows: normalizedRows };
+  };
+
+  const buildSupabaseCompatibleCsv = (rows: any[], tableKey: string) => {
+    const sanitized = getSanitizedExportData(rows, tableKey);
+    if (!sanitized) return null;
+
+    const escapeCsvValue = (value: any) => {
+      const normalized = String(value);
       return normalized.includes(',') || normalized.includes('"') || normalized.includes('\n')
         ? `"${normalized.replace(/"/g, '""')}"`
         : normalized;
     };
 
-    const csvRows = remapped.map(row =>
-      headers.map(header => escapeCsvValue(row[header], columnTypes.get(header) || 'text')).join(',')
+    const csvRows = sanitized.rows.map(row =>
+      sanitized.headers.map(header => escapeCsvValue(row[header])).join(',')
     );
 
-    return [headers.join(','), ...csvRows].join('\n');
+    return [sanitized.headers.join(','), ...csvRows].join('\n');
   };
 
   const ADMIN_EXPORT_TABLES = [
@@ -1454,27 +1483,10 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           try {
                             const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
-                              const remapped = remapExportRows(resp.rows, key);
-                              if (remapped.length === 0) continue;
-                              const formatDate = (val: any) => {
-                                if (typeof val !== 'string') return val;
-                                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                                  const d = new Date(val);
-                                  if (!isNaN(d.getTime())) {
-                                    const p = (n: number) => String(n).padStart(2, '0');
-                                    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-                                  }
-                                }
-                                if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return `${val} 00:00:00`;
-                                return val;
-                              };
-                              const formatted = remapped.map((row: any) => {
-                                const nr: any = {};
-                                for (const k of Object.keys(row)) nr[k] = formatDate(row[k]);
-                                return nr;
-                              });
+                              const sanitized = getSanitizedExportData(resp.rows, key);
+                              if (!sanitized) continue;
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
-                              const ws = XLSX.utils.json_to_sheet(formatted);
+                              const ws = XLSX.utils.json_to_sheet(sanitized.rows);
                               const wb = XLSX.utils.book_new();
                               XLSX.utils.book_append_sheet(wb, ws, key.slice(0, 31));
                               XLSX.writeFile(wb, `${key}_${dateStr}.xlsx`);
