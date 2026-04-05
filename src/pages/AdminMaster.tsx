@@ -37,6 +37,7 @@ const AdminMaster = () => {
   const [userSearch, setUserSearch] = useState('');
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [exportLoading, setExportLoading] = useState(false);
+  const [csvPreview, setCsvPreview] = useState('');
 
   const EXPORT_FILTER_EMAILS = [
     'rodrygo.sv12@gmail.com',
