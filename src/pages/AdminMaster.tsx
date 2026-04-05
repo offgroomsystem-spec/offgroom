@@ -144,8 +144,16 @@ const AdminMaster = () => {
         }
         return true;
       });
+    // Colunas a excluir por tabela
+    const EXCLUDE_COLUMNS: Record<string, string[]> = {
+      subscriptions: ['hotmart_transaction_id', 'end_date'],
+    };
+    const excludeSet = new Set(EXCLUDE_COLUMNS[tableKey || ''] || []);
+
     return result.map(row => {
       const newRow = { ...row };
+      // Remover colunas excluídas
+      for (const col of excludeSet) delete newRow[col];
       // Remapear user_id
       if (newRow.user_id && EXPORT_ID_REMAP[newRow.user_id]) {
         newRow.user_id = EXPORT_ID_REMAP[newRow.user_id];
