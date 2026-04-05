@@ -372,42 +372,8 @@ const Agendamentos = () => {
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
 
-    // Load WhatsApp status with live check via Evolution API
-    try {
-      const { data: whatsappData } = await supabase
-        .from("whatsapp_instances")
-        .select("status, instance_name")
-        .eq("user_id", ownerId)
-        .maybeSingle();
-
-      if (whatsappData?.instance_name) {
-        setWhatsappInstanceName(whatsappData.instance_name);
-        try {
-          const res = await supabase.functions.invoke("evolution-api", {
-            body: { action: "check-status", instanceName: whatsappData.instance_name }
-          });
-          const state = res.data?.instance?.state || res.data?.state || "disconnected";
-          const isConnected = state === "open" || state === "connected";
-          setWhatsappConnected(isConnected);
-          const newStatus = isConnected ? "connected" : "disconnected";
-          if (whatsappData.status !== newStatus) {
-            await supabase.from("whatsapp_instances")
-              .update({ status: newStatus, updated_at: new Date().toISOString() })
-              .eq("user_id", ownerId);
-          }
-          // Sync evolution_auto_send flag
-          await supabase.from("empresa_config")
-            .update({ evolution_auto_send: isConnected })
-            .eq("user_id", ownerId);
-        } catch {
-          setWhatsappConnected(whatsappData?.status === "connected");
-        }
-      } else {
-        setWhatsappConnected(false);
-      }
-    } catch (e) {
-      console.error('Erro ao verificar status WhatsApp:', e);
-    }
+    // WhatsApp Evolution API removed - always use wa.me fallback
+    setWhatsappConnected(false);
 
     try {
       // Load groomers
