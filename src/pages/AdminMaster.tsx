@@ -1161,19 +1161,11 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           try {
                             const resp = await callAdmin('export_table', { table: key });
                             if (resp?.rows && resp.rows.length > 0) {
-                              const headers = Object.keys(resp.rows[0]);
-                              const escape = (v: any) => {
-                                if (v === null || v === undefined) return '';
-                                const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-                                return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-                              };
-                              const csv = [headers.join(','), ...resp.rows.map((r: any) => headers.map(h => escape(r[h])).join(','))].join('\n');
-                              const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-                              const link = document.createElement('a');
-                              link.href = URL.createObjectURL(blob);
-                              link.download = `${key}_${dateStr}.csv`;
-                              link.click();
-                              URL.revokeObjectURL(link.href);
+                              const XLSX = (await import('xlsx')).default || await import('xlsx');
+                              const ws = XLSX.utils.json_to_sheet(resp.rows);
+                              const wb = XLSX.utils.book_new();
+                              XLSX.utils.book_append_sheet(wb, ws, key.slice(0, 31));
+                              XLSX.writeFile(wb, `${key}_${dateStr}.xlsx`);
                               ok++;
                             }
                           } catch { err++; }
