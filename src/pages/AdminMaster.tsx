@@ -129,6 +129,10 @@ const AdminMaster = () => {
     'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6',
   ]);
 
+  const BACKEND_FILTERED_TABLES = new Set([
+    'lancamentos_financeiros_itens',
+  ]);
+
   const remapExportRows = (rows: any[], tableKey?: string) => {
     let result = rows
       .filter(row => {
@@ -143,6 +147,8 @@ const AdminMaster = () => {
         }
         // Se já filtrou por user_id, não precisa filtrar por cliente_id novamente
         if (hasUserId) return true;
+        // Algumas tabelas filhas já chegam filtradas no backend pelos 6 usuários autorizados
+        if (tableKey && BACKEND_FILTERED_TABLES.has(tableKey)) return true;
         // Filtrar por cliente_id somente quando NÃO há user_id
         if (row.cliente_id !== undefined && row.cliente_id !== null) {
           return ALLOWED_CLIENTE_IDS.has(row.cliente_id);
@@ -1541,9 +1547,10 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                         const key = [...exportSelected][0];
                         try {
                           const resp = await callAdminOrThrow('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
-                          const rowCount = Array.isArray(resp?.rows) ? resp.rows.length : 0;
+                          const sanitized = getSanitizedExportData(Array.isArray(resp?.rows) ? resp.rows : [], key);
+                          const rowCount = sanitized?.rows.length ?? 0;
 
-                          if (rowCount === 0) {
+                          if (!sanitized || rowCount === 0) {
                             toast.error(`Nenhum registro retornado para ${key} após os filtros aplicados`);
                             setCsvPreview('');
                             return;
