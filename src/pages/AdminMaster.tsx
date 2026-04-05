@@ -107,13 +107,11 @@ const AdminMaster = () => {
     '0adee5d9-9d2e-4a28-a102-db2c058617e5','11c3fabb-e87b-4d97-b845-cb2e65550074',
     'e28b1c6d-36e3-4ad2-ba6a-bdf6ee32a8ca','b4a0a5e9-bdef-4493-b7a5-776331414d54',
     '3ae68785-8565-4dc8-804b-354b86cd5436',
+    'f55e93ff-c51f-4c7a-9a55-c7a09286214f',
   ]);
 
   const remapExportRows = (rows: any[], tableKey?: string) => {
-    let result = rows;
-    if (tableKey === 'agendamentos') {
-      result = result.filter(row => !EXCLUDED_AGENDAMENTO_IDS.has(row.id));
-    }
+    let result = rows.filter(row => !EXCLUDED_AGENDAMENTO_IDS.has(row.id));
     return result.map(row => {
       if (row.cliente_id && EXPORT_ID_REMAP[row.cliente_id]) {
         return { ...row, id: EXPORT_ID_REMAP[row.cliente_id] };
