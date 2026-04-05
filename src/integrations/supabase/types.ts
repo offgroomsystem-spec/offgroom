@@ -1042,6 +1042,7 @@ export type Database = {
       }
       lancamentos_financeiros_itens: {
         Row: {
+          cliente_id: string | null
           created_at: string | null
           descricao2: string
           id: string
@@ -1051,6 +1052,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          cliente_id?: string | null
           created_at?: string | null
           descricao2: string
           id?: string
@@ -1060,6 +1062,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          cliente_id?: string | null
           created_at?: string | null
           descricao2?: string
           id?: string
