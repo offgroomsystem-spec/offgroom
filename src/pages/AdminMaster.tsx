@@ -161,10 +161,7 @@ const AdminMaster = () => {
       const newRow = { ...row };
       // Remover colunas excluídas
       for (const col of excludeSet) delete newRow[col];
-      // Remapear id da tabela agendamentos baseado no user_id original (antes de remapear user_id)
-      if (tableKey === 'agendamentos' && newRow.user_id && EXPORT_ID_REMAP[newRow.user_id]) {
-        newRow.id = EXPORT_ID_REMAP[newRow.user_id];
-      }
+      // Agendamentos: manter o id original (UUID único da linha) — NÃO remapear
       // Remapear user_id
       if (newRow.user_id && EXPORT_ID_REMAP[newRow.user_id]) {
         newRow.user_id = EXPORT_ID_REMAP[newRow.user_id];
