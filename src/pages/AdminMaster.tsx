@@ -1258,6 +1258,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                             const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
                               const remapped = remapExportRows(resp.rows, key);
+                              if (remapped.length === 0) { ok++; continue; }
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
                               const ws = XLSX.utils.json_to_sheet(remapped);
                               const wb = XLSX.utils.book_new();
