@@ -276,7 +276,9 @@ const AdminMaster = () => {
 
   type CsvColumnType = 'number' | 'boolean' | 'date' | 'uuid' | 'text';
 
-  const buildSupabaseCompatibleCsv = (rows: any[], tableKey: string) => {
+  const STRICT_NULL_UNSAFE_TYPES = new Set<CsvColumnType>(['uuid', 'date', 'boolean']);
+
+  const getSanitizedExportData = (rows: any[], tableKey: string) => {
     const remapped = remapExportRows(rows, tableKey);
     if (remapped.length === 0) return null;
 
@@ -292,10 +294,10 @@ const AdminMaster = () => {
     );
 
     headers = headers.filter(header => {
-      const type = columnTypes.get(header);
+      const type = columnTypes.get(header) || 'text';
 
       if (type === 'number') return true;
-      if (type === 'uuid' || type === 'date' || type === 'boolean') {
+      if (STRICT_NULL_UNSAFE_TYPES.has(type)) {
         return remapped.every(row => !isMissingValue(row[header]));
       }
 
@@ -304,31 +306,58 @@ const AdminMaster = () => {
 
     if (headers.length === 0) return null;
 
-    const escapeCsvValue = (value: any, type: CsvColumnType) => {
-      if (isMissingValue(value)) {
-        return type === 'number' ? '0' : '';
-      }
+    const normalizedRows = remapped.map(row => {
+      const normalizedRow: Record<string, any> = {};
 
-      if (type === 'boolean') {
-        return String(value).toLowerCase() === 'true' ? 'true' : 'false';
-      }
+      headers.forEach(header => {
+        const type = columnTypes.get(header) || 'text';
+        const value = row[header];
 
-      if (typeof value === 'object') {
-        const json = JSON.stringify(value);
-        return `"${json.replace(/"/g, '""')}"`;
-      }
+        if (isMissingValue(value)) {
+          normalizedRow[header] = type === 'number' ? 0 : '';
+          return;
+        }
 
-      const normalized = type === 'date' ? formatDateValue(String(value)) : String(value);
+        if (type === 'date') {
+          normalizedRow[header] = formatDateValue(String(value));
+          return;
+        }
+
+        if (type === 'boolean') {
+          normalizedRow[header] = String(value).toLowerCase() === 'true' ? 'true' : 'false';
+          return;
+        }
+
+        if (typeof value === 'object') {
+          normalizedRow[header] = JSON.stringify(value);
+          return;
+        }
+
+        normalizedRow[header] = value;
+      });
+
+      return normalizedRow;
+    });
+
+    return { headers, rows: normalizedRows };
+  };
+
+  const buildSupabaseCompatibleCsv = (rows: any[], tableKey: string) => {
+    const sanitized = getSanitizedExportData(rows, tableKey);
+    if (!sanitized) return null;
+
+    const escapeCsvValue = (value: any) => {
+      const normalized = String(value);
       return normalized.includes(',') || normalized.includes('"') || normalized.includes('\n')
         ? `"${normalized.replace(/"/g, '""')}"`
         : normalized;
     };
 
-    const csvRows = remapped.map(row =>
-      headers.map(header => escapeCsvValue(row[header], columnTypes.get(header) || 'text')).join(',')
+    const csvRows = sanitized.rows.map(row =>
+      sanitized.headers.map(header => escapeCsvValue(row[header])).join(',')
     );
 
-    return [headers.join(','), ...csvRows].join('\n');
+    return [sanitized.headers.join(','), ...csvRows].join('\n');
   };
 
   const ADMIN_EXPORT_TABLES = [
