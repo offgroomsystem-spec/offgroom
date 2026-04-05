@@ -1278,17 +1278,15 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={exportLoading || exportSelected.size === 0}
+                      disabled={exportLoading || exportSelected.size !== 1}
                       onClick={async () => {
                         setExportLoading(true);
-                        let allCsv = '';
-                        let ok = 0, err = 0;
-                        for (const key of exportSelected) {
-                          try {
-                            const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
-                            if (resp?.rows && resp.rows.length > 0) {
-                              const remapped = remapExportRows(resp.rows, key);
-                              if (remapped.length === 0) continue;
+                        const key = [...exportSelected][0];
+                        try {
+                          const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
+                          if (resp?.rows && resp.rows.length > 0) {
+                            const remapped = remapExportRows(resp.rows, key);
+                            if (remapped.length > 0) {
                               const headers = Object.keys(remapped[0]);
                               const escape = (v: any) => {
                                 if (v === null || v === undefined || v === '') return 'null';
@@ -1297,18 +1295,19 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                               };
                               const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h])).join(','));
                               const csv = [headers.join(','), ...csvRows].join('\n');
-                              allCsv += csv + '\n\n';
-                              ok++;
+                              setCsvPreview(csv);
+                              toast.success('CSV gerado no campo abaixo');
+                            } else {
+                              toast.error('Nenhum registro encontrado após filtros');
                             }
-                          } catch { err++; }
-                        }
-                        setCsvPreview(allCsv);
+                          } else {
+                            toast.error('Tabela vazia');
+                          }
+                        } catch { toast.error('Erro ao gerar CSV'); }
                         setExportLoading(false);
-                        if (ok > 0) toast.success(`${ok} CSV(s) gerado(s) no campo abaixo`);
-                        if (err > 0) toast.error(`${err} tabela(s) com erro`);
                       }}
                     >
-                      <Download className="h-4 w-4 mr-1" /> Exportar {exportSelected.size} CSV
+                      <Download className="h-4 w-4 mr-1" /> Gerar CSV {exportSelected.size === 1 ? `(${[...exportSelected][0]})` : ''}
                     </Button>
                   </div>
                 </div>
