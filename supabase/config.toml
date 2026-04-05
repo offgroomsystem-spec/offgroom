@@ -12,11 +12,3 @@ verify_jwt = true
 [functions.public-signup]
 verify_jwt = false
 
-[functions.evolution-api]
-verify_jwt = false
-
-[functions.whatsapp-risco-scheduler]
-verify_jwt = false
-
-[functions.whatsapp-scheduler]
-verify_jwt = false

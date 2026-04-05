@@ -372,42 +372,8 @@ const Agendamentos = () => {
   const loadRelatedData = async () => {
     if (!user || !ownerId) return;
 
-    // Load WhatsApp status with live check via Evolution API
-    try {
-      const { data: whatsappData } = await supabase
-        .from("whatsapp_instances")
-        .select("status, instance_name")
-        .eq("user_id", ownerId)
-        .maybeSingle();
-
-      if (whatsappData?.instance_name) {
-        setWhatsappInstanceName(whatsappData.instance_name);
-        try {
-          const res = await supabase.functions.invoke("evolution-api", {
-            body: { action: "check-status", instanceName: whatsappData.instance_name }
-          });
-          const state = res.data?.instance?.state || res.data?.state || "disconnected";
-          const isConnected = state === "open" || state === "connected";
-          setWhatsappConnected(isConnected);
-          const newStatus = isConnected ? "connected" : "disconnected";
-          if (whatsappData.status !== newStatus) {
-            await supabase.from("whatsapp_instances")
-              .update({ status: newStatus, updated_at: new Date().toISOString() })
-              .eq("user_id", ownerId);
-          }
-          // Sync evolution_auto_send flag
-          await supabase.from("empresa_config")
-            .update({ evolution_auto_send: isConnected })
-            .eq("user_id", ownerId);
-        } catch {
-          setWhatsappConnected(whatsappData?.status === "connected");
-        }
-      } else {
-        setWhatsappConnected(false);
-      }
-    } catch (e) {
-      console.error('Erro ao verificar status WhatsApp:', e);
-    }
+    // WhatsApp Evolution API removed - always use wa.me fallback
+    setWhatsappConnected(false);
 
     try {
       // Load groomers
@@ -2440,7 +2406,7 @@ const Agendamentos = () => {
     processingQueueRef.current = false;
   };
 
-  // Enviar WhatsApp direto via Evolution API (aceita AgendamentoUnificado ou agendamentoDia)
+  // Enviar WhatsApp via wa.me (Evolution API removida)
   const enviarWhatsAppDireto = (agendamento: any, e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -2450,118 +2416,13 @@ const Agendamentos = () => {
     // Anti-spam: verificar cooldown de 30 minutos
     if (!canSend(clienteNome, petNome, "whatsapp")) return;
 
-    if (!whatsappConnected || !whatsappInstanceName) {
-      // Fallback: abrir wa.me
-      toast.info("WhatsApp não conectado. Abrindo link manual...");
-      registerSend(clienteNome, petNome, "whatsapp");
-      if (agendamento.tipo === "pacote" && (agendamento.pacoteOriginal || agendamento.agendamentoPacote) && (agendamento.servicoOriginal || agendamento.servicoAgendamento)) {
-        const pacote = agendamento.pacoteOriginal || agendamento.agendamentoPacote;
-        const servico = agendamento.servicoOriginal || agendamento.servicoAgendamento;
-        window.open(gerarUrlWhatsAppPacote(pacote, servico), '_blank');
-      } else if (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) {
-        window.open(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal || agendamento.agendamento), '_blank');
-      }
-      return;
-    }
-
-    const sexoPet = obterSexoPet(agendamento.pet, agendamento.cliente);
-    const primeiroNome = obterPrimeiroNome(agendamento.cliente);
-    const nomePet = capitalizarPrimeiraLetra(agendamento.pet);
-    const doDa = getSexoPrefix(sexoPet, "do");
-    
-    // Obter data - pode vir de agendamento.data ou do sub-objeto
-    const dataStr = agendamento.data || 
-      agendamento.agendamentoOriginal?.data || 
-      agendamento.agendamento?.data ||
-      agendamento.servicoAgendamento?.data ||
-      agendamento.servicoOriginal?.data ||
-      selectedDate;
-    const dataFormatada = new Date(dataStr + "T00:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-    const horarioFormatado = agendamento.horarioInicio.substring(0, 5);
-    const taxiDog = agendamento.taxiDog === "Sim" ? "Sim" : "Não";
-    const servicoNome = capitalizarPrimeiraLetra(agendamento.servico);
-    const bordaoLine = empresaConfig.bordao ? `\n\n*${empresaConfig.bordao}*` : "";
-
-    let mensagem = "";
-
-    const isPacote = agendamento.tipo === "pacote" && agendamento.numeroPacote && agendamento.numeroPacote.trim() !== "";
-    const isUltimo = isPacote && ehUltimoServicoPacote(agendamento.numeroPacote);
-
-    if (!isPacote) {
-      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n*Horario:* ${horarioFormatado}\n*Serviço:* ${servicoNome}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
-    } else if (isUltimo) {
-      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n*Horario:* ${horarioFormatado}\n*Serviço:* ${servicoNome}\n*N° do Pacote:* ${agendamento.numeroPacote}\n*Taxi Dog:* ${taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Recomendo já renovar para manter a frequência ideal dos banhos ${doDa} ${nomePet}. Que tal já renovar agora e garantir os próximos horários disponíveis? 😊${bordaoLine}`;
-    } else {
-      mensagem = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${nomePet} com a gente.\n\n*Dia:* ${dataFormatada}\n*Horario:* ${horarioFormatado}\n*Serviço:* ${servicoNome}\n*N° do Pacote:* ${agendamento.numeroPacote}\n*Taxi Dog:* ${taxiDog}${bordaoLine}`;
-    }
-
-    // Obter número WhatsApp do sub-objeto correto
-    const whatsappRaw = agendamento.whatsapp || 
-      agendamento.agendamentoOriginal?.whatsapp || 
-      agendamento.agendamento?.whatsapp ||
-      agendamento.agendamentoPacote?.whatsapp ||
-      agendamento.pacoteOriginal?.whatsapp || "";
-    const numero = normalizeBrazilPhone(whatsappRaw);
-    if (!numero) {
-      toast.error(getInvalidPhoneMessage(whatsappRaw));
-      return;
-    }
-
-    // Determine IDs for marking as sent
-    const agendamentoId = agendamento.tipo === "simples" 
-      ? (agendamento.agendamentoOriginal?.id || agendamento.agendamento?.id) 
-      : null;
-    const agendamentoPacoteId = agendamento.tipo === "pacote"
-      ? (agendamento.pacoteOriginal?.id || agendamento.agendamentoPacote?.id)
-      : null;
-    const servicoNumero = agendamento.numeroPacote || null;
-
-    const sendTask = async () => {
-      try {
-        const res = await supabase.functions.invoke("evolution-api", {
-          body: { action: "send-message", instanceName: whatsappInstanceName, number: numero, text: mensagem }
-        });
-        if (res.error) {
-          const detail = res.data?.error || res.data?.details || res.error?.message || "Erro desconhecido";
-          throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
-        }
-        toast.success(`✅ Mensagem enviada para ${primeiroNome}!`);
-        registerSend(clienteNome, petNome, "whatsapp");
-
-        // Mark as "enviado" so scheduler doesn't duplicate
-        await supabase
-          .from("whatsapp_mensagens_agendadas" as any)
-          .insert({
-            user_id: ownerId || user?.id,
-            agendamento_id: agendamentoId,
-            agendamento_pacote_id: agendamentoPacoteId,
-            servico_numero: servicoNumero,
-            numero_whatsapp: numero,
-            tipo_mensagem: "3h",
-            mensagem,
-            agendado_para: new Date().toISOString(),
-            status: "enviado",
-            enviado_em: new Date().toISOString(),
-          });
-      } catch (err: any) {
-        console.error("Erro ao enviar WhatsApp:", err);
-        toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
-      }
-    };
-
-    // Adicionar à fila
-    const now = Date.now();
-    const timeSinceLast = now - lastSendTimestampRef.current;
-    
-    if (timeSinceLast >= 10000 && sendQueueRef.current.length === 0) {
-      // Enviar imediatamente
-      lastSendTimestampRef.current = Date.now();
-      sendTask();
-      toast.info(`📤 Enviando mensagem para ${primeiroNome}...`);
-    } else {
-      sendQueueRef.current.push(sendTask);
-      toast.info(`⏳ Mensagem para ${primeiroNome} na fila (${sendQueueRef.current.length} pendente${sendQueueRef.current.length > 1 ? 's' : ''})`);
-      processarFilaEnvios();
+    registerSend(clienteNome, petNome, "whatsapp");
+    if (agendamento.tipo === "pacote" && (agendamento.pacoteOriginal || agendamento.agendamentoPacote) && (agendamento.servicoOriginal || agendamento.servicoAgendamento)) {
+      const pacote = agendamento.pacoteOriginal || agendamento.agendamentoPacote;
+      const servico = agendamento.servicoOriginal || agendamento.servicoAgendamento;
+      window.open(gerarUrlWhatsAppPacote(pacote, servico), '_blank');
+    } else if (agendamento.tipo === "simples" && (agendamento.agendamentoOriginal || agendamento.agendamento)) {
+      window.open(gerarUrlWhatsAppSimples(agendamento.agendamentoOriginal || agendamento.agendamento), '_blank');
     }
   };
 
@@ -2705,50 +2566,15 @@ const Agendamentos = () => {
       return;
     }
 
-    if (!whatsappConnected || !whatsappInstanceName) {
-      // Fallback wa.me
-      const url = buildWhatsAppUrl(numeroWhatsApp, mensagem);
-      if (!url) {
-        toast.error(getInvalidPhoneMessage(numeroWhatsAppRaw));
-        setPetProntoDialogOpen(false);
-        return;
-      }
-      window.open(url, '_blank');
-      registerSend(clienteNomePP, petNomePP, "pet_pronto");
+    // Always use wa.me (Evolution API removed)
+    const url = buildWhatsAppUrl(numeroWhatsApp, mensagem);
+    if (!url) {
+      toast.error(getInvalidPhoneMessage(numeroWhatsAppRaw));
       setPetProntoDialogOpen(false);
       return;
     }
-
-    const sendTask = async () => {
-      try {
-        const res = await supabase.functions.invoke("evolution-api", {
-          body: { action: "send-message", instanceName: whatsappInstanceName, number: numeroWhatsApp, text: mensagem }
-        });
-        if (res.error) {
-          const detail = res.data?.error || res.data?.details || res.error?.message || "Erro desconhecido";
-          throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
-        }
-        toast.success(`✅ Mensagem "Pet Pronto" enviada para ${primeiroNome}!`);
-        registerSend(clienteNomePP, petNomePP, "pet_pronto");
-      } catch (err: any) {
-        console.error("Erro ao enviar Pet Pronto:", err);
-        toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
-      }
-    };
-
-    const now = Date.now();
-    const timeSinceLast = now - lastSendTimestampRef.current;
-    
-    if (timeSinceLast >= 10000 && sendQueueRef.current.length === 0) {
-      lastSendTimestampRef.current = Date.now();
-      sendTask();
-      toast.info(`📤 Enviando "Pet Pronto" para ${primeiroNome}...`);
-    } else {
-      sendQueueRef.current.push(sendTask);
-      toast.info(`⏳ Mensagem "Pet Pronto" para ${primeiroNome} na fila (${sendQueueRef.current.length} pendente${sendQueueRef.current.length > 1 ? 's' : ''})`);
-      processarFilaEnvios();
-    }
-
+    window.open(url, '_blank');
+    registerSend(clienteNomePP, petNomePP, "pet_pronto");
     setPetProntoDialogOpen(false);
   };
 
@@ -5643,17 +5469,6 @@ const Agendamentos = () => {
             }
             <div className="flex items-center gap-2">
               {viewMode !== "semana" && <div />}
-              {whatsappConnected ? (
-                <div className="flex items-center gap-1.5 text-green-600">
-                  <Wifi className="h-4 w-4" />
-                  <span className="text-xs font-medium hidden sm:inline">WhatsApp Conectado</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-destructive">
-                  <WifiOff className="h-4 w-4" />
-                  <span className="text-xs font-medium hidden sm:inline">WhatsApp Desconectado</span>
-                </div>
-              )}
               
             </div>
           </div>

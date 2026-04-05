@@ -183,21 +183,8 @@ export const ClientesEmRisco = () => {
           .eq("user_id", ownerId)
           .limit(1);
 
-        if (instances && instances.length > 0) {
-          const inst = instances[0];
-          whatsappInstanceRef.current.name = inst.instance_name;
-
-          if (inst.status === "connected") {
-            try {
-              const { data } = await supabase.functions.invoke("evolution-api", {
-                body: { action: "check-status", instanceName: inst.instance_name },
-              });
-              whatsappInstanceRef.current.connected = data?.instance?.state === "open";
-            } catch {
-              whatsappInstanceRef.current.connected = false;
-            }
-          }
-        }
+        // Evolution API removed - always use wa.me fallback
+        whatsappInstanceRef.current.connected = false;
       } catch (err) {
         console.error("Erro ao carregar instância WhatsApp:", err);
       }
@@ -230,31 +217,9 @@ export const ClientesEmRisco = () => {
       return;
     }
 
-    setEnviandoWhatsApp(clienteClicado.clienteId);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("evolution-api", {
-        body: {
-          action: "send-message",
-          instanceName,
-          number: numeroCompleto,
-          text: mensagem,
-        },
-      });
-
-      if (error) {
-        const detail = data?.error || data?.details || error?.message || "Erro desconhecido";
-        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
-      }
-      toast.success(`Mensagem enviada para ${clienteClicado.nomeCliente}!`);
-    } catch (err) {
-      console.error("Erro ao enviar WhatsApp:", err);
-      toast.error("Erro ao enviar mensagem. Abrindo link manual...");
-      const link = buildWhatsAppUrl(numeroCompleto, mensagem);
-      if (link) window.open(link, "_blank");
-    } finally {
-      setEnviandoWhatsApp(null);
-    }
+    // Evolution API removed - just open wa.me
+    const link = buildWhatsAppUrl(numeroCompleto, mensagem);
+    if (link) window.open(link, "_blank");
   };
 
   // Apply filters helper
