@@ -140,8 +140,7 @@ const AdminMaster = () => {
         if (tableKey === 'agendamentos' && EXCLUDED_AGENDAMENTO_IDS.has(row.id)) {
           return false;
         }
-        // Filtrar clientes pelo id direto
-        if (tableKey === 'clientes') return ALLOWED_CLIENTE_IDS.has(row.id);
+        // Clientes: filtrar pelo user_id (já tratado acima)
         // Para agendamentos, manter o cliente_id original para o CSV não ficar vazio
         if (tableKey === 'agendamentos') {
           return true;
