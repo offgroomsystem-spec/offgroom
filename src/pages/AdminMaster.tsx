@@ -1345,8 +1345,24 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                           if (resp?.rows && resp.rows.length > 0) {
                             const remapped = remapExportRows(resp.rows, key);
-                            if (remapped.length > 0) {
-                              const headers = Object.keys(remapped[0]);
+                             if (remapped.length > 0) {
+                              let headers = Object.keys(remapped[0]);
+                              // Nullable UUID FK columns — remove from CSV if ALL rows are null/empty
+                              const NULLABLE_UUID_COLUMNS = new Set([
+                                'fornecedor_id', 'cliente_id', 'conta_id', 'agendamento_id',
+                                'lancamento_id', 'pet_id', 'estadia_id', 'nf_id', 'lead_id',
+                                'created_by', 'owner_id',
+                              ]);
+                              const uuidColsToRemove = new Set<string>();
+                              for (const h of headers) {
+                                if (NULLABLE_UUID_COLUMNS.has(h)) {
+                                  const hasAnyValue = remapped.some((r: any) => r[h] !== null && r[h] !== undefined && r[h] !== '');
+                                  if (!hasAnyValue) {
+                                    uuidColsToRemove.add(h);
+                                  }
+                                }
+                              }
+                              headers = headers.filter(h => !uuidColsToRemove.has(h));
                               // Detect numeric columns by inspecting first non-null values
                               const numericColumns = new Set<string>();
                               const KNOWN_NUMERIC_FIELDS = new Set([
