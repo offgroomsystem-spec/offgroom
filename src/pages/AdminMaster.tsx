@@ -1347,6 +1347,33 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                             const remapped = remapExportRows(resp.rows, key);
                             if (remapped.length > 0) {
                               const headers = Object.keys(remapped[0]);
+                              // Detect numeric columns by inspecting first non-null values
+                              const numericColumns = new Set<string>();
+                              const KNOWN_NUMERIC_FIELDS = new Set([
+                                'valor', 'preco_custo', 'margem_lucro', 'lucro_unitario', 'imposto',
+                                'taxa_cartao', 'estoque_minimo', 'estoque_atual', 'saldo',
+                                'valor_total', 'valor_final', 'valor_deducao', 'valor_juros',
+                                'desconto_percentual', 'desconto_valor', 'quantidade', 'valor_compra',
+                                'valor_unico', 'valor_pequeno', 'valor_medio', 'valor_grande',
+                                'comissao_faturamento', 'comissao_atendimento', 'bonus_meta',
+                                'aliquota_iss', 'nota_google', 'qtd_avaliacoes', 'tentativa',
+                                'login_count', 'periodo_gratis_dias', 'dias_liberacao_extra',
+                                'dias_acesso_gratis', 'ordem', 'meta_faturamento_mensal',
+                              ]);
+                              for (const h of headers) {
+                                if (KNOWN_NUMERIC_FIELDS.has(h)) {
+                                  numericColumns.add(h);
+                                  continue;
+                                }
+                                // Auto-detect: check first 5 rows for numeric values
+                                for (let i = 0; i < Math.min(5, remapped.length); i++) {
+                                  const val = remapped[i][h];
+                                  if (val !== null && val !== undefined && val !== '') {
+                                    if (typeof val === 'number') numericColumns.add(h);
+                                    break;
+                                  }
+                                }
+                              }
                               const formatDateValue = (val: string): string => {
                                 // ISO 8601 with T and timezone -> YYYY-MM-DD HH:MM:SS
                                 if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
@@ -1360,8 +1387,12 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                                 if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return `${val} 00:00:00`;
                                 return val;
                               };
-                              const escape = (v: any) => {
-                                if (v === null || v === undefined || v === '') return '';
+                              const escape = (v: any, colName?: string) => {
+                                if (v === null || v === undefined || v === '') {
+                                  // For numeric columns, output 0 instead of empty
+                                  if (colName && numericColumns.has(colName)) return '0';
+                                  return '';
+                                }
                                 if (typeof v === 'object') {
                                   const json = JSON.stringify(v);
                                   return `"${json.replace(/"/g, '""')}"`;
@@ -1370,7 +1401,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                                 s = formatDateValue(s);
                                 return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
                               };
-                              const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h])).join(','));
+                              const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h], h)).join(','));
                               const csv = [headers.join(','), ...csvRows].join('\n');
                               setCsvPreview(csv);
                               toast.success('CSV gerado no campo abaixo');
