@@ -1363,8 +1363,12 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                                 return val;
                               };
                               const escape = (v: any) => {
-                                if (v === null || v === undefined || v === '') return 'null';
-                                let s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                                if (v === null || v === undefined || v === '') return '';
+                                if (typeof v === 'object') {
+                                  const json = JSON.stringify(v);
+                                  return `"${json.replace(/"/g, '""')}"`;
+                                }
+                                let s = String(v);
                                 s = formatDateValue(s);
                                 return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
                               };
