@@ -1355,26 +1355,29 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2"><Code className="h-5 w-5" /> SQL das Tabelas (CREATE TABLE)</CardTitle>
-                <p className="text-xs text-muted-foreground">Copie o SQL abaixo para migrar a estrutura das tabelas do sistema.</p>
+                <CardTitle className="text-lg flex items-center gap-2"><Code className="h-5 w-5" /> {csvPreview ? 'CSV Gerado' : 'SQL das Tabelas (CREATE TABLE)'}</CardTitle>
+                <p className="text-xs text-muted-foreground">{csvPreview ? 'Conteúdo CSV gerado a partir das tabelas selecionadas.' : 'Copie o SQL abaixo para migrar a estrutura das tabelas do sistema.'}</p>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  {csvPreview && (
+                    <Button size="sm" variant="ghost" onClick={() => setCsvPreview('')}>
+                      Voltar para SQL
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" onClick={() => {
-                    const el = document.getElementById('sql-schema-textarea') as HTMLTextAreaElement;
-                    if (el) {
-                      navigator.clipboard.writeText(el.value);
-                      toast.success('SQL copiado para a área de transferência!');
-                    }
+                    const content = csvPreview || SQL_SCHEMA;
+                    navigator.clipboard.writeText(content);
+                    toast.success(csvPreview ? 'CSV copiado!' : 'SQL copiado para a área de transferência!');
                   }}>
-                    <Copy className="h-4 w-4 mr-1" /> Copiar SQL
+                    <Copy className="h-4 w-4 mr-1" /> Copiar {csvPreview ? 'CSV' : 'SQL'}
                   </Button>
                 </div>
                 <Textarea
                   id="sql-schema-textarea"
                   readOnly
                   className="font-mono text-[11px] min-h-[400px] bg-muted/30"
-                  value={SQL_SCHEMA}
+                  value={csvPreview || SQL_SCHEMA}
                 />
               </CardContent>
             </Card>
