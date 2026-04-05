@@ -37,6 +37,7 @@ const AdminMaster = () => {
   const [userSearch, setUserSearch] = useState('');
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [exportLoading, setExportLoading] = useState(false);
+  const [csvPreview, setCsvPreview] = useState('');
 
   const EXPORT_FILTER_EMAILS = [
     'rodrygo.sv12@gmail.com',
@@ -1281,7 +1282,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                       disabled={exportLoading || exportSelected.size === 0}
                       onClick={async () => {
                         setExportLoading(true);
-                        const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+                        let allCsv = '';
                         let ok = 0, err = 0;
                         for (const key of exportSelected) {
                           try {
@@ -1297,18 +1298,14 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                               };
                               const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h])).join(','));
                               const csv = [headers.join(','), ...csvRows].join('\n');
-                              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                              const link = document.createElement('a');
-                              link.href = URL.createObjectURL(blob);
-                              link.download = `${key}_supabase_import_${dateStr}.csv`;
-                              link.click();
-                              URL.revokeObjectURL(link.href);
+                              allCsv += `-- ======== ${key.toUpperCase()} ========\n${csv}\n\n`;
                               ok++;
                             }
                           } catch { err++; }
                         }
+                        setCsvPreview(allCsv);
                         setExportLoading(false);
-                        if (ok > 0) toast.success(`${ok} CSV(s) para importação gerado(s)`);
+                        if (ok > 0) toast.success(`${ok} CSV(s) gerado(s) no campo abaixo`);
                         if (err > 0) toast.error(`${err} tabela(s) com erro`);
                       }}
                     >
@@ -1329,10 +1326,33 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                     </div>
                   ))}
                 </div>
+
+                {csvPreview && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">CSV Gerado</h3>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => {
+                          navigator.clipboard.writeText(csvPreview);
+                          toast.success('CSV copiado!');
+                        }}>
+                          <Copy className="h-4 w-4 mr-1" /> Copiar CSV
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setCsvPreview('')}>
+                          Limpar
+                        </Button>
+                      </div>
+                    </div>
+                    <Textarea
+                      readOnly
+                      className="font-mono text-[11px] min-h-[400px] bg-muted/30"
+                      value={csvPreview}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* SQL Schema */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2"><Code className="h-5 w-5" /> SQL das Tabelas (CREATE TABLE)</CardTitle>
