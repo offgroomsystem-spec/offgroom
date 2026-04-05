@@ -1132,19 +1132,6 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
               <h2 className="text-2xl font-bold flex items-center gap-2"><Database className="h-6 w-6" /> Exportar Dados do Sistema</h2>
             </div>
             <p className="text-sm text-muted-foreground">Selecione as tabelas para exportar. Os dados são filtrados apenas para os clientes autorizados.</p>
-            {(() => {
-              const EXPORT_FILTER_EMAILS = [
-                'rodrygo.sv12@gmail.com',
-                'dogloverpet1@gmail.com',
-                'barrositalo350@gmail.com',
-                'carloseduardopereira2254@gmail.com',
-                'igorkilzee175@gmail.com',
-                'eixospetcare@gmail.com',
-              ];
-              // Store in a ref-like variable accessible to buttons below
-              (window as any).__exportFilterEmails = EXPORT_FILTER_EMAILS;
-              return null;
-            })()}
 
             <Card>
               <CardContent className="pt-6 space-y-4">
