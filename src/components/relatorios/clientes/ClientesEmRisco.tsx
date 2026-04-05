@@ -183,21 +183,8 @@ export const ClientesEmRisco = () => {
           .eq("user_id", ownerId)
           .limit(1);
 
-        if (instances && instances.length > 0) {
-          const inst = instances[0];
-          whatsappInstanceRef.current.name = inst.instance_name;
-
-          if (inst.status === "connected") {
-            try {
-              const { data } = await supabase.functions.invoke("evolution-api", {
-                body: { action: "check-status", instanceName: inst.instance_name },
-              });
-              whatsappInstanceRef.current.connected = data?.instance?.state === "open";
-            } catch {
-              whatsappInstanceRef.current.connected = false;
-            }
-          }
-        }
+        // Evolution API removed - always use wa.me fallback
+        whatsappInstanceRef.current.connected = false;
       } catch (err) {
         console.error("Erro ao carregar instância WhatsApp:", err);
       }
