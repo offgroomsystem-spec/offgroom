@@ -1189,8 +1189,9 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           try {
                             const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
+                              const remapped = remapExportRows(resp.rows);
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
-                              const ws = XLSX.utils.json_to_sheet(resp.rows);
+                              const ws = XLSX.utils.json_to_sheet(remapped);
                               const wb = XLSX.utils.book_new();
                               XLSX.utils.book_append_sheet(wb, ws, key.slice(0, 31));
                               XLSX.writeFile(wb, `${key}_${dateStr}.xlsx`);
