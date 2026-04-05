@@ -98,32 +98,8 @@ const EstadiasAtivas = ({ estadias, onRegistro, onCheckoutDireto, onVerDetalhes,
   const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set());
   const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, Record<string, boolean>>>({});
   const [sendingHistory, setSendingHistory] = useState<Set<string>>(new Set());
-  const [whatsappConnected, setWhatsappConnected] = useState(false);
-  const [whatsappInstanceName, setWhatsappInstanceName] = useState("");
-  const lastSendRef = useRef<number>(0);
-
-  // Load WhatsApp instance status
-  useEffect(() => {
-    if (!ownerId) return;
-    (async () => {
-      const { data } = await supabase
-        .from("whatsapp_instances")
-        .select("instance_name, status")
-        .eq("user_id", ownerId)
-        .maybeSingle();
-      if (data?.instance_name) {
-        setWhatsappInstanceName(data.instance_name);
-        try {
-          const res = await supabase.functions.invoke("evolution-api", {
-            body: { action: "check-status", instanceName: data.instance_name },
-          });
-          setWhatsappConnected(res.data?.instance?.state === "open");
-        } catch {
-          setWhatsappConnected(false);
-        }
-      }
-    })();
-  }, [ownerId]);
+  const whatsappConnected = false;
+  const whatsappInstanceName = "";
 
   const handleSendHistory = async (estadia: Estadia, tipo: "diario" | "completo") => {
     const key = `${estadia.id}-${tipo}`;
