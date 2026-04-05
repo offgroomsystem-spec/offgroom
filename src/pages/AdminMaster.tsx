@@ -1020,6 +1020,37 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
     return data;
   }, []);
 
+  const callAdminOrThrow = useCallback(async (action: string, params?: any) => {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      throw new Error(sessionError.message || 'Erro ao validar sessão');
+    }
+
+    if (!session) {
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    const { data, error } = await supabase.functions.invoke('admin-master', {
+      body: { action, params },
+      headers: { Authorization: `Bearer ${session.access_token}` }
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Falha ao chamar o backend');
+    }
+
+    if (!data) {
+      throw new Error('A exportação retornou uma resposta vazia do backend.');
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  }, []);
+
   const loadDashboard = useCallback(async () => {
     setLoadingData(true);
     const data = await callAdmin('dashboard');
@@ -1509,20 +1540,30 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                         setExportLoading(true);
                         const key = [...exportSelected][0];
                         try {
-                          const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
-                          if (resp?.rows && resp.rows.length > 0) {
-                            const csv = buildSupabaseCompatibleCsv(resp.rows, key);
-                            if (csv) {
-                              setCsvPreview(csv);
-                              toast.success('CSV gerado no campo abaixo');
-                            } else {
-                              toast.error('Nenhum registro encontrado após filtros');
-                            }
-                          } else {
-                            toast.error('Tabela vazia');
+                          const resp = await callAdminOrThrow('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
+                          const rowCount = Array.isArray(resp?.rows) ? resp.rows.length : 0;
+
+                          if (rowCount === 0) {
+                            toast.error(`Nenhum registro retornado para ${key} após os filtros aplicados`);
+                            setCsvPreview('');
+                            return;
                           }
-                        } catch { toast.error('Erro ao gerar CSV'); }
-                        setExportLoading(false);
+
+                          const csv = buildSupabaseCompatibleCsv(resp.rows, key);
+                          if (csv) {
+                            setCsvPreview(csv);
+                            toast.success(`CSV gerado com ${rowCount} registro(s)`);
+                          } else {
+                            toast.error(`Os ${rowCount} registro(s) foram retornados, mas removidos pela sanitização do CSV`);
+                            setCsvPreview('');
+                          }
+                        } catch (error) {
+                          const message = error instanceof Error ? error.message : 'Erro ao gerar CSV';
+                          toast.error(message);
+                          setCsvPreview('');
+                        } finally {
+                          setExportLoading(false);
+                        }
                       }}
                     >
                       <Download className="h-4 w-4 mr-1" /> Gerar CSV {exportSelected.size === 1 ? `(${[...exportSelected][0]})` : ''}
