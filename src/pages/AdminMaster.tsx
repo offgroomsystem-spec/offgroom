@@ -1483,27 +1483,10 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                           try {
                             const resp = await callAdmin('export_table', { table: key, user_emails: EXPORT_FILTER_EMAILS });
                             if (resp?.rows && resp.rows.length > 0) {
-                              const remapped = remapExportRows(resp.rows, key);
-                              if (remapped.length === 0) continue;
-                              const formatDate = (val: any) => {
-                                if (typeof val !== 'string') return val;
-                                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                                  const d = new Date(val);
-                                  if (!isNaN(d.getTime())) {
-                                    const p = (n: number) => String(n).padStart(2, '0');
-                                    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-                                  }
-                                }
-                                if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return `${val} 00:00:00`;
-                                return val;
-                              };
-                              const formatted = remapped.map((row: any) => {
-                                const nr: any = {};
-                                for (const k of Object.keys(row)) nr[k] = formatDate(row[k]);
-                                return nr;
-                              });
+                              const sanitized = getSanitizedExportData(resp.rows, key);
+                              if (!sanitized) continue;
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
-                              const ws = XLSX.utils.json_to_sheet(formatted);
+                              const ws = XLSX.utils.json_to_sheet(sanitized.rows);
                               const wb = XLSX.utils.book_new();
                               XLSX.utils.book_append_sheet(wb, ws, key.slice(0, 31));
                               XLSX.writeFile(wb, `${key}_${dateStr}.xlsx`);
