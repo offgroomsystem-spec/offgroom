@@ -71,8 +71,8 @@ export const ExportDataDialog = ({ open, onOpenChange }: ExportDataDialogProps) 
     const headers = Object.keys(rows[0]);
     const escape = (v: any) => {
       if (v === null || v === undefined) return "";
-      const s = typeof v === "object" ? JSON.stringify(v) : String(v);
-      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      const s = (typeof v === "object" ? JSON.stringify(v) : String(v)).replace(/(\r\n|\r|\n)/gm, ' ');
+      if (s.includes(",") || s.includes('"')) {
         return `"${s.replace(/"/g, '""')}"`;
       }
       return s;

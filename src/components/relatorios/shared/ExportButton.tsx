@@ -35,9 +35,12 @@ export const ExportButton = ({ data, filename, columns }: ExportButtonProps) => 
           value = format(value, 'dd/MM/yyyy');
         }
         
-        // Escapar vírgulas e aspas
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`;
+        // Strip newlines to prevent CSV row splitting
+        if (typeof value === 'string') {
+          value = value.replace(/(\r\n|\r|\n)/gm, ' ');
+          if (value.includes(',') || value.includes('"')) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
         }
         return value || '';
       }).join(',')
