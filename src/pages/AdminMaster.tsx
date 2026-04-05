@@ -111,10 +111,7 @@ const AdminMaster = () => {
   ]);
 
   const remapExportRows = (rows: any[], tableKey?: string) => {
-    let result = rows;
-    if (tableKey === 'agendamentos') {
-      result = result.filter(row => !EXCLUDED_AGENDAMENTO_IDS.has(row.id));
-    }
+    let result = rows.filter(row => !EXCLUDED_AGENDAMENTO_IDS.has(row.id));
     return result.map(row => {
       if (row.cliente_id && EXPORT_ID_REMAP[row.cliente_id]) {
         return { ...row, id: EXPORT_ID_REMAP[row.cliente_id] };
