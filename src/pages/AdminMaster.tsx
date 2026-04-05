@@ -1282,7 +1282,7 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                       disabled={exportLoading || exportSelected.size === 0}
                       onClick={async () => {
                         setExportLoading(true);
-                        const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+                        let allCsv = '';
                         let ok = 0, err = 0;
                         for (const key of exportSelected) {
                           try {
@@ -1298,18 +1298,14 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                               };
                               const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h])).join(','));
                               const csv = [headers.join(','), ...csvRows].join('\n');
-                              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                              const link = document.createElement('a');
-                              link.href = URL.createObjectURL(blob);
-                              link.download = `${key}_supabase_import_${dateStr}.csv`;
-                              link.click();
-                              URL.revokeObjectURL(link.href);
+                              allCsv += `-- ======== ${key.toUpperCase()} ========\n${csv}\n\n`;
                               ok++;
                             }
                           } catch { err++; }
                         }
+                        setCsvPreview(allCsv);
                         setExportLoading(false);
-                        if (ok > 0) toast.success(`${ok} CSV(s) para importação gerado(s)`);
+                        if (ok > 0) toast.success(`${ok} CSV(s) gerado(s) no campo abaixo`);
                         if (err > 0) toast.error(`${err} tabela(s) com erro`);
                       }}
                     >
