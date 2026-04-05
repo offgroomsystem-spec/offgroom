@@ -119,18 +119,45 @@ const AdminMaster = () => {
     'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6',
   ]);
 
+  const ALLOWED_USER_IDS = new Set([
+    'd3d089ba-fa43-4f83-bf88-3b9ae7cf5255',
+    '0084ab9b-fc08-4fa3-b97b-ddb17c67eb89',
+    '6a8f7a7b-a093-42fd-b1b5-69e31134c5be',
+    '059ad3ef-0dfa-4712-9add-ad15969628cb',
+    'aa81f151-3154-4379-89ec-d64d3a6a6838',
+    '3baba1f6-59c4-40b5-9aa2-63a5d9e67312',
+  ]);
+
   const remapExportRows = (rows: any[], tableKey?: string) => {
     let result = rows
       .filter(row => {
+        // Filtrar por user_id quando disponível
+        if (row.user_id !== undefined && row.user_id !== null) {
+          if (!ALLOWED_USER_IDS.has(row.user_id)) return false;
+        }
+        // Filtrar clientes pelo id direto
         if (tableKey === 'clientes') return ALLOWED_CLIENTE_IDS.has(row.id);
-        if (row.cliente_id !== undefined && row.cliente_id !== null) return ALLOWED_CLIENTE_IDS.has(row.cliente_id);
+        // Filtrar por cliente_id quando disponível
+        if (row.cliente_id !== undefined && row.cliente_id !== null) {
+          return ALLOWED_CLIENTE_IDS.has(row.cliente_id);
+        }
         return true;
       });
     return result.map(row => {
-      if (row.cliente_id && EXPORT_ID_REMAP[row.cliente_id]) {
-        return { ...row, id: EXPORT_ID_REMAP[row.cliente_id] };
+      const newRow = { ...row };
+      // Remapear user_id
+      if (newRow.user_id && EXPORT_ID_REMAP[newRow.user_id]) {
+        newRow.user_id = EXPORT_ID_REMAP[newRow.user_id];
       }
-      return row;
+      // Remapear cliente_id
+      if (newRow.cliente_id && EXPORT_ID_REMAP[newRow.cliente_id]) {
+        newRow.cliente_id = EXPORT_ID_REMAP[newRow.cliente_id];
+      }
+      // Remapear id da tabela clientes
+      if (tableKey === 'clientes' && EXPORT_ID_REMAP[newRow.id]) {
+        newRow.id = EXPORT_ID_REMAP[newRow.id];
+      }
+      return newRow;
     });
   };
 
