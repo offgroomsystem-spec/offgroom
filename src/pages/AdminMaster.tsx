@@ -1020,6 +1020,37 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
     return data;
   }, []);
 
+  const callAdminOrThrow = useCallback(async (action: string, params?: any) => {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      throw new Error(sessionError.message || 'Erro ao validar sessão');
+    }
+
+    if (!session) {
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    const { data, error } = await supabase.functions.invoke('admin-master', {
+      body: { action, params },
+      headers: { Authorization: `Bearer ${session.access_token}` }
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Falha ao chamar o backend');
+    }
+
+    if (!data) {
+      throw new Error('A exportação retornou uma resposta vazia do backend.');
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  }, []);
+
   const loadDashboard = useCallback(async () => {
     setLoadingData(true);
     const data = await callAdmin('dashboard');
