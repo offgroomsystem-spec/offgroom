@@ -38,6 +38,15 @@ const AdminMaster = () => {
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [exportLoading, setExportLoading] = useState(false);
 
+  const EXPORT_FILTER_EMAILS = [
+    'rodrygo.sv12@gmail.com',
+    'dogloverpet1@gmail.com',
+    'barrositalo350@gmail.com',
+    'carloseduardopereira2254@gmail.com',
+    'igorkilzee175@gmail.com',
+    'eixospetcare@gmail.com',
+  ];
+
   const ADMIN_EXPORT_TABLES = [
     { key: "profiles", label: "Perfis (Users)" },
     { key: "subscriptions", label: "Assinaturas" },
