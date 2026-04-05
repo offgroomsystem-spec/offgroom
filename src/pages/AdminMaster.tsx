@@ -124,6 +124,7 @@ const AdminMaster = () => {
     '85c44900-5f73-47fb-acb9-233cfc1b4917',
     '0b668c07-9eca-4eb8-b905-8baf6d636757',
     'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6',
+    '63800c70-1d59-4dd5-95b3-a823b1635761',
   ]);
 
   const BACKEND_FILTERED_TABLES = new Set([
