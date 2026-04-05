@@ -2566,52 +2566,16 @@ const Agendamentos = () => {
       return;
     }
 
-    if (!whatsappConnected || !whatsappInstanceName) {
-      // Fallback wa.me
-      const url = buildWhatsAppUrl(numeroWhatsApp, mensagem);
-      if (!url) {
-        toast.error(getInvalidPhoneMessage(numeroWhatsAppRaw));
-        setPetProntoDialogOpen(false);
-        return;
-      }
-      window.open(url, '_blank');
-      registerSend(clienteNomePP, petNomePP, "pet_pronto");
+    // Always use wa.me (Evolution API removed)
+    const url = buildWhatsAppUrl(numeroWhatsApp, mensagem);
+    if (!url) {
+      toast.error(getInvalidPhoneMessage(numeroWhatsAppRaw));
       setPetProntoDialogOpen(false);
       return;
     }
-
-    const sendTask = async () => {
-      try {
-        const res = await supabase.functions.invoke("evolution-api", {
-          body: { action: "send-message", instanceName: whatsappInstanceName, number: numeroWhatsApp, text: mensagem }
-        });
-        if (res.error) {
-          const detail = res.data?.error || res.data?.details || res.error?.message || "Erro desconhecido";
-          throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
-        }
-        toast.success(`✅ Mensagem "Pet Pronto" enviada para ${primeiroNome}!`);
-        registerSend(clienteNomePP, petNomePP, "pet_pronto");
-      } catch (err: any) {
-        console.error("Erro ao enviar Pet Pronto:", err);
-        toast.error(`❌ Erro ao enviar para ${primeiroNome}`, { description: err?.message || "Tente novamente" });
-      }
-    };
-
-    const now = Date.now();
-    const timeSinceLast = now - lastSendTimestampRef.current;
-    
-    if (timeSinceLast >= 10000 && sendQueueRef.current.length === 0) {
-      lastSendTimestampRef.current = Date.now();
-      sendTask();
-      toast.info(`📤 Enviando "Pet Pronto" para ${primeiroNome}...`);
-    } else {
-      sendQueueRef.current.push(sendTask);
-      toast.info(`⏳ Mensagem "Pet Pronto" para ${primeiroNome} na fila (${sendQueueRef.current.length} pendente${sendQueueRef.current.length > 1 ? 's' : ''})`);
-      processarFilaEnvios();
-    }
-
+    window.open(url, '_blank');
+    registerSend(clienteNomePP, petNomePP, "pet_pronto");
     setPetProntoDialogOpen(false);
-  };
 
   // Convert dia item to AgendamentoUnificado for edit dialog
   const convertDiaItemToUnificado = (item: typeof agendamentosDia[0]): AgendamentoUnificado => {
