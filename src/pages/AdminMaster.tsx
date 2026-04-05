@@ -46,6 +46,7 @@ const AdminMaster = () => {
     'carloseduardopereira2254@gmail.com',
     'igorkilzee175@gmail.com',
     'eixospetcare@gmail.com',
+    'benodahora@hotmail.com',
   ];
 
   // Mapeamento de IDs para substituição no arquivo de download (não altera banco)
