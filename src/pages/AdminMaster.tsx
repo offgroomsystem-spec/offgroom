@@ -40,12 +40,6 @@ const AdminMaster = () => {
   const [csvPreview, setCsvPreview] = useState('');
 
   const EXPORT_FILTER_EMAILS = [
-    'rodrygo.sv12@gmail.com',
-    'dogloverpet1@gmail.com',
-    'barrositalo350@gmail.com',
-    'carloseduardopereira2254@gmail.com',
-    'igorkilzee175@gmail.com',
-    'eixospetcare@gmail.com',
     'benodahora@hotmail.com',
   ];
 
