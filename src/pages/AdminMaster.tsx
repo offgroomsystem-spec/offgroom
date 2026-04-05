@@ -274,18 +274,22 @@ const AdminMaster = () => {
     return 'text';
   };
 
+  type CsvColumnType = 'number' | 'boolean' | 'date' | 'uuid' | 'text';
+
   const buildSupabaseCompatibleCsv = (rows: any[], tableKey: string) => {
     const remapped = remapExportRows(rows, tableKey);
     if (remapped.length === 0) return null;
 
-    let headers = Array.from(
-      remapped.reduce((acc, row) => {
+    let headers: string[] = Array.from(
+      remapped.reduce<Set<string>>((acc, row) => {
         Object.keys(row).forEach(key => acc.add(key));
         return acc;
       }, new Set<string>())
     );
 
-    const columnTypes = new Map(headers.map(header => [header, detectCsvColumnType(header, remapped)]));
+    const columnTypes = new Map<string, CsvColumnType>(
+      headers.map((header): [string, CsvColumnType] => [header, detectCsvColumnType(header, remapped)])
+    );
 
     headers = headers.filter(header => {
       const type = columnTypes.get(header);
@@ -300,7 +304,7 @@ const AdminMaster = () => {
 
     if (headers.length === 0) return null;
 
-    const escapeCsvValue = (value: any, type: 'number' | 'boolean' | 'date' | 'uuid' | 'text') => {
+    const escapeCsvValue = (value: any, type: CsvColumnType) => {
       if (isMissingValue(value)) {
         return type === 'number' ? '0' : '';
       }
