@@ -1286,8 +1286,25 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                             if (resp?.rows && resp.rows.length > 0) {
                               const remapped = remapExportRows(resp.rows, key);
                               if (remapped.length === 0) continue;
+                              const formatDate = (val: any) => {
+                                if (typeof val !== 'string') return val;
+                                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+                                  const d = new Date(val);
+                                  if (!isNaN(d.getTime())) {
+                                    const p = (n: number) => String(n).padStart(2, '0');
+                                    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+                                  }
+                                }
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return `${val} 00:00:00`;
+                                return val;
+                              };
+                              const formatted = remapped.map((row: any) => {
+                                const nr: any = {};
+                                for (const k of Object.keys(row)) nr[k] = formatDate(row[k]);
+                                return nr;
+                              });
                               const XLSX = (await import('xlsx')).default || await import('xlsx');
-                              const ws = XLSX.utils.json_to_sheet(remapped);
+                              const ws = XLSX.utils.json_to_sheet(formatted);
                               const wb = XLSX.utils.book_new();
                               XLSX.utils.book_append_sheet(wb, ws, key.slice(0, 31));
                               XLSX.writeFile(wb, `${key}_${dateStr}.xlsx`);
@@ -1315,9 +1332,23 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
                             const remapped = remapExportRows(resp.rows, key);
                             if (remapped.length > 0) {
                               const headers = Object.keys(remapped[0]);
+                              const formatDateValue = (val: string): string => {
+                                // ISO 8601 with T and timezone -> YYYY-MM-DD HH:MM:SS
+                                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+                                  const d = new Date(val);
+                                  if (!isNaN(d.getTime())) {
+                                    const pad = (n: number) => String(n).padStart(2, '0');
+                                    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                                  }
+                                }
+                                // Date only YYYY-MM-DD -> keep + add 00:00:00
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return `${val} 00:00:00`;
+                                return val;
+                              };
                               const escape = (v: any) => {
                                 if (v === null || v === undefined || v === '') return 'null';
-                                const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                                let s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                                s = formatDateValue(s);
                                 return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
                               };
                               const csvRows = remapped.map((r: any) => headers.map(h => escape(r[h])).join(','));
