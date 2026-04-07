@@ -40,7 +40,7 @@ const AdminMaster = () => {
   const [csvPreview, setCsvPreview] = useState('');
 
   const EXPORT_FILTER_EMAILS = [
-    'benodahora@hotmail.com',
+    'ellanny.fsp@gmail.com',
   ];
 
   // Mapeamento de IDs para substituição no arquivo de download (não altera banco)
@@ -114,6 +114,7 @@ const AdminMaster = () => {
     '0b668c07-9eca-4eb8-b905-8baf6d636757',
     'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6',
     '63800c70-1d59-4dd5-95b3-a823b1635761',
+    '01ce1624-3726-4650-9383-c1a353a2b655',
   ]);
 
   const ALLOWED_USER_IDS = new Set([
@@ -125,6 +126,7 @@ const AdminMaster = () => {
     '0b668c07-9eca-4eb8-b905-8baf6d636757',
     'f85ce7e8-0738-4f2e-8bf9-95dd3c5f1ea6',
     '63800c70-1d59-4dd5-95b3-a823b1635761',
+    '01ce1624-3726-4650-9383-c1a353a2b655',
   ]);
 
   const BACKEND_FILTERED_TABLES = new Set([
