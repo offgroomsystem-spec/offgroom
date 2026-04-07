@@ -40,7 +40,13 @@ const AdminMaster = () => {
   const [csvPreview, setCsvPreview] = useState('');
 
   const EXPORT_FILTER_EMAILS = [
-    'ellanny.fsp@gmail.com',
+    'rodrygo.sv12@gmail.com',
+    'dogloverpet1@gmail.com',
+    'barrositalo350@gmail.com',
+    'carloseduardopereira2254@gmail.com',
+    'igorkilzee175@gmail.com',
+    'benodahora@hotmail.com',
+    'eixospetcare@gmail.com',
   ];
 
   // Mapeamento de IDs para substituição no arquivo de download (não altera banco)
