@@ -191,12 +191,14 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
 
   const startTime = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const { data: existingMessages } = await supabase
-    .from("whatsapp_mensagens_agendadas" as any)
+    .from("whatsapp_mensagens_agendadas")
     .select("*")
     .eq("numero_whatsapp", numero)
     .eq("status", "pendente")
     .eq("user_id", params.userId)
     .gt("agendado_para", startTime);
+
+  const castedExistingMessages = existingMessages as any[] | null;
 
   const updatedParams = { ...params };
   const confirmationMsg = buildConfirmationMessage(updatedParams);
