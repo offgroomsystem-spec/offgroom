@@ -189,6 +189,59 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     numero = "55" + numero;
   }
 
+  // 1. Buscar todos os agendamentos deste cliente para o mesmo dia e horário
+  const { data: concurrentAgendamentos } = await supabase
+    .from("agendamentos")
+    .select("pet, raca, servico, cliente_id")
+    .eq("user_id", params.userId)
+    .eq("data", params.dataAgendamento)
+    .eq("horario", params.horarioInicio)
+    .eq("whatsapp", params.whatsapp);
+
+  const { data: concurrentPacotes } = await supabase
+    .from("agendamentos_pacotes")
+    .select("nome_pet, raca, servicos, id")
+    .eq("user_id", params.userId)
+    .eq("whatsapp", params.whatsapp);
+
+  const concurrentPacoteServices = (concurrentPacotes || []).flatMap(p => 
+    (p.servicos as any[])
+      .filter(s => s.data === params.dataAgendamento && s.horarioInicio === params.horarioInicio)
+      .map(s => ({ pet: p.nome_pet, raca: p.raca, servico: s.nomeServico, cliente_id: (p as any).cliente_id }))
+  );
+
+  const allPetsMap = new Map<string, PetInfo>();
+  allPetsMap.set(params.nomePet, { nome: params.nomePet, sexo: params.sexoPet, servicos: params.servicos });
+
+  for (const a of concurrentAgendamentos || []) {
+    if (a.pet !== params.nomePet) {
+      const { data: petData } = await supabase.from("pets").select("sexo").eq("cliente_id", a.cliente_id).eq("nome_pet", a.pet).maybeSingle();
+      allPetsMap.set(a.pet, { nome: a.pet, sexo: (petData as any)?.sexo || "", servicos: a.servico });
+    }
+  }
+
+  for (const ps of concurrentPacoteServices) {
+    if (ps.pet !== params.nomePet) {
+      const { data: petData } = await supabase.from("pets").select("sexo").eq("nome_pet", ps.pet).eq("user_id", params.userId).limit(1).maybeSingle();
+      allPetsMap.set(ps.pet, { nome: ps.pet, sexo: (petData as any)?.sexo || "", servicos: ps.servico });
+    }
+  }
+
+  if (params.outrosPets) {
+    params.outrosPets.forEach(p => {
+      if (!allPetsMap.has(p.nome)) allPetsMap.set(p.nome, p);
+    });
+  }
+
+  const consolidatedPets = Array.from(allPetsMap.values());
+  const updatedParams = { 
+    ...params, 
+    nomePet: consolidatedPets[0].nome,
+    sexoPet: consolidatedPets[0].sexo,
+    servicos: consolidatedPets[0].servicos,
+    outrosPets: consolidatedPets.slice(1) 
+  };
+
   const startTime = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const { data: existingMessages } = await supabase
     .from("whatsapp_mensagens_agendadas")
@@ -200,7 +253,6 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
 
   const castedExistingMessages = (existingMessages || []) as any[];
 
-  const updatedParams = { ...params };
   const confirmationMsg = buildConfirmationMessage(updatedParams);
   const mensagensParaInserir: any[] = [];
 
@@ -238,21 +290,18 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
       const agendadoPara = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000);
       if (agendadoPara.getTime() > now.getTime()) addMensagem("24h", agendadoPara, confirmationMsg);
     }
-
     if (conf15h && diffMinutes > 15 * 60) {
       let agendadoPara = new Date(agendamentoDateTime.getTime() - 15 * 60 * 60 * 1000);
       const brtHour = (agendadoPara.getUTCHours() - 3 + 24) % 24;
       if (brtHour > 18) agendadoPara.setUTCHours(21, 0, 0, 0);
       if (agendadoPara.getTime() > now.getTime()) addMensagem("15h", agendadoPara, confirmationMsg);
     }
-
     if (conf3h && diffMinutes > 3 * 60) {
       let agendadoPara = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
       const brtHour = (agendadoPara.getUTCHours() - 3 + 24) % 24;
       if (brtHour < 7) agendadoPara.setUTCHours(10, 0, 0, 0);
       if (agendadoPara.getTime() > now.getTime()) addMensagem("3h", agendadoPara, confirmationMsg);
     }
-
     const menorPeriodoMinutos = conf3h ? 3 * 60 : conf15h ? 15 * 60 : conf24h ? 24 * 60 : 3 * 60;
     if (diffMinutes > 61 && diffMinutes <= menorPeriodoMinutos) {
       addMensagem("imediata", now, confirmationMsg);
@@ -282,7 +331,7 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
   if (mensagensParaInserir.length > 0) {
     for (const msg of mensagensParaInserir) {
       const msgKey = msg.agendado_para.substring(0, 16);
-      const similar = castedExistingMessages?.find(m => 
+      const similar = castedExistingMessages.find(m => 
         m.tipo_mensagem === msg.tipo_mensagem && 
         m.agendado_para.substring(0, 16) === msgKey
       );
