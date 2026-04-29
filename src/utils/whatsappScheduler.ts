@@ -198,7 +198,7 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     .eq("user_id", params.userId)
     .gt("agendado_para", startTime);
 
-  const castedExistingMessages = existingMessages as any[] | null;
+  const castedExistingMessages = (existingMessages || []) as any[];
 
   const updatedParams = { ...params };
   const confirmationMsg = buildConfirmationMessage(updatedParams);
