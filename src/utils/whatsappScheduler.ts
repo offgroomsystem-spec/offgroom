@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+interface PetInfo {
+  nome: string;
+  sexo: string;
+  servicos: string;
+}
+
 interface ScheduleParams {
   userId: string;
   agendamentoId?: string;
@@ -18,6 +24,7 @@ interface ScheduleParams {
   isPacote: boolean;
   isUltimoServicoPacote?: boolean;
   createdAt?: Date;
+  outrosPets?: PetInfo[];
 }
 
 function getSexoPrefix(sexo: string, tipo: "do" | "o" | "ele"): string {

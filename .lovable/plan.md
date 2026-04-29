@@ -1,76 +1,25 @@
+I will audit the database and code to identify why the third appointment was missing and why messages weren't grouped. I will then implement a robust grouping logic for automated WhatsApp messages.
 
-Objetivo: ajustar a visualização Cards da agenda “Hoje” para que cards do mesmo horário/conflito tenham larguras iguais, ocupem melhor o espaço horizontal e nunca se sobreponham.
+### Audit Findings
+- The system currently schedules one WhatsApp message per appointment. When a client has multiple pets scheduled at the same time, this results in multiple separate messages.
+- The `scheduleWhatsAppMessages` function is called sequentially for each pet, and it doesn't currently check for other appointments to merge them.
+- One pet (Jolie) might have been missed if the automated scheduler was triggered before all appointments were fully saved or if there was a duplicate check conflict.
 
-1. Revisar a lógica de agrupamento horizontal
-- Manter a base atual em `src/pages/Agendamentos.tsx`, no bloco `diaViewMode === "cards"`.
-- Separar com mais clareza dois conceitos que hoje estão misturados:
-  - grupo de conflito por tempo (quem realmente disputa espaço);
-  - redistribuição visual entre cards simultâneos.
+### Technical Steps
 
-2. Recalcular colunas por grupo de conflito
-- Continuar usando componentes conectados por sobreposição de intervalo.
-- Dentro de cada grupo, recalcular as colunas com uma regra estável:
-  - cada card recebe uma coluna base sem colisão;
-  - cards que se sobrepõem no tempo nunca podem compartilhar a mesma faixa horizontal;
-  - cards do mesmo conjunto simultâneo devem usar exatamente a mesma largura.
+1.  **Enhance `whatsappScheduler.ts`**:
+    - Modify `ScheduleParams` to support multiple pets.
+    - Update `buildConfirmationMessage` and `buildReminderMessage` to dynamically pluralize text (e.g., "seu pet" vs "seus pets", "receber ele" vs "receber eles") and join pet names (e.g., "Luck, Luna e Jolie").
+    - Implement logic in `scheduleWhatsAppMessages` to check for existing pending messages for the same WhatsApp number and time slot.
+    - If a pending message exists, update it by adding the new pet's name and services instead of creating a duplicate message.
 
-3. Redistribuir largura de forma “estilo calendário”
-- Para cada conjunto de cards ativos ao mesmo tempo:
-  - identificar a primeira coluna disponível;
-  - identificar o limite máximo à direita sem invadir card de outro conjunto;
-  - dividir esse espaço igualmente entre os cards simultâneos.
-- Resultado esperado:
-  - dois cards no mesmo horário ficam com a mesma largura;
-  - eles expandem até quase encostar no próximo bloco lateral;
-  - o gap mínimo entre cards continua constante e não aumenta globalmente.
+2.  **Optimize `Agendamentos.tsx`**:
+    - Refactor the appointment creation flow to pass all pet information to the scheduler in a single call when multiple pets are added simultaneously.
+    - This ensures that the very first message scheduled already contains all pets.
 
-4. Blindar contra sobreposição
-- Aplicar uma checagem final de fronteira horizontal:
-  - nenhum card pode avançar além da coluna ocupada por outro card com interseção de tempo;
-  - nenhum card pode “crescer” sobre um card anterior ou posterior que esteja ativo no mesmo intervalo.
-- Preservar também o espaçamento vertical já calculado por `minToY(...)` e `height`, evitando que cards longos invadam visualmente os de baixo.
+3.  **Audit & Fix**:
+    - Check for any race conditions in the `Agendamentos.tsx` loop that could cause a pet to be skipped.
+    - Ensure pet name matching is case-insensitive and trimmed to prevent mismatches.
 
-5. Ajustar o rendering visual dos cards
-- Refinar apenas os cálculos de:
-  - `left`
-  - `width`
-  - eventualmente um `gap` mínimo interno constante
-- Manter intactos:
-  - conteúdo do card;
-  - ícone de Taxi Dog;
-  - clique para edição;
-  - demais visualizações (Relatório, Semana, etc.).
-
-6. Validar os cenários críticos
-- Mesmo horário com 2 ou mais cards: todos com mesma largura.
-- Horários adjacentes com blocos à direita/esquerda: cards expandem sem encostar indevidamente.
-- Card mais longo acima de cards menores: sem sobreposição.
-- Casos citados no histórico:
-  - 09:30 x 10:00 x 10:30;
-  - cards da Angelica às 10:30;
-  - card da Clara Di Tano às 10:00.
-- Conferir também na viewport atual (~896px) para evitar compressão excessiva.
-
-Detalhes técnicos
-- Arquivo principal: `src/pages/Agendamentos.tsx`
-- Trecho afetado: bloco da visualização `diaViewMode === "cards"` por volta das linhas 5750–5965.
-- Pontos centrais a refatorar:
-  - construção do `colMap`;
-  - cálculo de `maxRight / totalAvail / equalSpan`;
-  - transformação final em `leftPct` e `widthPct`.
-- Estratégia recomendada:
-```text
-1. montar grupos de conflito
-2. atribuir colunas-base sem colisão
-3. identificar subconjuntos simultâneos
-4. calcular faixa horizontal segura para cada subconjunto
-5. dividir largura igualmente dentro dessa faixa
-6. renderizar com gap mínimo constante
-```
-
-Resultado esperado
-- Cards simultâneos com mesma largura.
-- Melhor aproveitamento horizontal.
-- Espaçamento mínimo consistente.
-- Nenhuma sobreposição horizontal ou visual.
-- Layout mais limpo e próximo de calendários modernos.
+4.  **Verification**:
+    - I will verify the logic by checking the generated message templates for cases with 1, 2, and 3 pets.
