@@ -1630,6 +1630,22 @@ const Agendamentos = () => {
           }
         }
 
+        // Coletar informações de outros pets no mesmo horário para agrupar na mensagem
+        const petsNoMesmoHorario = additionalPets
+          .filter(ap => ap.horario === formData.horario)
+          .map(ap => {
+            let sexo = "";
+            for (const c of clientes) {
+              const p = c.pets.find(pet => pet.nome === ap.petName && pet.raca === ap.raca);
+              if (p) { sexo = p.sexo || ""; break; }
+            }
+            return {
+              nome: ap.petName,
+              sexo,
+              servicos: ap.servicos.filter(s => s.nome).map(s => s.nome).join(" + ")
+            };
+          });
+
         await scheduleWhatsAppMessages({
           userId: ownerId || user.id,
           agendamentoId: agendamentoData.id,
@@ -1646,6 +1662,7 @@ const Agendamentos = () => {
           isPacote,
           isUltimoServicoPacote,
           servicoNumero: formData.numeroServicoPacote || undefined,
+          outrosPets: petsNoMesmoHorario,
         });
       } catch (schedErr) {
         console.error("Erro ao agendar mensagens WhatsApp:", schedErr);
