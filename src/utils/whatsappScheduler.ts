@@ -27,12 +27,19 @@ interface ScheduleParams {
   outrosPets?: PetInfo[];
 }
 
-function getSexoPrefix(sexo: string, tipo: "do" | "o" | "ele"): string {
+function getSexoPrefix(sexo: string, tipo: "do" | "o" | "ele" | "seu"): string {
   const isFemea = sexo?.toLowerCase() === "fêmea" || sexo?.toLowerCase() === "femea";
   if (tipo === "do") return isFemea ? "da" : "do";
   if (tipo === "o") return isFemea ? "a" : "o";
   if (tipo === "ele") return isFemea ? "ela" : "ele";
+  if (tipo === "seu") return isFemea ? "sua" : "seu";
   return "do";
+}
+
+function formatPetsList(pets: { nome: string }[]): string {
+  if (pets.length === 1) return pets[0].nome;
+  if (pets.length === 2) return `${pets[0].nome} e ${pets[1].nome}`;
+  return pets.slice(0, -1).map(p => p.nome).join(", ") + " e " + pets[pets.length - 1].nome;
 }
 
 function getPrimeiroNome(nomeCompleto: string): string {
@@ -46,44 +53,52 @@ function formatDataBR(dataISO: string): string {
 
 function buildConfirmationMessage(params: ScheduleParams): string {
   const primeiroNome = getPrimeiroNome(params.nomeCliente);
-  const doDa = getSexoPrefix(params.sexoPet, "do");
   const dataBR = formatDataBR(params.dataAgendamento);
   const bordaoLine = params.bordao ? `\n\n*${params.bordao}*` : "";
-
-  if (!params.isPacote) {
-    // Avulso
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*Pacote de serviços:* Sem Pacote 😕\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
+  
+  const allPets = [{ nome: params.nomePet, sexo: params.sexoPet, servicos: params.servicos }, ...(params.outrosPets || [])];
+  const nomesConcat = formatPetsList(allPets);
+  const isSingular = allPets.length === 1;
+  const allFemale = allPets.every(p => p.sexo?.toLowerCase() === "fêmea" || p.sexo?.toLowerCase() === "femea");
+  
+  const doDa = isSingular ? getSexoPrefix(allPets[0].sexo, "do") : (allFemale ? "das" : "dos");
+  const pluralS = isSingular ? "" : "s";
+  
+  let servicosBlock = "";
+  if (isSingular) {
+    servicosBlock = `\n*Serviço:* ${params.servicos}`;
+  } else {
+    servicosBlock = allPets.map(p => `\n*Serviço ${p.nome}:* ${p.servicos}`).join("");
   }
 
-  if (params.isUltimoServicoPacote) {
-    // Pacote - último serviço
-    return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*N° do Pacote:* ${params.servicoNumero}\n*Taxi Dog:* ${params.taxiDog}\n\nNotei que hoje finalizamos o pacote atual. Que tal já renovar para manter a frequência ideal dos banhos ${doDa} ${params.nomePet}. Assim, você também garante os próximos horários com mais tranquilidade. 😊${bordaoLine}`;
+  const pacoteInfo = params.isPacote 
+    ? `\n*N° do Pacote:* ${params.servicoNumero || "Sim"}`
+    : `\n*Pacote de serviços:* Sem Pacote 😕`;
+
+  const baseMessage = `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa}${pluralS} ${nomesConcat} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}${servicosBlock}${pacoteInfo}\n*Taxi Dog:* ${params.taxiDog}`;
+
+  if (params.isPacote && params.isUltimoServicoPacote) {
+    const doDaPet = isSingular ? getSexoPrefix(allPets[0].sexo, "do") : (allFemale ? "das" : "dos");
+    return `${baseMessage}\n\nNotei que hoje finalizamos o pacote atual. Que tal já renovar para manter a frequência ideal dos banhos ${doDaPet}${pluralS} ${nomesConcat}. Assim, você também garante os próximos horários com mais tranquilidade. 😊${bordaoLine}`;
   }
 
-  // Pacote - não último
-  return `Oi, ${primeiroNome}! Passando apenas para confirmar o agendamento ${doDa} ${params.nomePet} com a gente.\n\n*Dia:* ${dataBR}\n*Horario:* ${params.horarioInicio}\n*Serviço:* ${params.servicos}\n*N° do Pacote:* ${params.servicoNumero}\n*Taxi Dog:* ${params.taxiDog}${bordaoLine}`;
+  return `${baseMessage}${bordaoLine}`;
 }
 
-function buildReminderMessage(params: ScheduleParams, allPets?: Array<{nome: string, sexo: string}>): string {
+function buildReminderMessage(params: ScheduleParams, petsList?: Array<{nome: string, sexo: string}>): string {
   const primeiroNome = getPrimeiroNome(params.nomeCliente);
-  const pets = allPets && allPets.length > 0
-    ? allPets
-    : [{ nome: params.nomePet, sexo: params.sexoPet }];
+  const pets = petsList && petsList.length > 0
+    ? petsList
+    : [{ nome: params.nomePet, sexo: params.sexoPet }, ...(params.outrosPets || [])];
 
   const allFemale = pets.every(p => p.sexo?.toLowerCase() === "fêmea" || p.sexo?.toLowerCase() === "femea");
   const isSingular = pets.length === 1;
+  const nomesConcat = formatPetsList(pets);
 
-  // Concatenar nomes: 1="Rex", 2="Rex e Luna", 3+="Rex, Luna e Mel"
-  let nomesConcat: string;
-  if (pets.length === 1) {
-    nomesConcat = pets[0].nome;
-  } else if (pets.length === 2) {
-    nomesConcat = `${pets[0].nome} e ${pets[1].nome}`;
-  } else {
-    nomesConcat = pets.slice(0, -1).map(p => p.nome).join(", ") + " e " + pets[pets.length - 1].nome;
-  }
-
-  const artigo = allFemale ? "a" : "o";
+  const artigo = isSingular 
+    ? getSexoPrefix(pets[0].sexo, "o")
+    : (allFemale ? "as" : "os");
+    
   const pronome = isSingular
     ? (allFemale ? "ela" : "ele")
     : (allFemale ? "elas" : "eles");
