@@ -1699,8 +1699,8 @@ const Agendamentos = () => {
             allAgendamentoIds.push(apData.id);
             allPetServicos.push({ petName: ap.petName, servicos: apServicosValidos.map(s => ({ nome: s.nome, valor: s.valor })) });
 
-            // WhatsApp para pet adicional (apenas se for horário diferente)
-            if (ap.horario !== formData.horario) {
+            // WhatsApp para pet adicional (apenas se for horário diferente e ainda não processado)
+            if (ap.horario !== formData.horario && !handledPets.has(ap.petName)) {
               try {
                 let sexoPetAd = "";
                 for (const cliente of clientes) {
@@ -1709,8 +1709,14 @@ const Agendamentos = () => {
                 }
                 
                 // Buscar outros pets que compartilham este mesmo horário adicional
-                const outrosPetsMesmoHorario = additionalPets
-                  .filter(otherAp => otherAp.petName !== ap.petName && otherAp.horario === ap.horario)
+                const petsMesmoHorario = additionalPets
+                  .filter(otherAp => otherAp.horario === ap.horario);
+                
+                // Marcar todos como processados
+                petsMesmoHorario.forEach(p => handledPets.add(p.petName));
+
+                const outrosPetsMesmoHorario = petsMesmoHorario
+                  .filter(otherAp => otherAp.petName !== ap.petName)
                   .map(otherAp => {
                     let s = "";
                     for (const c of clientes) {
