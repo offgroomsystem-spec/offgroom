@@ -107,7 +107,6 @@ function buildReminderMessage(params: ScheduleParams, petsList?: Array<{nome: st
 }
 
 function parseDateTime(date: string, time: string): Date {
-  // Criar data em UTC representando horário de Brasília (UTC-3)
   const [year, month, day] = date.split("-").map(Number);
   const [hours, minutes] = time.split(":").map(Number);
   return new Date(Date.UTC(year, month - 1, day, hours + 3, minutes, 0, 0));
@@ -142,7 +141,6 @@ export async function deletePendingMessages(opts: {
 export async function scheduleWhatsAppMessages(params: ScheduleParams & { clienteId?: string }) {
   const now = params.createdAt || new Date();
 
-  // Verificar se o cliente tem WhatsApp ativo
   if (params.clienteId) {
     const { data: clienteData } = await supabase
       .from("clientes")
@@ -153,7 +151,6 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
       return;
     }
 
-    // Verificar se o pet tem WhatsApp ativo
     const { data: petData } = await supabase
       .from("pets")
       .select("whatsapp_ativo")
@@ -165,17 +162,33 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     }
   }
 
-  // 1. Verificar se já existe uma mensagem pendente para este cliente, data e hora
-  // Isso permite agrupar múltiplos pets que são adicionados um a um
+  let usarPeriodoCustom = false;
+  let conf24h = false;
+  let conf15h = false;
+  let conf3h = true;
+  
+  const { data: empresaConfig } = await supabase
+    .from("empresa_config")
+    .select("confirmacao_periodo_ativo, confirmacao_24h, confirmacao_15h, confirmacao_3h, bordao")
+    .eq("user_id", params.userId)
+    .maybeSingle();
+
+  if (empresaConfig) {
+    usarPeriodoCustom = (empresaConfig as any).confirmacao_periodo_ativo ?? true;
+    if (usarPeriodoCustom) {
+      conf24h = (empresaConfig as any).confirmacao_24h ?? false;
+      conf15h = (empresaConfig as any).confirmacao_15h ?? false;
+      conf3h = (empresaConfig as any).confirmacao_3h ?? true;
+    }
+  }
+
   const agendamentoDateTime = parseDateTime(params.dataAgendamento, params.horarioInicio);
   
-  // Formatar número WhatsApp (garantir formato E.164)
   let numero = params.whatsapp.replace(/\D/g, "");
   if (!numero.startsWith("55")) {
     numero = "55" + numero;
   }
 
-  // Buscar mensagens pendentes para o mesmo número e horário (aproximado por minuto)
   const startTime = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const { data: existingMessages } = await supabase
     .from("whatsapp_mensagens_agendadas" as any)
@@ -185,18 +198,7 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     .eq("user_id", params.userId)
     .gt("agendado_para", startTime);
 
-  // Se já houver mensagens pendentes para este horário, vamos consolidar
   const updatedParams = { ...params };
-  if (existingMessages && existingMessages.length > 0) {
-    // Filtrar mensagens que batem com os horários de lembrete que vamos gerar
-    // Para simplificar, vamos apenas adicionar os pets se encontrarmos mensagens que pareçam ser do mesmo agendamento
-    // (mesmo dia e hora de início no texto ou metadados)
-    
-    // Por enquanto, vamos focar em consolidar quando passamos explicitamente 'outrosPets'
-    // Se não passamos, e encontramos algo no DB, poderíamos tentar extrair dados, mas é complexo.
-    // O melhor é garantir que o caller em Agendamentos.tsx passe todos de uma vez.
-  }
-
   const confirmationMsg = buildConfirmationMessage(updatedParams);
   const mensagensParaInserir: any[] = [];
 
@@ -277,35 +279,24 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
 
   if (mensagensParaInserir.length > 0) {
     for (const msg of mensagensParaInserir) {
-      // Tentar encontrar uma mensagem pendente similar para atualizar em vez de inserir
-      // Uma mensagem é similar se tiver o mesmo número, tipo e estiver agendada para o mesmo minuto
       const msgKey = msg.agendado_para.substring(0, 16);
-      
       const similar = existingMessages?.find(m => 
         m.tipo_mensagem === msg.tipo_mensagem && 
         m.agendado_para.substring(0, 16) === msgKey
       );
 
       if (similar) {
-        // Se encontramos uma similar, vamos atualizar o texto
-        // Nota: Isso assume que o caller passou a lista consolidada de pets.
-        // Se não passou, poderíamos tentar fazer o merge do texto aqui, mas é arriscado.
         const { error } = await supabase
           .from("whatsapp_mensagens_agendadas" as any)
           .update({ mensagem: msg.mensagem })
           .eq("id", similar.id);
-        
         if (error) console.error("Erro ao atualizar mensagem WhatsApp similar:", error);
       } else {
         const { error } = await supabase
           .from("whatsapp_mensagens_agendadas" as any)
           .insert(msg);
-
-        if (error && error.code !== "23505") {
-          console.error("Erro ao agendar mensagem WhatsApp:", error);
-        }
+        if (error && error.code !== "23505") console.error("Erro ao agendar mensagem WhatsApp:", error);
       }
     }
   }
-}
 }
