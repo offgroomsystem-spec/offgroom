@@ -1669,6 +1669,7 @@ const Agendamentos = () => {
       }
 
       // Criar agendamentos para pets adicionais (cada um com seus próprios serviços e groomer)
+      const handledPets = new Set<string>();
       for (const ap of additionalPets) {
         const apHorarioTermino = ap.horarioTermino || calcularHorarioTermino(ap.horario, ap.tempoServico);
         const apServicosValidos = ap.servicos.filter(s => s.nome);
