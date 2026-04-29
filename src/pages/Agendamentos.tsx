@@ -1630,6 +1630,22 @@ const Agendamentos = () => {
           }
         }
 
+        // Coletar informações de outros pets no mesmo horário para agrupar na mensagem
+        const petsNoMesmoHorario = additionalPets
+          .filter(ap => ap.horario === formData.horario)
+          .map(ap => {
+            let sexo = "";
+            for (const c of clientes) {
+              const p = c.pets.find(pet => pet.nome === ap.petName && pet.raca === ap.raca);
+              if (p) { sexo = p.sexo || ""; break; }
+            }
+            return {
+              nome: ap.petName,
+              sexo,
+              servicos: ap.servicos.filter(s => s.nome).map(s => s.nome).join(" + ")
+            };
+          });
+
         await scheduleWhatsAppMessages({
           userId: ownerId || user.id,
           agendamentoId: agendamentoData.id,
@@ -1646,12 +1662,14 @@ const Agendamentos = () => {
           isPacote,
           isUltimoServicoPacote,
           servicoNumero: formData.numeroServicoPacote || undefined,
+          outrosPets: petsNoMesmoHorario,
         });
       } catch (schedErr) {
         console.error("Erro ao agendar mensagens WhatsApp:", schedErr);
       }
 
       // Criar agendamentos para pets adicionais (cada um com seus próprios serviços e groomer)
+      const handledPets = new Set<string>();
       for (const ap of additionalPets) {
         const apHorarioTermino = ap.horarioTermino || calcularHorarioTermino(ap.horario, ap.tempoServico);
         const apServicosValidos = ap.servicos.filter(s => s.nome);
@@ -1681,32 +1699,58 @@ const Agendamentos = () => {
             allAgendamentoIds.push(apData.id);
             allPetServicos.push({ petName: ap.petName, servicos: apServicosValidos.map(s => ({ nome: s.nome, valor: s.valor })) });
 
-            // WhatsApp para pet adicional
-            try {
-              let sexoPetAd = "";
-              for (const cliente of clientes) {
-                const pet = cliente.pets.find(p => p.nome === ap.petName && p.raca === ap.raca);
-                if (pet) { sexoPetAd = pet.sexo || ""; break; }
+            // WhatsApp para pet adicional (apenas se for horário diferente e ainda não processado)
+            if (ap.horario !== formData.horario && !handledPets.has(ap.petName)) {
+              try {
+                let sexoPetAd = "";
+                for (const cliente of clientes) {
+                  const pet = cliente.pets.find(p => p.nome === ap.petName && p.raca === ap.raca);
+                  if (pet) { sexoPetAd = pet.sexo || ""; break; }
+                }
+                
+                // Buscar outros pets que compartilham este mesmo horário adicional
+                const petsMesmoHorario = additionalPets
+                  .filter(otherAp => otherAp.horario === ap.horario);
+                
+                // Marcar todos como processados
+                petsMesmoHorario.forEach(p => handledPets.add(p.petName));
+
+                const outrosPetsMesmoHorario = petsMesmoHorario
+                  .filter(otherAp => otherAp.petName !== ap.petName)
+                  .map(otherAp => {
+                    let s = "";
+                    for (const c of clientes) {
+                      const p = c.pets.find(pet => pet.nome === otherAp.petName && pet.raca === otherAp.raca);
+                      if (p) { s = p.sexo || ""; break; }
+                    }
+                    return {
+                      nome: otherAp.petName,
+                      sexo: s,
+                      servicos: otherAp.servicos.filter(serv => serv.nome).map(serv => serv.nome).join(" + ")
+                    };
+                  });
+
+                await scheduleWhatsAppMessages({
+                  userId: ownerId || user.id,
+                  agendamentoId: apData.id,
+                  nomeCliente: formData.cliente,
+                  nomePet: ap.petName,
+                  sexoPet: sexoPetAd,
+                  raca: ap.raca,
+                  whatsapp: formData.whatsapp,
+                  dataAgendamento: formData.data,
+                  horarioInicio: ap.horario,
+                  servicos: apServicosNomes,
+                  taxiDog: formData.taxiDog,
+                  bordao: empresaConfig.bordao,
+                  isPacote: !!formData.numeroServicoPacote,
+                  isUltimoServicoPacote: false,
+                  servicoNumero: formData.numeroServicoPacote || undefined,
+                  outrosPets: outrosPetsMesmoHorario,
+                });
+              } catch (schedErr) {
+                console.error("Erro ao agendar WhatsApp para pet adicional:", schedErr);
               }
-              await scheduleWhatsAppMessages({
-                userId: ownerId || user.id,
-                agendamentoId: apData.id,
-                nomeCliente: formData.cliente,
-                nomePet: ap.petName,
-                sexoPet: sexoPetAd,
-                raca: ap.raca,
-                whatsapp: formData.whatsapp,
-                dataAgendamento: formData.data,
-                horarioInicio: ap.horario,
-                servicos: apServicosNomes,
-                taxiDog: formData.taxiDog,
-                bordao: empresaConfig.bordao,
-                isPacote: !!formData.numeroServicoPacote,
-                isUltimoServicoPacote: false,
-                servicoNumero: formData.numeroServicoPacote || undefined,
-              });
-            } catch (schedErr) {
-              console.error("Erro ao agendar WhatsApp para pet adicional:", schedErr);
             }
           }
         } catch (apErr) {
