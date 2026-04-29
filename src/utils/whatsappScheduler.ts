@@ -282,7 +282,7 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
   if (mensagensParaInserir.length > 0) {
     for (const msg of mensagensParaInserir) {
       const msgKey = msg.agendado_para.substring(0, 16);
-      const similar = existingMessages?.find(m => 
+      const similar = castedExistingMessages?.find(m => 
         m.tipo_mensagem === msg.tipo_mensagem && 
         m.agendado_para.substring(0, 16) === msgKey
       );
