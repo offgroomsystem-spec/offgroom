@@ -165,46 +165,40 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     }
   }
 
-  // Carregar config de período de confirmação
-  let usarPeriodoCustom = false;
-  let conf24h = false;
-  let conf15h = false;
-  let conf3h = true; // fallback padrão
-  
-  const { data: empresaConfig } = await supabase
-    .from("empresa_config")
-    .select("confirmacao_periodo_ativo, confirmacao_24h, confirmacao_15h, confirmacao_3h")
-    .eq("user_id", params.userId)
-    .maybeSingle();
-
-  if (empresaConfig) {
-    usarPeriodoCustom = (empresaConfig as any).confirmacao_periodo_ativo ?? true;
-    if (usarPeriodoCustom) {
-      conf24h = (empresaConfig as any).confirmacao_24h ?? false;
-      conf15h = (empresaConfig as any).confirmacao_15h ?? false;
-      conf3h = (empresaConfig as any).confirmacao_3h ?? true;
-      // Se nenhuma opção selecionada, nenhuma confirmação será enviada (exceto 30min)
-    }
-  }
-
+  // 1. Verificar se já existe uma mensagem pendente para este cliente, data e hora
+  // Isso permite agrupar múltiplos pets que são adicionados um a um
   const agendamentoDateTime = parseDateTime(params.dataAgendamento, params.horarioInicio);
   
-  // Diferença em minutos entre agora e o agendamento
-  const diffMinutes = (agendamentoDateTime.getTime() - now.getTime()) / (1000 * 60);
-
-  // Se o agendamento está dentro de 60 minutos (passado ou futuro próximo), não enviar automático
-  if (diffMinutes <= 60 && diffMinutes >= -60) {
-    return;
-  }
-
-  const confirmationMsg = buildConfirmationMessage(params);
-  const mensagensParaInserir: any[] = [];
-
   // Formatar número WhatsApp (garantir formato E.164)
   let numero = params.whatsapp.replace(/\D/g, "");
   if (!numero.startsWith("55")) {
     numero = "55" + numero;
   }
+
+  // Buscar mensagens pendentes para o mesmo número e horário (aproximado por minuto)
+  const startTime = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: existingMessages } = await supabase
+    .from("whatsapp_mensagens_agendadas" as any)
+    .select("*")
+    .eq("numero_whatsapp", numero)
+    .eq("status", "pendente")
+    .eq("user_id", params.userId)
+    .gt("agendado_para", startTime);
+
+  // Se já houver mensagens pendentes para este horário, vamos consolidar
+  const updatedParams = { ...params };
+  if (existingMessages && existingMessages.length > 0) {
+    // Filtrar mensagens que batem com os horários de lembrete que vamos gerar
+    // Para simplificar, vamos apenas adicionar os pets se encontrarmos mensagens que pareçam ser do mesmo agendamento
+    // (mesmo dia e hora de início no texto ou metadados)
+    
+    // Por enquanto, vamos focar em consolidar quando passamos explicitamente 'outrosPets'
+    // Se não passamos, e encontramos algo no DB, poderíamos tentar extrair dados, mas é complexo.
+    // O melhor é garantir que o caller em Agendamentos.tsx passe todos de uma vez.
+  }
+
+  const confirmationMsg = buildConfirmationMessage(updatedParams);
+  const mensagensParaInserir: any[] = [];
 
   const baseRecord = {
     user_id: params.userId,
@@ -215,120 +209,103 @@ export async function scheduleWhatsAppMessages(params: ScheduleParams & { client
     status: "pendente",
   };
 
-  // Set para evitar duplicidade de horários
   const horariosAgendados = new Set<string>();
 
-  function addMensagem(tipoMsg: string, agendadoPara: Date) {
-    const key = agendadoPara.toISOString().substring(0, 16); // minuto
-    if (horariosAgendados.has(key)) return; // evitar duplicidade
+  function addMensagem(tipoMsg: string, agendadoPara: Date, texto: string) {
+    const key = agendadoPara.toISOString().substring(0, 16);
+    if (horariosAgendados.has(key)) return;
     horariosAgendados.add(key);
     mensagensParaInserir.push({
       ...baseRecord,
       tipo_mensagem: tipoMsg,
-      mensagem: confirmationMsg,
+      mensagem: texto,
       agendado_para: agendadoPara.toISOString(),
     });
   }
 
-  if (usarPeriodoCustom) {
-    // === MODO PERSONALIZADO ===
+  const diffMinutes = (agendamentoDateTime.getTime() - now.getTime()) / (1000 * 60);
 
-    // 24h antes
+  if (diffMinutes <= 60 && diffMinutes >= -60) {
+    return;
+  }
+
+  if (usarPeriodoCustom) {
     if (conf24h && diffMinutes > 24 * 60) {
       const agendadoPara = new Date(agendamentoDateTime.getTime() - 24 * 60 * 60 * 1000);
-      if (agendadoPara.getTime() > now.getTime()) {
-        addMensagem("24h", agendadoPara);
-      }
+      if (agendadoPara.getTime() > now.getTime()) addMensagem("24h", agendadoPara, confirmationMsg);
     }
 
-    // 15h antes (máximo 18h BRT)
     if (conf15h && diffMinutes > 15 * 60) {
       let agendadoPara = new Date(agendamentoDateTime.getTime() - 15 * 60 * 60 * 1000);
       const brtHour = (agendadoPara.getUTCHours() - 3 + 24) % 24;
-      if (brtHour > 18) {
-        agendadoPara.setUTCHours(21, 0, 0, 0); // 18h BRT = 21h UTC
-      }
-      if (agendadoPara.getTime() > now.getTime()) {
-        addMensagem("15h", agendadoPara);
-      }
+      if (brtHour > 18) agendadoPara.setUTCHours(21, 0, 0, 0);
+      if (agendadoPara.getTime() > now.getTime()) addMensagem("15h", agendadoPara, confirmationMsg);
     }
 
-    // 3h antes (mínimo 07h BRT)
     if (conf3h && diffMinutes > 3 * 60) {
       let agendadoPara = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
       const brtHour = (agendadoPara.getUTCHours() - 3 + 24) % 24;
-      if (brtHour < 7) {
-        agendadoPara.setUTCHours(10, 0, 0, 0); // 7h BRT = 10h UTC
-      }
-      if (agendadoPara.getTime() > now.getTime()) {
-        addMensagem("3h", agendadoPara);
-      }
+      if (brtHour < 7) agendadoPara.setUTCHours(10, 0, 0, 0);
+      if (agendadoPara.getTime() > now.getTime()) addMensagem("3h", agendadoPara, confirmationMsg);
     }
 
-    // Confirmação imediata quando está entre 61min e o menor período selecionado
     const menorPeriodoMinutos = conf3h ? 3 * 60 : conf15h ? 15 * 60 : conf24h ? 24 * 60 : 3 * 60;
     if (diffMinutes > 61 && diffMinutes <= menorPeriodoMinutos) {
-      addMensagem("imediata", now);
+      addMensagem("imediata", now, confirmationMsg);
     }
-
   } else {
-    // === MODO PADRÃO (comportamento original) ===
-
-    // MENSAGEM 3H ANTES
     if (diffMinutes > 3 * 60) {
       let agendadoPara3h = new Date(agendamentoDateTime.getTime() - 3 * 60 * 60 * 1000);
       const brtHour3h = (agendadoPara3h.getUTCHours() - 3 + 24) % 24;
-      if (brtHour3h < 7) {
-        agendadoPara3h.setUTCHours(10, 0, 0, 0);
-      }
-      if (agendadoPara3h.getTime() > now.getTime()) {
-        addMensagem("3h", agendadoPara3h);
-      }
+      if (brtHour3h < 7) agendadoPara3h.setUTCHours(10, 0, 0, 0);
+      if (agendadoPara3h.getTime() > now.getTime()) addMensagem("3h", agendadoPara3h, confirmationMsg);
     }
-
-    // MENSAGEM DE CONFIRMAÇÃO IMEDIATA (entre 61min e 3h)
     if (diffMinutes > 61 && diffMinutes <= 3 * 60) {
-      addMensagem("3h", now);
+      addMensagem("3h", now, confirmationMsg);
     }
   }
 
-  // === MENSAGEM 30MIN ANTES (Apenas Taxi Dog = "Não") — sempre ativa ===
   if (params.taxiDog === "Não" && diffMinutes > 30) {
     const agendadoPara30min = new Date(agendamentoDateTime.getTime() - 30 * 60 * 1000);
     const brtHour30 = (agendadoPara30min.getUTCHours() - 3 + 24) % 24;
-    if (brtHour30 < 7) {
-      agendadoPara30min.setUTCHours(10, 0, 0, 0);
-    }
+    if (brtHour30 < 7) agendadoPara30min.setUTCHours(10, 0, 0, 0);
     if (agendadoPara30min.getTime() > now.getTime()) {
-      const reminderMsg = buildReminderMessage(params);
-      const key30 = agendadoPara30min.toISOString().substring(0, 16);
-      if (!horariosAgendados.has(key30)) {
-        horariosAgendados.add(key30);
-        mensagensParaInserir.push({
-          ...baseRecord,
-          tipo_mensagem: "30min",
-          mensagem: reminderMsg,
-          agendado_para: agendadoPara30min.toISOString(),
-        });
-      }
+      const reminderMsg = buildReminderMessage(updatedParams);
+      addMensagem("30min", agendadoPara30min, reminderMsg);
     }
   }
 
-  // Inserir mensagens uma a uma para respeitar unique index e evitar duplicidades
   if (mensagensParaInserir.length > 0) {
     for (const msg of mensagensParaInserir) {
-      const { error } = await supabase
-        .from("whatsapp_mensagens_agendadas" as any)
-        .insert(msg);
+      // Tentar encontrar uma mensagem pendente similar para atualizar em vez de inserir
+      // Uma mensagem é similar se tiver o mesmo número, tipo e estiver agendada para o mesmo minuto
+      const msgKey = msg.agendado_para.substring(0, 16);
+      
+      const similar = existingMessages?.find(m => 
+        m.tipo_mensagem === msg.tipo_mensagem && 
+        m.agendado_para.substring(0, 16) === msgKey
+      );
 
-      if (error) {
-        // 23505 = unique constraint violation (duplicate), silently skip
-        if (error.code === "23505") {
-          console.log(`Mensagem duplicada ignorada: ${msg.tipo_mensagem}`);
-        } else {
+      if (similar) {
+        // Se encontramos uma similar, vamos atualizar o texto
+        // Nota: Isso assume que o caller passou a lista consolidada de pets.
+        // Se não passou, poderíamos tentar fazer o merge do texto aqui, mas é arriscado.
+        const { error } = await supabase
+          .from("whatsapp_mensagens_agendadas" as any)
+          .update({ mensagem: msg.mensagem })
+          .eq("id", similar.id);
+        
+        if (error) console.error("Erro ao atualizar mensagem WhatsApp similar:", error);
+      } else {
+        const { error } = await supabase
+          .from("whatsapp_mensagens_agendadas" as any)
+          .insert(msg);
+
+        if (error && error.code !== "23505") {
           console.error("Erro ao agendar mensagem WhatsApp:", error);
         }
       }
     }
   }
+}
 }
